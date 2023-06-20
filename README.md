@@ -8,4 +8,4 @@ Not fully working, meaning you cannot run `ui5 serve` and play with the app, tes
 
 Anyways, here is the app's structure pertaining to the XSS vulnerability:
 
-![Diagram of current app](diagram.svg "Diagram")
+![Diagram of current app](./integration-tests/xss-example/diagram.svg "Diagram")
