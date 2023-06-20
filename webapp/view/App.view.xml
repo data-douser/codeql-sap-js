@@ -1,0 +1,23 @@
+<mvc:View
+	controllerName="ghas.sample.webapp.App"
+	xmlns="sap.m"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns:ghas="ghas.sample.controls">
+
+	<!-- use our custom control, implementation see below -->
+	<!-- works w/o namespace prefix because the default is set to "ghas.sample.controls" -->
+	<Page>
+		<ghas:Book
+			id="myBook"
+			height="auto"
+			title="My Book in XMLView"
+			author="My Author"
+			description="This is a Book about..."
+			price="11.99"
+			currencyCode="USD"
+			comments="Great book!,A must have!,I liked chapter 6 the most!"
+			numberOfPages="349"
+			expressDelivery="true"
+			buy="onBuy" />
+	</Page>
+</mvc:View>
