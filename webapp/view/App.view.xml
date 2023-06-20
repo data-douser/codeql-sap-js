@@ -4,9 +4,9 @@
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:ghas="ghas.sample.controls">
 
-	<!-- use our custom control, implementation see below -->
-	<!-- works w/o namespace prefix because the default is set to "ghas.sample.controls" -->
 	<Page>
+		<SearchField id="searchTodoItemsInput" liveChange=".onSearch"
+			width="20rem" search=".onSearchCompleted" />
 		<ghas:Book
 			id="myBook"
 			height="auto"

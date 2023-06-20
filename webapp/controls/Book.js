@@ -15,13 +15,6 @@ sap.ui.define(
 				properties: {
 					/* Business Object properties */
 					title: { type: "string" },
-					author: { type: "string" },
-					description: { type: "string" },
-					price: { type: "float" },
-					comments: { type: "string[]", defaultValue: [] },
-					numberOfPages: { type: "int" },
-					// coverPictureUrl: { type: "string" }, // usueally you would use "sap.ui.core.URI" for type
-					expressDelivery: { type: "boolean", defaultValue: false },
 
 					/* other (configuration) properties */
 					width: {
