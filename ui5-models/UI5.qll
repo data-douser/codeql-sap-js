@@ -119,8 +119,8 @@ module UI5 {
     /**
      * Gets a view object that can be accessed from one of the methods of this controller.
      */
-    MethodCallNode getAView() {
-      result.getMethodName() = "getView" and
+    View getAView() {
+      result.getCalleeName() = "getView" and
       exists(ThisNode this_ |
         result.getReceiver() = this_.getALocalUse() and
         exists(FunctionNode method | method = getAMethod() and this_.getBinder() = method)
@@ -201,12 +201,13 @@ module UI5 {
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.Element
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.mvc.Controller%23methods/byId
    */
-  abstract class SapElement extends SourceNode { }
+  abstract class SapElement extends CallNode { }
 
   class View extends SapElement {
     View() {
       /* 1. A return value of `this.getView` where `this` is a Controller */
-      exists(Controller controller | this = controller.getAView())
+      // exists(Controller controller | this = controller.getAView())
+      any()
       or
       /*
        * 2. Extension of a view
@@ -230,19 +231,30 @@ module UI5 {
 
       none() // TODO, not needed right now
     }
+
+    SapElement getAnElement() {
+      exists(Controller controller, View view |
+        result.(MethodCallNode).getMethodName() = "byId" and
+        view.flowsTo(result.getReceiver()) and
+        view = controller.getAView() and
+        result = result
+      )
+    }
   }
 
-  predicate valueFromElement(ValueNode valueNode) { any() }
+  ValueNode valueFromElement() {
+    exists(Controller controller, SapElement element, MethodCallNode getCall |
+      element = controller.getAView().getAnElement() and
+      getCall = element.getAMethodCall() and
+      getCall.getMethodName().prefix(3) = "get" and
+      result = getCall
+    )
+  }
 
-  // class SearchField extends ModuleObject {
-  //   SearchField() {
-  //     exists(int i, Define define |
-  //       define.getParameter(i) = this and
-  //       this.getName() = "SearchField" and
-  //       define.getDependencyType(i) = "sap."
-  //     )
-  //   }
-  // }
+  class UnsafeHtmlXssSource extends DomBasedXss::Source {
+    UnsafeHtmlXssSource() { this = valueFromElement() }
+  }
+
   class UnsafeHtmlXssSink extends DomBasedXss::Sink {
     UnsafeHtmlXssSink() { this = any(RenderManager rm).getAnUnsafeHtmlCall().getArgument(0) }
   }
