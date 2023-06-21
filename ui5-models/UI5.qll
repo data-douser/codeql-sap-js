@@ -22,7 +22,7 @@ module UI5 {
   /**
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui%23methods/sap.ui.define
    */
-  class Define extends CallNode {
+  class Define extends CallNode, SapElement {
     Define() { this = globalVarRef("sap").getAPropertyRead("ui").getAMethodCall("define") }
 
     string getDependencyType(int i) {
@@ -78,7 +78,7 @@ module UI5 {
     t.start() and
     exists(Define d, int i |
       /* It has a "sap/ui/core/Controller" specifier */
-      d.getDependencyType(i) = "sap/ui/core/Controller" and
+      d.getDependencyType(i) = "sap/ui/core/mvc/Controller" and
       /* Get the positional parameter at the same index as the specifier */
       result = d.getParameter(i)
     )
@@ -86,7 +86,7 @@ module UI5 {
     exists(TypeTracker t2 | result = sapController(t2).track(t2, t))
   }
 
-  SourceNode sapController() { result = sapControl(TypeTracker::end()) }
+  SourceNode sapController() { result = sapController(TypeTracker::end()) }
 
   class Control extends CallNode {
     Control() { getReceiver().getALocalSource() = sapControl() and getCalleeName() = "extend" }
@@ -104,6 +104,31 @@ module UI5 {
        */
 
       any()
+    }
+  }
+
+  class Controller extends CallNode {
+    Controller() {
+      getReceiver().getALocalSource() = sapController() and getCalleeName() = "extend"
+    }
+
+    FunctionNode getAMethod() {
+      result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource().(FunctionNode)
+    }
+
+    MethodCallNode getAView() {
+      result.getMethodName() = "getView" and
+      exists(ThisNode this_ |
+        result.getReceiver() = this_.getALocalUse() and
+        // TODO: Is there a better way other than comparing the toplevel?
+        this_.getTopLevel() = any(Define d).getTopLevel()
+      )
+    }
+
+    SapElement getAnElement() {
+      /* There is a view */
+      exists(View view | view.flowsTo(result))
+      /* There is a member of this view */
     }
   }
 
@@ -131,6 +156,10 @@ module UI5 {
     ModuleObject() { this = any(Define d).getParameter(_) }
   }
 
+  /**
+   * Controller.extend or
+   * Control.extend
+   */
   class Extension extends MethodCallNode {
     Extension() {
       /* 1. The receiver object is an imported one */
@@ -165,6 +194,53 @@ module UI5 {
     }
   }
 
+  /**
+   * Result of View.byId().
+   * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.Element
+   * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.mvc.Controller%23methods/byId
+   */
+  abstract class SapElement extends SourceNode { }
+
+  class View extends SapElement {
+    View() {
+      /* 1. A return value of `this.getView` where `this` is a Controller */
+      exists(Controller controller | this = controller.getAView())
+      or
+      /*
+       * 2. Extension of a view
+       *      View.extend("some.view", { ... })
+       */
+
+      none() // TODO, not needed right now
+      or
+      /*
+       * 3. XMLView
+       *    var oView = XMLView(...)
+       */
+
+      none() // TODO, not needed right now
+      or
+      /*
+       * 4. sap.ui.xmlview({
+       *                    viewContent : jQuery("#myXmlView").html()
+       *                }).placeAt("contentXMLView");
+       */
+
+      none() // TODO, not needed right now
+    }
+  }
+
+  predicate valueFromElement(ValueNode valueNode) { any() }
+
+  // class SearchField extends ModuleObject {
+  //   SearchField() {
+  //     exists(int i, Define define |
+  //       define.getParameter(i) = this and
+  //       this.getName() = "SearchField" and
+  //       define.getDependencyType(i) = "sap."
+  //     )
+  //   }
+  // }
   class UnsafeHtmlXssSink extends DomBasedXss::Sink {
     UnsafeHtmlXssSink() { this = any(RenderManager rm).getAnUnsafeHtmlCall().getArgument(0) }
   }
