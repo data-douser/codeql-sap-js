@@ -26,8 +26,8 @@ Anyways, here is the app's structure pertaining to the XSS vulnerability:
 ## xss-html-control
 - `sap.ui.core.HTML` Control
 
-## xss-js-view
-- WORK IN PROGRESS
+## xss-json-view
+- `sap.ui.core.mvc.JSONView` View
 
 ## xss-separate-renderer
 - `renderer` property is set to a class name (a string)
