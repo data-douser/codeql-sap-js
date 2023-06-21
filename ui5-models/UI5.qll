@@ -136,7 +136,20 @@ module UI5 {
 
   class RenderManager extends SourceNode {
     RenderManager() {
+      /*
+       * Old RenderManager API:
+       * renderer: function (oRm, oControl) { ... }
+       */
+
       this = any(Control c).getRenderer().(FunctionNode).getParameter(0)
+      or
+      /*
+       * New Semantic Rendering API:
+       *  renderer: { apiVersion: 2, render: function(oRm, oControl) { ... } }
+       */
+
+      this =
+        any(Control c).getRenderer().getAPropertySource("render").(FunctionNode).getParameter(0)
       or
       exists(int i |
         // The control's renderer object
