@@ -2,6 +2,8 @@
     xmlns="sap.m"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns:xssControl="sap.ui5.xss.control">
-    <Input placeholder="Enter Payload" description="Try: &lt;img src=x onerror=alert(&quot;XSS&quot;)&gt;" value="{/input}" />
+    <Input placeholder="Enter Payload" 
+        description="Try: &lt;img src=x onerror=alert(&quot;XSS&quot;)&gt;" 
+        value="{/input}" />  <!--User input source sap.m.Input.value -->
     <xssControl:xss text="{/input}"/>
 </mvc:View>

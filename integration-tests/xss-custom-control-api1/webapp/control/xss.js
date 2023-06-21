@@ -11,10 +11,8 @@ sap.ui.define([
             oRm.write("<div");
             oRm.writeControlData(oControl);
             oRm.write(">");
-            oRm.write(oControl.getText()); // XSS vulnerability
+            oRm.write(oControl.getText()); // XSS sink RenderManager.write
             oRm.write("</div>")
         }
     });
 })
-
-//    <xssControl:xss text="{/input}"/>
