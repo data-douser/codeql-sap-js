@@ -35,4 +35,4 @@ Anyways, here is the app's structure pertaining to the XSS vulnerability:
 
 ## xss-separate-renderer-byname
 - `renderer` property is unassigned
-- Renderer implemented in it's own module with naming convention `<CustomControl>Renderer`
+- Renderer implemented in its own module with naming convention `<CustomControl>Renderer`
