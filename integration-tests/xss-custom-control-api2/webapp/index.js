@@ -3,7 +3,7 @@ sap.ui.define([
 ], function (XMLView) {
     "use strict";
     XMLView.create({
-        viewName: "sap.ui5.xss.view.app"
+        viewName: "codeql-sap-js.view.app"
     }).then(function (oView) {
         oView.placeAt("content");
     });
