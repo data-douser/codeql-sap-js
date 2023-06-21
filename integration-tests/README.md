@@ -1,5 +1,7 @@
 # Integration tests
 
+All XSS examples run locally using the [UI5 tooling](https://sap.github.io/ui5-tooling/stable/)
+
 ## xss-example
 
 Not fully working, meaning you cannot run `ui5 serve` and play with the app, testing the XSS itself. We are having technical difficulties caused the ui5 tooling not cooperating well.
