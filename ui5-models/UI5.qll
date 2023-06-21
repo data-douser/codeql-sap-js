@@ -116,12 +116,14 @@ module UI5 {
       result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource().(FunctionNode)
     }
 
+    /**
+     * Gets a view object that can be accessed from one of the methods of this controller.
+     */
     MethodCallNode getAView() {
       result.getMethodName() = "getView" and
       exists(ThisNode this_ |
         result.getReceiver() = this_.getALocalUse() and
-        // TODO: Is there a better way other than comparing the toplevel?
-        this_.getTopLevel() = any(Define d).getTopLevel()
+        exists(FunctionNode method | method = getAMethod() and this_.getBinder() = method)
       )
     }
 
