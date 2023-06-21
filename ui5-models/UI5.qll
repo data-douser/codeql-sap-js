@@ -74,6 +74,20 @@ module UI5 {
 
   SourceNode sapControl() { result = sapControl(TypeTracker::end()) }
 
+  private SourceNode sapController(TypeTracker t) {
+    t.start() and
+    exists(Define d, int i |
+      /* It has a "sap/ui/core/Controller" specifier */
+      d.getDependencyType(i) = "sap/ui/core/Controller" and
+      /* Get the positional parameter at the same index as the specifier */
+      result = d.getParameter(i)
+    )
+    or
+    exists(TypeTracker t2 | result = sapController(t2).track(t2, t))
+  }
+
+  SourceNode sapController() { result = sapControl(TypeTracker::end()) }
+
   class Control extends CallNode {
     Control() { getReceiver().getALocalSource() = sapControl() and getCalleeName() = "extend" }
 
@@ -109,6 +123,44 @@ module UI5 {
       exists(string calleeName |
         result = this.(DataFlow::SourceNode).getAMemberCall(calleeName) and
         calleeName = ["write", "unsafeHtml"]
+      )
+    }
+  }
+
+  class ModuleObject extends ParameterNode {
+    ModuleObject() { this = any(Define d).getParameter(_) }
+  }
+
+  class Extension extends MethodCallNode {
+    Extension() {
+      /* 1. The receiver object is an imported one */
+      any(ModuleObject module_).flowsTo(this.getReceiver()) and
+      /* 2. The method name is `extend` */
+      this.getMethodName() = "extend"
+    }
+
+    ObjectLiteralNode getContent() { result = this.getArgument(1) }
+
+    Metadata getMetadata() { result = this.getContent().getAPropertySource("metadata") }
+  }
+
+  /**
+   * The property metadata found in an Extension.
+   */
+  class Metadata extends ObjectLiteralNode {
+    Metadata() { this = any(Extension e).getContent().getAPropertySource("metadata") }
+
+    Node getAProperty(string name) {
+      result = this.getAPropertySource("properties").getAPropertyReference(name)
+    }
+
+    Extension getExtension() { result = any(Extension extend | extend.getMetadata() = this) }
+
+    MethodCallNode getAWrite() {
+      exists(string propName |
+        result.getMethodName() = "setProperty" and
+        result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
+        exists(getAProperty(propName))
       )
     }
   }
