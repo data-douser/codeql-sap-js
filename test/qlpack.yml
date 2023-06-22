@@ -1,0 +1,7 @@
+---
+library: false
+name: sap-js/ui5-models-test
+version: 0.0.1
+dependencies:
+  sap-js/ui5-models: "*"
+extractor: javascript
