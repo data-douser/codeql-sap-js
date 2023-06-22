@@ -137,14 +137,14 @@ module UI5 {
   class RenderManager extends SourceNode {
     RenderManager() {
       /*
-       * Old RenderManager API:
+       * 1. Old RenderManager API:
        * renderer: function (oRm, oControl) { ... }
        */
 
       this = any(Control c).getRenderer().(FunctionNode).getParameter(0)
       or
       /*
-       * New Semantic Rendering API:
+       * 2. New Semantic Rendering API:
        *  renderer: { apiVersion: 2, render: function(oRm, oControl) { ... } }
        */
 
@@ -156,6 +156,14 @@ module UI5 {
         this = any(Control c).getRenderer().getALocalSource() and
         // ... is an imported one, thus found in a parameter of a Define
         this = any(Define d).getParameter(i)
+      )
+      or
+      /*
+       * 3. Through `new` keyword on an imported constructor
+       */
+
+      exists(NewNode instantiation, ModuleObject module_ |
+        this = instantiation.getAConstructorInvocation(module_.getName())
       )
     }
 
