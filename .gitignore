@@ -64,3 +64,4 @@ dist/
 tmp/
 
 .cache/
+**.testproj

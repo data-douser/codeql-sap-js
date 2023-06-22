@@ -1,0 +1,9 @@
+---
+library: true
+name: sap-js/ui5-data-extension-pack
+version: 0.0.1
+extensionTargets:
+  codeql/javascript-all: "*"
+  codeql/javascript-queries: "*"
+dataExtensions:
+  - ui5-data-extension.yml

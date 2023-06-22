@@ -7,20 +7,20 @@ sap.ui.require(["sap/ui/commons/TextField", "sap/m/InputBase", "sap/m/Input", "s
 
         // sap.ui.commons.TextField.value
         var f = new TextField();
-        f.value = "text";
+        var remoteInput = f.value;
 
         // sap.m.InputBase.value
         var ib = new InputBase();
-        ib.value = "text";
+        remoteInput = ib.value;
 
         // sap.m.Input.value
         // sap.m.Input#setValue()
         var input = new Input();
-        input.value = "text";
-        input.setValue("text");
+        remoteInput = input.value;
+        remoteInput = input.getValue();
 
         // jQuery.sap.getUriParameters() return
-        var sValue = jQuery.sap.getUriParameters().get("foo");
+        var value = jQuery.sap.getUriParameters().get("foo");
 
         // jQuery.sap.syncHead return
         var value = jQuery.sap.syncHead("url", "param")
