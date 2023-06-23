@@ -13,16 +13,19 @@ sap.ui.require(
     /* TextField Deprecated as of version 1.38 */
     // sap.ui.commons.TextField.value
     var f = new TextField();
+    var remoteInput = f.value;
     var inputValue1 = f.getValue();
 
     // sap.m.InputBase.value
     var ib = new InputBase();
+    remoteInput = ib.value;
     var inputValue2 = ib.getValue();
 
     // sap.m.Input.value
     // sap.m.Input#setValue()
     var input = new Input();
-    var inputValue3 = input.getValue();
+    remoteInput = input.value;
+    remoteInput = input.getValue();
 
     /* The namespace jQuery.sap is deprecated as of version 1.58, so
        I'm not sure if we should be modeling these. */
