@@ -4,3 +4,4 @@ name: sap-js/ui5-queries
 version: 0.0.1
 dependencies:
   codeql/javascript-all: "*"
+  sap-js/ui5-models: "*"

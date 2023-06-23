@@ -1,6 +1,6 @@
-import javascript
-import DataFlow
-import semmle.javascript.security.dataflow.DomBasedXssCustomizations
+private import javascript
+private import DataFlow
+private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
 
 module UI5 {
   class Project extends Folder {
@@ -51,7 +51,7 @@ module UI5 {
       exists(Define d | s = d.getDependencyType(_) and not s.prefix(1) = ".")
     }
 
-  class Module extends TModule {
+  class SapModule extends TModule {
     string getModuleFileRelativePath() {
       this = DefinedModule(any(Define d | result = d.getModuleFileRelativePath())) or
       this = ExternallyDefinedModule(result)
@@ -123,7 +123,7 @@ module UI5 {
       result.getCalleeName() = "getView" and
       exists(ThisNode this_ |
         result.getReceiver() = this_.getALocalUse() and
-        exists(FunctionNode method | method = this.getAMethod() and this_.getBinder() = method)
+        this_.getBinder() = this.getAMethod()
       )
     }
 
@@ -139,7 +139,7 @@ module UI5 {
 
     ThisNode getAThisNode() { result.getBinder() = this.getAMethod() }
 
-    SapElement getAModel() {
+    Model getAModel() {
       this.getAView().flowsTo(result.getReceiver()) and
       result.(MethodCallNode).getMethodName() = "getModel"
     }
@@ -272,11 +272,10 @@ module UI5 {
     }
 
     SapElement getAnElement() {
-      exists(Controller controller, View view |
+      exists(Controller controller |
         result.(MethodCallNode).getMethodName() = "byId" and
-        view.flowsTo(result.getReceiver()) and
-        view = controller.getAView() and
-        result = result
+        this.flowsTo(result.getReceiver()) and
+        this = controller.getAView()
       )
     }
   }
