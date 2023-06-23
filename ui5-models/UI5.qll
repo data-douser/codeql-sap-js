@@ -230,8 +230,26 @@ module UI5 {
       exists(string propName |
         result.getMethodName() = "setProperty" and
         result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-        exists(getAProperty(propName))
+        exists(this.getAProperty(propName))
       )
+    }
+
+    MethodCallNode getAWrite(string propName) {
+      result.getMethodName() = "setProperty" and
+      result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
+      exists(this.getAProperty(propName))
+    }
+
+    MethodCallNode getARead() {
+      exists(string propName |
+        result.getMethodName() = "get" + propName.prefix(1).toUpperCase() + propName.suffix(1) and
+        exists(this.getAProperty(propName))
+      )
+    }
+
+    MethodCallNode getARead(string propName) {
+      result.getMethodName() = "get" + propName.prefix(1).toUpperCase() + propName.suffix(1) and
+      exists(this.getAProperty(propName))
     }
   }
 
