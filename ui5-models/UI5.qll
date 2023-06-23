@@ -109,7 +109,7 @@ module UI5 {
 
   class Controller extends CallNode {
     Controller() {
-      getReceiver().getALocalSource() = sapController() and getCalleeName() = "extend"
+      this.getReceiver().getALocalSource() = sapController() and getCalleeName() = "extend"
     }
 
     FunctionNode getAMethod() {
@@ -123,15 +123,33 @@ module UI5 {
       result.getCalleeName() = "getView" and
       exists(ThisNode this_ |
         result.getReceiver() = this_.getALocalUse() and
-        exists(FunctionNode method | method = getAMethod() and this_.getBinder() = method)
+        exists(FunctionNode method | method = this.getAMethod() and this_.getBinder() = method)
       )
     }
 
     SapElement getAnElement() {
-      /* There is a view */
-      exists(View view | view.flowsTo(result))
-      /* There is a member of this view */
+      exists(View view |
+        view = this.getAView() and
+        /* There is a view */
+        view.flowsTo(result.getReceiver()) and
+        /* The result is a member of this view */
+        result.(MethodCallNode).getMethodName() = "byId"
+      )
     }
+
+    ThisNode getAThisNode() { result.getBinder() = this.getAMethod() }
+
+    SapElement getAModel() {
+      this.getAView().flowsTo(result.getReceiver()) and
+      result.(MethodCallNode).getMethodName() = "getModel"
+    }
+  }
+
+  /**
+   * Under construction
+   */
+  class Model extends SapElement {
+    Model() { any() }
   }
 
   class RenderManager extends SourceNode {
