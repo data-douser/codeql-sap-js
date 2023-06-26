@@ -1,5 +1,5 @@
 import javascript
-import UI5::UI5
+import models.UI5::UI5
 import semmle.javascript.security.dataflow.DomBasedXssQuery
 
 class XssWithCustomControl extends Configuration {

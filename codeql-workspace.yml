@@ -1,3 +1,2 @@
 provide:
   - "**/qlpack.yml"
-  - "**/codeql-workspace.yml"

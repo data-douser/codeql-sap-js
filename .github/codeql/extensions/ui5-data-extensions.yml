@@ -16,13 +16,14 @@ extensions:
       pack: codeql/javascript-all
       extensible: sourceModel
     data:
-      # sap.ui.commons.TextField.value
+      # sap.ui.commons.TextField.value sap.ui.commons.TextField#getValue
       - ["sap/ui/commons/TextField", "Instance.Member[value]", "remote"]
-      # sap.m.InputBase.value
+      - ["sap/ui/commons/TextField", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.m.InputBase.value sap.m.InputBase#getValue
       - ["sap/m/InputBase", "Instance.Member[value]", "remote"]
-      # sap.m.Input.value
+      - ["sap/m/InputBase", "Instance.Member[getValue]", "remote"]
+      # sap.m.Input.value sap.m.Input#getValue()
       - ["sap/m/Input", "Instance.Member[value]", "remote"]
-      #  sap.m.Input#getValue()
       - ["sap/m/Input", "Instance.Member[getValue].ReturnValue", "remote"]
       # jQuery.sap.getUriParameters() return
       - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get]", "remote"]
@@ -36,8 +37,7 @@ extensions:
       - ["global", "Member[jQuery].Member[sap].Member[syncPost].ReturnValue", "remote"]
       # jQuery.sap.syncPostText() return
       - ["global", "Member[jQuery].Member[sap].Member[syncPostText].ReturnValue", "remote"]
-      # UriParameters#get
-      # UriParameters#getAll
+      # UriParameters#get UriParameters#getAll
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[get].ReturnValue", "remote"]
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue", "remote"]
   - addsTo:

@@ -1,7 +1,9 @@
 ---
-library: false
-name: sap-js/ui5-models-test
+library: true
+name: sap-js/ui5-test
 version: 0.0.1
-dependencies:
-  sap-js/ui5-models: "*"
 extractor: javascript
+dependencies:
+  sap-js/ui5: "*"
+  codeql/javascript-all: "*"
+  sap-js/ui5-data-extensions-pack: "*"
