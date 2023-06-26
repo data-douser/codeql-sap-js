@@ -3,26 +3,15 @@ extensions:
       pack: codeql/javascript-all
       extensible: typeModel
     data:
-      # sap.ui.core.HTML
       - ["Control", "sap/ui/core/Control", ""]
-      - [
-          "Control",
-          "global",
-          "Member[sap].Member[ui].Member[core].Member[Control]",
-        ]
-      - [
-          "HTMLControl",
-          "global",
-          "Member[sap].Member[ui].Member[core].Member[HTML]",
-        ]
-      - [
-          "RendererProp",
-          "Control",
-          "Member[extend].Argument[1].Member[renderer]",
-        ]
-      - ["RenderManager", "sap/ui/core/RenderManager", "Instance"] #check
-      - ["RenderManager", "RendererProp", "Parameter[0]"]
-      - ["RenderManager", "RendererProp", "Member[render].Parameter[0]"]
+      - ["Control", "global", "Member[sap].Member[ui].Member[core].Member[Control]"]
+      - ["HTMLControl", "global", "Member[sap].Member[ui].Member[core].Member[HTML]"]
+      - ["Renderer", "Control", "Member[extend].Argument[1].Member[renderer]"]
+      - ["Renderer", "sap/ui/core/RenderManager", "Member[extend].Argument[1].Member[renderer]"]
+      - ["Renderer", "sap/ui/core/Renderer", "Member[extend].Argument[1]"]
+      - ["RenderManager", "sap/ui/core/RenderManager", "Instance"]
+      - ["RenderManager", "Renderer", "Parameter[0]"]
+      - ["RenderManager", "Renderer", "Member[render].Parameter[0]"]
   - addsTo:
       pack: codeql/javascript-all
       extensible: sourceModel
@@ -36,93 +25,41 @@ extensions:
       #  sap.m.Input#getValue()
       - ["sap/m/Input", "Instance.Member[getValue].ReturnValue", "remote"]
       # jQuery.sap.getUriParameters() return
-      - [
-          "global",
-          "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get]",
-          "remote",
-        ]
+      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get]", "remote"]
       # jQuery.sap.syncHead() return
-      - [
-          "global",
-          "Member[jQuery].Member[sap].Member[syncHead].ReturnValue",
-          "remote",
-        ]
+      - ["global", "Member[jQuery].Member[sap].Member[syncHead].ReturnValue", "remote"]
       # jQuery.sap.syncGet() return
-      - [
-          "global",
-          "Member[jQuery].Member[sap].Member[syncGet].ReturnValue",
-          "remote",
-        ]
+      - ["global", "Member[jQuery].Member[sap].Member[syncGet].ReturnValue", "remote"]
       # jQuery.sap.syncGetText() return
-      - [
-          "global",
-          "Member[jQuery].Member[sap].Member[syncGetText].ReturnValue",
-          "remote",
-        ]
+      - ["global", "Member[jQuery].Member[sap].Member[syncGetText].ReturnValue", "remote"]
       # jQuery.sap.syncPost() return
-      - [
-          "global",
-          "Member[jQuery].Member[sap].Member[syncPost].ReturnValue",
-          "remote",
-        ]
+      - ["global", "Member[jQuery].Member[sap].Member[syncPost].ReturnValue", "remote"]
       # jQuery.sap.syncPostText() return
-      - [
-          "global",
-          "Member[jQuery].Member[sap].Member[syncPostText].ReturnValue",
-          "remote",
-        ]
+      - ["global", "Member[jQuery].Member[sap].Member[syncPostText].ReturnValue", "remote"]
       # UriParameters#get
       # UriParameters#getAll
-      - [
-          "sap/base/util/UriParameters",
-          "Member[fromQuery].ReturnValue.Member[get].ReturnValue",
-          "remote",
-        ]
-      - [
-          "sap/base/util/UriParameters",
-          "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue",
-          "remote",
-        ]
+      - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[get].ReturnValue", "remote"]
+      - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue", "remote"]
   - addsTo:
       pack: codeql/javascript-all
       extensible: sinkModel
     data:
       # jQuery.sap.globalEval(code)
-      - [
-          "global",
-          "Member[jQuery].Member[sap].Member[globalEval].Argument[0]",
-          "html-injection",
-        ]
+      - ["global", "Member[jQuery].Member[sap].Member[globalEval].Argument[0]", "html-injection"]
         # new sap.ui.core.HTML({ content: code })
       - ["HTMLControl", "Argument[0].Member[content]", "html-injection"]
       # sap.ui.core.HTML#content
       - ["HTMLControl", "Instance.Member[content]", "html-injection"]
       # sap.ui.core.HTML#setContent
-      - [
-          "HTMLControl",
-          "Instance.Member[setContent].Argument[0]",
-          "html-injection",
-        ]
+      - ["HTMLControl", "Instance.Member[setContent].Argument[0]", "html-injection"]
         # sap.ui.core.Patcher.unsafeHtml
-      - [
-          "sap/ui/core/Patcher",
-          "Instance.Member[unsafeHtml].Argument[0]",
-          "html-injection",
-        ]
+      - ["sap/ui/core/Patcher", "Instance.Member[unsafeHtml].Argument[0]", "html-injection"]
       # RenderManager.write
       - ["RenderManager", "Member[write].Argument[0]", "html-injection"]
       # RenderManager.writeAttribute
-      - [
-          "RenderManager",
-          "Member[writeAttribute].Argument[0]",
-          "html-injection",
-        ]
+      - ["RenderManager", "Member[writeAttribute].Argument[0]", "html-injection"]
         # RenderManager.writeAttributeEscaped
-      - [
-          "RenderManager",
-          "Member[writeAttributeEscaped].Argument[0]",
-          "html-injection",
-        ]
+      - ["RenderManager", "Member[writeAttributeEscaped].Argument[0]", "html-injection"]
         # RenderManager.addStyle
       - ["RenderManager", "Member[addStyle].Argument[0]", "html-injection"]
       # RenderManager.addClass
