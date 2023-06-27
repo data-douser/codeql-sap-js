@@ -11,7 +11,11 @@ predicate builtInControl(string qualifiedTypeUri) {
     ]
 }
 
-class UI5XmlView extends XmlElement {
+abstract class UI5XmlElement extends XmlElement {
+  string getQualifiedType() { result = this.getNamespace().getUri() + "." + this.getName() }
+}
+
+class UI5XmlView extends UI5XmlElement {
   UI5XmlView() { this.getNamespace().getUri() = "sap.ui.core.mvc" and this.getName() = "View" }
 
   Controller getController() {
@@ -23,7 +27,7 @@ class UI5XmlView extends XmlElement {
     )
   }
 
-  XmlElement getXmlControlTag() {
+  UI5XmlControl getXmlControl() {
     result =
       any(XmlElement element |
         // Either a builtin control provided by UI5
@@ -38,22 +42,15 @@ class UI5XmlView extends XmlElement {
         )
       )
   }
+}
 
-  /**
-   * Gets the qualified type, such as `sap.m.Page`.
-   */
-  string getQualifiedType() { result = this.getNamespace().getUri() + "." + this.getName() }
+class UI5XmlControl extends UI5XmlElement {
+  UI5XmlControl() { this.getParent+() = any(UI5XmlView view) }
 
-  /**
-   * Get the implementation code in Javascript that accompanies this Xml Control tag. Only works for custom controls.
-   *
-   * For example, get Book.js for <Book attr="val1", .../>.
-   */
   Extension getJSDefinition() {
     result = any(Extension extension | extension.getName() = this.getQualifiedType())
   }
 
-  // Controller getController
   MethodCallNode getAReference() {
     result.getEnclosingFunction() = any(Controller controller).getAMethod().asExpr() and
     result.getMethodName() = "byId" and
