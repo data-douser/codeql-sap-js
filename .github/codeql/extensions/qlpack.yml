@@ -6,4 +6,4 @@ extensionTargets:
   codeql/javascript-all: "*"
   codeql/javascript-queries: "*"
 dataExtensions:
-  - ui5-data-extensions.yml
+  - ui5-data-extensions.yaml
