@@ -1,5 +1,11 @@
+/**
+ * @id xss-custom-control
+ * @name XSS with custom control
+ * @kind problem
+ */
+
 import javascript
-import UI5::UI5
+import models.UI5::UI5
 import semmle.javascript.security.dataflow.DomBasedXssQuery
 
 class XssWithCustomControl extends Configuration {
@@ -41,4 +47,4 @@ class XssWithCustomControl extends Configuration {
 
 from XssWithCustomControl xss, UnsafeHtmlXssSource source, UnsafeHtmlXssSink sink
 where xss.hasFlow(source, sink)
-select source, sink
+select source, source.toString(), sink, sink.toString()
