@@ -16,7 +16,11 @@ abstract class UI5XmlElement extends XmlElement {
 }
 
 class UI5XmlView extends UI5XmlElement {
-  UI5XmlView() { this.getNamespace().getUri() = "sap.ui.core.mvc" and this.getName() = "View" }
+  UI5XmlView() {
+    this.getNamespace().getUri() = "sap.ui.core.mvc" and
+    this.getName() = "View" and
+    this = any(XmlFile xmlFile).getARootElement()
+  }
 
   Controller getController() {
     // The controller name should match
@@ -55,6 +59,23 @@ class UI5XmlControl extends UI5XmlElement {
     result.getEnclosingFunction() = any(Controller controller).getAMethod().asExpr() and
     result.getMethodName() = "byId" and
     result.getArgument(0).asExpr().(StringLiteral).getValue() = this.getAttributeValue("id")
+  }
+
+  /**
+   * Holds if the control accesses some property of the model.
+   * Look for the data binding: {/some/nested/property} or {modelName>/some/nested/property} where
+   * controller.setModel(oModel, "modelName") for some controller.
+   */
+  predicate accessesModel() { any() }
+}
+
+class DataBinding extends XmlAttribute {
+  DataBinding() {
+    // Syntactic property 1: this is an XML attribute of a control
+    exists(UI5XmlControl control | control.getAttribute(_) = this) and
+    // Syntactic property 2: this is wrapped inside curly braces
+    this.getValue().charAt(0) = "{" and
+    this.getValue().charAt(this.getValue().length() - 1) = "}"
   }
 }
 
