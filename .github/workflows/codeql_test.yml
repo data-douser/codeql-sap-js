@@ -1,4 +1,4 @@
-name: "CodeQL Tests"
+name: "UI5 Unit Tests"
 
 on:
   push:
@@ -10,25 +10,14 @@ on:
     - cron: '39 12 * * 2'
 
 jobs:
-  analyze:
-    name: Analyze
+  unit_test:
+    name: Run Unit Tests
     runs-on: 'ubuntu-latest'
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
     # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: javascript
-        # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-        queries: ./test
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+    - run: |
+        codeql test run --show-extractor-output test

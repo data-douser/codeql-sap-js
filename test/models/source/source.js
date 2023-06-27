@@ -1,9 +1,13 @@
-sap.ui.require(["sap/ui/commons/TextField", "sap/m/InputBase", "sap/m/Input", "sap/base/util/UriParameters"],
-    function (TextField, InputBase, Input, UriParameters) {
+sap.ui.require(["sap/m/SearchField", "sap/ui/commons/TextField", "sap/m/InputBase", "sap/m/Input", "sap/base/util/UriParameters"],
+    function (SearchField, TextField, InputBase, Input, UriParameters) {
 
         ////////
         // Sources of user-controlled data
         ////////
+        // sap.ui.commons.SearchField.value
+        var f = new SearchField();
+        var remoteInput = f.value;
+        var remoteInput = f.getValue();
 
         // sap.ui.commons.TextField.value
         var f = new TextField();

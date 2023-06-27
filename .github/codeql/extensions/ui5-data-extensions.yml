@@ -22,6 +22,9 @@ extensions:
       # sap.m.InputBase.value sap.m.InputBase#getValue
       - ["sap/m/InputBase", "Instance.Member[value]", "remote"]
       - ["sap/m/InputBase", "Instance.Member[getValue]", "remote"]
+      # sap.m.SearchField.value sap.m.InputBase#getValue
+      - ["sap/m/SearchField", "Instance.Member[value]", "remote"]
+      - ["sap/m/SearchField", "Instance.Member[getValue]", "remote"]
       # sap.m.Input.value sap.m.Input#getValue()
       - ["sap/m/Input", "Instance.Member[value]", "remote"]
       - ["sap/m/Input", "Instance.Member[getValue].ReturnValue", "remote"]
