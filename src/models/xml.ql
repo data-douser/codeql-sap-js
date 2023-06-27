@@ -66,9 +66,10 @@ class UI5XmlControl extends UI5XmlElement {
    * Look for the data binding: {/some/nested/property} or {modelName>/some/nested/property} where
    * controller.setModel(oModel, "modelName") for some controller.
    */
-  predicate accessesModel() { any() }
+  predicate accessesModel() { this.getAnAttribute() instanceof DataBinding }
 }
 
+/** Data binding found in an XMLView: e.g. {/some/nested/property} or {modelName>/some/nested/property} */
 class DataBinding extends XmlAttribute {
   DataBinding() {
     // Syntactic property 1: this is an XML attribute of a control
@@ -76,6 +77,11 @@ class DataBinding extends XmlAttribute {
     // Syntactic property 2: this is wrapped inside curly braces
     this.getValue().charAt(0) = "{" and
     this.getValue().charAt(this.getValue().length() - 1) = "}"
+  }
+
+  Model getModel() {
+    // WIP
+    exists(UI5XmlView view | view.getController().getAModel() = result)
   }
 }
 

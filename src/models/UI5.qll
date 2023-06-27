@@ -144,7 +144,7 @@ module UI5 {
 
     Model getAModel() {
       this.getAView().flowsTo(result.getReceiver()) and
-      result.(MethodCallNode).getMethodName() = "getModel"
+      result.(MethodCallNode).getMethodName() = "setModel"
     }
   }
 
@@ -153,6 +153,12 @@ module UI5 {
    */
   class Model extends SapElement {
     Model() { any() }
+  }
+
+  class JsonModel extends Model {
+    JsonModel() {
+      any() // WIP
+    }
   }
 
   class RenderManager extends SourceNode {
@@ -204,12 +210,12 @@ module UI5 {
    * Controller.extend or
    * Control.extend
    */
-  class Extension extends MethodCallNode {
+  class Extension extends SapElement {
     Extension() {
       /* 1. The receiver object is an imported one */
       any(ModuleObject module_).flowsTo(this.getReceiver()) and
       /* 2. The method name is `extend` */
-      this.getMethodName() = "extend"
+      this.(MethodCallNode).getMethodName() = "extend"
     }
 
     string getName() { result = this.getArgument(0).asExpr().(StringLiteral).getValue() }
