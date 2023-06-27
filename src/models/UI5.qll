@@ -302,7 +302,7 @@ module UI5 {
     exists(Controller controller, SapElement element, MethodCallNode getCall |
       element = controller.getAView().getAnElement() and
       getCall = element.getAMethodCall() and
-      getCall.getMethodName().prefix(3) = "get" and
+      getCall.getMethodName() = "getValue" and
       result = getCall
     )
   }

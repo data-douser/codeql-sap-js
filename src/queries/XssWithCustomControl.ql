@@ -8,13 +8,18 @@ import javascript
 import models.UI5::UI5
 import semmle.javascript.security.dataflow.DomBasedXssQuery
 
-class XssWithCustomControl extends Configuration {
+// import semmle.javascript.security.dataflow.DomBasedXssQuery
+class XssWithCustomControl extends TaintTracking::Configuration {
+  XssWithCustomControl() { this = "XssWithCustomControl" }
+
   override predicate isSource(DataFlow::Node source, DataFlow::FlowLabel label) {
     source instanceof UnsafeHtmlXssSource and label = "taint"
+    // any()
   }
 
   override predicate isSink(DataFlow::Node sink, DataFlow::FlowLabel label) {
     sink instanceof UnsafeHtmlXssSink and label = "taint"
+    // any()
   }
 
   override predicate isAdditionalFlowStep(
@@ -30,7 +35,7 @@ class XssWithCustomControl extends Configuration {
     /* setTitle --(1)--> title property */
     exists(string propName, Metadata m |
       // 1. Starting from getAWrite
-      start = m.getAWrite(propName) and
+      start = m.getAWrite(propName).getArgument(1) and
       // 2. Ending at the title property
       end = m.getAProperty(propName)
     )
