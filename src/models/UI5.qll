@@ -5,11 +5,16 @@ private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
 module UI5 {
   class Project extends Folder {
     /**
-     * The `ui5.yaml` file that declares a UI5 application.
+     * An UI5 project root folder.
      */
     Project() { exists(File yamlFile | yamlFile = this.getFile("ui5.yaml")) }
 
+    /**
+     * The `ui5.yaml` file that declares a UI5 application.
+     */
     File getProjectYaml() { result = this.getFile("ui5.yaml") }
+
+    predicate isInThisProject(File file) { this = file.getParentContainer*() }
   }
 
   /**
@@ -88,8 +93,8 @@ module UI5 {
 
   SourceNode sapController() { result = sapController(TypeTracker::end()) }
 
-  class Control extends CallNode {
-    Control() { getReceiver().getALocalSource() = sapControl() and getCalleeName() = "extend" }
+  class Control extends Extension {
+    Control() { getReceiver().getALocalSource() = sapControl() }
 
     SourceNode getRenderer() {
       result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource("renderer")
@@ -107,10 +112,8 @@ module UI5 {
     }
   }
 
-  class Controller extends CallNode {
-    Controller() {
-      this.getReceiver().getALocalSource() = sapController() and getCalleeName() = "extend"
-    }
+  class Controller extends Extension {
+    Controller() { this.getReceiver().getALocalSource() = sapController() }
 
     FunctionNode getAMethod() {
       result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource().(FunctionNode)
@@ -208,6 +211,8 @@ module UI5 {
       /* 2. The method name is `extend` */
       this.getMethodName() = "extend"
     }
+
+    string getName() { result = this.getArgument(0).asExpr().(StringLiteral).getValue() }
 
     ObjectLiteralNode getContent() { result = this.getArgument(1) }
 
