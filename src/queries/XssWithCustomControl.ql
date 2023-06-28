@@ -6,9 +6,9 @@
 
 import javascript
 import models.UI5::UI5
+import models.XmlView
 import semmle.javascript.security.dataflow.DomBasedXssQuery
 
-// import semmle.javascript.security.dataflow.DomBasedXssQuery
 class XssWithCustomControl extends TaintTracking::Configuration {
   XssWithCustomControl() { this = "XssWithCustomControl" }
 
@@ -29,7 +29,7 @@ class XssWithCustomControl extends TaintTracking::Configuration {
     inLabel = "taint" and
     outLabel = "taint" and
     /*
-     * Modelling setTitle --(1)--> title property --(2)--> getTitle
+     * Modeling setTitle --(1)--> title property --(2)--> getTitle
      */
 
     /* setTitle --(1)--> title property */
@@ -47,7 +47,13 @@ class XssWithCustomControl extends TaintTracking::Configuration {
       // 2. Ending at getTitle
       end = m.getARead(propName)
     )
-  }
+    // or
+    /*
+     * Modeling <Input value="{/model}"/> --(1)--> model --(2)--> <HTML content="{/model}"/>
+     */
+
+    // exists(UI5XmlControl xmlControl | start = xmlControl and xmlControl.writesToModel(end))
+    }
 }
 
 from XssWithCustomControl xss, UnsafeHtmlXssSource source, UnsafeHtmlXssSink sink

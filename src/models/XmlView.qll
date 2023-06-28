@@ -82,6 +82,17 @@ class UI5XmlControl extends UI5XmlElement {
     // TODO: Add case where modelName is present
   }
 
+  predicate accessesModel(Model model) {
+    // Verify that the controller's model has the referenced property
+    exists(UI5XmlView view |
+      // Both this control and the model belong to the same view
+      this = view.getXmlControl() and
+      model = view.getController().getModel() and
+      model.getPathString() = this.getAnAttribute().(DataBinding).getPathString()
+    )
+    // TODO: Add case where modelName is present
+  }
+
   /** Warning: HACK! */
   predicate writesToModel() {
     this.accessesModel() and
@@ -90,8 +101,22 @@ class UI5XmlControl extends UI5XmlElement {
   }
 
   /** Warning: HACK! */
+  predicate writesToModel(Model model) {
+    this.accessesModel(model) and
+    // HACK: See if there's attribute named `value`
+    this.hasAttribute("value")
+  }
+
+  /** Warning: HACK! */
   predicate readsFromModel() {
     this.accessesModel() and
+    // HACK: See if there's attribute named `value`
+    not this.hasAttribute("value")
+  }
+
+  /** Warning: HACK! */
+  predicate readsFromModel(Model model) {
+    this.accessesModel(model) and
     // HACK: See if there's attribute named `value`
     not this.hasAttribute("value")
   }
