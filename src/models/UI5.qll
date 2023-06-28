@@ -93,8 +93,8 @@ module UI5 {
 
   SourceNode sapController() { result = sapController(TypeTracker::end()) }
 
-  class Control extends Extension {
-    Control() { getReceiver().getALocalSource() = sapControl() }
+  class CustomControl extends Extension {
+    CustomControl() { getReceiver().getALocalSource() = sapControl() }
 
     SourceNode getRenderer() {
       result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource("renderer")
@@ -112,8 +112,10 @@ module UI5 {
     }
   }
 
-  class Controller extends Extension {
-    Controller() { this.getReceiver().getALocalSource() = sapController() }
+  class CustomController extends Extension {
+    CustomController() {
+      this instanceof MethodCallNode and this.getReceiver().getALocalSource() = sapController()
+    }
 
     FunctionNode getAMethod() {
       result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource().(FunctionNode)
@@ -124,9 +126,9 @@ module UI5 {
      */
     View getAView() {
       result.getCalleeName() = "getView" and
-      exists(ThisNode this_ |
-        result.getReceiver() = this_.getALocalUse() and
-        this_.getBinder() = this.getAMethod()
+      exists(ThisNode controllerThis |
+        result.(MethodCallNode).getReceiver() = controllerThis.getALocalUse() and
+        controllerThis.getBinder() = this.getAMethod()
       )
     }
 
@@ -134,7 +136,7 @@ module UI5 {
       exists(View view |
         view = this.getAView() and
         /* There is a view */
-        view.flowsTo(result.getReceiver()) and
+        view.flowsTo(result.(MethodCallNode).getReceiver()) and
         /* The result is a member of this view */
         result.(MethodCallNode).getMethodName() = "byId"
       )
@@ -142,8 +144,8 @@ module UI5 {
 
     ThisNode getAThisNode() { result.getBinder() = this.getAMethod() }
 
-    Model getAModel() {
-      this.getAView().flowsTo(result.getReceiver()) and
+    Model getModel() {
+      this.getAView().flowsTo(result.(MethodCallNode).getReceiver()) and
       result.(MethodCallNode).getMethodName() = "setModel"
     }
   }
@@ -151,14 +153,47 @@ module UI5 {
   /**
    * Under construction
    */
-  class Model extends SapElement {
-    Model() { any() }
+  abstract class Model extends SapElement {
+    abstract string getPathString();
+  }
+
+  private string constructPathStringInner(Expr object) {
+    if not object instanceof ObjectExpr
+    then result = ""
+    else
+      exists(Property property | property = object.(ObjectExpr).getAProperty().(ValueProperty) |
+        result = constructPathStringInner(property.getInit()) + "/" + property.getName()
+      )
+  }
+
+  string constructPathString(DataFlow::ObjectLiteralNode object) {
+    result = constructPathStringInner(object.asExpr())
   }
 
   class JsonModel extends Model {
     JsonModel() {
-      any() // WIP
+      this instanceof NewNode and
+      exists(ModuleObject jsonModel |
+        jsonModel.flowsTo(this.getCalleeNode()) and
+        jsonModel.getDependencyType() = "sap/ui/model/json/JSONModel"
+      )
     }
+
+    ObjectLiteralNode getContent() { result.flowsTo(this.getAnArgument()) }
+
+    override string getPathString() { result = constructPathString(this.getContent()) }
+  }
+
+  class XmlModel extends Model {
+    XmlModel() {
+      this instanceof NewNode and
+      exists(ModuleObject xmlModel |
+        xmlModel.flowsTo(this.getCalleeNode()) and
+        xmlModel.getDependencyType() = "sap/ui/model/xml/XMLModel"
+      )
+    }
+
+    override string getPathString() { result = "WIP" }
   }
 
   class RenderManager extends SourceNode {
@@ -168,7 +203,7 @@ module UI5 {
        * renderer: function (oRm, oControl) { ... }
        */
 
-      this = any(Control c).getRenderer().(FunctionNode).getParameter(0)
+      this = any(CustomControl c).getRenderer().(FunctionNode).getParameter(0)
       or
       /*
        * 2. New Semantic Rendering API:
@@ -176,11 +211,15 @@ module UI5 {
        */
 
       this =
-        any(Control c).getRenderer().getAPropertySource("render").(FunctionNode).getParameter(0)
+        any(CustomControl c)
+            .getRenderer()
+            .getAPropertySource("render")
+            .(FunctionNode)
+            .getParameter(0)
       or
       exists(int i |
         // The control's renderer object
-        this = any(Control c).getRenderer().getALocalSource() and
+        this = any(CustomControl c).getRenderer().getALocalSource() and
         // ... is an imported one, thus found in a parameter of a Define
         this = any(Define d).getParameter(i)
       )
@@ -204,13 +243,21 @@ module UI5 {
 
   class ModuleObject extends ParameterNode {
     ModuleObject() { this = any(Define d).getParameter(_) }
+
+    Define getDefine() { result.getArgument(1).(FunctionNode).getParameter(_) = this }
+
+    string getDependencyType() {
+      exists(int i |
+        this.getDefine().getParameter(i) = this and result = this.getDefine().getDependencyType(i)
+      )
+    }
   }
 
   /**
    * Controller.extend or
    * Control.extend
    */
-  class Extension extends SapElement {
+  class Extension extends SapElement, MethodCallNode {
     Extension() {
       /* 1. The receiver object is an imported one */
       any(ModuleObject module_).flowsTo(this.getReceiver()) and
@@ -223,6 +270,9 @@ module UI5 {
     ObjectLiteralNode getContent() { result = this.getArgument(1) }
 
     Metadata getMetadata() { result = this.getContent().getAPropertySource("metadata") }
+
+    /** Gets the `sap.ui.define` call that wraps this extension. */
+    Define getDefine() { this.getEnclosingFunction() = result.getArgument(1).asExpr() }
   }
 
   /**
@@ -269,7 +319,7 @@ module UI5 {
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.Element
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.mvc.Controller%23methods/byId
    */
-  abstract class SapElement extends CallNode { }
+  abstract class SapElement extends InvokeNode { }
 
   class View extends SapElement {
     View() {
@@ -301,16 +351,16 @@ module UI5 {
     }
 
     SapElement getAnElement() {
-      exists(Controller controller |
+      exists(CustomController controller |
         result.(MethodCallNode).getMethodName() = "byId" and
-        this.flowsTo(result.getReceiver()) and
+        this.flowsTo(result.(MethodCallNode).getReceiver()) and
         this = controller.getAView()
       )
     }
   }
 
   ValueNode valueFromElement() {
-    exists(Controller controller, SapElement element, MethodCallNode getCall |
+    exists(CustomController controller, SapElement element, MethodCallNode getCall |
       element = controller.getAView().getAnElement() and
       getCall = element.getAMethodCall() and
       getCall.getMethodName() = "getValue" and

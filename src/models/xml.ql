@@ -22,7 +22,7 @@ class UI5XmlView extends UI5XmlElement {
     this = any(XmlFile xmlFile).getARootElement()
   }
 
-  Controller getController() {
+  CustomController getController() {
     // The controller name should match
     result.getName() = this.getAttributeValue("controllerName") and
     // The View XML file and the controller are in a same project
@@ -34,15 +34,17 @@ class UI5XmlView extends UI5XmlElement {
   UI5XmlControl getXmlControl() {
     result =
       any(XmlElement element |
+        element = this.getAChild+() and
         // Either a builtin control provided by UI5
-        element = this.getAChild+() and builtInControl(element.getNamespace().getUri())
-        or
-        // or a custom control with implementation code found in the project
-        exists(Control control, Project project |
-          element = this.getAChild+() and
-          control.getName() = element.getNamespace().getUri() + "." + element.getName() and
-          project.isInThisProject(control.getFile()) and
-          project.isInThisProject(element.getFile())
+        (
+          builtInControl(element.getNamespace().getUri())
+          or
+          // or a custom control with implementation code found in the project
+          exists(CustomControl control, Project project |
+            control.getName() = element.getNamespace().getUri() + "." + element.getName() and
+            project.isInThisProject(control.getFile()) and
+            project.isInThisProject(element.getFile())
+          )
         )
       )
   }
@@ -51,12 +53,14 @@ class UI5XmlView extends UI5XmlElement {
 class UI5XmlControl extends UI5XmlElement {
   UI5XmlControl() { this.getParent+() = any(UI5XmlView view) }
 
+  /** Get the JS Control definition if this is a custom control. */
   Extension getJSDefinition() {
-    result = any(Extension extension | extension.getName() = this.getQualifiedType())
+    result = any(CustomControl control | control.getName() = this.getQualifiedType())
   }
 
+  /** Get a reference to this control in the controller code. Currently supports only such references made through `byId`. */
   MethodCallNode getAReference() {
-    result.getEnclosingFunction() = any(Controller controller).getAMethod().asExpr() and
+    result.getEnclosingFunction() = any(CustomController controller).getAMethod().asExpr() and
     result.getMethodName() = "byId" and
     result.getArgument(0).asExpr().(StringLiteral).getValue() = this.getAttributeValue("id")
   }
@@ -66,10 +70,20 @@ class UI5XmlControl extends UI5XmlElement {
    * Look for the data binding: {/some/nested/property} or {modelName>/some/nested/property} where
    * controller.setModel(oModel, "modelName") for some controller.
    */
-  predicate accessesModel() { this.getAnAttribute() instanceof DataBinding }
+  predicate accessesModel() {
+    // 1. verify that the controller's model has the referenced property
+    this.getAnAttribute().(DataBinding).getPathString() =
+      any(Model model |
+        exists(UI5XmlView view |
+          view.getXmlControl() = this and model = view.getController().getAModel()
+        )
+      ).getPathString() and
+    any()
+    // 2. And this control is referring to the property through databinding
+  }
 }
 
-/** Data binding found in an XMLView: e.g. {/some/nested/property} or {modelName>/some/nested/property} */
+/** Data binding found in an XMLView: e.g. `{/some/nested/property}` or `{modelName>/some/nested/property}`. */
 class DataBinding extends XmlAttribute {
   DataBinding() {
     // Syntactic property 1: this is an XML attribute of a control
@@ -80,9 +94,13 @@ class DataBinding extends XmlAttribute {
   }
 
   Model getModel() {
-    // WIP
-    exists(UI5XmlView view | view.getController().getAModel() = result)
+    exists(UI5XmlView view |
+      view.getXmlControl().getAnAttribute() = this and
+      view.getController().getAModel() = result
+    )
   }
+
+  string getPathString() { result = this.getValue().substring(1, this.getValue().length() - 1) }
 }
 
 from XmlFile xmlFile
