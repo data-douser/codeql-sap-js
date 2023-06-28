@@ -12,9 +12,14 @@ predicate builtInControl(string qualifiedTypeUri) {
 }
 
 abstract class UI5XmlElement extends XmlElement {
+  /** Get the qualified type string, e.g. `sap.m.SearchField` */
   string getQualifiedType() { result = this.getNamespace().getUri() + "." + this.getName() }
 }
 
+/**
+ * The UI5 View as declared in the XML file, e.g.
+ * <View controllerName="..."> ... </View>
+ */
 class UI5XmlView extends UI5XmlElement {
   UI5XmlView() {
     this.getNamespace().getUri() = "sap.ui.core.mvc" and
@@ -22,6 +27,9 @@ class UI5XmlView extends UI5XmlElement {
     this = any(XmlFile xmlFile).getARootElement()
   }
 
+  /**
+   * Get the Controller.extends(...) definition associated with this XML view.
+   */
   CustomController getController() {
     // The controller name should match
     result.getName() = this.getAttributeValue("controllerName") and
@@ -31,9 +39,13 @@ class UI5XmlView extends UI5XmlElement {
     )
   }
 
+  /**
+   * Get the XML tags associated with UI5 Controls declared in this XML view.
+   */
   UI5XmlControl getXmlControl() {
     result =
       any(XmlElement element |
+        // getAChild+ because "container controls" nest other controls inside them
         element = this.getAChild+() and
         // Either a builtin control provided by UI5
         (
@@ -50,6 +62,11 @@ class UI5XmlView extends UI5XmlElement {
   }
 }
 
+/**
+ * UI5 Control as declared in the XML File.
+ * e.g. Built-ins like `<TextField attr="..."/>`,
+ * or custom ones like `<CustomControl attr="..."/>`.
+ */
 class UI5XmlControl extends UI5XmlElement {
   UI5XmlControl() { this.getParent+() = any(UI5XmlView view) }
 
@@ -132,6 +149,9 @@ class DataBinding extends XmlAttribute {
     this.getValue().charAt(this.getValue().length() - 1) = "}"
   }
 
+  /**
+   * Get the model declaration, which this data binding refers to, in a controller code.
+   */
   Model getModel() {
     exists(UI5XmlView view |
       view.getXmlControl().getAnAttribute() = this and
@@ -139,5 +159,8 @@ class DataBinding extends XmlAttribute {
     )
   }
 
+  /**
+   * Extract "/some/model/property" from "{/some/model/property}".
+   */
   string getPathString() { result = this.getValue().substring(1, this.getValue().length() - 1) }
 }
