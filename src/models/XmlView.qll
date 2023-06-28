@@ -71,15 +71,29 @@ class UI5XmlControl extends UI5XmlElement {
    * controller.setModel(oModel, "modelName") for some controller.
    */
   predicate accessesModel() {
-    // 1. verify that the controller's model has the referenced property
+    // Verify that the controller's model has the referenced property
     this.getAnAttribute().(DataBinding).getPathString() =
       any(Model model |
         exists(UI5XmlView view |
-          view.getXmlControl() = this and model = view.getController().getAModel()
+          // Both this control and the model belong to the same view
+          this = view.getXmlControl() and model = view.getController().getModel()
         )
-      ).getPathString() and
-    any()
-    // 2. And this control is referring to the property through databinding
+      ).getPathString()
+    // TODO: Add case where modelName is present
+  }
+
+  /** Warning: HACK! */
+  predicate writesToModel() {
+    this.accessesModel() and
+    // HACK: See if there's attribute named `value`
+    this.hasAttribute("value")
+  }
+
+  /** Warning: HACK! */
+  predicate readsFromModel() {
+    this.accessesModel() and
+    // HACK: See if there's attribute named `value`
+    not this.hasAttribute("value")
   }
 }
 
@@ -96,15 +110,9 @@ class DataBinding extends XmlAttribute {
   Model getModel() {
     exists(UI5XmlView view |
       view.getXmlControl().getAnAttribute() = this and
-      view.getController().getAModel() = result
+      view.getController().getModel() = result
     )
   }
 
   string getPathString() { result = this.getValue().substring(1, this.getValue().length() - 1) }
 }
-
-from XmlFile xmlFile
-where
-  xmlFile.getAbsolutePath() =
-    "/Users/jslee/Work/WorkRepos/codeql-sap-js/integration-tests/xss-example/webapp/view/App.view.xml"
-select xmlFile, xmlFile.getARootElement(), xmlFile.getARootElement().getNamespace().getUri()

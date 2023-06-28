@@ -145,8 +145,11 @@ module UI5 {
     ThisNode getAThisNode() { result.getBinder() = this.getAMethod() }
 
     Model getModel() {
-      this.getAView().flowsTo(result.(MethodCallNode).getReceiver()) and
-      result.(MethodCallNode).getMethodName() = "setModel"
+      exists(MethodCallNode setModelCall |
+        this.getAView().flowsTo(setModelCall.getReceiver()) and
+        setModelCall.getMethodName() = "setModel" and
+        result.flowsTo(setModelCall.getAnArgument())
+      )
     }
   }
 
