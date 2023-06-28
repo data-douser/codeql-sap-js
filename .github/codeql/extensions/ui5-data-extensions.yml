@@ -22,7 +22,7 @@ extensions:
       - ["sap/m/InputBase", "sap/m/MaskInput", ""]
       - ["sap/m/InputBase", "sap/m/TextArea", ""]
       - ["sap/m/InputBase", "sap/m/TimePicker", ""]
-      # types extending sap/m/Input
+      # types extending sap/m/InputBase via sap/m/Input
       - ["sap/m/Input", "sap/m/ComboBoxBase", ""]
       - ["sap/m/Input", "sap/m/DynamicDateRange", ""]
       - ["sap/m/Input", "sap/m/MultiInput", ""]
