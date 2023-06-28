@@ -153,9 +153,6 @@ module UI5 {
     }
   }
 
-  /**
-   * Under construction
-   */
   abstract class Model extends SapElement {
     abstract string getPathString();
   }
