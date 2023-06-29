@@ -321,35 +321,7 @@ module UI5 {
    */
   abstract class SapElement extends InvokeNode { }
 
-  class View extends SapElement {
-    View() {
-      /* 1. A return value of `this.getView` where `this` is a Controller */
-      // exists(Controller controller | this = controller.getAView())
-      any()
-      or
-      /*
-       * 2. Extension of a view
-       *      View.extend("some.view", { ... })
-       */
-
-      none() // TODO, not needed right now
-      or
-      /*
-       * 3. XMLView
-       *    var oView = XMLView(...)
-       */
-
-      none() // TODO, not needed right now
-      or
-      /*
-       * 4. sap.ui.xmlview({
-       *                    viewContent : jQuery("#myXmlView").html()
-       *                }).placeAt("contentXMLView");
-       */
-
-      none() // TODO, not needed right now
-    }
-
+  abstract class View extends SapElement {
     SapElement getAnElement() {
       exists(CustomController controller |
         result.(MethodCallNode).getMethodName() = "byId" and
@@ -357,6 +329,44 @@ module UI5 {
         this = controller.getAView()
       )
     }
+  }
+
+  /*
+   * 1. XMLView
+   *    var oView = XMLView(...)
+   */
+
+  class XmlView extends View {
+    XmlView() {
+      this instanceof NewNode and
+      exists(ModuleObject xmlView |
+        xmlView.flowsTo(this.getCalleeNode()) and
+        xmlView.getDependencyType() = "sap/ui/core/mvc/XMLView"
+      )
+    }
+  }
+
+  /*
+   * 2. Extension of a view
+   *      View.extend("some.view", { ... })
+   */
+
+  private SourceNode sapView(TypeTracker t) {
+    t.start() and
+    exists(Define d, int i |
+      /* It has a "sap/ui/core/Controller" specifier */
+      d.getDependencyType(i) = "sap/ui/core/mvc/View" and
+      /* Get the positional parameter at the same index as the specifier */
+      result = d.getParameter(i)
+    )
+    or
+    exists(TypeTracker t2 | result = sapView(t2).track(t2, t))
+  }
+
+  SourceNode sapView() { result = sapView(TypeTracker::end()) }
+
+  class CustomView extends View, Extension {
+    CustomView() { this.getReceiver().getALocalSource() = sapView() }
   }
 
   ValueNode valueFromElement() {
