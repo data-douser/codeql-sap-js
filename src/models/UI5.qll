@@ -182,6 +182,17 @@ module UI5 {
     ObjectLiteralNode getContent() { result.flowsTo(this.getAnArgument()) }
 
     override string getPathString() { result = constructPathString(this.getContent()) }
+
+    /**
+     * A model possibly supporting two-way binding explicitly set as a one-way binding model.
+     */
+    predicate isOneWayBinding() {
+      exists(MethodCallNode call, BindingMode bindingMode |
+        this.flowsTo(call.getReceiver()) and
+        call.getMethodName() = "setDefaultBindingMode" and
+        bindingMode.getOneWay().flowsTo(call.getArgument(0))
+      )
+    }
   }
 
   class XmlModel extends Model {
@@ -194,6 +205,18 @@ module UI5 {
     }
 
     override string getPathString() { result = "WIP" }
+  }
+
+  class BindingMode extends ModuleObject {
+    BindingMode() { this.getDependencyType() = "sap/ui/model/BindingMode" }
+
+    PropRead getOneWay() { result = this.getAPropertyRead("OneWay") }
+
+    PropRead getTwoWay() { result = this.getAPropertyRead("TwoWay") }
+
+    PropRead getDefault() { result = this.getAPropertyRead("Default") }
+
+    PropRead getOneTime() { result = this.getAPropertyRead("OneTime") }
   }
 
   class RenderManager extends SourceNode {
