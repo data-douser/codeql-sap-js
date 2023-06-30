@@ -1,6 +1,7 @@
 private import javascript
 private import DataFlow
 private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
+private import XmlView
 
 module UI5 {
   class Project extends Folder {
@@ -122,9 +123,9 @@ module UI5 {
     }
 
     /**
-     * Gets a view object that can be accessed from one of the methods of this controller.
+     * Gets a reference to a view object that can be accessed from one of the methods of this controller.
      */
-    View getAView() {
+    MethodCallNode getAViewReference() {
       result.getCalleeName() = "getView" and
       exists(ThisNode controllerThis |
         result.(MethodCallNode).getReceiver() = controllerThis.getALocalUse() and
@@ -132,11 +133,22 @@ module UI5 {
       )
     }
 
-    SapElement getAnElement() {
-      exists(View view |
-        view = this.getAView() and
+    /**
+     * Gets the declaration of the view object that is associated with this controller.
+     */
+    View getView() {
+      /* 1. The controller uses a predefined view: (HTMLView|XMLView|JSONView|JSView|TemplateView) */
+      none() // WIP
+      or
+      /* 2. The controller uses a custom view */
+      none() // WIP: is custom view used in practice && do we want to model it?
+    }
+
+    MethodCallNode getAnElementReference() {
+      exists(MethodCallNode viewRef |
+        viewRef = this.getAViewReference() and
         /* There is a view */
-        view.flowsTo(result.(MethodCallNode).getReceiver()) and
+        viewRef.flowsTo(result.(MethodCallNode).getReceiver()) and
         /* The result is a member of this view */
         result.(MethodCallNode).getMethodName() = "byId"
       )
@@ -146,7 +158,7 @@ module UI5 {
 
     Model getModel() {
       exists(MethodCallNode setModelCall |
-        this.getAView().flowsTo(setModelCall.getReceiver()) and
+        this.getAViewReference().flowsTo(setModelCall.getReceiver()) and
         setModelCall.getMethodName() = "setModel" and
         result.flowsTo(setModelCall.getAnArgument())
       )
@@ -344,15 +356,7 @@ module UI5 {
    */
   abstract class SapElement extends InvokeNode { }
 
-  abstract class View extends SapElement {
-    SapElement getAnElement() {
-      exists(CustomController controller |
-        result.(MethodCallNode).getMethodName() = "byId" and
-        this.flowsTo(result.(MethodCallNode).getReceiver()) and
-        this = controller.getAView()
-      )
-    }
-  }
+  abstract class View extends SapElement { }
 
   /*
    * 1. XMLView
@@ -393,9 +397,9 @@ module UI5 {
   }
 
   ValueNode valueFromElement() {
-    exists(CustomController controller, SapElement element, MethodCallNode getCall |
-      element = controller.getAView().getAnElement() and
-      getCall = element.getAMethodCall() and
+    exists(CustomController controller, MethodCallNode elementRef, MethodCallNode getCall |
+      elementRef = controller.getAnElementReference() and
+      getCall = elementRef.getAMethodCall() and
       getCall.getMethodName() = "getValue" and
       result = getCall
     )
