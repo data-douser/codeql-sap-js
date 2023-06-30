@@ -6,6 +6,7 @@ extensions:
       - ["Control", "sap/ui/core/Control", ""]
       - ["Control", "global", "Member[sap].Member[ui].Member[core].Member[Control]"]
       - ["HTMLControl", "global", "Member[sap].Member[ui].Member[core].Member[HTML]"]
+      - ["HTMLControl", "sap/ui/core/HTML", ""]
       - ["Renderer", "Control", "Member[extend].Argument[1].Member[renderer]"]
       - ["Renderer", "sap/ui/core/RenderManager", "Member[extend].Argument[1].Member[renderer]"]
       - ["Renderer", "sap/ui/core/Renderer", "Member[extend].Argument[1]"]
@@ -28,7 +29,7 @@ extensions:
       - ["sap/m/Input", "sap/m/MultiInput", ""]
       - ["sap/m/Input", "sap/m/P13nConditionPanel", ""]
       - ["sap/m/Input", "sap/ui/mdc/condition/OperatorDynamicDateOption", ""]
-      
+
   - addsTo:
       pack: codeql/javascript-all
       extensible: sourceModel
