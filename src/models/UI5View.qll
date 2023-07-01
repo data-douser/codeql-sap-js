@@ -13,7 +13,7 @@ import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as Ap
  * ```
  */
 bindingset[base]
-string getASuperType(string base) {
+private string getASuperType(string base) {
   result = base or ApiGraphModelsExtensions::typeModel(result, base, "")
 }
 
