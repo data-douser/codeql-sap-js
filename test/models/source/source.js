@@ -1,5 +1,5 @@
-sap.ui.require(["sap/m/SearchField", "sap/ui/commons/TextField", "sap/m/InputBase", "sap/m/Input", "sap/base/util/UriParameters"],
-    function (SearchField, TextField, InputBase, Input, UriParameters) {
+sap.ui.require(["sap/m/TextArea", "sap/m/ComboBoxBase", "sap/m/SearchField", "sap/ui/commons/TextField", "sap/m/InputBase", "sap/m/Input", "sap/base/util/UriParameters"],
+    function (TextArea, ComboBoxBase, SearchField, TextField, InputBase, Input, UriParameters) {
 
         ////////
         // Sources of user-controlled data
@@ -46,4 +46,11 @@ sap.ui.require(["sap/m/SearchField", "sap/ui/commons/TextField", "sap/m/InputBas
         var uri = UriParameters.fromQuery(window.location.search)
         var sValue = uri.get("foo")
         var sValue = uri.getAll("foo")
+
+        // sap.m.TextArea.value
+        var f = new TextArea();
+        var remoteInput = f.value;
+        // sap.m.ComboBoxBase.value
+        var f = new ComboBoxBase();
+        var remoteInput = f.value;
     });

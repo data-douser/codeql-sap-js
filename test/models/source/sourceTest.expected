@@ -3,7 +3,7 @@
 | source.js:14:27:14:33 | f.value | f.value |
 | source.js:18:23:18:30 | ib.value | ib.value |
 | source.js:23:23:23:33 | input.value | input.value |
-| source.js:24:23:24:38 | input.getValue() | input.getValue() |
+| source.js:24:23:24:36 | input.getValue | input.getValue |
 | source.js:27:21:27:53 | jQuery. ... s().get | jQuery. ... s().get |
 | source.js:30:21:30:55 | jQuery. ... param") | jQuery. ... param") |
 | source.js:33:21:33:54 | jQuery. ... param") | jQuery. ... param") |
@@ -14,3 +14,5 @@
 | source.js:46:43:46:64 | window. ... .search | window. ... .search |
 | source.js:47:22:47:35 | uri.get("foo") | uri.get("foo") |
 | source.js:48:22:48:38 | uri.getAll("foo") | uri.getAll("foo") |
+| source.js:52:27:52:33 | f.value | f.value |
+| source.js:55:27:55:33 | f.value | f.value |
