@@ -1,5 +1,5 @@
-sap.ui.require(["sap/m/TextArea", "sap/m/ComboBoxBase", "sap/m/SearchField", "sap/ui/commons/TextField", "sap/m/InputBase", "sap/m/Input", "sap/base/util/UriParameters"],
-    function (TextArea, ComboBoxBase, SearchField, TextField, InputBase, Input, UriParameters) {
+sap.ui.require(["sap/m/SearchField", "sap/ui/commons/TextField", "sap/m/InputBase", "sap/m/Input", "sap/base/util/UriParameters", "sap/m/FeedInput"],
+    function (SearchField, TextField, InputBase, Input, UriParameters, FeedInput) {
 
         ////////
         // Sources of user-controlled data
@@ -18,10 +18,16 @@ sap.ui.require(["sap/m/TextArea", "sap/m/ComboBoxBase", "sap/m/SearchField", "sa
         remoteInput = ib.value;
 
         // sap.m.Input.value
-        // sap.m.Input#setValue()
+        // sap.m.Input#getValue()
         var input = new Input();
         remoteInput = input.value;
         remoteInput = input.getValue();
+
+        // sap.m.FeedInput.value
+        // sap.m.FeedInput#getValue()
+        var fi = new FeedInput();
+        remoteInput = fi.value;
+        remoteInput = fi.getValue();
 
         // jQuery.sap.getUriParameters() return
         var value = jQuery.sap.getUriParameters().get("foo");

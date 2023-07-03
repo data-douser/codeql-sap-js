@@ -67,6 +67,9 @@ extensions:
       # UriParameters#get UriParameters#getAll
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[get].ReturnValue", "remote"]
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue", "remote"]
+      # sap.m.FeedInput.value sap.m.FeedInput#getValue
+      - ["sap/m/FeedInput", "Instance.Member[value]", "remote"]
+      - ["sap/m/FeedInput", "Instance.Member[getValue]", "remote"]
 
   - addsTo:
       pack: codeql/javascript-all
@@ -94,3 +97,13 @@ extensions:
       - ["RenderManager", "Member[addClass].Argument[0]", "html-injection"]
       # RenderManager.unsafeHtml
       - ["RenderManager", "Member[unsafeHtml].Argument[0]", "html-injection"]
+
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: summaryModel
+    data:
+      - ["sap/base/strings/camelize", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["sap/base/strings/capitalize", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["sap/base/strings/escapeRegExp", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["sap/base/strings/formatMessage", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["sap/base/strings/hyphenate", "", "Argument[0]", "ReturnValue", "taint"]
