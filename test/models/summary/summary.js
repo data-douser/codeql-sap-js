@@ -36,9 +36,3 @@ sap.ui.require(["sap/base/strings/hyphenate"], function (hyphenate) {
     var value1 = hyphenate(value);
     jQuery.sap.globalEval(value1);
 });
-
-sap.ui.require(["sap/base/strings/hyphenate"], function (hyphenate) {
-    var value = jQuery.sap.syncGet("url", "param")
-    var value1 = hyphenate(value);
-    jQuery.sap.globalEval(value1);
-});

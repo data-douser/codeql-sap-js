@@ -15,20 +15,14 @@ extensions:
       - ["RenderManager", "Renderer", "Member[render].Parameter[0]"]
       # types extending sap/m/InputBase
       - ["sap/m/InputBase", "sap/m/ComboBoxTextField", ""]
-      - ["sap/m/InputBase", "sap/m/DatePicker", ""]
-      - ["sap/m/InputBase", "sap/m/DateTimeField", ""]
-      - ["sap/m/InputBase", "sap/m/DateTimePicker", ""]
       - ["sap/m/InputBase", "sap/m/Input", ""]
       - ["sap/m/InputBase", "sap/m/MaskEnabler", ""]
       - ["sap/m/InputBase", "sap/m/MaskInput", ""]
       - ["sap/m/InputBase", "sap/m/TextArea", ""]
-      - ["sap/m/InputBase", "sap/m/TimePicker", ""]
       # types extending sap/m/InputBase via sap/m/Input
       - ["sap/m/Input", "sap/m/ComboBoxBase", ""]
-      - ["sap/m/Input", "sap/m/DynamicDateRange", ""]
       - ["sap/m/Input", "sap/m/MultiInput", ""]
       - ["sap/m/Input", "sap/m/P13nConditionPanel", ""]
-      - ["sap/m/Input", "sap/ui/mdc/condition/OperatorDynamicDateOption", ""]
 
   - addsTo:
       pack: codeql/javascript-all
@@ -49,9 +43,6 @@ extensions:
       # sap.ui.richtexteditor.RichTextEditor.value #getValue
       - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[value]", "remote"]
       - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[getValue]", "remote"]
-      # sap.m.DateTimeInput.value #getValue
-      - ["sap/m/DateTimeInput", "Instance.Member[value]", "remote"]
-      - ["sap/m/DateTimeInput", "Instance.Member[getValue]", "remote"]
       # jQuery.sap.getUriParameters() return
       - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get]", "remote"]
       # jQuery.sap.syncHead() return
