@@ -33,18 +33,18 @@ extensions:
       - ["sap/ui/commons/TextField", "Instance.Member[getValue].ReturnValue", "remote"]
       # sap.m.InputBase.value #getValue
       - ["sap/m/InputBase", "Instance.Member[value]", "remote"]
-      - ["sap/m/InputBase", "Instance.Member[getValue]", "remote"]
+      - ["sap/m/InputBase", "Instance.Member[getValue].ReturnValue", "remote"]
       # sap.m.SearchField.value #getValue
       - ["sap/m/SearchField", "Instance.Member[value]", "remote"]
-      - ["sap/m/SearchField", "Instance.Member[getValue]", "remote"]
+      - ["sap/m/SearchField", "Instance.Member[getValue].ReturnValue", "remote"]
       # sap.ui.codeeditor.CodeEditor.value #getCurrentValue
       - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[value]", "remote"]
-      - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[getCurrentValue]", "remote"]
+      - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[getCurrentValue].ReturnValue", "remote"]
       # sap.ui.richtexteditor.RichTextEditor.value #getValue
       - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[value]", "remote"]
-      - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[getValue]", "remote"]
+      - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[getValue].ReturnValue", "remote"]
       # jQuery.sap.getUriParameters() return
-      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get]", "remote"]
+      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get].ReturnValue", "remote"]
       # jQuery.sap.syncHead() return
       - ["global", "Member[jQuery].Member[sap].Member[syncHead].ReturnValue", "remote"]
       # jQuery.sap.syncGet() return
@@ -60,7 +60,7 @@ extensions:
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue", "remote"]
       # sap.m.FeedInput.value sap.m.FeedInput#getValue
       - ["sap/m/FeedInput", "Instance.Member[value]", "remote"]
-      - ["sap/m/FeedInput", "Instance.Member[getValue]", "remote"]
+      - ["sap/m/FeedInput", "Instance.Member[getValue].ReturnValue", "remote"]
 
   - addsTo:
       pack: codeql/javascript-all
