@@ -14,12 +14,10 @@ class XssWithCustomControl extends TaintTracking::Configuration {
 
   override predicate isSource(DataFlow::Node source, DataFlow::FlowLabel label) {
     source instanceof UnsafeHtmlXssSource and label = "taint"
-    // any()
   }
 
   override predicate isSink(DataFlow::Node sink, DataFlow::FlowLabel label) {
     sink instanceof UnsafeHtmlXssSink and label = "taint"
-    // any()
   }
 
   override predicate isAdditionalFlowStep(
@@ -46,6 +44,21 @@ class XssWithCustomControl extends TaintTracking::Configuration {
       start = m.getAProperty(propName) and
       // 2. Ending at getTitle
       end = m.getARead(propName)
+    )
+    or
+    exists(UI5XmlView xmlView, UI5XmlControl xmlControl |
+      /*
+       * - There is an XmlView
+       * - Inside the XmlView there is a CustomControl
+       * - and the CustomControl is accepting a value through a DataBinding
+       */
+
+      xmlControl = xmlView.getXmlControl() and
+      xmlControl.getAnAttribute() instanceof DataBinding and
+      /* Create a flow from the model to the property of the custom control */
+      start = xmlView.getController().getModel() and
+      // TODO: get the exact name of the property hierarchy from the path string
+      end = xmlControl.getDefinition().getMetadata().getAProperty(_)
     )
     // or
     /*

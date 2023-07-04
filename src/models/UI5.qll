@@ -1,7 +1,6 @@
 private import javascript
 private import DataFlow
 private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
-private import XmlView
 
 module UI5 {
   class Project extends Folder {
@@ -396,12 +395,10 @@ module UI5 {
     CustomView() { this.getReceiver().getALocalSource() = sapView() }
   }
 
-  ValueNode valueFromElement() {
-    exists(CustomController controller, MethodCallNode elementRef, MethodCallNode getCall |
-      elementRef = controller.getAnElementReference() and
-      getCall = elementRef.getAMethodCall() and
-      getCall.getMethodName() = "getValue" and
-      result = getCall
+  MethodCallNode valueFromElement() {
+    exists(CustomController controller |
+      result = controller.getAnElementReference().getAMethodCall() and
+      result.getMethodName().substring(0, 3) = "get"
     )
   }
 

@@ -2,13 +2,17 @@ private import javascript
 private import DataFlow
 import UI5::UI5
 
-predicate builtInControl(string qualifiedTypeUri) {
-  qualifiedTypeUri =
-    [
-      "sap.m", // https://sapui5.hana.ondemand.com/#/api/sap.m: The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.
-      "sap.f", // https://sapui5.hana.ondemand.com/#/api/sap.f: SAPUI5 library with controls specialized for SAP Fiori apps.
-      "sap.ui" // https://sapui5.hana.ondemand.com/#/api/sap.ui: The sap.ui namespace is the central OpenAjax compliant entry point for UI related JavaScript functionality provided by SAP.
-    ]
+predicate builtInControl(XmlNamespace qualifiedTypeUri) {
+  exists(string namespace |
+    namespace =
+      [
+        "sap\\.m.*", // https://sapui5.hana.ondemand.com/#/api/sap.m: The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.
+        "sap\\.f.*", // https://sapui5.hana.ondemand.com/#/api/sap.f: SAPUI5 library with controls specialized for SAP Fiori apps.
+        "sap\\.ui.*" // https://sapui5.hana.ondemand.com/#/api/sap.ui: The sap.ui namespace is the central OpenAjax compliant entry point for UI related JavaScript functionality provided by SAP.
+      ]
+  |
+    qualifiedTypeUri.getUri().regexpMatch(namespace)
+  )
 }
 
 abstract class UI5XmlElement extends XmlElement {
@@ -49,7 +53,7 @@ class UI5XmlView extends UI5XmlElement {
         element = this.getAChild+() and
         // Either a builtin control provided by UI5
         (
-          builtInControl(element.getNamespace().getUri())
+          builtInControl(element.getNamespace())
           or
           // or a custom control with implementation code found in the project
           exists(CustomControl control, Project project |
@@ -80,6 +84,13 @@ class UI5XmlControl extends UI5XmlElement {
     result.getEnclosingFunction() = any(CustomController controller).getAMethod().asExpr() and
     result.getMethodName() = "byId" and
     result.getArgument(0).asExpr().(StringLiteral).getValue() = this.getAttributeValue("id")
+  }
+
+  CustomControl getDefinition() {
+    result.getName() = this.getQualifiedType() and
+    exists(Project project |
+      project.isInThisProject(this.getFile()) and project.isInThisProject(result.getFile())
+    )
   }
 
   /**
