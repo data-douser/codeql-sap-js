@@ -97,8 +97,58 @@ module UI5 {
   class CustomControl extends Extension {
     CustomControl() { getReceiver().getALocalSource() = sapControl() }
 
-    SourceNode getRenderer() {
-      result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource("renderer")
+    FunctionNode getRenderer() {
+      exists(SourceNode propValue |
+        propValue = this.getArgument(1).(ObjectLiteralNode).getAPropertySource("renderer") and
+        (
+          /*
+           * 1. Old RenderManager API:
+           * renderer: function (oRm, oControl) { ... }
+           */
+
+          propValue instanceof FunctionNode and result = propValue
+          or
+          /*
+           * 2. New Semantic Rendering API:
+           *  renderer: { apiVersion: 2, render: function(oRm, oControl) { ... } }
+           */
+
+          propValue instanceof ObjectLiteralNode and
+          result = propValue.getAPropertySource("render").(FunctionNode)
+          or
+          /*
+           * 3. The control's renderer object is an imported one, this can be found in a parameter of a Define
+           */
+
+          exists(int i |
+            result = propValue.getALocalSource() and
+            result = any(Define d).getParameter(i)
+          )
+          or
+          /*
+           * 4. The control's renderer is referred to as a string ID
+           */
+
+          propValue.asExpr() instanceof StringLiteral and
+          result =
+            any(Extension extend | extend.getName() = propValue.asExpr().(StringLiteral).getValue())
+                .getArgument(1)
+                .(ObjectLiteralNode)
+                .getAPropertySource("render")
+        )
+      )
+      or
+      /*
+       * 5. There is an implicit binding between the control and its renderer with the naming convention: e.g. foo.js and fooRenderer.js
+       */
+
+      this.getFile().getExtension() = "js" and
+      result =
+        any(Extension extend |
+          extend.getFile().getExtension() = "js" and
+          result.getFile().getBaseName().splitAt(".", 0) =
+            this.getFile().getBaseName().splitAt(".", 0) + "Renderer"
+        ).getArgument(1).(ObjectLiteralNode).getAPropertySource("render")
     }
 
     // TODO
@@ -233,34 +283,10 @@ module UI5 {
 
   class RenderManager extends SourceNode {
     RenderManager() {
-      /*
-       * 1. Old RenderManager API:
-       * renderer: function (oRm, oControl) { ... }
-       */
-
-      this = any(CustomControl c).getRenderer().(FunctionNode).getParameter(0)
+      this = any(CustomControl c).getRenderer().getParameter(0)
       or
       /*
-       * 2. New Semantic Rendering API:
-       *  renderer: { apiVersion: 2, render: function(oRm, oControl) { ... } }
-       */
-
-      this =
-        any(CustomControl c)
-            .getRenderer()
-            .getAPropertySource("render")
-            .(FunctionNode)
-            .getParameter(0)
-      or
-      exists(int i |
-        // The control's renderer object
-        this = any(CustomControl c).getRenderer().getALocalSource() and
-        // ... is an imported one, thus found in a parameter of a Define
-        this = any(Define d).getParameter(i)
-      )
-      or
-      /*
-       * 3. Through `new` keyword on an imported constructor
+       * Through `new` keyword on an imported constructor
        */
 
       exists(NewNode instantiation, ModuleObject module_ |
