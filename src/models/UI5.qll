@@ -1,6 +1,7 @@
 private import javascript
 private import DataFlow
 private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
+private import XmlView
 
 module UI5 {
   class Project extends Folder {
@@ -403,7 +404,15 @@ module UI5 {
   }
 
   class UnsafeHtmlXssSource extends DomBasedXss::Source {
-    UnsafeHtmlXssSource() { this = valueFromElement() }
+    UnsafeHtmlXssSource() {
+      this = valueFromElement()
+      or
+      exists(UI5XmlView xmlView, UI5XmlControl control |
+        control = xmlView.getXmlControl() and
+        control.writesToModel() and
+        this = xmlView.getController().getModel()
+      )
+    }
   }
 
   class UnsafeHtmlXssSink extends DomBasedXss::Sink {
