@@ -1,5 +1,4 @@
 import javascript
-import DataFlow
 import UI5AMDModule
 import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
 
@@ -27,9 +26,7 @@ private string getASuperType(string base) {
  * }
  * ```
  */
-abstract class UI5BindingPath extends Locatable {
-  abstract string getPathString();
-}
+abstract class UI5BindingPath extends Locatable { }
 
 /**
  * Models a UI5 View that might include
@@ -48,7 +45,7 @@ private class JsonBindingPath extends UI5BindingPath, JsonValue {
 
   JsonBindingPath() { value = this.getStringValue() and value.matches("{%}") }
 
-  override string getPathString() { result = value }
+  override string toString() { result = value }
 }
 
 class JsonView extends UI5View {
@@ -85,13 +82,11 @@ class JsonView extends UI5View {
 private class XmlBindingPath extends UI5BindingPath, XmlAttribute {
   string value;
 
-  XmlBindingPath() { value = this.getValue() and value.matches("{%}") }
+  XmlBindingPath() { value = this.(XmlAttribute).getValue() and value.matches("{%}") }
 
-  override string getPathString() { result = value }
+  override string toString() { result = value }
 
-  override string toString() { result = this.(XmlAttribute).toString() }
-
-  override Location getLocation() { result = this.(XmlAttribute).getLocation() }
+  override Location getLocation() { result = this.getLocation() }
 }
 
 class XmlView extends UI5View {
