@@ -439,10 +439,10 @@ module UI5 {
 
   private SourceNode sapView(TypeTracker t) {
     t.start() and
-    exists(SapDefineModule d, string dependencyType |
-      dependencyType = ["sap.ui.core.mvc.View", "sap/ui/core/mvc/View"]
+    exists(UserModule d, string dependencyType |
+      dependencyType = ["sap/ui/core/mvc/View", "sap.ui.core.mvc.View"]
     |
-      d.getDependencyType(_) = dependencyType and
+      d.getADependencyType() = dependencyType and
       result = d.getRequiredObject(dependencyType)
     )
     or
