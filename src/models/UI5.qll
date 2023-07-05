@@ -427,7 +427,7 @@ module UI5 {
       this instanceof NewNode and
       exists(RequiredObject xmlView |
         xmlView.flowsTo(this.getCalleeNode()) and
-        xmlView.getDependencyType() = "sap/ui/core/mvc/XMLView"
+        xmlView.getDependencyType() = ["sap.ui.core.mvc.View", "sap/ui/core/mvc/View"]
       )
     }
   }
@@ -440,7 +440,7 @@ module UI5 {
   private SourceNode sapView(TypeTracker t) {
     t.start() and
     exists(SapDefineModule d, string dependencyType |
-      dependencyType = ["sap/ui/core/Control", "sap.ui.core.Control"]
+      dependencyType = ["sap.ui.core.mvc.View", "sap/ui/core/mvc/View"]
     |
       d.getDependencyType(_) = dependencyType and
       result = d.getRequiredObject(dependencyType)
