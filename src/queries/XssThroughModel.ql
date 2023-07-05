@@ -15,4 +15,5 @@ where
   start.writesToModel(model) and
   end = xmlView.getXmlControl() and
   end.readsFromModel(model)
-select xmlView, model, start, end
+select xmlView, "This XML View writes to $@ using $@ and reads from it directly through $@.", model,
+  model.toString(), start, start.toString(), end, end.toString()

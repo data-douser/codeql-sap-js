@@ -71,4 +71,5 @@ class XssWithCustomControl extends TaintTracking::Configuration {
 
 from XssWithCustomControl xss, UnsafeHtmlXssSource source, UnsafeHtmlXssSink sink
 where xss.hasFlow(source, sink)
-select source, source.toString(), sink, sink.toString()
+select sink, "An user input to $@ flows to this HTML renderer without sanitization.", source,
+  source.toString()
