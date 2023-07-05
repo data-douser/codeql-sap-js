@@ -88,9 +88,7 @@ module UI5 {
     exists(UserModule d, string dependencyType |
       dependencyType = ["sap/ui/core/Control", "sap.ui.core.Control"]
     |
-      /* It has a "sap/ui/core/Control" specifier */
       d.getADependencyType() = dependencyType and
-      /* Get the positional parameter at the same index as the specifier */
       result = d.getRequiredObject(dependencyType)
     )
     or
@@ -104,9 +102,7 @@ module UI5 {
     exists(UserModule d, string dependencyType |
       dependencyType = ["sap/ui/core/mvc/Controller", "sap.ui.core.mvc.Controller"]
     |
-      /* It has a "sap/ui/core/Controller" specifier */
       d.getADependencyType() = dependencyType and
-      /* Get the positional parameter at the same index as the specifier */
       result = d.getRequiredObject(dependencyType)
     )
     or
@@ -446,9 +442,7 @@ module UI5 {
     exists(SapDefineModule d, string dependencyType |
       dependencyType = ["sap/ui/core/Control", "sap.ui.core.Control"]
     |
-      /* It has a "sap/ui/core/Controller" specifier */
       d.getDependencyType(_) = dependencyType and
-      /* Get the positional parameter at the same index as the specifier */
       result = d.getRequiredObject(dependencyType)
     )
     or
