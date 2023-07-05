@@ -25,54 +25,73 @@ module UI5 {
     Loader() { this = globalVarRef("sap").getAPropertyRead("ui").getAMethodCall("loader") }
   }
 
+  abstract class UserModule extends SapElement {
+    abstract string getADependencyType();
+
+    abstract string getModuleFileRelativePath();
+
+    abstract RequiredObject getRequiredObject(string dependencyType);
+  }
+
   /**
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui%23methods/sap.ui.define
    */
-  class Define extends CallNode, SapElement {
-    Define() { this = globalVarRef("sap").getAPropertyRead("ui").getAMethodCall("define") }
+  class SapDefineModule extends CallNode, UserModule {
+    SapDefineModule() { this = globalVarRef("sap").getAPropertyRead("ui").getAMethodCall("define") }
+
+    override string getADependencyType() { result = this.getDependencyType(_) }
+
+    override string getModuleFileRelativePath() { result = this.getFile().getRelativePath() }
 
     string getDependencyType(int i) {
       result =
         this.getArgument(0).getALocalSource().(ArrayLiteralNode).getElement(i).getStringValue()
     }
 
-    ParameterNode getParameter(int i) {
-      result = this.getArgument(1).getALocalSource().(FunctionNode).getParameter(i)
+    override RequiredObject getRequiredObject(string dependencyType) {
+      exists(int i |
+        this.getDependencyType(i) = dependencyType and
+        result = this.getArgument(1).getALocalSource().(FunctionNode).getParameter(i)
+      )
     }
 
     Project getProject() { result = this.getFile().getParentContainer*() }
+  }
 
-    string getModuleFileRelativePath() {
-      result = this.getFile().getRelativePath().suffix(getProject().getRelativePath().length() + 1)
+  class JQuerySap extends DataFlow::SourceNode {
+    JQuerySap() {
+      exists(DataFlow::GlobalVarRefNode global |
+        global.getName() = "jQuery" and
+        this = global.getAPropertyRead("sap")
+      )
     }
   }
 
-  /**
-   * `DefinedModule`: A module defined in the current project.
-   * `ExternallyDefinedModule`: A module imported into the current project, either from npm or from the test directory.
-   */
-  newtype TModule =
-    DefinedModule(Define d) or
-    ExternallyDefinedModule(string s) {
-      exists(Define d | s = d.getDependencyType(_) and not s.prefix(1) = ".")
+  class JQueryDefineModule extends UserModule, DataFlow::MethodCallNode {
+    JQueryDefineModule() { exists(JQuerySap jquerySap | jquerySap.flowsTo(this.getReceiver())) }
+
+    override string getADependencyType() {
+      result = this.getArgument(0).asExpr().(StringLiteral).getValue()
     }
 
-  class SapModule extends TModule {
-    string getModuleFileRelativePath() {
-      this = DefinedModule(any(Define d | result = d.getModuleFileRelativePath())) or
-      this = ExternallyDefinedModule(result)
-    }
+    override string getModuleFileRelativePath() { result = this.getFile().getRelativePath() }
 
-    string toString() { result = getModuleFileRelativePath() }
+    /** WARNING: toString() Hack! */
+    override RequiredObject getRequiredObject(string dependencyType) {
+      result.toString() = dependencyType and
+      this.getADependencyType() = dependencyType
+    }
   }
 
-  private SourceNode sapControl(TypeTracker t) {
+  private RequiredObject sapControl(TypeTracker t) {
     t.start() and
-    exists(Define d, int i |
+    exists(UserModule d, string dependencyType |
+      dependencyType = ["sap/ui/core/Control", "sap.ui.core.Control"]
+    |
       /* It has a "sap/ui/core/Control" specifier */
-      d.getDependencyType(i) = "sap/ui/core/Control" and
+      d.getADependencyType() = dependencyType and
       /* Get the positional parameter at the same index as the specifier */
-      result = d.getParameter(i)
+      result = d.getRequiredObject(dependencyType)
     )
     or
     exists(TypeTracker t2 | result = sapControl(t2).track(t2, t))
@@ -82,11 +101,13 @@ module UI5 {
 
   private SourceNode sapController(TypeTracker t) {
     t.start() and
-    exists(Define d, int i |
+    exists(UserModule d, string dependencyType |
+      dependencyType = ["sap/ui/core/mvc/Controller", "sap.ui.core.mvc.Controller"]
+    |
       /* It has a "sap/ui/core/Controller" specifier */
-      d.getDependencyType(i) = "sap/ui/core/mvc/Controller" and
+      d.getADependencyType() = dependencyType and
       /* Get the positional parameter at the same index as the specifier */
-      result = d.getParameter(i)
+      result = d.getRequiredObject(dependencyType)
     )
     or
     exists(TypeTracker t2 | result = sapController(t2).track(t2, t))
@@ -95,7 +116,7 @@ module UI5 {
   SourceNode sapController() { result = sapController(TypeTracker::end()) }
 
   class CustomControl extends Extension {
-    CustomControl() { getReceiver().getALocalSource() = sapControl() }
+    CustomControl() { this.getReceiver().getALocalSource() = sapControl() }
 
     FunctionNode getRenderer() {
       exists(SourceNode propValue |
@@ -117,12 +138,12 @@ module UI5 {
           result = propValue.getAPropertySource("render").(FunctionNode)
           or
           /*
-           * 3. The control's renderer object is an imported one, this can be found in a parameter of a Define
+           * 3. The control's renderer object is an imported one
            */
 
-          exists(int i |
+          exists(string dependencyType |
             result = propValue.getALocalSource() and
-            result = any(Define d).getParameter(i)
+            result = any(UserModule d).getRequiredObject(dependencyType)
           )
           or
           /*
@@ -152,10 +173,10 @@ module UI5 {
     }
 
     // TODO
-    predicate indirectlyExtendedControl(Define define) {
+    predicate indirectlyExtendedControl(SapDefineModule define) {
       /*
        * Sketch:
-       *     1. Define a predicate that maps the current module to the extended module
+       *     1. SapDefineModule a predicate that maps the current module to the extended module
        *     2. * or + the predicate
        */
 
@@ -235,7 +256,7 @@ module UI5 {
   class JsonModel extends Model {
     JsonModel() {
       this instanceof NewNode and
-      exists(ModuleObject jsonModel |
+      exists(RequiredObject jsonModel |
         jsonModel.flowsTo(this.getCalleeNode()) and
         jsonModel.getDependencyType() = "sap/ui/model/json/JSONModel"
       )
@@ -260,7 +281,7 @@ module UI5 {
   class XmlModel extends Model {
     XmlModel() {
       this instanceof NewNode and
-      exists(ModuleObject xmlModel |
+      exists(RequiredObject xmlModel |
         xmlModel.flowsTo(this.getCalleeNode()) and
         xmlModel.getDependencyType() = "sap/ui/model/xml/XMLModel"
       )
@@ -269,7 +290,7 @@ module UI5 {
     override string getPathString() { result = "WIP" }
   }
 
-  class BindingMode extends ModuleObject {
+  class BindingMode extends RequiredObject {
     BindingMode() { this.getDependencyType() = "sap/ui/model/BindingMode" }
 
     PropRead getOneWay() { result = this.getAPropertyRead("OneWay") }
@@ -289,8 +310,8 @@ module UI5 {
        * Through `new` keyword on an imported constructor
        */
 
-      exists(NewNode instantiation, ModuleObject module_ |
-        this = instantiation.getAConstructorInvocation(module_.getName())
+      exists(NewNode instantiation |
+        this = instantiation.getAConstructorInvocation("RenderManager")
       )
     }
 
@@ -302,14 +323,30 @@ module UI5 {
     }
   }
 
-  class ModuleObject extends ParameterNode {
-    ModuleObject() { this = any(Define d).getParameter(_) }
+  class RequiredObject extends SourceNode {
+    RequiredObject() {
+      exists(string dependencyType, int i |
+        any(SapDefineModule sapModule).getDependencyType(i) = dependencyType and
+        this =
+          any(SapDefineModule sapModule)
+              .getArgument(1)
+              .getALocalSource()
+              .(FunctionNode)
+              .getParameter(i)
+      )
+      or
+      exists(string dependencyType |
+        this.toString() = dependencyType and
+        any(JQueryDefineModule jQueryModule).getADependencyType() = dependencyType
+      )
+    }
 
-    Define getDefine() { result.getArgument(1).(FunctionNode).getParameter(_) = this }
+    UserModule getDefiningModule() { result.getArgument(1).(FunctionNode).getParameter(_) = this }
 
     string getDependencyType() {
-      exists(int i |
-        this.getDefine().getParameter(i) = this and result = this.getDefine().getDependencyType(i)
+      exists(string dependencyType |
+        this.getDefiningModule().getRequiredObject(dependencyType) = this and
+        result = this.getDefiningModule().getADependencyType()
       )
     }
   }
@@ -321,7 +358,7 @@ module UI5 {
   class Extension extends SapElement, MethodCallNode {
     Extension() {
       /* 1. The receiver object is an imported one */
-      any(ModuleObject module_).flowsTo(this.getReceiver()) and
+      any(RequiredObject module_).flowsTo(this.getReceiver()) and
       /* 2. The method name is `extend` */
       this.(MethodCallNode).getMethodName() = "extend"
     }
@@ -333,7 +370,7 @@ module UI5 {
     Metadata getMetadata() { result = this.getContent().getAPropertySource("metadata") }
 
     /** Gets the `sap.ui.define` call that wraps this extension. */
-    Define getDefine() { this.getEnclosingFunction() = result.getArgument(1).asExpr() }
+    SapDefineModule getDefine() { this.getEnclosingFunction() = result.getArgument(1).asExpr() }
   }
 
   /**
@@ -392,7 +429,7 @@ module UI5 {
   class XmlView extends View {
     XmlView() {
       this instanceof NewNode and
-      exists(ModuleObject xmlView |
+      exists(RequiredObject xmlView |
         xmlView.flowsTo(this.getCalleeNode()) and
         xmlView.getDependencyType() = "sap/ui/core/mvc/XMLView"
       )
@@ -406,11 +443,13 @@ module UI5 {
 
   private SourceNode sapView(TypeTracker t) {
     t.start() and
-    exists(Define d, int i |
+    exists(SapDefineModule d, string dependencyType |
+      dependencyType = ["sap/ui/core/Control", "sap.ui.core.Control"]
+    |
       /* It has a "sap/ui/core/Controller" specifier */
-      d.getDependencyType(i) = "sap/ui/core/mvc/View" and
+      d.getDependencyType(_) = dependencyType and
       /* Get the positional parameter at the same index as the specifier */
-      result = d.getParameter(i)
+      result = d.getRequiredObject(dependencyType)
     )
     or
     exists(TypeTracker t2 | result = sapView(t2).track(t2, t))
