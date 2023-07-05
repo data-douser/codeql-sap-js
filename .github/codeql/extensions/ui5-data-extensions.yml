@@ -22,7 +22,7 @@ extensions:
       # types extending sap/m/InputBase via sap/m/Input
       - ["sap/m/Input", "sap/m/ComboBoxBase", ""]
       - ["sap/m/Input", "sap/m/MultiInput", ""]
-      - ["sap/m/Input", "sap/m/P13nConditionPanel", ""]
+      - ["sap/m/Input", "sap/m/ComboBoxTextField", ""]
 
   - addsTo:
       pack: codeql/javascript-all
@@ -33,18 +33,27 @@ extensions:
       - ["sap/ui/commons/TextField", "Instance.Member[getValue].ReturnValue", "remote"]
       # sap.m.InputBase.value #getValue
       - ["sap/m/InputBase", "Instance.Member[value]", "remote"]
-      - ["sap/m/InputBase", "Instance.Member[getValue]", "remote"]
+      - ["sap/m/InputBase", "Instance.Member[getValue].ReturnValue", "remote"]
       # sap.m.SearchField.value #getValue
       - ["sap/m/SearchField", "Instance.Member[value]", "remote"]
-      - ["sap/m/SearchField", "Instance.Member[getValue]", "remote"]
+      - ["sap/m/SearchField", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.m.FeedInput.value sap.m.FeedInput#getValue
+      - ["sap/m/FeedInput", "Instance.Member[value]", "remote"]
+      - ["sap/m/FeedInput", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.ui.webc.main.Input.value sap.ui.webc.main.Input#getValue
+      - ["sap/ui/webc/main/Input", "Instance.Member[value]", "remote"]
+      - ["sap/ui/webc/main/Input", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.ui.webc.main.MultiInput.value sap.ui.webc.main.MultiInput#getValue
+      - ["sap/ui/webc/main/MultiInput", "Instance.Member[value]", "remote"]
+      - ["sap/ui/webc/main/MultiInput", "Instance.Member[getValue].ReturnValue", "remote"]
       # sap.ui.codeeditor.CodeEditor.value #getCurrentValue
       - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[value]", "remote"]
-      - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[getCurrentValue]", "remote"]
+      - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[getCurrentValue].ReturnValue", "remote"]
       # sap.ui.richtexteditor.RichTextEditor.value #getValue
       - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[value]", "remote"]
-      - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[getValue]", "remote"]
+      - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[getValue].ReturnValue", "remote"]
       # jQuery.sap.getUriParameters() return
-      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get]", "remote"]
+      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get].ReturnValue", "remote"]
       # jQuery.sap.syncHead() return
       - ["global", "Member[jQuery].Member[sap].Member[syncHead].ReturnValue", "remote"]
       # jQuery.sap.syncGet() return
@@ -58,9 +67,6 @@ extensions:
       # UriParameters#get UriParameters#getAll
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[get].ReturnValue", "remote"]
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue", "remote"]
-      # sap.m.FeedInput.value sap.m.FeedInput#getValue
-      - ["sap/m/FeedInput", "Instance.Member[value]", "remote"]
-      - ["sap/m/FeedInput", "Instance.Member[getValue]", "remote"]
 
   - addsTo:
       pack: codeql/javascript-all
