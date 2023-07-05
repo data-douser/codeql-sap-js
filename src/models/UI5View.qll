@@ -86,7 +86,7 @@ private class XmlBindingPath extends UI5BindingPath, XmlAttribute {
 
   override string toString() { result = value }
 
-  override Location getLocation() { result = this.getLocation() }
+  override Location getLocation() { result = XmlAttribute.super.getLocation() }
 }
 
 class XmlView extends UI5View {
