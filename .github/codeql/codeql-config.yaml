@@ -7,6 +7,6 @@ queries:
   - uses: ./test
 
 paths:
-  - **/*.xml
-  - **/*.json
+  - "**/*.xml"
+  - "**/*.json"
 
