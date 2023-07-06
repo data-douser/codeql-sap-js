@@ -49,8 +49,15 @@ private string bindingPathCapture(string property) {
  * ```
  */
 abstract class UI5BindingPath extends Locatable {
+  /**
+   * Returns the value of the binding path
+   * as specified in the view
+   */
   abstract string getPath();
 
+  /**
+   * Returns the absolute value of the binding path
+   */
   abstract string getAbsolutePath();
 }
 
