@@ -1,0 +1,39 @@
+name: "CodeQL Queries"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "main" ]
+  schedule:
+    - cron: '39 12 * * 2'
+    
+env:
+  LGTM_INDEX_XML_MODE: all
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: 'ubuntu-latest'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      id: init
+      uses: github/codeql-action/init@v2
+      with:
+        languages: javascript
+        config-file: ./.github/codeql/codeql-config.yaml
+
+    - name: Test Auto Package Installation
+      env:
+        CODEQL_PATH: ${{ steps.init.outputs.codeql-path }}
+      run: $CODEQL_PATH/codeql test run --threads=0 ./test
