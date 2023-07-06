@@ -1,0 +1,51 @@
+<mvc:View controllerName="codeql-sap-js.controller.app"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:mvc="sap.ui.core.mvc">
+
+    <Input value="{/firstName}" />
+    <Input value="{path: '/firstName', type: 'sap.ui.model.type.String'}" />
+
+    <TextField
+        value="{parts: [
+	        	 {path:'/birthday/day'},
+	        	 {path:'/birthday/month'},
+	        	 {path:'/birthday/year'}
+        	    ], 
+	            formatter:'my.globalFormatter'}" />
+
+    <List
+        id="List"
+        headerText="List"
+        items="{Result>/Rowsets/Rowset/Row}">
+        <InputListItem label="{Result>Name}"> <!-- {Result>/Rowsets/Rowset/Row/Name} -->
+            <SegmentedButton selectedButton="none"
+                items="{path:'Result>Selection/Row', templateShareable: true}"
+                visible="{= ${Result>Type} === 'qualitative' }" selectionChange="onSegBtnSelected">
+                <!-- {Result>/Rowsets/Rowset/Row/Name/Selection/Row} -->
+                <items>
+                    <SegmentedButtonItem key="{Result>Value}" text="{path:'Result>Value'}" />
+                </items>
+            </SegmentedButton>
+
+            <Select
+                visible="{= ${Result>Type} === 'qualitative'}"
+                items="{path:'Result>', templateShareable: true}">
+                <core:Item key="{Result>Subvalue}" text="{Result>Subvalue}" />
+            </Select>
+
+            <Input value="" visible="{= ${Result>Type} === 'quantitative' }" />
+        </InputListItem>
+    </List>
+    <Page id="page" title="ComboBox">
+        <content>
+            <ComboBox name="Drop-down List" id="box0" items="{other:{foo:'val1', bar:val2}path: '/country'}">
+                <items>
+                    <core:Item key="{Key}" text="{Name}" id="item0" />
+                </items>
+            </ComboBox>
+        </content>
+
+        <Button text="Change" press="onChange" />
+    </Page>
+</mvc:View>
