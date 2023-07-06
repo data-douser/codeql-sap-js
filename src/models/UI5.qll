@@ -1,7 +1,7 @@
 private import javascript
 private import DataFlow
 private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
-private import XmlView
+private import UI5View
 
 module UI5 {
   class Project extends Folder {
@@ -25,6 +25,9 @@ module UI5 {
     Loader() { this = globalVarRef("sap").getAPropertyRead("ui").getAMethodCall("loader") }
   }
 
+  /**
+   * A user-defined module through `sap.ui.define` or `jQuery.sap.declare`.
+   */
   abstract class UserModule extends SapElement {
     abstract string getADependencyType();
 
@@ -34,6 +37,7 @@ module UI5 {
   }
 
   /**
+   * A user-defined module through `sap.ui.define`.
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui%23methods/sap.ui.define
    */
   class SapDefineModule extends CallNode, UserModule {
@@ -67,6 +71,9 @@ module UI5 {
     }
   }
 
+  /**
+   * A user-defined module through `jQuery.sap.declare`.
+   */
   class JQueryDefineModule extends UserModule, DataFlow::MethodCallNode {
     JQueryDefineModule() { exists(JQuerySap jquerySap | jquerySap.flowsTo(this.getReceiver())) }
 
@@ -422,8 +429,8 @@ module UI5 {
    *    var oView = XMLView(...)
    */
 
-  class XmlView extends View {
-    XmlView() {
+  class XmlViewObject extends View {
+    XmlViewObject() {
       this instanceof NewNode and
       exists(RequiredObject xmlView |
         xmlView.flowsTo(this.getCalleeNode()) and
@@ -466,9 +473,8 @@ module UI5 {
     UnsafeHtmlXssSource() {
       this = valueFromElement()
       or
-      exists(UI5XmlView xmlView, UI5XmlControl control |
-        control = xmlView.getXmlControl() and
-        control.writesToModel() and
+      exists(XmlView xmlView |
+        exists(xmlView.getASource()) and
         this = xmlView.getController().getModel()
       )
     }

@@ -6,7 +6,7 @@
 
 import javascript
 import models.UI5::UI5
-import models.XmlView
+import models.UI5View
 import semmle.javascript.security.dataflow.DomBasedXssQuery
 
 class XssWithCustomControl extends TaintTracking::Configuration {
@@ -46,7 +46,7 @@ class XssWithCustomControl extends TaintTracking::Configuration {
       end = m.getARead(propName)
     )
     or
-    exists(UI5XmlView xmlView, UI5XmlControl xmlControl |
+    exists(XmlView xmlView, XmlControl xmlControl |
       /*
        * - There is an XmlView
        * - Inside the XmlView there is a CustomControl
@@ -54,7 +54,7 @@ class XssWithCustomControl extends TaintTracking::Configuration {
        */
 
       xmlControl = xmlView.getXmlControl() and
-      xmlControl.getAnAttribute() instanceof DataBinding and
+      xmlControl.accessesModel(_) and
       /* Create a flow from the model to the property of the custom control */
       start = xmlView.getController().getModel() and
       // TODO: get the exact name of the property hierarchy from the path string
