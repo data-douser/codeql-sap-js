@@ -8,6 +8,9 @@ on:
     branches: [ "main" ]
   schedule:
     - cron: '39 12 * * 2'
+    
+env:
+  LGTM_INDEX_XML_MODE: all
 
 jobs:
   analyze:
