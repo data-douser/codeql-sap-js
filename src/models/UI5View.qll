@@ -1,6 +1,7 @@
-import javascript
-import UI5AMDModule
-import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
+private import javascript
+private import DataFlow
+private import UI5::UI5
+private import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
 
 /**
  * Utiility predicate returning
@@ -145,6 +146,16 @@ class XmlBindingPath extends UI5BindingPath, XmlAttribute {
   override string toString() { result = path }
 
   override Location getLocation() { result = XmlAttribute.super.getLocation() }
+
+  /**
+   * Get the model declaration, which this data binding refers to, in a controller code.
+   */
+  Model getModel() {
+    exists(XmlView view |
+      this.getElement().getParent+() = view and
+      view.getController().getModel() = result
+    )
+  }
 }
 
 class XmlView extends UI5View {
@@ -155,6 +166,11 @@ class XmlView extends UI5View {
     root.getNamespace().getUri() = "sap.ui.core.mvc" and
     root.hasName("View")
   }
+
+  XmlElement getRoot() { result = root }
+
+  /** Get the qualified type string, e.g. `sap.m.SearchField` */
+  string getQualifiedType() { result = root.getNamespace().getUri() + "." + root.getName() }
 
   override string getControllerName() { result = root.getAttributeValue("controllerName") }
 
@@ -175,6 +191,18 @@ class XmlView extends UI5View {
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
+    )
+  }
+
+  /**
+   * Get the Controller.extends(...) definition associated with this XML view.
+   */
+  CustomController getController() {
+    // The controller name should match
+    result.getName() = this.getControllerName() and
+    // The View XML file and the controller are in a same project
+    exists(Project project |
+      project.isInThisProject(root.getFile()) and project.isInThisProject(result.getFile())
     )
   }
 }
