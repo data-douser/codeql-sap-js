@@ -14,7 +14,7 @@ env:
 
 jobs:
   analyze:
-    name: Analyze
+    name: Test
     runs-on: 'ubuntu-latest'
     permissions:
       actions: read
@@ -33,7 +33,7 @@ jobs:
         languages: javascript
         config-file: ./.github/codeql/codeql-config.yaml
 
-    - name: Test Auto Package Installation
+    - name: Run CodeQL Tests
       env:
         CODEQL_PATH: ${{ steps.init.outputs.codeql-path }}
       run: $CODEQL_PATH test run --threads=0 ./test
