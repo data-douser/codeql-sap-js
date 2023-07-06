@@ -3,17 +3,39 @@ import UI5AMDModule
 import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
 
 /**
- * Returns all the types that are supertype of base
+ * Utiility predicate returning
+ * types that are supertype of the argument
  * ```
- * - addsTo:
- *     pack: codeql/javascript-all
- *     extensible: typeModel
  *   data:["sap/m/InputBase", "sap/m/Input", ""]
  * ```
  */
 bindingset[base]
 private string getASuperType(string base) {
   result = base or ApiGraphModelsExtensions::typeModel(result, base, "")
+}
+
+/**
+ * Utility predicate capturing
+ * the binding path in the argument
+ * ```
+ *   value: "{Control>country}"
+ * ```
+ */
+bindingset[property]
+private string bindingPathCapture(string property) {
+  property.matches("{%}") and
+  exists(string pattern |
+    // matches "Control>country"
+    // TODO: save the Control name
+    pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
+    (
+      // simple {Control>country}
+      result = property.regexpCapture("(?s)\\{" + pattern + "\\}", 1)
+      or
+      // object {other:{foo:'bar'} path: 'Result>country'}
+      result = property.regexpCapture("(?s)\\{[^\"]*path\\s*:\\s*'" + pattern + "'[^\"]*\\}", 1)
+    )
+  )
 }
 
 /**
@@ -26,7 +48,11 @@ private string getASuperType(string base) {
  * }
  * ```
  */
-abstract class UI5BindingPath extends Locatable { }
+abstract class UI5BindingPath extends Locatable {
+  abstract string getPath();
+
+  abstract string getAbsolutePath();
+}
 
 /**
  * Models a UI5 View that might include
@@ -40,12 +66,25 @@ abstract class UI5View extends File {
   abstract UI5BindingPath getAnHtmlISink();
 }
 
-private class JsonBindingPath extends UI5BindingPath, JsonValue {
-  string value;
+class JsonBindingPath extends UI5BindingPath, JsonValue {
+  string path;
 
-  JsonBindingPath() { value = this.getStringValue() and value.matches("{%}") }
+  JsonBindingPath() { path = bindingPathCapture(this.getStringValue()) }
 
-  override string toString() { result = value }
+  override string getPath() { result = path }
+
+  override string getAbsolutePath() {
+    if path.matches("/%")
+    then result = path
+    else
+      exists(JsonBindingPath composite_path |
+        composite_path != this and
+        composite_path = this.getParent+().(JsonObject).getPropValue("items") and
+        result = composite_path.getAbsolutePath() + "/" + path
+      )
+  }
+
+  override string toString() { result = path }
 }
 
 class JsonView extends UI5View {
@@ -79,12 +118,24 @@ class JsonView extends UI5View {
   }
 }
 
-private class XmlBindingPath extends UI5BindingPath, XmlAttribute {
-  string value;
+class XmlBindingPath extends UI5BindingPath, XmlAttribute {
+  string path;
 
-  XmlBindingPath() { value = this.(XmlAttribute).getValue() and value.matches("{%}") }
+  XmlBindingPath() { path = bindingPathCapture(this.getValue()) }
 
-  override string toString() { result = value }
+  override string getPath() { result = path }
+
+  override string getAbsolutePath() {
+    if path.matches("/%")
+    then result = path
+    else
+      exists(XmlBindingPath composite_path |
+        composite_path = this.getElement().getParent+().(XmlElement).getAttribute("items") and
+        result = composite_path.getAbsolutePath() + "/" + path
+      )
+  }
+
+  override string toString() { result = path }
 
   override Location getLocation() { result = XmlAttribute.super.getLocation() }
 }

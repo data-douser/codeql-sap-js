@@ -1,25 +1,30 @@
-| binding1.xml:5:5:8:46 | {Result>/Rowsets/Rowset/Row} | {Result>/Rowsets/Rowset/Row} |
-| binding1.xml:9:9:9:46 | {Result>Name} | {Result>Name} |
-| binding1.xml:10:13:12:100 | {= ${Result>Type} === 'qualitative' } | {= ${Result>Type} === 'qualitative' } |
-| binding1.xml:10:13:12:100 | {path:'Result>Selection/Row', templateShareable: true} | {path:'Result>Selection/Row', templateShareable: true} |
-| binding1.xml:15:21:15:94 | {Result>Value} | {Result>Value} |
-| binding1.xml:15:21:15:94 | {path:'Result>Value'} | {path:'Result>Value'} |
-| binding1.xml:19:13:21:67 | {= ${Result>Type} === 'qualitative'} | {= ${Result>Type} === 'qualitative'} |
-| binding1.xml:19:13:21:67 | {path:'Result>', templateShareable: true} | {path:'Result>', templateShareable: true} |
-| binding1.xml:22:17:22:79 | {Result>Subvalue} | {Result>Subvalue} |
-| binding1.xml:22:17:22:79 | {Result>Subvalue} | {Result>Subvalue} |
-| binding1.xml:25:13:25:80 | {= ${Result>Type} === 'quantitative' } | {= ${Result>Type} === 'quantitative' } |
-| binding1.xml:30:13:30:110 | {other:{foo:'val1', bar:val2}path: '/country'} | {other:{foo:'val1', bar:val2}path: '/country'} |
-| binding1.xml:32:21:32:71 | {Key} | {Key} |
-| binding1.xml:32:21:32:71 | {Name} | {Name} |
-| bindingComposite.xml:5:5:5:92 | {i18n>panel3HeaderText} | {i18n>panel3HeaderText} |
-| bindingComposite.xml:6:9:6:81 | {i18n>productListTitle} | {i18n>productListTitle} |
-| bindingComposite.xml:6:9:6:81 | {products>/Products} | {products>/Products} |
-| bindingComposite.xml:8:17:17:50 | {/currencyCode} | {/currencyCode} |
-| bindingComposite.xml:8:17:17:50 | {\n\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t],\n\t\t\t\t\t\ttype: 'sap.ui.model.type.Currency',\n\t\t\t\t\t\tformatOptions: { showMeasure: false }\n\t\t\t\t\t} | {\n\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t],\n\t\t\t\t\t\ttype: 'sap.ui.model.type.Currency',\n\t\t\t\t\t\tformatOptions: { showMeasure: false }\n\t\t\t\t\t} |
-| bindingComposite.xml:8:17:17:50 | {products>ProductName} | {products>ProductName} |
-| bindingComposite.xml:19:25:19:78 | {products>QuantityPerUnit} | {products>QuantityPerUnit} |
-| bindingComposite.xml:20:25:28:13 | {\n\t\t\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitsInStock'},\n\t\t\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\t\tformatter: '.formatStockValue'\n\t\t\t\t\t\t\t} | {\n\t\t\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitsInStock'},\n\t\t\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\t\tformatter: '.formatStockValue'\n\t\t\t\t\t\t\t} |
-| bindingComposite.xml:20:25:28:13 | {i18n>stockValue} | {i18n>stockValue} |
-| bindingComposite.xml:34:5:36:28 | {/input} | {/input} |
-| bindingComposite.xml:38:5:38:45 | {path: '/input'} | {path: '/input'} |
+| binding1.json:9:21:9:29 | /Base | /Base |
+| binding1.json:15:30:15:38 | input | /Base/input |
+| binding1.json:19:32:19:78 | /input | /input |
+| binding1.xml:6:5:6:35 | /firstName | /firstName |
+| binding1.xml:7:5:7:77 | /firstName | /firstName |
+| binding1.xml:9:5:15:49 | /birthday/year | /birthday/year |
+| binding1.xml:17:5:20:46 | /Rowsets/Rowset/Row | /Rowsets/Rowset/Row |
+| binding1.xml:21:9:21:46 | Name | /Rowsets/Rowset/Row/Name |
+| binding1.xml:22:13:24:100 | Selection/Row | /Rowsets/Rowset/Row/Selection/Row |
+| binding1.xml:27:21:27:94 | Value | /Rowsets/Rowset/Row/Selection/Row/Value |
+| binding1.xml:27:21:27:94 | Value | /Rowsets/Rowset/Row/Selection/Row/Value |
+| binding1.xml:27:21:27:94 | Value | /Rowsets/Rowset/Row/Value |
+| binding1.xml:27:21:27:94 | Value | /Rowsets/Rowset/Row/Value |
+| binding1.xml:31:13:33:67 |  | /Rowsets/Rowset/Row/ |
+| binding1.xml:34:17:34:79 | Subvalue | /Rowsets/Rowset/Row//Subvalue |
+| binding1.xml:34:17:34:79 | Subvalue | /Rowsets/Rowset/Row//Subvalue |
+| binding1.xml:34:17:34:79 | Subvalue | /Rowsets/Rowset/Row/Subvalue |
+| binding1.xml:34:17:34:79 | Subvalue | /Rowsets/Rowset/Row/Subvalue |
+| binding1.xml:42:13:42:110 | /country | /country |
+| binding1.xml:44:21:44:71 | Key | /country/Key |
+| binding1.xml:44:21:44:71 | Name | /country/Name |
+| bindingComposite.xml:6:9:6:81 | /Products | /Products |
+| bindingComposite.xml:8:17:17:50 | /currencyCode | /currencyCode |
+| bindingComposite.xml:8:17:17:50 | /currencyCode | /currencyCode |
+| bindingComposite.xml:8:17:17:50 | ProductName | /Products/ProductName |
+| bindingComposite.xml:19:25:19:78 | QuantityPerUnit | /Products/QuantityPerUnit |
+| bindingComposite.xml:20:25:28:13 | /currencyCode | /currencyCode |
+| bindingComposite.xml:20:25:28:13 | stockValue | /Products/stockValue |
+| bindingComposite.xml:34:5:36:28 | /input | /input |
+| bindingComposite.xml:38:5:38:45 | /input | /input |

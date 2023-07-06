@@ -1,1 +1,1 @@
-| source1.xml:5:5:7:28 | {/input} | {/input} is a user input source. |
+| source1.xml:5:5:7:28 | /input | The binding path `/input` is a user input source. |

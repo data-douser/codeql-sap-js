@@ -10,4 +10,4 @@ import models.UI5View
 
 from UI5BindingPath bp
 where bp = any(UI5View ui5v).getASource()
-select bp, bp.toString() + " is a user input source."
+select bp, "The binding path `" + bp.toString() + "` is a user input source."

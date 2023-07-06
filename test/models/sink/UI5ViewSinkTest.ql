@@ -10,4 +10,4 @@ import models.UI5View
 
 from UI5BindingPath bp
 where bp = any(UI5View ui5v).getAnHtmlISink()
-select bp, bp.toString() + " is an HTML injection sink."
+select bp, "The binding path `" + bp.toString() + "` is an HTML injection sink."

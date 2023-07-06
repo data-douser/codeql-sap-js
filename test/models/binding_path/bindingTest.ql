@@ -8,4 +8,4 @@ import javascript
 import models.UI5View
 
 from UI5BindingPath path
-select path, path.toString()
+select path, path.getAbsolutePath()

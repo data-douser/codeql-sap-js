@@ -2,6 +2,18 @@
     xmlns="sap.m"
     xmlns:core="sap.ui.core"
     xmlns:mvc="sap.ui.core.mvc">
+
+    <Input value="{/firstName}" />
+    <Input value="{path: '/firstName', type: 'sap.ui.model.type.String'}" />
+
+    <TextField
+        value="{parts: [
+	        	 {path:'/birthday/day'},
+	        	 {path:'/birthday/month'},
+	        	 {path:'/birthday/year'}
+        	    ], 
+	            formatter:'my.globalFormatter'}" />
+
     <List
         id="List"
         headerText="List"
