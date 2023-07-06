@@ -36,4 +36,4 @@ jobs:
     - name: Test Auto Package Installation
       env:
         CODEQL_PATH: ${{ steps.init.outputs.codeql-path }}
-      run: $CODEQL_PATH/codeql test run --threads=0 ./test
+      run: $CODEQL_PATH test run --threads=0 ./test
