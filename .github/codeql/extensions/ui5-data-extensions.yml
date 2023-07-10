@@ -6,30 +6,54 @@ extensions:
       - ["Control", "sap/ui/core/Control", ""]
       - ["Control", "global", "Member[sap].Member[ui].Member[core].Member[Control]"]
       - ["HTMLControl", "global", "Member[sap].Member[ui].Member[core].Member[HTML]"]
+      - ["HTMLControl", "sap/ui/core/HTML", ""]
       - ["Renderer", "Control", "Member[extend].Argument[1].Member[renderer]"]
       - ["Renderer", "sap/ui/core/RenderManager", "Member[extend].Argument[1].Member[renderer]"]
       - ["Renderer", "sap/ui/core/Renderer", "Member[extend].Argument[1]"]
       - ["RenderManager", "sap/ui/core/RenderManager", "Instance"]
       - ["RenderManager", "Renderer", "Parameter[0]"]
       - ["RenderManager", "Renderer", "Member[render].Parameter[0]"]
+      # types extending sap/m/InputBase
+      - ["sap/m/InputBase", "sap/m/ComboBoxTextField", ""]
+      - ["sap/m/InputBase", "sap/m/Input", ""]
+      - ["sap/m/InputBase", "sap/m/MaskEnabler", ""]
+      - ["sap/m/InputBase", "sap/m/MaskInput", ""]
+      - ["sap/m/InputBase", "sap/m/TextArea", ""]
+      # types extending sap/m/InputBase via sap/m/Input
+      - ["sap/m/Input", "sap/m/ComboBoxBase", ""]
+      - ["sap/m/Input", "sap/m/MultiInput", ""]
+      - ["sap/m/Input", "sap/m/ComboBoxTextField", ""]
+
   - addsTo:
       pack: codeql/javascript-all
       extensible: sourceModel
     data:
-      # sap.ui.commons.TextField.value sap.ui.commons.TextField#getValue
+      # sap.ui.commons.TextField.value #getValue
       - ["sap/ui/commons/TextField", "Instance.Member[value]", "remote"]
       - ["sap/ui/commons/TextField", "Instance.Member[getValue].ReturnValue", "remote"]
-      # sap.m.InputBase.value sap.m.InputBase#getValue
+      # sap.m.InputBase.value #getValue
       - ["sap/m/InputBase", "Instance.Member[value]", "remote"]
-      - ["sap/m/InputBase", "Instance.Member[getValue]", "remote"]
-      # sap.m.SearchField.value sap.m.InputBase#getValue
+      - ["sap/m/InputBase", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.m.SearchField.value #getValue
       - ["sap/m/SearchField", "Instance.Member[value]", "remote"]
-      - ["sap/m/SearchField", "Instance.Member[getValue]", "remote"]
-      # sap.m.Input.value sap.m.Input#getValue()
-      - ["sap/m/Input", "Instance.Member[value]", "remote"]
-      - ["sap/m/Input", "Instance.Member[getValue].ReturnValue", "remote"]
+      - ["sap/m/SearchField", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.m.FeedInput.value sap.m.FeedInput#getValue
+      - ["sap/m/FeedInput", "Instance.Member[value]", "remote"]
+      - ["sap/m/FeedInput", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.ui.webc.main.Input.value sap.ui.webc.main.Input#getValue
+      - ["sap/ui/webc/main/Input", "Instance.Member[value]", "remote"]
+      - ["sap/ui/webc/main/Input", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.ui.webc.main.MultiInput.value sap.ui.webc.main.MultiInput#getValue
+      - ["sap/ui/webc/main/MultiInput", "Instance.Member[value]", "remote"]
+      - ["sap/ui/webc/main/MultiInput", "Instance.Member[getValue].ReturnValue", "remote"]
+      # sap.ui.codeeditor.CodeEditor.value #getCurrentValue
+      - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[value]", "remote"]
+      - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[getCurrentValue].ReturnValue", "remote"]
+      # sap.ui.richtexteditor.RichTextEditor.value #getValue
+      - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[value]", "remote"]
+      - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[getValue].ReturnValue", "remote"]
       # jQuery.sap.getUriParameters() return
-      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get]", "remote"]
+      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get].ReturnValue", "remote"]
       # jQuery.sap.syncHead() return
       - ["global", "Member[jQuery].Member[sap].Member[syncHead].ReturnValue", "remote"]
       # jQuery.sap.syncGet() return
@@ -43,29 +67,40 @@ extensions:
       # UriParameters#get UriParameters#getAll
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[get].ReturnValue", "remote"]
       - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue", "remote"]
+
   - addsTo:
       pack: codeql/javascript-all
       extensible: sinkModel
     data:
       # jQuery.sap.globalEval(code)
       - ["global", "Member[jQuery].Member[sap].Member[globalEval].Argument[0]", "html-injection"]
-        # new sap.ui.core.HTML({ content: code })
+      # new sap.ui.core.HTML({ content: code })
       - ["HTMLControl", "Argument[0].Member[content]", "html-injection"]
       # sap.ui.core.HTML#content
       - ["HTMLControl", "Instance.Member[content]", "html-injection"]
       # sap.ui.core.HTML#setContent
       - ["HTMLControl", "Instance.Member[setContent].Argument[0]", "html-injection"]
-        # sap.ui.core.Patcher.unsafeHtml
+      # sap.ui.core.Patcher.unsafeHtml
       - ["sap/ui/core/Patcher", "Instance.Member[unsafeHtml].Argument[0]", "html-injection"]
       # RenderManager.write
       - ["RenderManager", "Member[write].Argument[0]", "html-injection"]
       # RenderManager.writeAttribute
       - ["RenderManager", "Member[writeAttribute].Argument[0]", "html-injection"]
-        # RenderManager.writeAttributeEscaped
+      # RenderManager.writeAttributeEscaped
       - ["RenderManager", "Member[writeAttributeEscaped].Argument[0]", "html-injection"]
-        # RenderManager.addStyle
+      # RenderManager.addStyle
       - ["RenderManager", "Member[addStyle].Argument[0]", "html-injection"]
       # RenderManager.addClass
       - ["RenderManager", "Member[addClass].Argument[0]", "html-injection"]
       # RenderManager.unsafeHtml
       - ["RenderManager", "Member[unsafeHtml].Argument[0]", "html-injection"]
+
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: summaryModel
+    data:
+      - ["sap/base/strings/camelize", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["sap/base/strings/capitalize", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["sap/base/strings/escapeRegExp", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["sap/base/strings/formatMessage", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["sap/base/strings/hyphenate", "", "Argument[0]", "ReturnValue", "taint"]
