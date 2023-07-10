@@ -60,13 +60,7 @@ class XssWithCustomControl extends TaintTracking::Configuration {
       // TODO: get the exact name of the property hierarchy from the path string
       end = xmlControl.getDefinition().getMetadata().getAProperty(_)
     )
-    // or
-    /*
-     * Modeling <Input value="{/model}"/> --(1)--> model --(2)--> <HTML content="{/model}"/>
-     */
-
-    // exists(UI5XmlControl xmlControl | start = xmlControl and xmlControl.writesToModel(end))
-    }
+  }
 }
 
 from XssWithCustomControl xss, UnsafeHtmlXssSource source, UnsafeHtmlXssSink sink

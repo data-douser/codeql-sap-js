@@ -30,9 +30,11 @@ DataFlow::CallNode getSetterCall(UI5BindingPath path) {
 }
 
 predicate modelHasFlowBetween(UI5BindingPath start, UI5BindingPath end) {
+  /* They are completely identical, hence there's a trivial zero-step flow */
   start.getAbsolutePath() = end.getAbsolutePath() and
   start.getLocation() = end.getLocation()
   or
+  /* There's a non-trivial flow between the binding paths through get/setProperty */
   getGetterCall(start).flowsTo(getSetterCall(end).getArgument(1))
 }
 
