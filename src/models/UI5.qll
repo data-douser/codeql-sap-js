@@ -382,8 +382,28 @@ module UI5 {
   class Metadata extends ObjectLiteralNode {
     Metadata() { this = any(Extension e).getContent().getAPropertySource("metadata") }
 
-    Node getProperty(string name) {
-      result = this.getAPropertySource("properties").getAPropertyReference(name)
+    SourceNode getProperty(string name) {
+      result = this.getAPropertySource("properties").getAPropertySource(name)
+    }
+
+    predicate isUnrestrictedStringType(string propName) {
+      /* text : "string" */
+      exists(SourceNode propRef |
+        propRef = this.getProperty(propName) and
+        propRef.asExpr().(StringLiteral).getValue() = "string"
+      )
+      or
+      /* text: { type: "string" } */
+      exists(SourceNode propRef |
+        propRef = this.getProperty(propName) and
+        propRef.getAPropertySource("type").asExpr().(StringLiteral).getValue() = "string"
+      )
+      or
+      /* text: { someOther: "someOtherVal", ... } */
+      exists(SourceNode propRef |
+        propRef = this.getProperty(propName) and
+        not exists(propRef.getAPropertySource("type"))
+      )
     }
 
     Extension getExtension() { result = any(Extension extend | extend.getMetadata() = this) }
