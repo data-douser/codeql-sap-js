@@ -1,5 +1,6 @@
 /**
  * @name Client-side cross-site scripting
+ * @id Ui5Xss
  * @kind path-problem
  */
 
