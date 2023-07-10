@@ -382,7 +382,7 @@ module UI5 {
   class Metadata extends ObjectLiteralNode {
     Metadata() { this = any(Extension e).getContent().getAPropertySource("metadata") }
 
-    Node getAProperty(string name) {
+    Node getProperty(string name) {
       result = this.getAPropertySource("properties").getAPropertyReference(name)
     }
 
@@ -392,26 +392,26 @@ module UI5 {
       exists(string propName |
         result.getMethodName() = "setProperty" and
         result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-        exists(this.getAProperty(propName))
+        exists(this.getProperty(propName))
       )
     }
 
     MethodCallNode getAWrite(string propName) {
       result.getMethodName() = "setProperty" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-      exists(this.getAProperty(propName))
+      exists(this.getProperty(propName))
     }
 
     MethodCallNode getARead() {
       exists(string propName |
         result.getMethodName() = "get" + propName.prefix(1).toUpperCase() + propName.suffix(1) and
-        exists(this.getAProperty(propName))
+        exists(this.getProperty(propName))
       )
     }
 
     MethodCallNode getARead(string propName) {
       result.getMethodName() = "get" + propName.prefix(1).toUpperCase() + propName.suffix(1) and
-      exists(this.getAProperty(propName))
+      exists(this.getProperty(propName))
     }
   }
 
