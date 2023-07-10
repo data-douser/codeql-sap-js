@@ -6,6 +6,7 @@
 
 import javascript
 import semmle.javascript.security.dataflow.DomBasedXssQuery
+import models.UI5::UI5
 import models.UI5View
 import DataFlow::PathGraph
 
@@ -13,13 +14,13 @@ class UI5ModelSource extends Source {
   UI5BindingPath path;
 
   UI5ModelSource() {
-    exists(CallExpr getProp, UI5View view |
+    exists(XmlView view |
       // TODO: matching control name
       // TODO: source in the JSONModel literal+ edge from Model to getProperty
-      getProp.getCalleeName() = ["getProperty", "getObject"] and
-      this.asExpr() = getProp and
-      path = view.getASource() and
-      getProp.getArgument(0).getStringValue() = path.getAbsolutePath()
+      this.(DataFlow::CallNode).getCalleeName() = ["getProperty", "getObject"] and
+      this.(DataFlow::CallNode).getArgument(0).getStringValue() = path.getAbsolutePath() and
+      view.getASource() = path and
+      view.getController().getModel().(JsonModel).getPathString() = path.getAbsolutePath()
     )
   }
 
@@ -30,11 +31,12 @@ class UI5ModelSink extends Sink {
   UI5BindingPath path;
 
   UI5ModelSink() {
-    exists(CallExpr setProp, UI5View view |
+    exists(DataFlow::CallNode setProp, XmlView view |
       setProp.getCalleeName() = ["setProperty", "setObject"] and
-      this.asExpr() = setProp.getArgument(1) and
+      this = setProp.getArgument(1) and
       path = view.getAnHtmlISink() and
-      setProp.getArgument(0).getStringValue() = path.getAbsolutePath()
+      setProp.getArgument(0).getStringValue() = path.getAbsolutePath() and
+      view.getController().getModel().(JsonModel).getPathString() = path.getAbsolutePath()
     )
   }
 

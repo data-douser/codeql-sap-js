@@ -252,7 +252,7 @@ module UI5 {
       )
   }
 
-  string constructPathString(DataFlow::ObjectLiteralNode object) {
+  private string constructPathString(DataFlow::ObjectLiteralNode object) {
     result = constructPathStringInner(object.asExpr())
   }
 
