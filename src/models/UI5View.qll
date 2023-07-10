@@ -278,6 +278,18 @@ class XmlControl extends XmlElement {
     // TODO: Add case where modelName is present
   }
 
+  predicate accessesModel(Model model, XmlBindingPath bindingPath) {
+    // Verify that the controller's model has the referenced property
+    exists(XmlView view |
+      // Both this control and the model belong to the same view
+      this = view.getXmlControl() and
+      model = view.getController().getModel() and
+      model.getPathString() = bindingPath.getPath() and
+      bindingPath.getPath() = this.getAnAttribute().(XmlBindingPath).getPath()
+    )
+    // TODO: Add case where modelName is present
+  }
+
   predicate isXssSource() {
     exists(XmlView view, string type, string path, string property |
       view = this.getParent+() and
