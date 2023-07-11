@@ -248,15 +248,53 @@ module UI5 {
     then result = ""
     else
       exists(Property property | property = object.(ObjectExpr).getAProperty().(ValueProperty) |
-        result = constructPathStringInner(property.getInit()) + "/" + property.getName()
+        result = property.getName() + "/" + constructPathStringInner(property.getInit())
       )
   }
 
+  /**
+   * Create all recursive path strings of an object literal, e.g.
+   * if `object = { p1: { p2: 1 }, p3: 2 }`, then create:
+   * - `p1/p2`, and
+   * - `p3/`.
+   */
   private string constructPathString(DataFlow::ObjectLiteralNode object) {
     result = constructPathStringInner(object.asExpr())
   }
 
-  class JsonModel extends Model {
+  /** Holds if the `property` is in any way nested inside the `object`. */
+  private predicate propertyNestedInObject(ObjectExpr object, Property property) {
+    exists(Property property2 | property2 = object.getAProperty() |
+      property = property2 or
+      propertyNestedInObject(property2.getInit().(ObjectExpr), property)
+    )
+  }
+
+  private string constructPathStringInner(Expr object, Property property) {
+    if not object instanceof ObjectExpr
+    then result = ""
+    else
+      exists(Property property2 | property2 = object.(ObjectExpr).getAProperty().(ValueProperty) |
+        if property = property2
+        then result = property2.getName() + "/"
+        else (
+          /* We're sure this property is inside this object */
+          propertyNestedInObject(property2.getInit().(ObjectExpr), property) and
+          result =
+            property2.getName() + "/" + constructPathStringInner(property2.getInit(), property)
+        )
+      )
+  }
+
+  /**
+   * Create all possible path strings of an object literal up to a certain property, e.g.
+   * if `object = { p1: { p2: 1 }, p3: 2 }` and `property = {p3: 2}` then create `"p3/"`.
+   */
+  private string constructPathString(DataFlow::ObjectLiteralNode object, Property property) {
+    result = constructPathStringInner(object.asExpr(), property)
+  }
+
+  class JsonModel extends UI5Model {
     JsonModel() {
       this instanceof NewNode and
       exists(RequiredObject jsonModel |
@@ -281,7 +319,7 @@ module UI5 {
     }
   }
 
-  class XmlModel extends Model {
+  class XmlModel extends UI5Model {
     XmlModel() {
       this instanceof NewNode and
       exists(RequiredObject xmlModel |
