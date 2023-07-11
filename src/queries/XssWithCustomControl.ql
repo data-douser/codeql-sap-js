@@ -35,13 +35,13 @@ class XssWithCustomControl extends TaintTracking::Configuration {
       // 1. Starting from getAWrite
       start = m.getAWrite(propName).getArgument(1) and
       // 2. Ending at the title property
-      end = m.getAProperty(propName)
+      end = m.getProperty(propName)
     )
     or
     /* title property --(2)--> getTitle */
     exists(string propName, Metadata m |
       // 1. Starting from the title property
-      start = m.getAProperty(propName) and
+      start = m.getProperty(propName) and
       // 2. Ending at getTitle
       end = m.getARead(propName)
     )
@@ -58,7 +58,7 @@ class XssWithCustomControl extends TaintTracking::Configuration {
       /* Create a flow from the model to the property of the custom control */
       start = xmlView.getController().getModel() and
       // TODO: get the exact name of the property hierarchy from the path string
-      end = xmlControl.getDefinition().getMetadata().getAProperty(_)
+      end = xmlControl.getDefinition().getMetadata().getProperty(_)
     )
   }
 }
