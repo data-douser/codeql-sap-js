@@ -237,7 +237,7 @@ module UI5 {
     then result = ""
     else
       exists(Property property | property = object.(ObjectExpr).getAProperty().(ValueProperty) |
-        result = property.getName() + "/" + constructPathStringInner(property.getInit())
+        result = "/" + property.getName() + constructPathStringInner(property.getInit())
       )
   }
 
@@ -265,12 +265,12 @@ module UI5 {
     else
       exists(Property property2 | property2 = object.(ObjectExpr).getAProperty().(ValueProperty) |
         if property = property2
-        then result = property2.getName() + "/"
+        then result = "/" + property2.getName()
         else (
           /* We're sure this property is inside this object */
           propertyNestedInObject(property2.getInit().(ObjectExpr), property) and
           result =
-            property2.getName() + "/" + constructPathStringInner(property2.getInit(), property)
+            "/" + property2.getName() + constructPathStringInner(property2.getInit(), property)
         )
       )
   }
