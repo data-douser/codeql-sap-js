@@ -207,17 +207,6 @@ module UI5 {
       )
     }
 
-    /**
-     * Gets the declaration of the view object that is associated with this controller.
-     */
-    View getView() {
-      /* 1. The controller uses a predefined view: (HTMLView|XMLView|JSONView|JSView|TemplateView) */
-      none() // WIP
-      or
-      /* 2. The controller uses a custom view */
-      none() // WIP: is custom view used in practice && do we want to model it?
-    }
-
     MethodCallNode getAnElementReference() {
       exists(MethodCallNode viewRef |
         viewRef = this.getAViewReference() and
@@ -479,46 +468,6 @@ module UI5 {
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.mvc.Controller%23methods/byId
    */
   abstract class SapElement extends InvokeNode { }
-
-  abstract class View extends SapElement { }
-
-  /*
-   * 1. XMLView
-   *    var oView = XMLView(...)
-   */
-
-  class XmlViewObject extends View {
-    XmlViewObject() {
-      this instanceof NewNode and
-      exists(RequiredObject xmlView |
-        xmlView.flowsTo(this.getCalleeNode()) and
-        xmlView.getDependencyType() = ["sap.ui.core.mvc.View", "sap/ui/core/mvc/View"]
-      )
-    }
-  }
-
-  /*
-   * 2. Extension of a view
-   *      View.extend("some.view", { ... })
-   */
-
-  private SourceNode sapView(TypeTracker t) {
-    t.start() and
-    exists(UserModule d, string dependencyType |
-      dependencyType = ["sap/ui/core/mvc/View", "sap.ui.core.mvc.View"]
-    |
-      d.getADependencyType() = dependencyType and
-      result = d.getRequiredObject(dependencyType)
-    )
-    or
-    exists(TypeTracker t2 | result = sapView(t2).track(t2, t))
-  }
-
-  SourceNode sapView() { result = sapView(TypeTracker::end()) }
-
-  class CustomView extends View, Extension {
-    CustomView() { this.getReceiver().getALocalSource() = sapView() }
-  }
 
   MethodCallNode valueFromElement() {
     exists(CustomController controller |
