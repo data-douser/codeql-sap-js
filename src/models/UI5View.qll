@@ -163,7 +163,7 @@ class XmlBindingPath extends UI5BindingPath, XmlAttribute {
   /**
    * Get the model declaration, which this data binding refers to, in a controller code.
    */
-  Model getModel() {
+  UI5Model getModel() {
     exists(XmlView view |
       this.getElement().getParent+() = view and
       view.getController().getModel() = result
@@ -267,7 +267,7 @@ class XmlControl extends XmlElement {
     )
   }
 
-  predicate accessesModel(Model model) {
+  predicate accessesModel(UI5Model model) {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view
@@ -278,7 +278,7 @@ class XmlControl extends XmlElement {
     // TODO: Add case where modelName is present
   }
 
-  predicate accessesModel(Model model, XmlBindingPath bindingPath) {
+  predicate accessesModel(UI5Model model, XmlBindingPath bindingPath) {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view

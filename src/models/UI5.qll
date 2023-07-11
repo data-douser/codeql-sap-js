@@ -230,7 +230,7 @@ module UI5 {
 
     ThisNode getAThisNode() { result.getBinder() = this.getAMethod() }
 
-    Model getModel() {
+    UI5Model getModel() {
       exists(MethodCallNode setModelCall |
         this.getAViewReference().flowsTo(setModelCall.getReceiver()) and
         setModelCall.getMethodName() = "setModel" and
@@ -239,7 +239,7 @@ module UI5 {
     }
   }
 
-  abstract class Model extends SapElement {
+  abstract class UI5Model extends SapElement {
     abstract string getPathString();
   }
 
