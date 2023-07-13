@@ -22,6 +22,10 @@ All XSS examples run locally using the [UI5 tooling](https://sap.github.io/ui5-t
 - `sap.ui.core.HTML` Control
 - dataflow in the controller
 
+## xss-html-external-model
+- `sap.ui.core.HTML` Control
+- controller model as external `.json` file
+
 ## xss-html-view
 - `sap.ui.core.mvc.HTMLView` View
 
