@@ -1,5 +1,4 @@
 import javascript
-import UI5AMDModule
 import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
 
 /**

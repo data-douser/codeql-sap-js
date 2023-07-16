@@ -7,6 +7,7 @@
 import javascript
 import semmle.javascript.security.dataflow.DomBasedXssQuery
 import models.UI5View
+import models.UI5AMDModule
 import DataFlow::PathGraph
 
 class UI5ModelSource extends Source {
