@@ -5,9 +5,9 @@
  */
 
 import javascript
-import semmle.javascript.security.dataflow.DomBasedXssQuery
 import models.UI5AMDModule
+import queries.Ui5XssConfiguration
 
-from DataFlow::Configuration cfg, DataFlow::Node source
+from Configuration cfg, DataFlow::Node source
 where cfg.isSource(source, _)
 select source, source.toString()

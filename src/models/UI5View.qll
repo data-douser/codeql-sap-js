@@ -1,5 +1,20 @@
-import javascript
-import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
+private import javascript
+private import DataFlow
+private import UI5::UI5
+private import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
+
+predicate builtInControl(XmlNamespace qualifiedTypeUri) {
+  exists(string namespace |
+    namespace =
+      [
+        "sap\\.m.*", // https://sapui5.hana.ondemand.com/#/api/sap.m: The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.
+        "sap\\.f.*", // https://sapui5.hana.ondemand.com/#/api/sap.f: SAPUI5 library with controls specialized for SAP Fiori apps.
+        "sap\\.ui.*" // https://sapui5.hana.ondemand.com/#/api/sap.ui: The sap.ui namespace is the central OpenAjax compliant entry point for UI related JavaScript functionality provided by SAP.
+      ]
+  |
+    qualifiedTypeUri.getUri().regexpMatch(namespace)
+  )
+}
 
 /**
  * Utiility predicate returning
@@ -58,6 +73,16 @@ abstract class UI5BindingPath extends Locatable {
    * Returns the absolute value of the binding path
    */
   abstract string getAbsolutePath();
+
+  /**
+   * Get the model declaration, which this data binding refers to, in a controller code.
+   */
+  UI5Model getModel() {
+    exists(UI5View view |
+      this.getLocation().getFile() = view and
+      view.getController().getModel() = result
+    )
+  }
 }
 
 /**
@@ -66,6 +91,18 @@ abstract class UI5BindingPath extends Locatable {
  */
 abstract class UI5View extends File {
   abstract string getControllerName();
+
+  /**
+   * Get the Controller.extends(...) definition associated with this XML view.
+   */
+  CustomController getController() {
+    // The controller name should match
+    result.getName() = this.getControllerName() and
+    // The View XML file and the controller are in a same project
+    exists(Project project |
+      project.isInThisProject(this) and project.isInThisProject(result.getFile())
+    )
+  }
 
   abstract UI5BindingPath getASource();
 
@@ -155,6 +192,11 @@ class XmlView extends UI5View {
     root.hasName("View")
   }
 
+  XmlElement getRoot() { result = root }
+
+  /** Get the qualified type string, e.g. `sap.m.SearchField` */
+  string getQualifiedType() { result = root.getNamespace().getUri() + "." + root.getName() }
+
   override string getControllerName() { result = root.getAttributeValue("controllerName") }
 
   override XmlBindingPath getASource() {
@@ -174,6 +216,95 @@ class XmlView extends UI5View {
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
+    )
+  }
+
+  /**
+   * Get the XML tags associated with UI5 Controls declared in this XML view.
+   */
+  XmlControl getXmlControl() {
+    result =
+      any(XmlElement element |
+        // getAChild+ because "container controls" nest other controls inside them
+        element = root.getAChild+() and
+        // Either a builtin control provided by UI5
+        (
+          builtInControl(element.getNamespace())
+          or
+          // or a custom control with implementation code found in the project
+          exists(CustomControl control, Project project |
+            control.getName() = element.getNamespace().getUri() + "." + element.getName() and
+            project.isInThisProject(control.getFile()) and
+            project.isInThisProject(element.getFile())
+          )
+        )
+      )
+  }
+}
+
+class XmlControl extends XmlElement {
+  XmlControl() { this.getParent+() = any(XmlView view) }
+
+  /** Get the qualified type string, e.g. `sap.m.SearchField` */
+  string getQualifiedType() { result = this.getNamespace().getUri() + "." + this.getName() }
+
+  /** Get the JS Control definition if this is a custom control. */
+  Extension getJSDefinition() {
+    result = any(CustomControl control | control.getName() = this.getQualifiedType())
+  }
+
+  /** Get a reference to this control in the controller code. Currently supports only such references made through `byId`. */
+  MethodCallNode getAReference() {
+    result.getEnclosingFunction() = any(CustomController controller).getAMethod().asExpr() and
+    result.getMethodName() = "byId" and
+    result.getArgument(0).asExpr().(StringLiteral).getValue() = this.getAttributeValue("id")
+  }
+
+  CustomControl getDefinition() {
+    result.getName() = this.getQualifiedType() and
+    exists(Project project |
+      project.isInThisProject(this.getFile()) and project.isInThisProject(result.getFile())
+    )
+  }
+
+  predicate accessesModel(UI5Model model) {
+    // Verify that the controller's model has the referenced property
+    exists(XmlView view |
+      // Both this control and the model belong to the same view
+      this = view.getXmlControl() and
+      model = view.getController().getModel() and
+      model.getPathString() = this.getAnAttribute().(XmlBindingPath).getPath()
+    )
+    // TODO: Add case where modelName is present
+  }
+
+  predicate accessesModel(UI5Model model, XmlBindingPath bindingPath) {
+    // Verify that the controller's model has the referenced property
+    exists(XmlView view |
+      // Both this control and the model belong to the same view
+      this = view.getXmlControl() and
+      model = view.getController().getModel() and
+      model.getPathString() = bindingPath.getPath() and
+      bindingPath.getPath() = this.getAnAttribute().(XmlBindingPath).getPath()
+    )
+    // TODO: Add case where modelName is present
+  }
+
+  predicate isXssSource() {
+    exists(XmlView view, string type, string path, string property |
+      view = this.getParent+() and
+      type = this.getQualifiedType().replaceAll(".", "/") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1)
+    )
+  }
+
+  predicate isXssSink() {
+    exists(XmlView view, string type, string path, string property |
+      view = this.getParent+() and
+      type = this.getQualifiedType().replaceAll(".", "/") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
+      property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1)
     )
   }
 }
