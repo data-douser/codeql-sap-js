@@ -39,7 +39,7 @@ predicate modelHasFlowBetween(UI5BindingPath start, UI5BindingPath end) {
 }
 
 from
-  XmlView xmlView, XmlBindingPath startPath, XmlBindingPath endPath, Model model, XmlControl start,
+  XmlView xmlView, XmlBindingPath startPath, XmlBindingPath endPath, UI5Model model, XmlControl start,
   XmlControl end
 where
   not xmlView.getController().getModel().(JsonModel).isOneWayBinding() and
