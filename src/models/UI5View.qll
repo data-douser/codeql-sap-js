@@ -85,6 +85,18 @@ abstract class UI5View extends File {
   abstract UI5BindingPath getASource();
 
   abstract UI5BindingPath getAnHtmlISink();
+
+  /**
+   * Get the Controller.extends(...) definition associated with this XML view.
+   */
+  CustomController getController() {
+    // The controller name should match
+    result.getName() = this.getControllerName() and
+    // The View XML file and the controller are in a same project
+    exists(Project project |
+      project.isInThisProject(this) and project.isInThisProject(result.getFile())
+    )
+  }
 }
 
 class JsonBindingPath extends UI5BindingPath, JsonValue {
@@ -204,18 +216,6 @@ class XmlView extends UI5View {
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
-    )
-  }
-
-  /**
-   * Get the Controller.extends(...) definition associated with this XML view.
-   */
-  CustomController getController() {
-    // The controller name should match
-    result.getName() = this.getControllerName() and
-    // The View XML file and the controller are in a same project
-    exists(Project project |
-      project.isInThisProject(root.getFile()) and project.isInThisProject(result.getFile())
     )
   }
 
