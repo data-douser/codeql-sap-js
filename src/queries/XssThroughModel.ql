@@ -50,7 +50,5 @@ where
   end.accessesModel(model, endPath) and
   end.isXssSink() and
   modelHasFlowBetween(startPath, endPath)
-select xmlView,
-  "This XML View writes to $@ using $@ ($@) and reads from it directly through $@ ($@).", model,
-  model.toString(), start, start.toString(), startPath, startPath.getAbsolutePath(), end,
-  end.toString(), endPath, endPath.getAbsolutePath()
+select end,
+"Cross-site scripting vulnerability due to $@.", start, "user-provided value"
