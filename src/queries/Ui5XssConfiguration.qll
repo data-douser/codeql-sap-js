@@ -23,134 +23,111 @@ class Ui5XssConfiguration extends TaintTracking::Configuration {
     inLabel = "taint" and
     outLabel = "taint" and
     (
-      /*
-       * Modeling setTitle --(1)--> title property --(2)--> getTitle
-       */
-
-      exists(string propName, Metadata m |
-        // 1. Starting from getAWrite
-        start = m.getAWrite(propName).getArgument(1) and
-        // 2. Ending at the title property
-        end = m.getProperty(propName)
+      // Modelling binding path -> title property -> setTitle
+      exists(string propName, Metadata metadata, UI5BoundNode node |
+        // TODO: metadata and node in the same Control
+        // Binding path in the model <-> control metadata
+        [start, end] = metadata.getProperty(propName) and
+        [start, end] = node and
+        node.getPath().getPropertyName() = propName and
+        //restrict by property type
+        metadata.getProperty(propName).getAPropertySource("type").getStringValue() = ["string"]
         or
-        // 1. Starting from the title property
-        start = m.getProperty(propName) and
-        // 2. Ending at getTitle
-        end = m.getARead(propName)
+        // getAWrite -> control metadata
+        start = metadata.getAWrite(propName).getArgument(1) and
+        end = metadata.getProperty(propName)
+        or
+        // control metadata -> getTitle
+        start = metadata.getProperty(propName) and
+        end = metadata.getARead(propName)
       )
       or
-      exists(PropertySource p, GetPropertySource getP |
+      // Modelling binding path -> getProperty('/path')
+      exists(UI5BoundNode p, GetBoundValue getP |
         start = p and
         end = getP and
-        p.getPath() = getP.getPath()
+        p = getP.getBind()
       )
       or
-      exists(PropertySink p, SetPropertySink setP |
+      // Modelling setProperty('/path') -> binding path
+      exists(UI5BoundNode p, SetBoundValue setP |
         start = setP and
         end = p and
-        p.getPath() = setP.getPath()
+        p = setP.getBind()
       )
     )
   }
 }
 
-class UI5ModelSource extends DataFlow::Node {
-  UI5ModelSource() {
-    this instanceof PropertySource
-    or
-    this instanceof GetPropertySource and
-    not exists(PropertySource p | p.getPath() = this.(GetPropertySource).getPath())
-  }
-
-  UI5BindingPath getPath() {
-    result = [this.(PropertySource).getPath(), this.(GetPropertySource).getPath()]
-  }
-}
-
-class PropertySource extends DataFlow::Node {
+class UI5BoundNode extends DataFlow::Node {
   UI5BindingPath path;
 
-  PropertySource() {
-    exists(UI5View view, Property p | path = view.getASource() |
+  UI5BindingPath getPath() { result = path }
+
+  UI5BoundNode() {
+    exists(Property p |
       // The property bond to an XMLView source
       this.(DataFlow::PropRef).getPropertyNameExpr() = p.getNameExpr() and
       path.getAbsolutePath() = constructPathString(path.getModel().(JsonModel).getContent(), p)
     )
   }
-
-  UI5BindingPath getPath() { result = path }
 }
 
-class GetPropertySource extends DataFlow::Node {
-  UI5BindingPath path;
-
-  GetPropertySource() {
-    // direct access to a binding path
-    exists(UI5View view, DataFlow::CallNode getProp | path = view.getASource() |
-      this = getProp and
-      getProp.getCalleeName() = ["getProperty", "getObject"] and
-      path.getAbsolutePath() = getProp.getArgument(0).getStringValue() and
-      path.getModel() = getProp.getReceiver().getALocalSource()
-    )
-  }
-
-  UI5BindingPath getPath() { result = path }
+class UI5ModelSource extends UI5BoundNode {
+  UI5ModelSource() { path = any(UI5View view).getASource() }
 }
 
 /**
  * Extract the correct locations based on the type of sink
  */
-class UI5ModelSink extends DataFlow::Node {
-  UI5ModelSink() {
-    this instanceof PropertySink
-    or
-    this instanceof SetPropertySink and
-    not exists(PropertySink p | p.getPath() = this.(SetPropertySink).getPath())
-  }
-
-  UI5BindingPath getPath() {
-    result = [this.(PropertySink).getPath(), this.(SetPropertySink).getPath()]
-  }
+class UI5ModelSink extends UI5BoundNode {
+  UI5ModelSink() { path = any(UI5View view).getAnHtmlISink() }
 }
 
-class PropertySink extends DataFlow::Node {
-  UI5BindingPath path;
+class GetBoundValue extends DataFlow::Node {
+  UI5BoundNode bind;
 
-  PropertySink() {
-    exists(UI5View view, Property p | path = view.getAnHtmlISink() |
-      // The property bound to an XMLView source
-      this.(DataFlow::PropRef).getPropertyNameExpr() = p.getNameExpr() and
-      path.getAbsolutePath() = constructPathString(path.getModel().(JsonModel).getContent(), p)
+  GetBoundValue() {
+    exists(DataFlow::CallNode getProp |
+      // direct access to a binding path
+      this = getProp and
+      getProp.getCalleeName() = ["getProperty", "getObject"] and
+      bind.getPath().getAbsolutePath() = getProp.getArgument(0).getStringValue() and
+      bind.getPath().getModel() = getProp.getReceiver().getALocalSource()
     )
   }
 
-  UI5BindingPath getPath() { result = path }
+  UI5BoundNode getBind() { result = bind }
 }
 
-class SetPropertySink extends DataFlow::Node {
-  UI5BindingPath path;
+class SetBoundValue extends DataFlow::Node {
+  UI5BoundNode bind;
 
-  SetPropertySink() {
-    exists(UI5View view, DataFlow::CallNode setProp | path = view.getAnHtmlISink() |
+  SetBoundValue() {
+    exists(DataFlow::CallNode setProp |
       // direct access to a binding path
       this = setProp.getArgument(1) and
       setProp.getCalleeName() = ["setProperty", "setObject"] and
-      path.getAbsolutePath() = setProp.getArgument(0).getStringValue() and
-      path.getModel() = setProp.getReceiver().getALocalSource()
+      bind.getPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
+      bind.getPath().getModel() = setProp.getReceiver().getALocalSource()
     )
   }
 
-  UI5BindingPath getPath() { result = path }
+  UI5BoundNode getBind() { result = bind }
 }
 
-Locatable getSourceLocation(DataFlow::SourcePathNode source) {
-  if source.getNode() instanceof UI5ModelSource
-  then result = source.getNode().(UI5ModelSource).getPath()
+Locatable getUI5SourceLocation(DataFlow::SourcePathNode source) {
+  if source.getNode() instanceof UI5BoundNode
+  then
+    result = source.getNode().(UI5BoundNode).getPath() and
+    result = any(UI5View view).getASource()
   else result = source.getNode().asExpr()
 }
 
-Locatable getSinkLocation(DataFlow::SinkPathNode sink) {
-  if sink.getNode() instanceof UI5ModelSink
-  then result = sink.getNode().(UI5ModelSink).getPath()
+Locatable getUI5SinkLocation(DataFlow::SinkPathNode sink) {
+  if sink.getNode() instanceof UI5BoundNode
+  then
+    result = sink.getNode().(UI5BoundNode).getPath() and
+    result = any(UI5View view).getAnHtmlISink()
   else result = sink.getNode().asExpr()
 }

@@ -94,6 +94,9 @@ extensions:
       - ["RenderManager", "Member[addClass].Argument[0]", "html-injection"]
       # RenderManager.unsafeHtml
       - ["RenderManager", "Member[unsafeHtml].Argument[0]", "html-injection"]
+      # codeql-sap-js/control/xss.text #getText
+      #- ["codeql-sap-js/control/xss", "Instance.Member[text]", "html-injection"]
+      #- ["codeql-sap-js/control/xss", "Instance.Member[getText].ReturnValue", "html-injection"]
 
   - addsTo:
       pack: codeql/javascript-all

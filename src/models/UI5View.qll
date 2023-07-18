@@ -83,6 +83,8 @@ abstract class UI5BindingPath extends Locatable {
       view.getController().getModel() = result
     )
   }
+
+  abstract string getPropertyName();
 }
 
 /**
@@ -128,6 +130,8 @@ class JsonBindingPath extends UI5BindingPath, JsonValue {
   }
 
   override string toString() { result = path }
+
+  override string getPropertyName() { this = any(JsonValue v).getPropValue(result) }
 }
 
 class JsonView extends UI5View {
@@ -181,6 +185,8 @@ class XmlBindingPath extends UI5BindingPath, XmlAttribute {
   override string toString() { result = path }
 
   override Location getLocation() { result = XmlAttribute.super.getLocation() }
+
+  override string getPropertyName() { result = this.getName() }
 }
 
 class XmlView extends UI5View {
