@@ -16,6 +16,28 @@ class Ui5XssConfiguration extends TaintTracking::Configuration {
     sink instanceof DomBasedXss::Sink or sink instanceof UI5ModelSink
   }
 
+  /**
+   * Additional Flow Step:
+   * Binding path in the model <-> control metadata
+   */
+  private predicate bidiModelControl(DataFlow::Node start, DataFlow::Node end) {
+    exists(Project p, DataFlow::SourceNode property, Metadata metadata, UI5BoundNode node |
+      // same project
+      p.isInThisProject(metadata.getFile()) and
+      p.isInThisProject(node.getFile()) and
+      // same control
+      metadata.getControl().getName() = node.getBindingPath().getControlName() and
+      //restrict to interesting property types
+      property.getAPropertySource("type").getStringValue() = ["string"] and
+      property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
+      (
+        start = property and end = node
+        or
+        start = node and end = property
+      )
+    )
+  }
+
   override predicate isAdditionalFlowStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
@@ -23,16 +45,9 @@ class Ui5XssConfiguration extends TaintTracking::Configuration {
     inLabel = "taint" and
     outLabel = "taint" and
     (
-      // Modelling binding path -> title property -> setTitle
+      bidiModelControl(start, end)
+      or
       exists(string propName, Metadata metadata, UI5BoundNode node |
-        // TODO: metadata and node in the same Control
-        // Binding path in the model <-> control metadata
-        [start, end] = metadata.getProperty(propName) and
-        [start, end] = node and
-        node.getPath().getPropertyName() = propName and
-        //restrict by property type
-        metadata.getProperty(propName).getAPropertySource("type").getStringValue() = ["string"]
-        or
         // getAWrite -> control metadata
         start = metadata.getAWrite(propName).getArgument(1) and
         end = metadata.getProperty(propName)
@@ -62,7 +77,7 @@ class Ui5XssConfiguration extends TaintTracking::Configuration {
 class UI5BoundNode extends DataFlow::Node {
   UI5BindingPath path;
 
-  UI5BindingPath getPath() { result = path }
+  UI5BindingPath getBindingPath() { result = path }
 
   UI5BoundNode() {
     exists(Property p |
@@ -74,7 +89,11 @@ class UI5BoundNode extends DataFlow::Node {
 }
 
 class UI5ModelSource extends UI5BoundNode {
-  UI5ModelSource() { path = any(UI5View view).getASource() }
+  UI5View view;
+
+  UI5View getView() { result = view }
+
+  UI5ModelSource() { path = view.getASource() }
 }
 
 /**
@@ -92,8 +111,8 @@ class GetBoundValue extends DataFlow::Node {
       // direct access to a binding path
       this = getProp and
       getProp.getCalleeName() = ["getProperty", "getObject"] and
-      bind.getPath().getAbsolutePath() = getProp.getArgument(0).getStringValue() and
-      bind.getPath().getModel() = getProp.getReceiver().getALocalSource()
+      bind.getBindingPath().getAbsolutePath() = getProp.getArgument(0).getStringValue() and
+      bind.getBindingPath().getModel() = getProp.getReceiver().getALocalSource()
     )
   }
 
@@ -108,8 +127,8 @@ class SetBoundValue extends DataFlow::Node {
       // direct access to a binding path
       this = setProp.getArgument(1) and
       setProp.getCalleeName() = ["setProperty", "setObject"] and
-      bind.getPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
-      bind.getPath().getModel() = setProp.getReceiver().getALocalSource()
+      bind.getBindingPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
+      bind.getBindingPath().getModel() = setProp.getReceiver().getALocalSource()
     )
   }
 
@@ -119,7 +138,7 @@ class SetBoundValue extends DataFlow::Node {
 Locatable getUI5SourceLocation(DataFlow::SourcePathNode source) {
   if source.getNode() instanceof UI5BoundNode
   then
-    result = source.getNode().(UI5BoundNode).getPath() and
+    result = source.getNode().(UI5BoundNode).getBindingPath() and
     result = any(UI5View view).getASource()
   else result = source.getNode().asExpr()
 }
@@ -127,7 +146,7 @@ Locatable getUI5SourceLocation(DataFlow::SourcePathNode source) {
 Locatable getUI5SinkLocation(DataFlow::SinkPathNode sink) {
   if sink.getNode() instanceof UI5BoundNode
   then
-    result = sink.getNode().(UI5BoundNode).getPath() and
+    result = sink.getNode().(UI5BoundNode).getBindingPath() and
     result = any(UI5View view).getAnHtmlISink()
   else result = sink.getNode().asExpr()
 }

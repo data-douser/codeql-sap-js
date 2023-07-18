@@ -407,7 +407,11 @@ module UI5 {
    * The property metadata found in an Extension.
    */
   class Metadata extends ObjectLiteralNode {
-    Metadata() { this = any(Extension e).getContent().getAPropertySource("metadata") }
+    CustomControl control;
+
+    CustomControl getControl() { result = control }
+
+    Metadata() { this = control.getContent().getAPropertySource("metadata") }
 
     SourceNode getProperty(string name) {
       result = this.getAPropertySource("properties").getAPropertySource(name)
@@ -436,29 +440,42 @@ module UI5 {
     Extension getExtension() { result = any(Extension extend | extend.getMetadata() = this) }
 
     MethodCallNode getAWrite() {
-      exists(string propName |
+      exists(string propName, Project project |
         result.getMethodName() = "setProperty" and
         result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-        exists(this.getProperty(propName))
+        exists(this.getProperty(propName)) and
+        project.isInThisProject(this.getFile()) and
+        project.isInThisProject(result.getFile())
       )
     }
 
     MethodCallNode getAWrite(string propName) {
       result.getMethodName() = "setProperty" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-      exists(this.getProperty(propName))
+      exists(this.getProperty(propName)) and
+      exists(Project project |
+        project.isInThisProject(this.getFile()) and
+        project.isInThisProject(result.getFile())
+      )
     }
 
     MethodCallNode getARead() {
-      exists(string propName |
+      exists(string propName, Project project |
         result.getMethodName() = "get" + propName.prefix(1).toUpperCase() + propName.suffix(1) and
-        exists(this.getProperty(propName))
+        exists(this.getProperty(propName)) and
+        /* Make sure that the resulting node is in the same project as this */
+        project.isInThisProject(this.getFile()) and
+        project.isInThisProject(result.getFile())
       )
     }
 
     MethodCallNode getARead(string propName) {
       result.getMethodName() = "get" + propName.prefix(1).toUpperCase() + propName.suffix(1) and
-      exists(this.getProperty(propName))
+      exists(this.getProperty(propName)) and
+      exists(Project project |
+        project.isInThisProject(this.getFile()) and
+        project.isInThisProject(result.getFile())
+      )
     }
   }
 
