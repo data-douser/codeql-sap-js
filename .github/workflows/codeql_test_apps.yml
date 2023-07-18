@@ -1,4 +1,4 @@
-name: "CodeQL Queries"
+name: "CodeQL Test Apps"
 
 on:
   push:
@@ -30,6 +30,7 @@ jobs:
       uses: github/codeql-action/init@v2
       with:
         languages: javascript
+        source-root: test/queries
         config-file: ./.github/codeql/codeql-config.yaml
         debug: true
 
