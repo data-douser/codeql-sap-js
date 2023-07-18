@@ -279,7 +279,7 @@ module UI5 {
    * Create all possible path strings of an object literal up to a certain property, e.g.
    * if `object = { p1: { p2: 1 }, p3: 2 }` and `property = {p3: 2}` then create `"p3/"`.
    */
-  string constructPathString(DataFlow::ObjectLiteralNode object, Property property) {
+   string constructPathString(DataFlow::ObjectLiteralNode object, Property property) {
     result = constructPathStringInner(object.asExpr(), property)
   }
 
@@ -411,7 +411,7 @@ module UI5 {
 
     CustomControl getControl() { result = control }
 
-    Metadata() { this = control.getContent().getAPropertySource("metadata") }
+    Metadata() { this = any(Extension e).getContent().getAPropertySource("metadata") }
 
     SourceNode getProperty(string name) {
       result = this.getAPropertySource("properties").getAPropertySource(name)
@@ -491,5 +491,20 @@ module UI5 {
       result = controller.getAnElementReference().getAMethodCall() and
       result.getMethodName().substring(0, 3) = "get"
     )
+  }
+
+  class UnsafeHtmlXssSource extends DomBasedXss::Source {
+    UnsafeHtmlXssSource() {
+      this = valueFromElement()
+      or
+      exists(XmlView xmlView |
+        exists(xmlView.getASource()) and
+        this = xmlView.getController().getModel()
+      )
+    }
+  }
+
+  class UnsafeHtmlXssSink extends DomBasedXss::Sink {
+    UnsafeHtmlXssSink() { this = any(RenderManager rm).getAnUnsafeHtmlCall().getArgument(0) }
   }
 }
