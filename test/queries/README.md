@@ -15,12 +15,26 @@ All XSS examples run locally using the [UI5 tooling](https://sap.github.io/ui5-t
 ## xss-custom-control-jquery
 - custom Control declared using JQuery
 
+## xss-custom-control-property-sanitized
+- custom Control
+- DOM-like API
+- the type of the control property `text` is set to `int` (sanitized)
+
+## xss-custom-control-property-sanitized
+- custom Control
+- DOM-like API
+- the value of `text` is sanitized using `sap/base/security/encodeXML`
+
 ## xss-html-control
 - `sap.ui.core.HTML` Control
 
 ## xss-html-control-df
 - `sap.ui.core.HTML` Control
 - dataflow in the controller
+
+## xss-html-external-model
+- `sap.ui.core.HTML` Control
+- controller model as external `.json` file
 
 ## xss-html-view
 - `sap.ui.core.mvc.HTMLView` View
