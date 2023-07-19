@@ -343,7 +343,7 @@ extensions:
           path-injection,
         ]
       - [sap/base/util/Properties, "Instance.Member[create].Argument[0]", path-injection]
-      - [sap/ui/core/HTML, "Instance.Member[content]", ""]
+      - [sap/ui/core/HTML, "Instance.Member[content]", html-injection]
       - [sap/ui/core/Patcher, "Instance.Member[unsafeHtml].Argument[0..]", html-injection]
       - [sap/ui/core/RenderManager, "Instance.Member[write].Argument[0..]", html-injection]
       - [
