@@ -1,15 +1,21 @@
 private import javascript
 private import DataFlow
 private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
+private import UI5View
 
 module UI5 {
   class Project extends Folder {
     /**
-     * The `ui5.yaml` file that declares a UI5 application.
+     * An UI5 project root folder.
      */
     Project() { exists(File yamlFile | yamlFile = this.getFile("ui5.yaml")) }
 
+    /**
+     * The `ui5.yaml` file that declares a UI5 application.
+     */
     File getProjectYaml() { result = this.getFile("ui5.yaml") }
+
+    predicate isInThisProject(File file) { this = file.getParentContainer*() }
   }
 
   /**
@@ -20,53 +26,77 @@ module UI5 {
   }
 
   /**
+   * A user-defined module through `sap.ui.define` or `jQuery.sap.declare`.
+   */
+  abstract class UserModule extends SapElement {
+    abstract string getADependencyType();
+
+    abstract string getModuleFileRelativePath();
+
+    abstract RequiredObject getRequiredObject(string dependencyType);
+  }
+
+  /**
+   * A user-defined module through `sap.ui.define`.
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui%23methods/sap.ui.define
    */
-  class Define extends CallNode, SapElement {
-    Define() { this = globalVarRef("sap").getAPropertyRead("ui").getAMethodCall("define") }
+  class SapDefineModule extends CallNode, UserModule {
+    SapDefineModule() { this = globalVarRef("sap").getAPropertyRead("ui").getAMethodCall("define") }
+
+    override string getADependencyType() { result = this.getDependencyType(_) }
+
+    override string getModuleFileRelativePath() { result = this.getFile().getRelativePath() }
 
     string getDependencyType(int i) {
       result =
         this.getArgument(0).getALocalSource().(ArrayLiteralNode).getElement(i).getStringValue()
     }
 
-    ParameterNode getParameter(int i) {
-      result = this.getArgument(1).getALocalSource().(FunctionNode).getParameter(i)
+    override RequiredObject getRequiredObject(string dependencyType) {
+      exists(int i |
+        this.getDependencyType(i) = dependencyType and
+        result = this.getArgument(1).getALocalSource().(FunctionNode).getParameter(i)
+      )
     }
 
     Project getProject() { result = this.getFile().getParentContainer*() }
+  }
 
-    string getModuleFileRelativePath() {
-      result = this.getFile().getRelativePath().suffix(getProject().getRelativePath().length() + 1)
+  class JQuerySap extends DataFlow::SourceNode {
+    JQuerySap() {
+      exists(DataFlow::GlobalVarRefNode global |
+        global.getName() = "jQuery" and
+        this = global.getAPropertyRead("sap")
+      )
     }
   }
 
   /**
-   * `DefinedModule`: A module defined in the current project.
-   * `ExternallyDefinedModule`: A module imported into the current project, either from npm or from the test directory.
+   * A user-defined module through `jQuery.sap.declare`.
    */
-  newtype TModule =
-    DefinedModule(Define d) or
-    ExternallyDefinedModule(string s) {
-      exists(Define d | s = d.getDependencyType(_) and not s.prefix(1) = ".")
+  class JQueryDefineModule extends UserModule, DataFlow::MethodCallNode {
+    JQueryDefineModule() { exists(JQuerySap jquerySap | jquerySap.flowsTo(this.getReceiver())) }
+
+    override string getADependencyType() {
+      result = this.getArgument(0).asExpr().(StringLiteral).getValue()
     }
 
-  class SapModule extends TModule {
-    string getModuleFileRelativePath() {
-      this = DefinedModule(any(Define d | result = d.getModuleFileRelativePath())) or
-      this = ExternallyDefinedModule(result)
-    }
+    override string getModuleFileRelativePath() { result = this.getFile().getRelativePath() }
 
-    string toString() { result = getModuleFileRelativePath() }
+    /** WARNING: toString() Hack! */
+    override RequiredObject getRequiredObject(string dependencyType) {
+      result.toString() = dependencyType and
+      this.getADependencyType() = dependencyType
+    }
   }
 
-  private SourceNode sapControl(TypeTracker t) {
+  private RequiredObject sapControl(TypeTracker t) {
     t.start() and
-    exists(Define d, int i |
-      /* It has a "sap/ui/core/Control" specifier */
-      d.getDependencyType(i) = "sap/ui/core/Control" and
-      /* Get the positional parameter at the same index as the specifier */
-      result = d.getParameter(i)
+    exists(UserModule d, string dependencyType |
+      dependencyType = ["sap/ui/core/Control", "sap.ui.core.Control"]
+    |
+      d.getADependencyType() = dependencyType and
+      result = d.getRequiredObject(dependencyType)
     )
     or
     exists(TypeTracker t2 | result = sapControl(t2).track(t2, t))
@@ -76,11 +106,11 @@ module UI5 {
 
   private SourceNode sapController(TypeTracker t) {
     t.start() and
-    exists(Define d, int i |
-      /* It has a "sap/ui/core/Controller" specifier */
-      d.getDependencyType(i) = "sap/ui/core/mvc/Controller" and
-      /* Get the positional parameter at the same index as the specifier */
-      result = d.getParameter(i)
+    exists(UserModule d, string dependencyType |
+      dependencyType = ["sap/ui/core/mvc/Controller", "sap.ui.core.mvc.Controller"]
+    |
+      d.getADependencyType() = dependencyType and
+      result = d.getRequiredObject(dependencyType)
     )
     or
     exists(TypeTracker t2 | result = sapController(t2).track(t2, t))
@@ -88,18 +118,68 @@ module UI5 {
 
   SourceNode sapController() { result = sapController(TypeTracker::end()) }
 
-  class Control extends CallNode {
-    Control() { getReceiver().getALocalSource() = sapControl() and getCalleeName() = "extend" }
+  class CustomControl extends Extension {
+    CustomControl() { this.getReceiver().getALocalSource() = sapControl() }
 
-    SourceNode getRenderer() {
-      result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource("renderer")
+    FunctionNode getRenderer() {
+      exists(SourceNode propValue |
+        propValue = this.getArgument(1).(ObjectLiteralNode).getAPropertySource("renderer") and
+        (
+          /*
+           * 1. Old RenderManager API:
+           * renderer: function (oRm, oControl) { ... }
+           */
+
+          propValue instanceof FunctionNode and result = propValue
+          or
+          /*
+           * 2. New Semantic Rendering API:
+           *  renderer: { apiVersion: 2, render: function(oRm, oControl) { ... } }
+           */
+
+          propValue instanceof ObjectLiteralNode and
+          result = propValue.getAPropertySource("render").(FunctionNode)
+          or
+          /*
+           * 3. The control's renderer object is an imported one
+           */
+
+          exists(string dependencyType |
+            result = propValue.getALocalSource() and
+            result = any(UserModule d).getRequiredObject(dependencyType)
+          )
+          or
+          /*
+           * 4. The control's renderer is referred to as a string ID
+           */
+
+          propValue.asExpr() instanceof StringLiteral and
+          result =
+            any(Extension extend | extend.getName() = propValue.asExpr().(StringLiteral).getValue())
+                .getArgument(1)
+                .(ObjectLiteralNode)
+                .getAPropertySource("render")
+        )
+      )
+      or
+      /*
+       * 5. There is an implicit binding between the control and its renderer with the naming convention: e.g. foo.js and fooRenderer.js
+       */
+
+      this.getFile().getExtension() = "js" and
+      result =
+        any(Extension extend |
+          extend.getFile().getExtension() = "js" and
+          result.getFile().getBaseName().splitAt(".", 0) =
+            this.getFile().getBaseName().splitAt(".", 0) + "Renderer"
+        ).getArgument(1).(ObjectLiteralNode).getAPropertySource("render")
     }
 
     // TODO
-    predicate indirectlyExtendedControl(Define define) {
+    predicate indirectlyExtendedControl(SapDefineModule define) {
       /*
        * Sketch:
-       *     1. Define a predicate that maps the current module to the extended module
+       *     1. SapDefineModule a predicate that maps the current module to the extended module
        *     2. * or + the predicate
        */
 
@@ -107,9 +187,9 @@ module UI5 {
     }
   }
 
-  class Controller extends CallNode {
-    Controller() {
-      this.getReceiver().getALocalSource() = sapController() and getCalleeName() = "extend"
+  class CustomController extends Extension {
+    CustomController() {
+      this instanceof MethodCallNode and this.getReceiver().getALocalSource() = sapController()
     }
 
     FunctionNode getAMethod() {
@@ -117,21 +197,21 @@ module UI5 {
     }
 
     /**
-     * Gets a view object that can be accessed from one of the methods of this controller.
+     * Gets a reference to a view object that can be accessed from one of the methods of this controller.
      */
-    View getAView() {
+    MethodCallNode getAViewReference() {
       result.getCalleeName() = "getView" and
-      exists(ThisNode this_ |
-        result.getReceiver() = this_.getALocalUse() and
-        this_.getBinder() = this.getAMethod()
+      exists(ThisNode controllerThis |
+        result.(MethodCallNode).getReceiver() = controllerThis.getALocalUse() and
+        controllerThis.getBinder() = this.getAMethod()
       )
     }
 
-    SapElement getAnElement() {
-      exists(View view |
-        view = this.getAView() and
+    MethodCallNode getAnElementReference() {
+      exists(MethodCallNode viewRef |
+        viewRef = this.getAViewReference() and
         /* There is a view */
-        view.flowsTo(result.getReceiver()) and
+        viewRef.flowsTo(result.(MethodCallNode).getReceiver()) and
         /* The result is a member of this view */
         result.(MethodCallNode).getMethodName() = "byId"
       )
@@ -139,49 +219,129 @@ module UI5 {
 
     ThisNode getAThisNode() { result.getBinder() = this.getAMethod() }
 
-    Model getAModel() {
-      this.getAView().flowsTo(result.getReceiver()) and
-      result.(MethodCallNode).getMethodName() = "getModel"
+    UI5Model getModel() {
+      exists(MethodCallNode setModelCall |
+        this.getAViewReference().flowsTo(setModelCall.getReceiver()) and
+        setModelCall.getMethodName() = "setModel" and
+        result.flowsTo(setModelCall.getAnArgument())
+      )
     }
   }
 
+  abstract class UI5Model extends SapElement {
+    abstract string getPathString();
+  }
+
+  private string constructPathStringInner(Expr object) {
+    if not object instanceof ObjectExpr
+    then result = ""
+    else
+      exists(Property property | property = object.(ObjectExpr).getAProperty().(ValueProperty) |
+        result = "/" + property.getName() + constructPathStringInner(property.getInit())
+      )
+  }
+
   /**
-   * Under construction
+   * Create all recursive path strings of an object literal, e.g.
+   * if `object = { p1: { p2: 1 }, p3: 2 }`, then create:
+   * - `p1/p2`, and
+   * - `p3/`.
    */
-  class Model extends SapElement {
-    Model() { any() }
+  private string constructPathString(DataFlow::ObjectLiteralNode object) {
+    result = constructPathStringInner(object.asExpr())
+  }
+
+  /** Holds if the `property` is in any way nested inside the `object`. */
+  private predicate propertyNestedInObject(ObjectExpr object, Property property) {
+    exists(Property property2 | property2 = object.getAProperty() |
+      property = property2 or
+      propertyNestedInObject(property2.getInit().(ObjectExpr), property)
+    )
+  }
+
+  private string constructPathStringInner(Expr object, Property property) {
+    if not object instanceof ObjectExpr
+    then result = ""
+    else
+      exists(Property property2 | property2 = object.(ObjectExpr).getAProperty().(ValueProperty) |
+        if property = property2
+        then result = "/" + property2.getName()
+        else (
+          /* We're sure this property is inside this object */
+          propertyNestedInObject(property2.getInit().(ObjectExpr), property) and
+          result =
+            "/" + property2.getName() + constructPathStringInner(property2.getInit(), property)
+        )
+      )
+  }
+
+  /**
+   * Create all possible path strings of an object literal up to a certain property, e.g.
+   * if `object = { p1: { p2: 1 }, p3: 2 }` and `property = {p3: 2}` then create `"p3/"`.
+   */
+  private string constructPathString(DataFlow::ObjectLiteralNode object, Property property) {
+    result = constructPathStringInner(object.asExpr(), property)
+  }
+
+  class JsonModel extends UI5Model {
+    JsonModel() {
+      this instanceof NewNode and
+      exists(RequiredObject jsonModel |
+        jsonModel.flowsTo(this.getCalleeNode()) and
+        jsonModel.getDependencyType() = "sap/ui/model/json/JSONModel"
+      )
+    }
+
+    ObjectLiteralNode getContent() { result.flowsTo(this.getAnArgument()) }
+
+    override string getPathString() { result = constructPathString(this.getContent()) }
+
+    /**
+     * A model possibly supporting two-way binding explicitly set as a one-way binding model.
+     */
+    predicate isOneWayBinding() {
+      exists(MethodCallNode call, BindingMode bindingMode |
+        this.flowsTo(call.getReceiver()) and
+        call.getMethodName() = "setDefaultBindingMode" and
+        bindingMode.getOneWay().flowsTo(call.getArgument(0))
+      )
+    }
+  }
+
+  class XmlModel extends UI5Model {
+    XmlModel() {
+      this instanceof NewNode and
+      exists(RequiredObject xmlModel |
+        xmlModel.flowsTo(this.getCalleeNode()) and
+        xmlModel.getDependencyType() = "sap/ui/model/xml/XMLModel"
+      )
+    }
+
+    override string getPathString() { result = "WIP" }
+  }
+
+  class BindingMode extends RequiredObject {
+    BindingMode() { this.getDependencyType() = "sap/ui/model/BindingMode" }
+
+    PropRead getOneWay() { result = this.getAPropertyRead("OneWay") }
+
+    PropRead getTwoWay() { result = this.getAPropertyRead("TwoWay") }
+
+    PropRead getDefault() { result = this.getAPropertyRead("Default") }
+
+    PropRead getOneTime() { result = this.getAPropertyRead("OneTime") }
   }
 
   class RenderManager extends SourceNode {
     RenderManager() {
-      /*
-       * 1. Old RenderManager API:
-       * renderer: function (oRm, oControl) { ... }
-       */
-
-      this = any(Control c).getRenderer().(FunctionNode).getParameter(0)
+      this = any(CustomControl c).getRenderer().getParameter(0)
       or
       /*
-       * 2. New Semantic Rendering API:
-       *  renderer: { apiVersion: 2, render: function(oRm, oControl) { ... } }
+       * Through `new` keyword on an imported constructor
        */
 
-      this =
-        any(Control c).getRenderer().getAPropertySource("render").(FunctionNode).getParameter(0)
-      or
-      exists(int i |
-        // The control's renderer object
-        this = any(Control c).getRenderer().getALocalSource() and
-        // ... is an imported one, thus found in a parameter of a Define
-        this = any(Define d).getParameter(i)
-      )
-      or
-      /*
-       * 3. Through `new` keyword on an imported constructor
-       */
-
-      exists(NewNode instantiation, ModuleObject module_ |
-        this = instantiation.getAConstructorInvocation(module_.getName())
+      exists(NewNode instantiation |
+        this = instantiation.getAConstructorInvocation("RenderManager")
       )
     }
 
@@ -193,25 +353,54 @@ module UI5 {
     }
   }
 
-  class ModuleObject extends ParameterNode {
-    ModuleObject() { this = any(Define d).getParameter(_) }
+  class RequiredObject extends SourceNode {
+    RequiredObject() {
+      exists(string dependencyType, int i |
+        any(SapDefineModule sapModule).getDependencyType(i) = dependencyType and
+        this =
+          any(SapDefineModule sapModule)
+              .getArgument(1)
+              .getALocalSource()
+              .(FunctionNode)
+              .getParameter(i)
+      )
+      or
+      exists(string dependencyType |
+        this.toString() = dependencyType and
+        any(JQueryDefineModule jQueryModule).getADependencyType() = dependencyType
+      )
+    }
+
+    UserModule getDefiningModule() { result.getArgument(1).(FunctionNode).getParameter(_) = this }
+
+    string getDependencyType() {
+      exists(string dependencyType |
+        this.getDefiningModule().getRequiredObject(dependencyType) = this and
+        result = this.getDefiningModule().getADependencyType()
+      )
+    }
   }
 
   /**
    * Controller.extend or
    * Control.extend
    */
-  class Extension extends MethodCallNode {
+  class Extension extends SapElement, MethodCallNode {
     Extension() {
       /* 1. The receiver object is an imported one */
-      any(ModuleObject module_).flowsTo(this.getReceiver()) and
+      any(RequiredObject module_).flowsTo(this.getReceiver()) and
       /* 2. The method name is `extend` */
-      this.getMethodName() = "extend"
+      this.(MethodCallNode).getMethodName() = "extend"
     }
+
+    string getName() { result = this.getArgument(0).asExpr().(StringLiteral).getValue() }
 
     ObjectLiteralNode getContent() { result = this.getArgument(1) }
 
     Metadata getMetadata() { result = this.getContent().getAPropertySource("metadata") }
+
+    /** Gets the `sap.ui.define` call that wraps this extension. */
+    SapDefineModule getDefine() { this.getEnclosingFunction() = result.getArgument(1).asExpr() }
   }
 
   /**
@@ -220,36 +409,69 @@ module UI5 {
   class Metadata extends ObjectLiteralNode {
     Metadata() { this = any(Extension e).getContent().getAPropertySource("metadata") }
 
-    Node getAProperty(string name) {
-      result = this.getAPropertySource("properties").getAPropertyReference(name)
+    SourceNode getProperty(string name) {
+      result = this.getAPropertySource("properties").getAPropertySource(name)
+    }
+
+    predicate isUnrestrictedStringType(string propName) {
+      /* text : "string" */
+      exists(SourceNode propRef |
+        propRef = this.getProperty(propName) and
+        propRef.asExpr().(StringLiteral).getValue() = "string"
+      )
+      or
+      /* text: { type: "string" } */
+      exists(SourceNode propRef |
+        propRef = this.getProperty(propName) and
+        propRef.getAPropertySource("type").asExpr().(StringLiteral).getValue() = "string"
+      )
+      or
+      /* text: { someOther: "someOtherVal", ... } */
+      exists(SourceNode propRef |
+        propRef = this.getProperty(propName) and
+        not exists(propRef.getAPropertySource("type"))
+      )
     }
 
     Extension getExtension() { result = any(Extension extend | extend.getMetadata() = this) }
 
     MethodCallNode getAWrite() {
-      exists(string propName |
+      exists(string propName, Project project |
         result.getMethodName() = "setProperty" and
         result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-        exists(this.getAProperty(propName))
+        exists(this.getProperty(propName)) and
+        project.isInThisProject(this.getFile()) and
+        project.isInThisProject(result.getFile())
       )
     }
 
     MethodCallNode getAWrite(string propName) {
       result.getMethodName() = "setProperty" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-      exists(this.getAProperty(propName))
+      exists(this.getProperty(propName)) and
+      exists(Project project |
+        project.isInThisProject(this.getFile()) and
+        project.isInThisProject(result.getFile())
+      )
     }
 
     MethodCallNode getARead() {
-      exists(string propName |
+      exists(string propName, Project project |
         result.getMethodName() = "get" + propName.prefix(1).toUpperCase() + propName.suffix(1) and
-        exists(this.getAProperty(propName))
+        exists(this.getProperty(propName)) and
+        /* Make sure that the resulting node is in the same project as this */
+        project.isInThisProject(this.getFile()) and
+        project.isInThisProject(result.getFile())
       )
     }
 
     MethodCallNode getARead(string propName) {
       result.getMethodName() = "get" + propName.prefix(1).toUpperCase() + propName.suffix(1) and
-      exists(this.getAProperty(propName))
+      exists(this.getProperty(propName)) and
+      exists(Project project |
+        project.isInThisProject(this.getFile()) and
+        project.isInThisProject(result.getFile())
+      )
     }
   }
 
@@ -258,57 +480,24 @@ module UI5 {
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.Element
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.mvc.Controller%23methods/byId
    */
-  abstract class SapElement extends CallNode { }
+  abstract class SapElement extends InvokeNode { }
 
-  class View extends SapElement {
-    View() {
-      /* 1. A return value of `this.getView` where `this` is a Controller */
-      // exists(Controller controller | this = controller.getAView())
-      any()
-      or
-      /*
-       * 2. Extension of a view
-       *      View.extend("some.view", { ... })
-       */
-
-      none() // TODO, not needed right now
-      or
-      /*
-       * 3. XMLView
-       *    var oView = XMLView(...)
-       */
-
-      none() // TODO, not needed right now
-      or
-      /*
-       * 4. sap.ui.xmlview({
-       *                    viewContent : jQuery("#myXmlView").html()
-       *                }).placeAt("contentXMLView");
-       */
-
-      none() // TODO, not needed right now
-    }
-
-    SapElement getAnElement() {
-      exists(Controller controller |
-        result.(MethodCallNode).getMethodName() = "byId" and
-        this.flowsTo(result.getReceiver()) and
-        this = controller.getAView()
-      )
-    }
-  }
-
-  ValueNode valueFromElement() {
-    exists(Controller controller, SapElement element, MethodCallNode getCall |
-      element = controller.getAView().getAnElement() and
-      getCall = element.getAMethodCall() and
-      getCall.getMethodName().prefix(3) = "get" and
-      result = getCall
+  MethodCallNode valueFromElement() {
+    exists(CustomController controller |
+      result = controller.getAnElementReference().getAMethodCall() and
+      result.getMethodName().substring(0, 3) = "get"
     )
   }
 
   class UnsafeHtmlXssSource extends DomBasedXss::Source {
-    UnsafeHtmlXssSource() { this = valueFromElement() }
+    UnsafeHtmlXssSource() {
+      this = valueFromElement()
+      or
+      exists(XmlView xmlView |
+        exists(xmlView.getASource()) and
+        this = xmlView.getController().getModel()
+      )
+    }
   }
 
   class UnsafeHtmlXssSink extends DomBasedXss::Sink {
