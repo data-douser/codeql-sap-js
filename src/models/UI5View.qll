@@ -28,7 +28,6 @@ private string bindingPathCapture(string property) {
   property.matches("{%}") and
   exists(string pattern |
     // matches "Control>country"
-    // TODO: save the Control name
     pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
     (
       // simple {Control>country}
@@ -197,7 +196,7 @@ class HtmlView extends UI5View, HtmlFile {
 
   HtmlView() {
     this = root.getFile() and
-    this.getBaseName().matches("%.view.html") and
+    this.getBaseName().toLowerCase().matches("%.view.html") and
     root.isTopLevel()
   }
 
