@@ -279,7 +279,7 @@ module UI5 {
    * Create all possible path strings of an object literal up to a certain property, e.g.
    * if `object = { p1: { p2: 1 }, p3: 2 }` and `property = {p3: 2}` then create `"p3/"`.
    */
-   string constructPathString(DataFlow::ObjectLiteralNode object, Property property) {
+  string constructPathString(DataFlow::ObjectLiteralNode object, Property property) {
     result = constructPathStringInner(object.asExpr(), property)
   }
 
@@ -411,7 +411,7 @@ module UI5 {
 
     CustomControl getControl() { result = control }
 
-    Metadata() { this = any(Extension e).getContent().getAPropertySource("metadata") }
+    Metadata() { this = control.getContent().getAPropertySource("metadata") }
 
     SourceNode getProperty(string name) {
       result = this.getAPropertySource("properties").getAPropertySource(name)
@@ -436,8 +436,6 @@ module UI5 {
         not exists(propRef.getAPropertySource("type"))
       )
     }
-
-    Extension getExtension() { result = any(Extension extend | extend.getMetadata() = this) }
 
     MethodCallNode getAWrite() {
       exists(string propName, Project project |
