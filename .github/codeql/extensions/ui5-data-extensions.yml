@@ -126,271 +126,48 @@ extensions:
       pack: codeql/javascript-all
       extensible: sinkModel
     data:
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[globalEval].Argument[0]",
-          html-injection,
-        ]
-      - [HTMLControl, "Argument[0].Member[content]", html-injection]
-      - [HTMLControl, "Instance.Member[content]", html-injection]
-      - [HTMLControl, "Instance.Member[setContent].Argument[0]", html-injection]
-      - [
-          sap/ui/core/Patcher,
-          "Instance.Member[unsafeHtml].Argument[0]",
-          html-injection,
-        ]
-      - [RenderManager, "Member[write].Argument[0]", html-injection]
-      - [RenderManager, "Member[writeAttribute].Argument[0]", html-injection]
-      - [
-          RenderManager,
-          "Member[writeAttributeEscaped].Argument[0]",
-          html-injection,
-        ]
-      - [RenderManager, "Member[addStyle].Argument[0]", html-injection]
-      - [RenderManager, "Member[addClass].Argument[0]", html-injection]
-      - [RenderManager, "Member[unsafeHtml].Argument[0]", html-injection]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[fatal].Argument[1]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[fatal].Argument[2]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[fatal].Argument[0]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[error].Argument[1]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[error].Argument[2]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[error].Argument[0]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[warning].Argument[1]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[warning].Argument[2]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[warning].Argument[0]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[info].Argument[1]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[info].Argument[2]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[info].Argument[0]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[debug].Argument[1]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[debug].Argument[2]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[debug].Argument[0]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[trace].Argument[1]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[trace].Argument[2]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[trace].Argument[0]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[assert].Argument[1]",
-          log-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[registerModulePath].Argument[1]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[registerResourcePath].Argument[1]",
-          path-injection,
-        ]
-      - [global, "Member[jQuery].Member[sap].Member[require].Argument[0]", path-injection]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[includeScript].Argument[0]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[includeStyleSheet].Argument[0]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[properties].Argument[0]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[resources].Argument[0]",
-          path-injection,
-        ]
-      - [global, "Member[jQuery].Member[sap].Member[sjax].Argument[0]", path-injection]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[syncHead].Argument[0]",
-          path-injection,
-        ]
-      - [global, "Member[jQuery].Member[sap].Member[syncGet].Argument[1]", path-injection]
-      - [global, "Member[jQuery].Member[sap].Member[syncGet].Argument[0]", path-injection]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[syncPost].Argument[1]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[syncPost].Argument[0]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[syncGetText].Argument[1]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[syncGetText].Argument[0]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[syncGetJSON].Argument[1]",
-          path-injection,
-        ]
-      - [
-          global,
-          "Member[jQuery].Member[sap].Member[syncGetJSON].Argument[0]",
-          path-injection,
-        ]
-      - [sap/base/Log, "Instance.Member[fatal].Argument[1]", log-injection]
-      - [sap/base/Log, "Instance.Member[fatal].Argument[2]", log-injection]
-      - [sap/base/Log, "Instance.Member[fatal].Argument[0]", log-injection]
-      - [sap/base/Log, "Instance.Member[error].Argument[1]", log-injection]
-      - [sap/base/Log, "Instance.Member[error].Argument[2]", log-injection]
-      - [sap/base/Log, "Instance.Member[error].Argument[0]", log-injection]
-      - [sap/base/Log, "Instance.Member[warning].Argument[1]", log-injection]
-      - [sap/base/Log, "Instance.Member[warning].Argument[2]", log-injection]
-      - [sap/base/Log, "Instance.Member[warning].Argument[0]", log-injection]
-      - [sap/base/Log, "Instance.Member[info].Argument[1]", log-injection]
-      - [sap/base/Log, "Instance.Member[info].Argument[2]", log-injection]
-      - [sap/base/Log, "Instance.Member[info].Argument[0]", log-injection]
-      - [sap/base/Log, "Instance.Member[debug].Argument[1]", log-injection]
-      - [sap/base/Log, "Instance.Member[debug].Argument[2]", log-injection]
-      - [sap/base/Log, "Instance.Member[debug].Argument[0]", log-injection]
-      - [sap/base/Log, "Instance.Member[trace].Argument[1]", log-injection]
-      - [sap/base/Log, "Instance.Member[trace].Argument[2]", log-injection]
-      - [sap/base/Log, "Instance.Member[trace].Argument[0]", log-injection]
-      - [sap/base/assert, "Instance.Member[fnAssert].Argument[1]", log-injection]
-      - [
-          sap/base/i18n/ResourceBundle,
-          "Instance.Member[create].Argument[0]",
-          path-injection,
-        ]
-      - [
-          sap/base/util/LoaderExtensions,
-          "Instance.Member[registerResourcePath].Argument[1]",
-          path-injection,
-        ]
-      - [sap/base/util/Properties, "Instance.Member[create].Argument[0]", path-injection]
-      - [sap/ui/core/HTML, "Instance.Member[content]", html-injection]
-      - [sap/ui/core/Patcher, "Instance.Member[unsafeHtml].Argument[0..]", html-injection]
-      - [sap/ui/core/RenderManager, "Instance.Member[write].Argument[0..]", html-injection]
-      - [
-          sap/ui/core/RenderManager,
-          "Instance.Member[writeAttribute].Argument[1]",
-          html-injection,
-        ]
-      - [
-          sap/ui/core/RenderManager,
-          "Instance.Member[writeAttribute].Argument[0]",
-          html-injection,
-        ]
-      - [
-          sap/ui/core/RenderManager,
-          "Instance.Member[writeAttributeEscaped].Argument[0]",
-          html-injection,
-        ]
-      - [
-          sap/ui/core/RenderManager,
-          "Instance.Member[addStyle].Argument[1]",
-          html-injection,
-        ]
-      - [
-          sap/ui/core/RenderManager,
-          "Instance.Member[addStyle].Argument[0]",
-          html-injection,
-        ]
-      - [
-          sap/ui/core/RenderManager,
-          "Instance.Member[addClass].Argument[0]",
-          html-injection,
-        ]
-      - [
-          sap/ui/core/RenderManager,
-          "Instance.Member[unsafeHtml].Argument[0..]",
-          html-injection,
-        ]
-      - [
-          sap/ui/dom/includeScript,
-          "Instance.Member[fnIncludeScript].Argument[0]",
-          path-injection,
-        ]
-      - [
-          sap/ui/dom/includeStylesheet,
-          "Instance.Member[fnIncludeStyleSheet].Argument[0]",
-          path-injection,
-        ]
+      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[fatal].Argument[0..2]", "log-injection"]   
+      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[error].Argument[0..2]", "log-injection"]   
+      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[warning].Argument[0..2]", "log-injection"] 
+      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[info].Argument[0..2]", "log-injection"]    
+      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[debug].Argument[0..2]", "log-injection"]   
+      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[trace].Argument[0..2]", "log-injection"]   
+      - ["global", "Member[jQuery].Member[sap].Member[assert].Argument[1]", "log-injection"]                                
+      - ["global", "Member[jQuery].Member[sap].Member[registerModulePath].Argument[1]", "path-injection"]                      
+      - ["global", "Member[jQuery].Member[sap].Member[registerResourcePath].Argument[1]", "path-injection"]                    
+      - ["global", "Member[jQuery].Member[sap].Member[require].Argument[0]", "path-injection"]                                 
+      - ["global", "Member[jQuery].Member[sap].Member[includeScript].Argument[0]", "path-injection"]                           
+      - ["global", "Member[jQuery].Member[sap].Member[includeStyleSheet].Argument[0]", "path-injection"]                       
+      - ["global", "Member[jQuery].Member[sap].Member[globalEval].Argument[0]", "html-injection"]                               
+      - ["global", "Member[jQuery].Member[sap].Member[properties].Argument[0]", "path-injection"]                              
+      - ["global", "Member[jQuery].Member[sap].Member[resources].Argument[0]", "path-injection"]                               
+      - ["global", "Member[jQuery].Member[sap].Member[sjax].Argument[0]", "path-injection"]                                    
+      - ["global", "Member[jQuery].Member[sap].Member[syncHead].Argument[0]", "path-injection"]                                
+      - ["global", "Member[jQuery].Member[sap].Member[syncGet].Argument[0..1]", "path-injection"]                              
+      - ["global", "Member[jQuery].Member[sap].Member[syncPost].Argument[0..1]", "path-injection"]                             
+      - ["global", "Member[jQuery].Member[sap].Member[syncGetText].Argument[0..1]", "path-injection"]                          
+      - ["global", "Member[jQuery].Member[sap].Member[syncGetJSON].Argument[0..1]", "path-injection"]                          
+      - ["sap/base/Log", "Instance.Member[fatal].Argument[0..2]", "log-injection"]                                          
+      - ["sap/base/Log", "Instance.Member[error].Argument[0..2]", "log-injection"]                                          
+      - ["sap/base/Log", "Instance.Member[warning].Argument[0..2]", "log-injection"]                                        
+      - ["sap/base/Log", "Instance.Member[info].Argument[0..2]", "log-injection"]                                           
+      - ["sap/base/Log", "Instance.Member[debug].Argument[0..2]", "log-injection"]                                          
+      - ["sap/base/Log", "Instance.Member[trace].Argument[0..2]", "log-injection"]                                          
+      - ["sap/base/assert", "Instance.Member[fnAssert].Argument[1]", "log-injection"]                                       
+      - ["sap/base/i18n/ResourceBundle", "Instance.Member[create].Argument[0]", "path-injection"]                              
+      - ["sap/base/util/LoaderExtensions", "Instance.Member[registerResourcePath].Argument[1]", "path-injection"]              
+      - ["sap/base/util/Properties", "Instance.Member[create].Argument[0]", "path-injection"]                                  
+      - ["sap/ui/core/HTML", "Instance.Member[content]", "html-injection"]                                                         
+      - ["sap/ui/core/Patcher", "Instance.Member[unsafeHtml].Argument[0..]", "html-injection"]                                  
+      - ["sap/ui/core/RenderManager", "Instance.Member[write].Argument[0..]", "html-injection"]                                 
+      - ["sap/ui/core/RenderManager", "Instance.Member[writeAttribute].Argument[0..1]", "html-injection"]                       
+      - ["sap/ui/core/RenderManager", "Instance.Member[writeAttributeEscaped].Argument[0]", "html-injection"]                   
+      - ["sap/ui/core/RenderManager", "Instance.Member[addStyle].Argument[0..1]", "html-injection"]                             
+      - ["sap/ui/core/RenderManager", "Instance.Member[addClass].Argument[0]", "html-injection"]                                
+      - ["sap/ui/core/RenderManager", "Instance.Member[unsafeHtml].Argument[0..]", "html-injection"]                            
+      - ["sap/ui/dom/includeScript", "Instance.Member[fnIncludeScript].Argument[0]", "path-injection"]                         
+      - ["sap/ui/dom/includeStylesheet", "Instance.Member[fnIncludeStyleSheet].Argument[0]", "path-injection"]                 
+
   - addsTo:
       pack: codeql/javascript-all
       extensible: summaryModel
