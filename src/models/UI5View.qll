@@ -2,7 +2,6 @@ private import javascript
 private import DataFlow
 private import UI5::UI5
 private import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
-private import HTML
 
 /**
  * Utiility predicate returning
@@ -51,18 +50,28 @@ private string bindingPathCapture(string property) {
  */
 abstract class UI5BindingPath extends Locatable {
   /**
-   * Returns the value of the binding path
+   * Return the value of the binding path
    * as specified in the view
    */
   abstract string getPath();
 
   /**
-   * Returns the absolute value of the binding path
+   * Return the absolute value of the binding path
    */
   abstract string getAbsolutePath();
 
   /**
-   * Get the model declaration, which this data binding refers to, in a controller code.
+   * Return the name of the property associated to a binding path
+   */
+  abstract string getPropertyName();
+
+  /**
+   * Return the name of the associated Control
+   */
+  abstract string getControlName();
+
+  /**
+   * Get the model declaration, which this data binding refers to in a Controller
    */
   UI5Model getModel() {
     exists(UI5View view |
@@ -71,9 +80,13 @@ abstract class UI5BindingPath extends Locatable {
     )
   }
 
-  abstract string getPropertyName();
-
-  abstract string getControlName();
+  DataFlow::PropWrite getNode() {
+    exists(Property p |
+      // The property bound to an UI5View source
+      result.getPropertyNameExpr() = p.getNameExpr() and
+      this.getAbsolutePath() = constructPathString(this.getModel().(JsonModel).getContent(), p)
+    )
+  }
 }
 
 /**
@@ -84,12 +97,12 @@ abstract class UI5View extends File {
   abstract string getControllerName();
 
   /**
-   * Get the Controller.extends(...) definition associated with this XML view.
+   * Get the Controller.extends(...) definition associated with this View.
    */
   CustomController getController() {
     // The controller name should match
     result.getName() = this.getControllerName() and
-    // The View XML file and the controller are in a same project
+    // The View and the Controller are in a same project
     exists(Project project |
       project.isInThisProject(this) and project.isInThisProject(result.getFile())
     )
@@ -105,6 +118,10 @@ class JsonBindingPath extends UI5BindingPath, JsonValue {
 
   JsonBindingPath() { path = bindingPathCapture(this.getStringValue()) }
 
+  override string toString() {
+    result = "\"" + this.getPropertyName() + "\": \"" + this.getStringValue() + "\""
+  }
+
   override string getPath() { result = path }
 
   override string getAbsolutePath() {
@@ -117,8 +134,6 @@ class JsonBindingPath extends UI5BindingPath, JsonValue {
         result = composite_path.getAbsolutePath() + "/" + path
       )
   }
-
-  override string toString() { result = path }
 
   override string getPropertyName() { this = any(JsonValue v).getPropValue(result) }
 
@@ -161,7 +176,7 @@ class JsonView extends UI5View {
   }
 }
 
-class HtmlBindingPath extends UI5BindingPath, Attribute {
+class HtmlBindingPath extends UI5BindingPath, HTML::Attribute {
   string path;
 
   HtmlBindingPath() { path = bindingPathCapture(this.getValue()) }
@@ -174,25 +189,23 @@ class HtmlBindingPath extends UI5BindingPath, Attribute {
     else
       exists(HtmlBindingPath composite_path |
         composite_path != this and
-        composite_path = this.getElement().getParent+().(Element).getAttributeByName("items") and
+        composite_path = this.getElement().getParent+().(HTML::Element).getAttributeByName("items") and
         result = composite_path.getAbsolutePath() + "/" + path
       )
   }
 
-  override string toString() { result = path }
-
-  override string getPropertyName() { this = any(Element v).getAttributeByName(result) }
+  override string getPropertyName() { this = any(HTML::Element v).getAttributeByName(result) }
 
   override string getControlName() {
-    exists(Element control |
+    exists(HTML::Element control |
       this = control.getAttributeByName(this.getPropertyName()) and
       result = control.getAttributeByName("data-sap-ui-type").getValue()
     )
   }
 }
 
-class HtmlView extends UI5View, HtmlFile {
-  Element root;
+class HtmlView extends UI5View, HTML::HtmlFile {
+  HTML::Element root;
 
   HtmlView() {
     this = root.getFile() and
@@ -200,14 +213,12 @@ class HtmlView extends UI5View, HtmlFile {
     root.isTopLevel()
   }
 
-  XmlElement getRoot() { result = root }
-
   override string getControllerName() {
     result = root.getAttributeByName("data-controller-name").getValue()
   }
 
   override HtmlBindingPath getASource() {
-    exists(Element control, string type, string path, string property |
+    exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlName().replaceAll(".", "/") and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
@@ -217,7 +228,7 @@ class HtmlView extends UI5View, HtmlFile {
   }
 
   override HtmlBindingPath getAnHtmlISink() {
-    exists(Element control, string type, string path, string property |
+    exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlName().replaceAll(".", "/") and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
@@ -227,13 +238,17 @@ class HtmlView extends UI5View, HtmlFile {
   }
 }
 
-class XmlBindingPath extends UI5BindingPath, XmlAttribute {
+class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   string path;
 
   XmlBindingPath() {
     path = bindingPathCapture(this.getValue()) and
-    this.getElement().getParent+() instanceof XmlView
+    XmlAttribute.super.getElement().getParent+() instanceof XmlView
   }
+
+  override string toString() { result = XmlAttribute.super.toString() }
+
+  override Location getLocation() { result = XmlAttribute.super.getLocation() }
 
   override string getPath() { result = path }
 
@@ -242,19 +257,17 @@ class XmlBindingPath extends UI5BindingPath, XmlAttribute {
     then result = path
     else
       exists(XmlBindingPath composite_path |
-        composite_path = this.getElement().getParent+().(XmlElement).getAttribute("items") and
+        composite_path =
+          XmlAttribute.super.getElement().getParent+().(XmlElement).getAttribute("items") and
         result = composite_path.getAbsolutePath() + "/" + path
       )
   }
 
-  override string toString() { result = path }
-
-  override Location getLocation() { result = XmlAttribute.super.getLocation() }
-
-  override string getPropertyName() { result = this.getName() }
+  override string getPropertyName() { result = XmlAttribute.super.getName() }
 
   override string getControlName() {
     exists(XmlElement control |
+      control = XmlAttribute.super.getElement() and
       this = control.getAttribute(this.getPropertyName()) and
       result = control.getNamespace().getUri() + "." + control.getName()
     )
@@ -269,8 +282,6 @@ class XmlView extends UI5View, XmlFile {
     root.getNamespace().getUri() = "sap.ui.core.mvc" and
     root.hasName("View")
   }
-
-  XmlElement getRoot() { result = root }
 
   /** Get the qualified type string, e.g. `sap.m.SearchField` */
   string getQualifiedType() { result = root.getNamespace().getUri() + "." + root.getName() }

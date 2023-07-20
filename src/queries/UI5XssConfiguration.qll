@@ -135,3 +135,17 @@ class SetBoundValue extends DataFlow::Node {
 
   UI5BoundNode getBind() { result = bind }
 }
+
+Locatable getUI5SourceLocation(DataFlow::Node node) {
+  result = node.(UI5ModelSource).getBindingPath() and
+  result = any(UI5View view).getASource()
+  or
+  result = node.asExpr()
+}
+
+Locatable getUI5SinkLocation(DataFlow::Node node) {
+  result = node.(UI5ModelSink).getBindingPath() and
+  result = any(UI5View view).getAnHtmlISink()
+  or
+  result = node.asExpr()
+}
