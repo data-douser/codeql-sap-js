@@ -83,6 +83,7 @@ class UI5BoundNode extends DataFlow::Node {
   UI5BindingPath getBindingPath() { result = bindingPath }
 
   UI5BoundNode() {
+    /* The relevant portion of the content of a JSONModel */
     exists(Property p, JsonModel model, Project project |
       // The property bound to an UI5View source
       this.(DataFlow::PropRef).getPropertyNameExpr() = p.getNameExpr() and
@@ -92,10 +93,10 @@ class UI5BoundNode extends DataFlow::Node {
       project.isInThisProject(bindingPath.getFile())
     )
     or
-    // The argument to the JSONModel constructor call
+    /* The URI string to the JSONModel constructor call */
     exists(JsonModel model, Project project |
-      // `this` is the string argument!
       this = model.getArgument(0) and
+      this.asExpr() instanceof StringLiteral and
       bindingPath.getAbsolutePath() = model.getPathString() and
       project.isInThisProject(this.getFile()) and
       project.isInThisProject(bindingPath.getFile())
@@ -162,7 +163,9 @@ Locatable getUI5SourceLocation(DataFlow::Node node, string bindingPathStr) {
   result = any(UI5View view).getASource() and
   bindingPathStr = node.(UI5ModelSource).getBindingPath().getAbsolutePath()
   or
-  result = node.asExpr() and bindingPathStr = node.toString()
+  result = node.asExpr() and
+  not node.asExpr() instanceof StringLiteral and
+  bindingPathStr = node.toString()
 }
 
 Locatable getUI5SinkLocation(DataFlow::Node node, string bindingPathStr) {
@@ -170,5 +173,7 @@ Locatable getUI5SinkLocation(DataFlow::Node node, string bindingPathStr) {
   result = any(UI5View view).getAnHtmlISink() and
   bindingPathStr = node.(UI5ModelSource).getBindingPath().getAbsolutePath()
   or
-  result = node.asExpr() and bindingPathStr = node.toString()
+  result = node.asExpr() and
+  not node.asExpr() instanceof StringLiteral and
+  bindingPathStr = node.toString()
 }
