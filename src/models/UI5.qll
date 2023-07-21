@@ -283,6 +283,29 @@ module UI5 {
     result = constructPathStringInner(object.asExpr(), property)
   }
 
+  string constructPathStringJson(JsonValue object) {
+    if not object instanceof JsonObject
+    then result = ""
+    else
+      exists(string property | exists(object.(JsonObject).getPropValue(property)) |
+        result = "/" + property + constructPathStringJson(object.getPropValue(property))
+      )
+  }
+
+  bindingset[path]
+  JsonObject resolveDirectPath(string path) {
+    exists(Project project, File jsonFile |
+      // project contains this file
+      project.isInThisProject(jsonFile) and
+      jsonFile.getExtension() = "json" and
+      jsonFile.getAbsolutePath() = project.getASubFolder().getAbsolutePath() + "/" + path and
+      result.getJsonFile() = jsonFile
+    )
+  }
+
+  bindingset[path]
+  JsonObject resolveIndirectPath(string path) { result = any(JsonObject object) }
+
   class JsonModel extends UI5Model {
     JsonModel() {
       this instanceof NewNode and
@@ -292,9 +315,56 @@ module UI5 {
       )
     }
 
-    ObjectLiteralNode getContent() { result.flowsTo(this.getAnArgument()) }
+    override string getPathString() {
+      /* 1. new JSONModel("controller/model.json") */
+      if this.getAnArgument().asExpr() instanceof StringLiteral
+      then
+        result =
+          constructPathStringJson(resolveDirectPath(this.getAnArgument()
+                  .asExpr()
+                  .(StringLiteral)
+                  .getValue()))
+      else
+        if this.getAnArgument().(MethodCallNode).getAnArgument().asExpr() instanceof StringLiteral
+        then
+          /* 2. new JSONModel(sap.ui.require.toUrl("sap/ui/demo/mock/products.json")) */
+          result =
+            constructPathStringJson(resolveIndirectPath(this.getAnArgument()
+                    .(MethodCallNode)
+                    .getAnArgument()
+                    .asExpr()
+                    .(StringLiteral)
+                    .getValue()))
+        else
+          /*
+           * 3. new JSONModel(oData) where
+           *    var oData = { input: null };
+           */
 
-    override string getPathString() { result = constructPathString(this.getContent()) }
+          exists(ObjectLiteralNode objectNode |
+            objectNode.flowsTo(this.getAnArgument()) and constructPathString(objectNode) = result
+          )
+    }
+
+    string getPathString(Property property) {
+      /*
+       * 3. new JSONModel(oData) where
+       *    var oData = { input: null };
+       */
+
+      exists(ObjectLiteralNode objectNode |
+        objectNode.flowsTo(this.getAnArgument()) and
+        constructPathString(objectNode, property) = result
+      )
+    }
+
+    string getPathStringPropName(string propName) {
+       // TODO lol
+      exists(ObjectLiteralNode objectNode |
+        objectNode.flowsTo(this.getAnArgument()) and
+        constructPathStringJson(objectNode, propName) = result
+      )
+    }
 
     /**
      * A model possibly supporting two-way binding explicitly set as a one-way binding model.

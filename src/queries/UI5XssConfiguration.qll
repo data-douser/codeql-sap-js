@@ -73,12 +73,16 @@ class UI5BoundNode extends DataFlow::Node {
   UI5BindingPath getBindingPath() { result = bindingPath }
 
   UI5BoundNode() {
-    exists(Property p |
+    exists(Property p, JsonModel model |
       // The property bound to an UI5View source
       this.(DataFlow::PropRef).getPropertyNameExpr() = p.getNameExpr() and
-      bindingPath.getAbsolutePath() =
-        constructPathString(bindingPath.getModel().(JsonModel).getContent(), p)
+      bindingPath.getAbsolutePath() = model.getPathString(p)
     )
+    // TODO
+    /* or exists(string propName, JsonModel model |
+       ...
+        model.getPathStringPropName(propName)
+       ) */
   }
 }
 
