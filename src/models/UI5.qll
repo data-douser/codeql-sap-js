@@ -283,6 +283,12 @@ module UI5 {
     result = constructPathStringInner(object.asExpr(), property)
   }
 
+  /**
+   * Create all recursive path strings of a JSON object, e.g.
+   * if `object = { "p1": { "p2": 1 }, "p3": 2 }`, then create:
+   * - `/p1/p2`, and
+   * - `/p3`.
+   */
   string constructPathStringJson(JsonValue object) {
     if not object instanceof JsonObject
     then result = ""
@@ -290,6 +296,19 @@ module UI5 {
       exists(string property | exists(object.(JsonObject).getPropValue(property)) |
         result = "/" + property + constructPathStringJson(object.getPropValue(property))
       )
+  }
+
+  /**
+   * Create all possible path strings of a JSON object up to a certain property name, e.g.
+   * if `object = { "p1": { "p2": 1 }, "p3": 2 }` and `propName = "p3"` then create `"/p3"`.
+   * PRECONDITION: All of `object`'s keys are unique.
+   */
+  bindingset[propName]
+  string constructPathStringJson(JsonValue object, string propName) {
+    exists(string pathString | pathString = constructPathStringJson(object) |
+      pathString.regexpMatch(propName) and
+      result = pathString
+    )
   }
 
   bindingset[path]
@@ -358,10 +377,12 @@ module UI5 {
       )
     }
 
+    bindingset[propName]
     string getPathStringPropName(string propName) {
-       // TODO lol
-      exists(ObjectLiteralNode objectNode |
-        objectNode.flowsTo(this.getAnArgument()) and
+      // TODO lol
+      exists(JsonValue objectNode |
+        // TODO
+        // objectNode.flowsTo(this.getAnArgument()) and
         constructPathStringJson(objectNode, propName) = result
       )
     }
