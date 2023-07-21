@@ -16,7 +16,12 @@ import javascript
 import DataFlow::PathGraph
 import UI5XssConfiguration
 
-from UI5XssConfiguration cfg, DataFlow::PathNode source, DataFlow::PathNode sink
+from
+  UI5XssConfiguration cfg, DataFlow::PathNode source, DataFlow::PathNode sink,
+  string srcBindingPathStr, string sinkBindingPathStr
 where cfg.hasFlowPath(source, sink)
-select getUI5SinkLocation(sink.getNode()), source, sink, "XSS vulnerability due to $@.",
-  getUI5SourceLocation(source.getNode()), "user-provided value"
+select getUI5SinkLocation(sink.getNode(), sinkBindingPathStr), source, sink,
+  "XSS vulnerability due to $@ on $@ flowing to $@.",
+  getUI5SourceLocation(source.getNode(), srcBindingPathStr), "user-provided value",
+  srcBindingPathStr, srcBindingPathStr, getUI5SinkLocation(sink.getNode(), sinkBindingPathStr),
+  sinkBindingPathStr
