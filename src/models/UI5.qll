@@ -379,11 +379,10 @@ module UI5 {
 
     bindingset[propName]
     string getPathStringPropName(string propName) {
-      // TODO lol
-      exists(JsonValue objectNode |
-        // TODO
-        // objectNode.flowsTo(this.getAnArgument()) and
-        constructPathStringJson(objectNode, propName) = result
+      exists(JsonObject jsonObject |
+        jsonObject = resolveDirectPath(this.getAnArgument().asExpr().(StringLiteral).getValue())
+      |
+        constructPathStringJson(jsonObject, propName) = result
       )
     }
 
