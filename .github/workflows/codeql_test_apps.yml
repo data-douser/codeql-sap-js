@@ -1,4 +1,4 @@
-name: "CodeQL Queries"
+name: "CodeQL Test Apps"
 
 on:
   push:
