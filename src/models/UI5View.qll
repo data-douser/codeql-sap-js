@@ -238,6 +238,33 @@ class JsonView extends UI5View {
   }
 }
 
+class JsBindingPath extends UI5BindingPath instanceof StringLiteral {
+  string path;
+
+  JsBindingPath() {
+    path = bindingPathCapture(this.getStringValue()) and
+    this.(StringLiteral).getFile() instanceof JsView
+  }
+
+  override string getControlName() {
+    // new sap.m.Input({...}) => sap.m.Input
+    // this.getParent+().()
+    result = "TODO"
+  }
+
+  override string getAbsolutePath() {
+    result = "TODO"
+  }
+
+  override string getPath() {
+    result = "TODO"
+  }
+
+  override string getPropertyName() {
+    result = "TODO"
+  }
+}
+
 class HtmlBindingPath extends UI5BindingPath, HTML::Attribute {
   string path;
 
