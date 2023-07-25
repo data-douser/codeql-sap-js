@@ -262,7 +262,7 @@ class JsBindingPath extends UI5BindingPath instanceof StringLiteral {
     result = dotExprToString(this.(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr))
   }
 
-  override string getAbsolutePath() { result = this.(StringLiteral).getValue() /* ??? */ }
+  override string getAbsolutePath() { result = path /* ??? */ }
 
   override string getPath() { result = path }
 
