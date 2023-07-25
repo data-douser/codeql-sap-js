@@ -1,6 +1,6 @@
 ---
 library: true
-name: sap-js/ui5
+name: advanced-security/javascript-sap-ui5-queries
 version: 0.0.1
 extractor: javascript
 dependencies:
