@@ -87,10 +87,13 @@ abstract class UI5BindingPath extends Locatable {
       this.getAbsolutePath() = model.getPathString(p)
     )
     // TODO
-    /* or exists(string propName, JsonModel model | ...
-        model.getPathStringPropName(propName)
-      ) */
-  }
+    /*
+     * or exists(string propName, JsonModel model | ...
+     *        model.getPathStringPropName(propName)
+     *      )
+     */
+
+    }
 }
 
 /**
@@ -147,6 +150,61 @@ class JsonBindingPath extends UI5BindingPath, JsonValue {
       result = control.getPropStringValue("Type")
     )
   }
+}
+
+class JsView extends UI5View {
+  /* sap.ui.jsview("...", ) { ... } */
+  MethodCallNode rootJsViewCall;
+
+  // TODO: It has a lot of spurious rows
+  JsView() {
+    exists(TopLevel toplevel, Stmt stmt |
+      toplevel = unique(TopLevel t | t = this.getATopLevel()) and
+      stmt = unique(Stmt s | s = toplevel.getAChildStmt())
+    |
+      rootJsViewCall.asExpr() = stmt.getAChildExpr() and
+      rootJsViewCall.getReceiver() = DataFlow::globalVarRef("sap").getAPropertyReference("ui") and
+      rootJsViewCall.getMethodName() = "jsview"
+    )
+  }
+
+  override string getControllerName() {
+    exists(FunctionNode function |
+      function =
+        rootJsViewCall
+            .getArgument(1)
+            .(ObjectLiteralNode)
+            .getAPropertySource("getControllerName")
+            .(FunctionNode) and
+      result = function.getReturnNode().getALocalSource().asExpr().(StringLiteral).getValue()
+    )
+  }
+
+  private ArrayLiteralNode getCreateContent() {
+    exists(FunctionNode function |
+      function =
+        rootJsViewCall
+            .getArgument(1)
+            .(ObjectLiteralNode)
+            .getAPropertySource("createContent")
+            .(FunctionNode) and
+      result = function.getReturnNode().getALocalSource().(ArrayLiteralNode)
+    )
+  }
+
+  private ValueNode getAControl() {
+    result = this.getCreateContent().getAnElement()
+  }
+
+  override UI5BindingPath getASource() {
+    // exists(ValueNode control | control = this.getAControl() |
+    //   /* TODO */
+    //    pathstring = control.getALocalSource().(NewNode).getAnArgument().getALocalSource().(ObjectLiteralNode).getAPropertySource().asExpr().(StringLiteral).getValue()
+    // )
+    result = any(UI5BindingPath tODO)
+  }
+
+  override UI5BindingPath getAnHtmlISink() { result = any(UI5BindingPath tODO) }
 }
 
 class JsonView extends UI5View {
