@@ -180,20 +180,6 @@ class JsView extends UI5View {
     )
   }
 
-  private ArrayLiteralNode getCreateContent() {
-    exists(FunctionNode function |
-      function =
-        rootJsViewCall
-            .getArgument(1)
-            .(ObjectLiteralNode)
-            .getAPropertySource("createContent")
-            .(FunctionNode) and
-      result = function.getReturnNode().getALocalSource().(ArrayLiteralNode)
-    )
-  }
-
-  private ValueNode getAControl() { result = this.getCreateContent().getAnElement() }
-
   override JsBindingPath getASource() {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
