@@ -192,9 +192,7 @@ class JsView extends UI5View {
     )
   }
 
-  private ValueNode getAControl() {
-    result = this.getCreateContent().getAnElement()
-  }
+  private ValueNode getAControl() { result = this.getCreateContent().getAnElement() }
 
   override UI5BindingPath getASource() {
     // exists(ValueNode control | control = this.getAControl() |
@@ -246,22 +244,36 @@ class JsBindingPath extends UI5BindingPath instanceof StringLiteral {
     this.(StringLiteral).getFile() instanceof JsView
   }
 
+  private string dotExprToStringInner(Expr expr) {
+    if not expr instanceof DotExpr
+    then result = expr.toString()
+    else
+      exists(Expr subexpr, string propName |
+        expr.(DotExpr).accesses(subexpr, propName) and
+        result = dotExprToStringInner(subexpr) + "." + propName
+      )
+  }
+
+  /** `a.b.c.d.e.f.g(...)` => `"a.b.c.d.e.f.g"` */
+  private string dotExprToString(DotExpr dot) { result = dotExprToStringInner(dot) }
+
   override string getControlName() {
-    // new sap.m.Input({...}) => sap.m.Input
-    // this.getParent+().()
-    result = "TODO"
+    // new sap.m.Input({...}) => "sap.m.Input"
+    result = dotExprToString(this.(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr))
   }
 
-  override string getAbsolutePath() {
-    result = "TODO"
-  }
+  override string getAbsolutePath() { result = this.(StringLiteral).getValue() /* ??? */ }
 
-  override string getPath() {
-    result = "TODO"
-  }
+  override string getPath() { result = path }
 
   override string getPropertyName() {
-    result = "TODO"
+    /* { content: "{/input}" } => content */
+    exists(ObjectExpr decl, Property property |
+      decl = this.(StringLiteral).getParent+().(NewExpr).getAnArgument().(ObjectExpr) and
+      property = decl.getAProperty() and
+      property.getInit() = this and
+      property.getName() = result
+    )
   }
 }
 
