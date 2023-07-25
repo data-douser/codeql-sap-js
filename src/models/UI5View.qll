@@ -194,15 +194,25 @@ class JsView extends UI5View {
 
   private ValueNode getAControl() { result = this.getCreateContent().getAnElement() }
 
-  override UI5BindingPath getASource() {
-    // exists(ValueNode control | control = this.getAControl() |
-    //   /* TODO */
-    //    pathstring = control.getALocalSource().(NewNode).getAnArgument().getALocalSource().(ObjectLiteralNode).getAPropertySource().asExpr().(StringLiteral).getValue()
-    // )
-    result = any(UI5BindingPath tODO)
+  override JsBindingPath getASource() {
+    exists(ObjectExpr control, string type, string path, string property |
+      this = control.getFile() and
+      type = result.getControlName().replaceAll(".", "/") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
+      result = control.getPropertyByName(property)
+    )
   }
 
-  override UI5BindingPath getAnHtmlISink() { result = any(UI5BindingPath tODO) }
+  override JsBindingPath getAnHtmlISink() {
+    exists(ObjectExpr control, string type, string path, string property |
+      this = control.getFile() and
+      type = result.getControlName().replaceAll(".", "/") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
+      property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
+      result = control.getPropertyByName(property)
+    )
+  }
 }
 
 class JsonView extends UI5View {
@@ -236,12 +246,12 @@ class JsonView extends UI5View {
   }
 }
 
-class JsBindingPath extends UI5BindingPath instanceof StringLiteral {
+class JsBindingPath extends UI5BindingPath, Property {
   string path;
 
   JsBindingPath() {
-    path = bindingPathCapture(this.getStringValue()) and
-    this.(StringLiteral).getFile() instanceof JsView
+    path = bindingPathCapture(this.getInit().getStringValue()) and
+    this.(Property).getFile() instanceof JsView
   }
 
   private string dotExprToStringInner(Expr expr) {
@@ -257,24 +267,17 @@ class JsBindingPath extends UI5BindingPath instanceof StringLiteral {
   /** `a.b.c.d.e.f.g(...)` => `"a.b.c.d.e.f.g"` */
   private string dotExprToString(DotExpr dot) { result = dotExprToStringInner(dot) }
 
+  /* `new sap.m.Input({...})` => `"sap.m.Input"` */
   override string getControlName() {
-    // new sap.m.Input({...}) => "sap.m.Input"
-    result = dotExprToString(this.(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr))
+    result =
+      dotExprToString(this.getInit().(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr))
   }
 
   override string getAbsolutePath() { result = path /* ??? */ }
 
   override string getPath() { result = path }
 
-  override string getPropertyName() {
-    /* { content: "{/input}" } => content */
-    exists(ObjectExpr decl, Property property |
-      decl = this.(StringLiteral).getParent+().(NewExpr).getAnArgument().(ObjectExpr) and
-      property = decl.getAProperty() and
-      property.getInit() = this and
-      property.getName() = result
-    )
-  }
+  override string getPropertyName() { result = this.getName() }
 }
 
 class HtmlBindingPath extends UI5BindingPath, HTML::Attribute {
