@@ -13,10 +13,9 @@
  */
 
 import javascript
-import DataFlow::PathGraph
+import models.UI5DataFlow::PathGraph
 import UI5XssConfiguration
 
-from UI5XssConfiguration cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
-select getUI5SinkLocation(sink.getNode()), source, sink, "XSS vulnerability due to $@.",
-  getUI5SourceLocation(source.getNode()), "user-provided value"
+from UI5XssConfiguration cfg, UI5PathNode source, UI5PathNode sink
+where cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode())
+select sink.getMostAccurateSink(), source.getMostAccurateSource(), sink.getMostAccurateSink(), "XSS vulnerability due to $@.",source.getMostAccurateSource(), "user-provided value"

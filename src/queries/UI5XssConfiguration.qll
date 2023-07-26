@@ -3,7 +3,6 @@ import models.UI5::UI5
 import models.UI5View
 import models.UI5AMDModule
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
-import DataFlow::PathGraph
 
 class UI5XssConfiguration extends DomBasedXss::Configuration {
   /**
