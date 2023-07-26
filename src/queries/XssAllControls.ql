@@ -21,7 +21,6 @@ from
   string srcBindingPathStr, string sinkBindingPathStr
 where cfg.hasFlowPath(source, sink)
 select getUI5SinkLocation(sink.getNode(), sinkBindingPathStr), source, sink,
-  "XSS vulnerability due to $@ on $@ flowing to $@.",
+  "XSS vulnerability due to $@ bound to the path `$@`.",
   getUI5SourceLocation(source.getNode(), srcBindingPathStr), "user-provided value",
-  srcBindingPathStr, srcBindingPathStr, getUI5SinkLocation(sink.getNode(), sinkBindingPathStr),
-  sinkBindingPathStr
+  srcBindingPathStr, srcBindingPathStr
