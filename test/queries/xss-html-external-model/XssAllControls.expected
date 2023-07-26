@@ -1,0 +1,9 @@
+nodes
+| webapp/controller/app.controller.js:8:40:8:62 | "contro ... l.json" |
+| webapp/controller/app.controller.js:8:40:8:62 | "contro ... l.json" |
+| webapp/controller/app.controller.js:8:40:8:62 | "contro ... l.json" |
+| webapp/controller/app.controller.js:8:40:8:62 | "contro ... l.json" |
+edges
+| webapp/controller/app.controller.js:8:40:8:62 | "contro ... l.json" | webapp/controller/app.controller.js:8:40:8:62 | "contro ... l.json" |
+#select
+| webapp/view/app.view.xml:8:5:8:36 | content={/input} | webapp/controller/app.controller.js:8:40:8:62 | "contro ... l.json" | webapp/controller/app.controller.js:8:40:8:62 | "contro ... l.json" | XSS vulnerability due to $@ on $@ flowing to $@. | webapp/view/app.view.xml:5:5:7:28 | value={/input} | user-provided value | /input | /input | webapp/view/app.view.xml:8:5:8:36 | content={/input} | /input |

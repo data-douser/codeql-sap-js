@@ -171,7 +171,7 @@ Locatable getUI5SourceLocation(DataFlow::Node node, string bindingPathStr) {
 Locatable getUI5SinkLocation(DataFlow::Node node, string bindingPathStr) {
   result = node.(UI5ModelSink).getBindingPath() and
   result = any(UI5View view).getAnHtmlISink() and
-  bindingPathStr = node.(UI5ModelSource).getBindingPath().getAbsolutePath()
+  bindingPathStr = node.(UI5ModelSink).getBindingPath().getAbsolutePath()
   or
   result = node.asExpr() and
   not node.asExpr() instanceof StringLiteral and // exception on JSONModel's URI argument

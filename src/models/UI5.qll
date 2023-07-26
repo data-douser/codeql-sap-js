@@ -311,6 +311,7 @@ module UI5 {
     )
   }
 
+  /**  When given a constructor call `new JSONModel("controller/model.json")`, get the content of the file referred to by URI (`"controller/model.json"`) inside the string argument. */
   bindingset[path]
   JsonObject resolveDirectPath(string path) {
     exists(Project project, File jsonFile |
@@ -322,8 +323,11 @@ module UI5 {
     )
   }
 
+  /** When given a constructor call `new JSONModel(sap.ui.require.toUrl("sap/ui/demo/mock/products.json")`, get the content of the file referred to by resolving the argument. Currently only supports sap.ui.require.toUrl. */
   bindingset[path]
-  JsonObject resolveIndirectPath(string path) { result = any(JsonObject object) }
+  JsonObject resolveIndirectPath(string path) {
+    result = any(JsonObject tODO | tODO.getFile().getAbsolutePath() = path)
+  }
 
   class JsonModel extends UI5Model {
     JsonModel() {
