@@ -1,62 +1,79 @@
-sap.ui.require(["sap/m/SearchField", "sap/ui/commons/TextField", "sap/m/InputBase", "sap/m/Input", "sap/base/util/UriParameters", "sap/m/FeedInput"],
-    function (SearchField, TextField, InputBase, Input, UriParameters, FeedInput) {
+sap.ui.require(
+  [
+    "sap/ui/codeeditor/CodeEditor",
+    "sap/m/FeedInput",
+    "sap/ui/commons/TextField",
+    "sap/base/util/UriParameters",
+    "sap/ui/richtexteditor/RichTextEditor",
+    "sap/m/InputBase",
+    "sap/ui/webc/main/MultiInput",
+    "sap/m/SearchField",
+    "sap/ui/webc/main/Input",
+  ],
+  function (
+    CodeEditor,
+    FeedInput,
+    TextField,
+    UriParameters,
+    RichTextEditor,
+    InputBase,
+    MultiInput,
+    SearchField,
+    Input,
+  ) {
+    var obj = new TextField();
+    var value = obj.value;
+    var obj = new TextField();
+    var value = obj.getValue();
+    var obj = new InputBase();
+    var value = obj.value;
+    var obj = new InputBase();
+    var value = obj.getValue();
+    var obj = new SearchField();
+    var value = obj.value;
+    var obj = new SearchField();
+    var value = obj.getValue();
+    var obj = new FeedInput();
+    var value = obj.value;
+    var obj = new FeedInput();
+    var value = obj.getValue();
+    var obj = new Input();
+    var value = obj.value;
+    var obj = new Input();
+    var value = obj.getValue();
+    var obj = new MultiInput();
+    var value = obj.value;
+    var obj = new MultiInput();
+    var value = obj.getValue();
+    var obj = new CodeEditor();
+    var value = obj.value;
+    var obj = new CodeEditor();
+    var value = obj.getCurrentValue();
+    var obj = new RichTextEditor();
+    var value = obj.value;
+    var obj = new RichTextEditor();
+    var value = obj.getValue();
 
-        ////////
-        // Sources of user-controlled data
-        ////////
-        // sap.ui.commons.SearchField.value
-        var f = new SearchField();
-        var remoteInput = f.value;
-        var remoteInput = f.getValue();
+    var value = jQuery.sap.getUriParameters().get();
 
-        // sap.ui.commons.TextField.value
-        var f = new TextField();
-        var remoteInput = f.value;
+    var value = jQuery.sap.syncHead();
 
-        // sap.m.InputBase.value
-        var ib = new InputBase();
-        remoteInput = ib.value;
+    var value = jQuery.sap.syncGet();
 
-        // sap.m.Input.value
-        // sap.m.Input#getValue()
-        var input = new Input();
-        remoteInput = input.value;
-        remoteInput = input.getValue();
+    var value = jQuery.sap.syncGetText();
 
-        // sap.m.FeedInput.value
-        // sap.m.FeedInput#getValue()
-        var fi = new FeedInput();
-        remoteInput = fi.value;
-        remoteInput = fi.getValue();
+    var value = jQuery.sap.syncPost();
 
-        // jQuery.sap.getUriParameters() return
-        var value = jQuery.sap.getUriParameters().get("foo");
+    var value = jQuery.sap.syncPostText();
+    var obj = new UriParameters();
+    var value = obj.fromQuery().get();
+    var obj = new UriParameters();
+    var value = obj.fromQuery().getAll();
 
-        // jQuery.sap.syncHead return
-        var value = jQuery.sap.syncHead("url", "param")
-
-        // jQuery.sap.syncGet return
-        var value = jQuery.sap.syncGet("url", "param")
-
-        // jQuery.sap.syncGetText return
-        var value = jQuery.sap.syncGetText("url", "param")
-
-        // jQuery.sap.syncPost return
-        var value = jQuery.sap.syncPost("url", "param")
-
-        // jQuery.sap.syncPostText return
-        var value = jQuery.sap.syncPostText("url", "param")
-
-        // UriParameters#get
-        // UriParameters#getAll
-        var uri = UriParameters.fromQuery(window.location.search)
-        var sValue = uri.get("foo")
-        var sValue = uri.getAll("foo")
-
-        // sap.m.TextArea.value
-        var f = new TextArea();
-        var remoteInput = f.value;
-        // sap.m.ComboBoxBase.value
-        var f = new ComboBoxBase();
-        var remoteInput = f.value;
-    });
+    var value = jQuery.sap.util.UriParameters.prototype.get();
+    var obj = new UriParameters();
+    var value = obj.getAll();
+    var obj = new UriParameters();
+    var value = obj.get();
+  },
+);

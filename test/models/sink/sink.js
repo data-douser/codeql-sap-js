@@ -1,81 +1,107 @@
-sap.ui.require(["sap/base/util/UriParameters", "sap/ui/core/Patcher", "sap/ui/core/RenderManager", "sap/base/Log"],
-    function (UriParameters, Patcher, RenderManager, Log) {
-        ////////
-        // Sinks for Logging sensitive data (log-injection)
-        ////////
+sap.ui.require(
+  [
+    "sap/base/util/LoaderExtensions",
+    "sap/base/assert",
+    "sap/base/i18n/ResourceBundle",
+    "sap/ui/dom/includeScript",
+    "sap/ui/core/Patcher",
+    "sap/base/Log",
+    "sap/ui/dom/includeStylesheet",
+    "sap/ui/core/HTML",
+    "sap/base/util/Properties",
+    "sap/ui/core/RenderManager",
+  ],
+  function (
+    LoaderExtensions,
+    assert,
+    ResourceBundle,
+    includeScript,
+    Patcher,
+    Log,
+    includeStylesheet,
+    HTML,
+    Properties,
+    RenderManager,
+  ) {
+    var value = jQuery.sap.log.Logger.fatal(code0, code1, code2);
+    var value = jQuery.sap.log.Logger.error(code0, code1, code2);
 
-        // jQuery.sap.log.info
-        jQuery.sap.log.Logger.info(code1, code2, code3);
+    var value = jQuery.sap.log.Logger.warning(code0, code1, code2);
 
-        // jQuery.sap.log.fatal
-        jQuery.sap.log.Logger.fatal(code1, code2, code3);
+    var value = jQuery.sap.log.Logger.info(code0, code1, code2);
 
-        // jQuery.sap.log.warning
-        jQuery.sap.log.Logger.warning(code1, code2, code3);
+    var value = jQuery.sap.log.Logger.debug(code0, code1, code2);
 
-        // jQuery.sap.log.debug
-        jQuery.sap.log.Logger.debug(code1, code2, code3);
+    var value = jQuery.sap.log.Logger.trace(code0, code1, code2);
 
-        // jQuery.sap.log.trace
-        jQuery.sap.log.Logger.trace(code1, code2, code3);
+    var value = jQuery.sap.assert(code0, code1);
 
-        // jQuery.sap.log.error
-        jQuery.sap.log.Logger.error(code1, code2, code3);
+    var value = jQuery.sap.registerModulePath(code0, code1);
 
-        Log.fatal(code1, code2, code3);
-        Log.error(code1, code2, code3);
-        Log.warning(code1, code2, code3);
-        Log.info(code1, code2, code3);
-        Log.debug(code1, code2, code3);
-        Log.trace(code1, code2, code3);
+    var value = jQuery.sap.registerResourcePath(code0, code1);
 
-        sap.base.Log.fatal(code1, code2, code3);
-        sap.base.Log.error(code1, code2, code3);
-        sap.base.Log.warning(code1, code2, code3);
-        sap.base.Log.info(code1, code2, code3);
-        sap.base.Log.debug(code1, code2, code3);
-        sap.base.Log.trace(code1, code2, code3);
+    var value = jQuery.sap.require(code0);
 
-        ////////
-        // Sinks for XSS Injection (code-injection)
-        ////////
+    var value = jQuery.sap.includeScript(code0);
 
-        // jQuery.sap.globalEval
-        jQuery.sap.globalEval(code);
+    var value = jQuery.sap.includeStyleSheet(code0);
 
-        // sap.ui.core.HTML.content
-        var html = new sap.ui.core.HTML({ content: code });
-        // sap.ui.core.HTML#content
-        html.content = code;
-        // sap.ui.core.HTML#setContent
-        html.setContent(code);
+    var value = jQuery.sap.globalEval(code0);
 
-        // sap.ui.core.Patcher.unsafeHtml
-        var p = new Patcher();
-        p.unsafeHtml(code);
+    var value = jQuery.sap.properties(code0);
 
-        // RenderManager.write
-        var rm = new RenderManager();
-        rm.write(code);
-        // RenderManager.writeAttribute
-        rm.writeAttribute(code);
-        // RenderManager.writeAttributeEscaped
-        rm.writeAttributeEscaped(code);
-        // RenderManager.addStyle
-        rm.addStyle(code);
-        // RenderManager.addClass
-        rm.addClass(code);
-        // RenderManager.unsafeHtml
-        rm.unsafeHtml(code);
+    var value = jQuery.sap.resources(code0);
 
-        ////////
-        // Sinks for HTTP requests (request-forgery)
-        ////////
+    var value = jQuery.sap.sjax(code0);
 
-        ////////
-        // Sinks for Path injections (path-injection)
-        ////////
+    var value = jQuery.sap.syncHead(code0);
 
-        jQuery.sap.registerModulePath("", "/sink")
+    var value = jQuery.sap.syncGet(code0, code1);
 
-    });
+    var value = jQuery.sap.syncPost(code0, code1);
+
+    var value = jQuery.sap.syncGetText(code0, code1);
+
+    var value = jQuery.sap.syncGetJSON(code0, code1);
+    var obj = new Log();
+    var value = obj.fatal(code0, code1, code2);
+    var obj = new Log();
+    var value = obj.error(code0, code1, code2);
+    var obj = new Log();
+    var value = obj.warning(code0, code1, code2);
+    var obj = new Log();
+    var value = obj.info(code0, code1, code2);
+    var obj = new Log();
+    var value = obj.debug(code0, code1, code2);
+    var obj = new Log();
+    var value = obj.trace(code0, code1, code2);
+    var obj = new assert();
+    var value = obj.fnAssert(code0, code1);
+    var obj = new ResourceBundle();
+    var value = obj.create(code0);
+    var obj = new LoaderExtensions();
+    var value = obj.registerResourcePath(code0, code1);
+    var obj = new Properties();
+    var value = obj.create(code0);
+    var obj = new HTML();
+    var value = obj.content;
+    var obj = new Patcher();
+    var value = obj.unsafeHtml(code0, code1, code2, code3, code4, code5);
+    var obj = new RenderManager();
+    var value = obj.write(code0, code1, code2, code3, code4, code5);
+    var obj = new RenderManager();
+    var value = obj.writeAttribute(code0, code1);
+    var obj = new RenderManager();
+    var value = obj.writeAttributeEscaped(code0);
+    var obj = new RenderManager();
+    var value = obj.addStyle(code0, code1);
+    var obj = new RenderManager();
+    var value = obj.addClass(code0);
+    var obj = new RenderManager();
+    var value = obj.unsafeHtml(code0, code1, code2, code3, code4, code5);
+    var obj = new includeScript();
+    var value = obj.fnIncludeScript(code0);
+    var obj = new includeStylesheet();
+    var value = obj.fnIncludeStyleSheet(code0);
+  },
+);
