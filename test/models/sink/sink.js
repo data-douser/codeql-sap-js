@@ -72,4 +72,10 @@ sap.ui.require(["sap/base/util/UriParameters", "sap/ui/core/Patcher", "sap/ui/co
         // Sinks for HTTP requests (request-forgery)
         ////////
 
+        ////////
+        // Sinks for Path injections (path-injection)
+        ////////
+
+        jQuery.sap.registerModulePath("", "/sink")
+
     });
