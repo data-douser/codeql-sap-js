@@ -16,6 +16,8 @@ import javascript
 import models.UI5DataFlow::PathGraph
 import UI5XssConfiguration
 
-from UI5XssConfiguration cfg, UI5PathNode source, UI5PathNode sink
-where cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode())
-select sink.getAPrimarySink(), source.getAPrimarySource(), sink.getAPrimarySink(), "XSS vulnerability due to $@.",source.getAPrimarySource(), "user-provided value"
+from UI5XssConfiguration cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource, UI5PathNode primarySink
+where cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
+primarySource = source.getAPrimarySource() and
+primarySink = sink.getAPrimarySink()
+select primarySink, primarySource, primarySink, "XSS vulnerability due to $@.",primarySource, "user-provided value"
