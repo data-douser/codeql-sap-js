@@ -37,7 +37,7 @@ module PathGraph {
             )
         }
 
-        UI5PathNode getMostAccurateSource() {
+        UI5PathNode getAPrimarySource() {
             not this.asDataFlowPathNode().getNode() instanceof UI5ModelSource and
             this.asDataFlowPathNode() = result.asDataFlowPathNode() 
             or
@@ -45,7 +45,7 @@ module PathGraph {
             result.asUI5BindingPathNode() = any(UI5View view).getASource()
         }
 
-        UI5PathNode getMostAccurateSink() {
+        UI5PathNode getAPrimarySink() {
             not this.asDataFlowPathNode().getNode() instanceof UI5ModelSink and
             this.asDataFlowPathNode() = result.asDataFlowPathNode()
             or

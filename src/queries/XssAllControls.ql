@@ -18,4 +18,4 @@ import UI5XssConfiguration
 
 from UI5XssConfiguration cfg, UI5PathNode source, UI5PathNode sink
 where cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode())
-select sink.getMostAccurateSink(), source.getMostAccurateSource(), sink.getMostAccurateSink(), "XSS vulnerability due to $@.",source.getMostAccurateSource(), "user-provided value"
+select sink.getAPrimarySink(), source.getAPrimarySource(), sink.getAPrimarySink(), "XSS vulnerability due to $@.",source.getAPrimarySource(), "user-provided value"
