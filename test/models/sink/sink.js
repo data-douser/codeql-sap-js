@@ -69,6 +69,12 @@ sap.ui.require(
     var value = sap.base.Log.info(code0, code1, code2);
     var value = sap.base.Log.debug(code0, code1, code2);
     var value = sap.base.Log.trace(code0, code1, code2);
+    var value = Log.fatal(code0, code1, code2);
+    var value = Log.error(code0, code1, code2);
+    var value = Log.warning(code0, code1, code2);
+    var value = Log.info(code0, code1, code2);
+    var value = Log.debug(code0, code1, code2);
+    var value = Log.trace(code0, code1, code2);
     var value = sap.base.assert(code0, code1);
     var obj = new ResourceBundle();
     var value = obj.create(code0);

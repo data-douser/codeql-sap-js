@@ -21,7 +21,9 @@ extensions:
       - [sap/m/Input, sap/m/ComboBoxBase, ""]
       - [sap/m/Input, sap/m/MultiInput, ""]
       - [sap/m/Input, sap/m/ComboBoxTextField, ""]
+      - [Assert, global, "Member[sap].Member[base].Member[assert]"]
       - [Log, sap/base/Log, ""]
+      - [Log, global, "Member[sap].Member[base].Member[Log]"]
       - [Log, global, "Member[jQuery].Member[sap].Member[log].Member[Logger]"]
 
   - addsTo:
@@ -94,7 +96,7 @@ extensions:
       - ["Log", "Member[info].Argument[0..2]", "log-injection"]                                           
       - ["Log", "Member[debug].Argument[0..2]", "log-injection"]                                          
       - ["Log", "Member[trace].Argument[0..2]", "log-injection"]                                          
-      - ["sap/base/assert", "Argument[1]", "log-injection"]                                       
+      - ["Assert", "Argument[1]", "log-injection"]                                       
       - ["sap/base/i18n/ResourceBundle", "Instance.Member[create].Argument[0]", "path-injection"]                              
       - ["sap/base/util/LoaderExtensions", "Instance.Member[registerResourcePath].Argument[1]", "path-injection"]              
       - ["sap/base/util/Properties", "Instance.Member[create].Argument[0]", "path-injection"]                                  
