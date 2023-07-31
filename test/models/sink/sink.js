@@ -34,6 +34,20 @@ sap.ui.require(
 
     var value = jQuery.sap.log.Logger.trace(code0, code1, code2);
 
+
+    var log = jQuery.sap.log.getLogger("", jQuery.sap.log.Level.ERROR);
+    var value = log.fatal(code0, code1, code2);
+
+    var value = log.error(code0, code1, code2);
+
+    var value = log.warning(code0, code1, code2);
+
+    var value = log.info(code0, code1, code2);
+
+    var value = log.debug(code0, code1, code2);
+
+    var value = log.trace(code0, code1, code2);
+
     var value = jQuery.sap.assert(code0, code1);
 
     var value = jQuery.sap.registerModulePath(code0, code1);
