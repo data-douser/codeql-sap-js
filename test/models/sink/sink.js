@@ -1,43 +1,114 @@
-sap.ui.require(["sap/base/util/UriParameters", "sap/ui/core/Patcher", "sap/ui/core/RenderManager"],
-    function (UriParameters, Patcher, RenderManager) {
-        ////////
-        // Sinks for Logging sensitive data (log-injection)
-        ////////
+sap.ui.require(
+  [
+    "sap/base/util/LoaderExtensions",
+    "sap/base/i18n/ResourceBundle",
+    "sap/ui/core/Patcher",
+    "sap/base/Log",
+    "sap/ui/core/HTML",
+    "sap/base/util/Properties",
+    "sap/ui/core/RenderManager",
+  ],
+  function (
+    LoaderExtensions,
+    ResourceBundle,
+    Patcher,
+    Log,
+    HTML,
+    Properties,
+    RenderManager,
+  ) {
+    var value = jQuery.sap.log.fatal(code0, code1, code2);
+    var value = jQuery.sap.log.error(code0, code1, code2);
 
-        ////////
-        // Sinks for XSS Injection (code-injection)
-        ////////
+    var value = jQuery.sap.log.warning(code0, code1, code2);
 
-        // jQuery.sap.globalEval
-        jQuery.sap.globalEval(code);
+    var value = jQuery.sap.log.info(code0, code1, code2);
 
-        // sap.ui.core.HTML.content
-        var html = new sap.ui.core.HTML({ content: code });
-        // sap.ui.core.HTML#content
-        html.content = code;
-        // sap.ui.core.HTML#setContent
-        html.setContent(code);
+    var value = jQuery.sap.log.debug(code0, code1, code2);
 
-        // sap.ui.core.Patcher.unsafeHtml
-        var p = new Patcher();
-        p.unsafeHtml(code);
+    var value = jQuery.sap.log.trace(code0, code1, code2);
 
-        // RenderManager.write
-        var rm = new RenderManager();
-        rm.write(code);
-        // RenderManager.writeAttribute
-        rm.writeAttribute(code);
-        // RenderManager.writeAttributeEscaped
-        rm.writeAttributeEscaped(code);
-        // RenderManager.addStyle
-        rm.addStyle(code);
-        // RenderManager.addClass
-        rm.addClass(code);
-        // RenderManager.unsafeHtml
-        rm.unsafeHtml(code);
 
-        ////////
-        // Sinks for HTTP requests (request-forgery)
-        ////////
+    var log = jQuery.sap.log.getLogger("", jQuery.sap.log.Level.ERROR);
+    var value = log.fatal(code0, code1, code2);
 
-    });
+    var value = log.error(code0, code1, code2);
+
+    var value = log.warning(code0, code1, code2);
+
+    var value = log.info(code0, code1, code2);
+
+    var value = log.debug(code0, code1, code2);
+
+    var value = log.trace(code0, code1, code2);
+
+    var value = jQuery.sap.assert(code0, code1);
+
+    var value = jQuery.sap.registerModulePath(code0, code1);
+
+    var value = jQuery.sap.registerResourcePath(code0, code1);
+
+    var value = jQuery.sap.require(code0);
+
+    var value = jQuery.sap.includeScript(code0);
+
+    var value = jQuery.sap.includeStyleSheet(code0);
+
+    var value = jQuery.sap.globalEval(code0);
+
+    var value = jQuery.sap.properties(code0);
+
+    var value = jQuery.sap.resources(code0);
+
+    var value = jQuery.sap.sjax(code0);
+
+    var value = jQuery.sap.syncHead(code0);
+
+    var value = jQuery.sap.syncGet(code0, code1);
+
+    var value = jQuery.sap.syncPost(code0, code1);
+
+    var value = jQuery.sap.syncGetText(code0, code1);
+
+    var value = jQuery.sap.syncGetJSON(code0, code1);
+    var value = sap.base.Log.fatal(code0, code1, code2);
+    var value = sap.base.Log.error(code0, code1, code2);
+    var value = sap.base.Log.warning(code0, code1, code2);
+    var value = sap.base.Log.info(code0, code1, code2);
+    var value = sap.base.Log.debug(code0, code1, code2);
+    var value = sap.base.Log.trace(code0, code1, code2);
+    var value = Log.fatal(code0, code1, code2);
+    var value = Log.error(code0, code1, code2);
+    var value = Log.warning(code0, code1, code2);
+    var value = Log.info(code0, code1, code2);
+    var value = Log.debug(code0, code1, code2);
+    var value = Log.trace(code0, code1, code2);
+    var value = sap.base.assert(code0, code1);
+    var obj = new ResourceBundle();
+    var value = obj.create(code0);
+    var obj = new LoaderExtensions();
+    var value = obj.registerResourcePath(code0, code1);
+    var obj = new Properties();
+    var value = obj.create(code0);
+    var obj = new HTML({content: code0});
+    obj.content = code0;
+    obj.setContent(code0);
+    var obj = new Patcher();
+    var value = obj.unsafeHtml(code0);
+    var obj = new RenderManager();
+    var value = obj.write(code0);
+    var obj = new RenderManager();
+    var value = obj.writeAttribute(code0, code1);
+    var obj = new RenderManager();
+    var value = obj.writeAttributeEscaped(code0);
+    var obj = new RenderManager();
+    var value = obj.addStyle(code0, code1);
+    var obj = new RenderManager();
+    var value = obj.addClass(code0);
+    var obj = new RenderManager();
+    var value = obj.unsafeHtml(code0);
+
+    var value = sap.ui.dom.includeScript(code0);
+    var value = sap.ui.dom.includeStyleSheet(code0);
+  },
+);

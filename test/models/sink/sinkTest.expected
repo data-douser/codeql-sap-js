@@ -1,14 +1,13 @@
-nodes
-edges
-#select
-| sink.js:12:31:12:34 | code | code |
-| sink.js:15:52:15:55 | code | code |
-| sink.js:17:24:17:27 | code | code |
-| sink.js:19:25:19:28 | code | code |
-| sink.js:23:22:23:25 | code | code |
-| sink.js:27:18:27:21 | code | code |
-| sink.js:29:27:29:30 | code | code |
-| sink.js:31:34:31:37 | code | code |
-| sink.js:33:21:33:24 | code | code |
-| sink.js:35:21:35:24 | code | code |
-| sink.js:37:23:37:26 | code | code |
+| sink.js:57:39:57:43 | code0 | code0 |
+| sink.js:93:34:93:38 | code0 | code0 |
+| sink.js:94:19:94:23 | code0 | code0 |
+| sink.js:95:20:95:24 | code0 | code0 |
+| sink.js:97:32:97:36 | code0 | code0 |
+| sink.js:99:27:99:31 | code0 | code0 |
+| sink.js:101:36:101:40 | code0 | code0 |
+| sink.js:101:43:101:47 | code1 | code1 |
+| sink.js:103:43:103:47 | code0 | code0 |
+| sink.js:105:30:105:34 | code0 | code0 |
+| sink.js:105:37:105:41 | code1 | code1 |
+| sink.js:107:30:107:34 | code0 | code0 |
+| sink.js:109:32:109:36 | code0 | code0 |
