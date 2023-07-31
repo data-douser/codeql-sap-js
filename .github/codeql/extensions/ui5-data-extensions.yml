@@ -27,6 +27,10 @@ extensions:
       - ["SapLogger", "global", "Member[jQuery].Member[sap].Member[log]"]
       # Logging functions as well as `getLogger` also serves as a constructor
       - ["SapLogger", "SapLogger", "Member[debug,error,fatal,info,setLevel,trace,warning,getLogger].ReturnValue"]
+      - ["URIParameters", "sap/base/util/UriParameters", ""]
+      - ["URIParameters", "URIParameters", "Member[fromQuery].ReturnValue"]
+      - ["JQueryURIParameters", "global", "Member[jQuery].Member[sap].Member[util].Member[UriParameters]"]
+      - ["JQueryURIParameters", "global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue"]
 
   - addsTo:
       pack: codeql/javascript-all
@@ -54,9 +58,10 @@ extensions:
       - ["global", "Member[jQuery].Member[sap].Member[syncGetText].ReturnValue", "remote"]
       - ["global", "Member[jQuery].Member[sap].Member[syncPost].ReturnValue", "remote"]
       - ["global", "Member[jQuery].Member[sap].Member[syncPostText].ReturnValue", "remote"]
-      - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[get].ReturnValue", "remote"]
-      - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue", "remote"]
-      - ["global", "Member[jQuery].Member[sap].Member[util].Member[UriParameters].Member[prototype].Member[get].ReturnValue", "remote"]
+      - ["URIParameters", "Member[get].ReturnValue", "remote"]
+      - ["URIParameters", "Member[getAll].ReturnValue", "remote"]
+      - ["JQueryURIParameters", "Member[get].ReturnValue", "remote"]
+      - ["JQueryURIParameters", "Member[getAll].ReturnValue", "remote"]
       - ["sap/base/util/UriParameters", "Instance.Member[getAll].ReturnValue", "remote"]
       - ["sap/base/util/UriParameters", "Instance.Member[get].ReturnValue", "remote"]
 

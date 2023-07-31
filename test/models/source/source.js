@@ -65,12 +65,13 @@ sap.ui.require(
     var value = jQuery.sap.syncPost();
 
     var value = jQuery.sap.syncPostText();
-    var obj = new UriParameters();
-    var value = obj.fromQuery().get();
-    var obj = new UriParameters();
-    var value = obj.fromQuery().getAll();
 
-    var value = jQuery.sap.util.UriParameters.prototype.get();
+    var value = UriParameters.fromQuery(code0).get();
+    var value = UriParameters.fromQuery(code0).getAll();
+
+    var obj = jQuery.sap.getUriParameters();
+    var value = obj.get();
+    var value = obj.getAll();
     var obj = new UriParameters();
     var value = obj.getAll();
     var obj = new UriParameters();
