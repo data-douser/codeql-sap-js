@@ -31,6 +31,8 @@ extensions:
       - ["URIParameters", "URIParameters", "Member[fromQuery].ReturnValue"]
       - ["JQueryURIParameters", "global", "Member[jQuery].Member[sap].Member[util].Member[UriParameters]"]
       - ["JQueryURIParameters", "global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue"]
+      - ["SapUIDom", "sap/ui/dom", ""]
+      - ["SapUIDom", "global", "Member[sap].Member[ui].Member[dom]"]
 
   - addsTo:
       pack: codeql/javascript-all
@@ -104,8 +106,8 @@ extensions:
       - ["sap/ui/core/RenderManager", "Instance.Member[addStyle].Argument[0..1]", "html-injection"]                             
       - ["sap/ui/core/RenderManager", "Instance.Member[addClass].Argument[0]", "html-injection"]                                
       - ["sap/ui/core/RenderManager", "Instance.Member[unsafeHtml].Argument[0..]", "html-injection"]                            
-      - ["sap/ui/dom/includeScript", "Argument[0]", "path-injection"]                         
-      - ["sap/ui/dom/includeStylesheet", "Argument[0]", "path-injection"]                 
+      - ["SapUIDom", "Member[includeScript].Argument[0]", "path-injection"]                         
+      - ["SapUIDom", "Member[includeStyleSheet].Argument[0]", "path-injection"]                 
 
   - addsTo:
       pack: codeql/javascript-all
