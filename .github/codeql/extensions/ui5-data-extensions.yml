@@ -23,10 +23,9 @@ extensions:
       - [sap/m/Input, sap/m/ComboBoxTextField, ""]
       - [Assert, global, "Member[sap].Member[base].Member[assert]"]
       - [SapLogger, sap/base/Log, ""]
-      # Logging functions as well as `getLogger` also serves as a constructor
-      - [SapLogger, Log, "Member[debug,error,fatal,info,setLevel,trace,warning,getLogger].ReturnValue"]
       - [SapLogger, global, "Member[sap].Member[base].Member[Log]"]
       - [SapLogger, global, "Member[jQuery].Member[sap].Member[log]"]
+      # Logging functions as well as `getLogger` also serves as a constructor
       - [SapLogger, SapLogger, "Member[debug,error,fatal,info,setLevel,trace,warning,getLogger].ReturnValue"]
 
   - addsTo:
@@ -65,12 +64,6 @@ extensions:
       pack: codeql/javascript-all
       extensible: sinkModel
     data:
-      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[fatal].Argument[0..2]", "log-injection"]   
-      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[error].Argument[0..2]", "log-injection"]   
-      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[warning].Argument[0..2]", "log-injection"] 
-      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[info].Argument[0..2]", "log-injection"]    
-      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[debug].Argument[0..2]", "log-injection"]   
-      - ["global", "Member[jQuery].Member[sap].Member[log].Member[Logger].Member[trace].Argument[0..2]", "log-injection"]   
       - ["global", "Member[jQuery].Member[sap].Member[assert].Argument[1]", "log-injection"]                                
       - ["global", "Member[jQuery].Member[sap].Member[registerModulePath].Argument[1]", "path-injection"]                      
       - ["global", "Member[jQuery].Member[sap].Member[registerResourcePath].Argument[1]", "path-injection"]                    
