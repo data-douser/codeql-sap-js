@@ -16,7 +16,7 @@ class UI5XssConfiguration extends DomBasedXss::Configuration {
       p.isInThisProject(node.getFile()) and
       // same control
       metadata.getControl().getName() = node.getBindingPath().getControlName() and
-      //restrict to interesting property types
+      // restrict to interesting property types
       property.getAPropertySource("type").getStringValue() = ["string"] and
       property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
       (
@@ -36,6 +36,7 @@ class UI5XssConfiguration extends DomBasedXss::Configuration {
     (
       bidiModelControl(start, end)
       or
+      /* 1. Control metadata property being the intermediate flow node */
       exists(string propName, Metadata metadata |
         // getAWrite -> control metadata
         start = metadata.getAWrite(propName).getArgument(1) and
@@ -46,19 +47,28 @@ class UI5XssConfiguration extends DomBasedXss::Configuration {
         end = metadata.getARead(propName)
       )
       or
-      // Modelling binding path -> getProperty('/path')
+      /* 2. Model property being the intermediate flow node */
+      // JS object property (corresponding to binding path) -> getProperty('/path')
       exists(UI5BoundNode p, GetBoundValue getP |
         start = p and
         end = getP and
         p = getP.getBind()
       )
       or
-      // Modelling setProperty('/path') -> binding path
+      // setProperty('/path') -> JS object property (corresponding to binding path)
       exists(UI5BoundNode p, SetBoundValue setP |
         start = setP and
         end = p and
         p = setP.getBind()
       )
+      // or
+      /* 3. Argument to JSONModel constructor being the intermediate flow node */
+      // exists(UI5 model, GetBoundValue getP |
+      //   start = getP and
+      //   model.getPathString() = getP.getArgument(0).asExpr().(StringLiteral).getValue() and
+      //   end = model.(JsonModel).getAnArgument() and
+      //   end.asExpr() instanceof StringLiteral
+      // )
     )
   }
 }
@@ -72,11 +82,23 @@ class UI5BoundNode extends DataFlow::Node {
   UI5BindingPath getBindingPath() { result = bindingPath }
 
   UI5BoundNode() {
-    exists(Property p |
+    /* The relevant portion of the content of a JSONModel */
+    exists(Property p, JsonModel model, Project project |
       // The property bound to an UI5View source
       this.(DataFlow::PropRef).getPropertyNameExpr() = p.getNameExpr() and
-      bindingPath.getAbsolutePath() =
-        constructPathString(bindingPath.getModel().(JsonModel).getContent(), p)
+      // The binding path refers to this model
+      bindingPath.getAbsolutePath() = model.getPathString(p) and
+      project.isInThisProject(this.getFile()) and
+      project.isInThisProject(bindingPath.getFile())
+    )
+    or
+    /* The URI string to the JSONModel constructor call */
+    exists(JsonModel model, Project project |
+      this = model.getArgument(0) and
+      this.asExpr() instanceof StringLiteral and
+      bindingPath.getAbsolutePath() = model.getPathString() and
+      project.isInThisProject(this.getFile()) and
+      project.isInThisProject(bindingPath.getFile())
     )
   }
 }
@@ -106,14 +128,14 @@ class UI5ModelSink extends UI5BoundNode, DomBasedXss::Sink {
 class GetBoundValue extends DataFlow::CallNode {
   UI5BoundNode bind;
 
-  UI5BoundNode getBind() { result = bind }
-
   GetBoundValue() {
     // direct read access to a binding path
     this.getCalleeName() = ["getProperty", "getObject"] and
     bind.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
     bind.getBindingPath().getModel() = this.getReceiver().getALocalSource()
   }
+
+  UI5BoundNode getBind() { result = bind }
 }
 
 /**
@@ -135,16 +157,22 @@ class SetBoundValue extends DataFlow::Node {
   UI5BoundNode getBind() { result = bind }
 }
 
-Locatable getUI5SourceLocation(DataFlow::Node node) {
+Locatable getUI5SourceLocation(DataFlow::Node node, string bindingPathStr) {
   result = node.(UI5ModelSource).getBindingPath() and
-  result = any(UI5View view).getASource()
+  result = any(UI5View view).getASource() and
+  bindingPathStr = node.(UI5ModelSource).getBindingPath().getAbsolutePath()
   or
-  result = node.asExpr()
+  result = node.asExpr() and
+  not node.asExpr() instanceof StringLiteral and // exception on JSONModel's URI argument
+  bindingPathStr = node.toString()
 }
 
-Locatable getUI5SinkLocation(DataFlow::Node node) {
+Locatable getUI5SinkLocation(DataFlow::Node node, string bindingPathStr) {
   result = node.(UI5ModelSink).getBindingPath() and
-  result = any(UI5View view).getAnHtmlISink()
+  result = any(UI5View view).getAnHtmlISink() and
+  bindingPathStr = node.(UI5ModelSink).getBindingPath().getAbsolutePath()
   or
-  result = node.asExpr()
+  result = node.asExpr() and
+  not node.asExpr() instanceof StringLiteral and // exception on JSONModel's URI argument
+  bindingPathStr = node.toString()
 }

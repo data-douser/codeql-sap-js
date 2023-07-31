@@ -1,5 +1,7 @@
 | app.view.html:5:11:5:31 | data-value={/input} | /input |
 | app.view.html:8:11:8:33 | data-content={/input} | /input |
+| app.view.js:18:13:18:29 | value: "{/input}" | /input |
+| app.view.js:21:13:21:31 | content: "{/input}" | /input |
 | binding1.json:9:21:9:29 | "items": "{/Base}" | /Base |
 | binding1.json:15:30:15:38 | "value": "{input}" | /Base/input |
 | binding1.json:19:32:19:78 | "content": "{path:'/input', formatter: '.valueFormatter'}" | /input |
