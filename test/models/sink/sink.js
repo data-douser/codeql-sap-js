@@ -23,16 +23,16 @@ sap.ui.require(
     Properties,
     RenderManager,
   ) {
-    var value = jQuery.sap.log.Logger.fatal(code0, code1, code2);
-    var value = jQuery.sap.log.Logger.error(code0, code1, code2);
+    var value = jQuery.sap.log.fatal(code0, code1, code2);
+    var value = jQuery.sap.log.error(code0, code1, code2);
 
-    var value = jQuery.sap.log.Logger.warning(code0, code1, code2);
+    var value = jQuery.sap.log.warning(code0, code1, code2);
 
-    var value = jQuery.sap.log.Logger.info(code0, code1, code2);
+    var value = jQuery.sap.log.info(code0, code1, code2);
 
-    var value = jQuery.sap.log.Logger.debug(code0, code1, code2);
+    var value = jQuery.sap.log.debug(code0, code1, code2);
 
-    var value = jQuery.sap.log.Logger.trace(code0, code1, code2);
+    var value = jQuery.sap.log.trace(code0, code1, code2);
 
 
     var log = jQuery.sap.log.getLogger("", jQuery.sap.log.Level.ERROR);
