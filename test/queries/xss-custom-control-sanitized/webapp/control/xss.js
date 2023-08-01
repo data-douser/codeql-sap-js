@@ -1,6 +1,7 @@
 sap.ui.define([
-    "sap/ui/core/Control"
-], function (Control) {
+    "sap/ui/core/Control",
+    "sap/base/security/encodeXML"
+], function (Control, encodeXML) {
     return Control.extend("codeql-sap-js.control.xss", {
         metadata: {
             properties: {
@@ -11,7 +12,7 @@ sap.ui.define([
             apiVersion: 2,
             render: function (oRm, oControl) {
                 oRm.openStart("div", oControl);
-                oRm.unsafeHtml(oControl.getText()); // XSS sink RenderManager.unsafeHtml
+                oRm.unsafeHtml(encodeXML(String(oControl.getText()))); // XSS sink sanitized
                 oRm.close("div");
             }
         }

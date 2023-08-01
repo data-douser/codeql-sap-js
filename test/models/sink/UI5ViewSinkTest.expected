@@ -1,1 +1,1 @@
-| sink1.xml:5:5:5:44 | /input | The binding path `/input` is an HTML injection sink. |
+| sink1.xml:5:5:5:44 | content={path: '/input'} | The binding path `content={path: '/input'}` is an HTML injection sink. |

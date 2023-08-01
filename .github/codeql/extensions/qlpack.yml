@@ -1,6 +1,6 @@
 ---
 library: true
-name: sap-js/ui5-data-extensions-pack
+name: advanced-security/javascript-sap-ui5-extensions
 version: 0.0.1
 extensionTargets:
   codeql/javascript-all: "*"

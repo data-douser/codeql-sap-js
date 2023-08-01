@@ -1,9 +1,8 @@
 ---
 library: true
-name: sap-js/ui5-test
+name: advanced-security/javascript-sap-ui5-test
 version: 0.0.1
 extractor: javascript
 dependencies:
-  sap-js/ui5: "*"
-  codeql/javascript-all: "*"
-  sap-js/ui5-data-extensions-pack: "*"
+  advanced-security/javascript-sap-ui5-queries: "*"
+  advanced-security/javascript-sap-ui5-extensions: "*"

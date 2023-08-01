@@ -1,59 +1,23 @@
 /**
  * @name Client-side cross-site scripting
- * @id Ui5Xss
+ * @description Writing user input directly to a UI5 View allows for
+ *              a cross-site scripting vulnerability.
  * @kind path-problem
+ * @problem.severity error
+ * @security-severity 6.1
+ * @precision high
+ * @id js/ui5-xss
+ * @tags security
+ *       external/cwe/cwe-079
+ *       external/cwe/cwe-116
  */
 
 import javascript
-import semmle.javascript.security.dataflow.DomBasedXssQuery
-import models.UI5View
-import DataFlow::PathGraph
+import models.UI5DataFlow::PathGraph
+import UI5XssConfiguration
 
-class UI5ModelSource extends Source {
-  UI5BindingPath path;
-
-  UI5ModelSource() {
-    exists(CallExpr getProp, UI5View view |
-      // TODO: matching control name
-      // TODO: source in the JSONModel literal+ edge from Model to getProperty
-      getProp.getCalleeName() = ["getProperty", "getObject"] and
-      this.asExpr() = getProp and
-      path = view.getASource() and
-      getProp.getArgument(0).getStringValue() = path.getAbsolutePath()
-    )
-  }
-
-  UI5BindingPath getPath() { result = path }
-}
-
-class UI5ModelSink extends Sink {
-  UI5BindingPath path;
-
-  UI5ModelSink() {
-    exists(CallExpr setProp, UI5View view |
-      setProp.getCalleeName() = ["setProperty", "setObject"] and
-      this.asExpr() = setProp.getArgument(1) and
-      path = view.getAnHtmlISink() and
-      setProp.getArgument(0).getStringValue() = path.getAbsolutePath()
-    )
-  }
-
-  UI5BindingPath getPath() { result = path }
-}
-
-Locatable getSourceLocation(DataFlow::PathNode source) {
-  if source.getNode() instanceof UI5ModelSource
-  then result = source.getNode().(UI5ModelSource).getPath()
-  else result = source.getNode().asExpr()
-}
-
-Locatable getSinkLocation(DataFlow::PathNode sink) {
-  if sink.getNode() instanceof UI5ModelSink
-  then result = sink.getNode().(UI5ModelSink).getPath()
-  else result = sink.getNode().asExpr()
-}
-
-from DataFlow::Configuration cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
-select getSinkLocation(sink), source, sink, "XSS vulnerability due to $@.",
-  getSourceLocation(source), "user-provided value"
+from UI5XssConfiguration cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource, UI5PathNode primarySink
+where cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
+primarySource = source.getAPrimarySource() and
+primarySink = sink.getAPrimarySink()
+select primarySink, primarySource, primarySink, "XSS vulnerability due to $@.",primarySource, "user-provided value"

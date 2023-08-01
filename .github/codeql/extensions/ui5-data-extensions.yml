@@ -1,7 +1,7 @@
 extensions:
   - addsTo:
       pack: codeql/javascript-all
-      extensible: typeModel
+      extensible: "typeModel"
     data:
       - ["Control", "sap/ui/core/Control", ""]
       - ["Control", "global", "Member[sap].Member[ui].Member[core].Member[Control]"]
@@ -13,94 +13,115 @@ extensions:
       - ["RenderManager", "sap/ui/core/RenderManager", "Instance"]
       - ["RenderManager", "Renderer", "Parameter[0]"]
       - ["RenderManager", "Renderer", "Member[render].Parameter[0]"]
-      # types extending sap/m/InputBase
       - ["sap/m/InputBase", "sap/m/ComboBoxTextField", ""]
       - ["sap/m/InputBase", "sap/m/Input", ""]
       - ["sap/m/InputBase", "sap/m/MaskEnabler", ""]
       - ["sap/m/InputBase", "sap/m/MaskInput", ""]
       - ["sap/m/InputBase", "sap/m/TextArea", ""]
-      # types extending sap/m/InputBase via sap/m/Input
       - ["sap/m/Input", "sap/m/ComboBoxBase", ""]
       - ["sap/m/Input", "sap/m/MultiInput", ""]
       - ["sap/m/Input", "sap/m/ComboBoxTextField", ""]
+      - ["Assert", "global", "Member[sap].Member[base].Member[assert]"]
+      - ["SapLogger", "sap/base/Log", ""]
+      - ["SapLogger", "global", "Member[sap].Member[base].Member[Log]"]
+      - ["SapLogger", "global", "Member[jQuery].Member[sap].Member[log]"]
+      # Logging functions as well as `getLogger` also serves as a constructor
+      - ["SapLogger", "SapLogger", "Member[debug,error,fatal,info,setLevel,trace,warning,getLogger].ReturnValue"]
+      - ["URIParameters", "sap/base/util/UriParameters", ""]
+      - ["URIParameters", "URIParameters", "Member[fromQuery].ReturnValue"]
+      - ["JQueryURIParameters", "global", "Member[jQuery].Member[sap].Member[util].Member[UriParameters]"]
+      - ["JQueryURIParameters", "global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue"]
+      - ["SapUIDom", "sap/ui/dom", ""]
+      - ["SapUIDom", "global", "Member[sap].Member[ui].Member[dom]"]
 
   - addsTo:
       pack: codeql/javascript-all
-      extensible: sourceModel
+      extensible: "sourceModel"
     data:
-      # sap.ui.commons.TextField.value #getValue
       - ["sap/ui/commons/TextField", "Instance.Member[value]", "remote"]
       - ["sap/ui/commons/TextField", "Instance.Member[getValue].ReturnValue", "remote"]
-      # sap.m.InputBase.value #getValue
       - ["sap/m/InputBase", "Instance.Member[value]", "remote"]
       - ["sap/m/InputBase", "Instance.Member[getValue].ReturnValue", "remote"]
-      # sap.m.SearchField.value #getValue
       - ["sap/m/SearchField", "Instance.Member[value]", "remote"]
       - ["sap/m/SearchField", "Instance.Member[getValue].ReturnValue", "remote"]
-      # sap.m.FeedInput.value sap.m.FeedInput#getValue
       - ["sap/m/FeedInput", "Instance.Member[value]", "remote"]
       - ["sap/m/FeedInput", "Instance.Member[getValue].ReturnValue", "remote"]
-      # sap.ui.webc.main.Input.value sap.ui.webc.main.Input#getValue
       - ["sap/ui/webc/main/Input", "Instance.Member[value]", "remote"]
       - ["sap/ui/webc/main/Input", "Instance.Member[getValue].ReturnValue", "remote"]
-      # sap.ui.webc.main.MultiInput.value sap.ui.webc.main.MultiInput#getValue
       - ["sap/ui/webc/main/MultiInput", "Instance.Member[value]", "remote"]
       - ["sap/ui/webc/main/MultiInput", "Instance.Member[getValue].ReturnValue", "remote"]
-      # sap.ui.codeeditor.CodeEditor.value #getCurrentValue
       - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[value]", "remote"]
       - ["sap/ui/codeeditor/CodeEditor", "Instance.Member[getCurrentValue].ReturnValue", "remote"]
-      # sap.ui.richtexteditor.RichTextEditor.value #getValue
       - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[value]", "remote"]
       - ["sap/ui/richtexteditor/RichTextEditor", "Instance.Member[getValue].ReturnValue", "remote"]
-      # jQuery.sap.getUriParameters() return
       - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get].ReturnValue", "remote"]
-      # jQuery.sap.syncHead() return
       - ["global", "Member[jQuery].Member[sap].Member[syncHead].ReturnValue", "remote"]
-      # jQuery.sap.syncGet() return
       - ["global", "Member[jQuery].Member[sap].Member[syncGet].ReturnValue", "remote"]
-      # jQuery.sap.syncGetText() return
       - ["global", "Member[jQuery].Member[sap].Member[syncGetText].ReturnValue", "remote"]
-      # jQuery.sap.syncPost() return
       - ["global", "Member[jQuery].Member[sap].Member[syncPost].ReturnValue", "remote"]
-      # jQuery.sap.syncPostText() return
       - ["global", "Member[jQuery].Member[sap].Member[syncPostText].ReturnValue", "remote"]
-      # UriParameters#get UriParameters#getAll
-      - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[get].ReturnValue", "remote"]
-      - ["sap/base/util/UriParameters", "Member[fromQuery].ReturnValue.Member[getAll].ReturnValue", "remote"]
+      - ["URIParameters", "Member[get].ReturnValue", "remote"]
+      - ["URIParameters", "Member[getAll].ReturnValue", "remote"]
+      - ["JQueryURIParameters", "Member[get].ReturnValue", "remote"]
+      - ["JQueryURIParameters", "Member[getAll].ReturnValue", "remote"]
+      - ["sap/base/util/UriParameters", "Instance.Member[getAll].ReturnValue", "remote"]
+      - ["sap/base/util/UriParameters", "Instance.Member[get].ReturnValue", "remote"]
 
   - addsTo:
       pack: codeql/javascript-all
-      extensible: sinkModel
+      extensible: "sinkModel"
     data:
-      # jQuery.sap.globalEval(code)
-      - ["global", "Member[jQuery].Member[sap].Member[globalEval].Argument[0]", "html-injection"]
-      # new sap.ui.core.HTML({ content: code })
+      - ["global", "Member[jQuery].Member[sap].Member[assert].Argument[1]", "log-injection"]                                
+      - ["global", "Member[jQuery].Member[sap].Member[registerModulePath].Argument[1]", "path-injection"]                      
+      - ["global", "Member[jQuery].Member[sap].Member[registerResourcePath].Argument[1]", "path-injection"]                    
+      - ["global", "Member[jQuery].Member[sap].Member[require].Argument[0]", "path-injection"]                                 
+      - ["global", "Member[jQuery].Member[sap].Member[includeScript].Argument[0]", "path-injection"]                           
+      - ["global", "Member[jQuery].Member[sap].Member[includeStyleSheet].Argument[0]", "path-injection"]                       
+      - ["global", "Member[jQuery].Member[sap].Member[globalEval].Argument[0]", "html-injection"]                               
+      - ["global", "Member[jQuery].Member[sap].Member[properties].Argument[0]", "path-injection"]                              
+      - ["global", "Member[jQuery].Member[sap].Member[resources].Argument[0]", "path-injection"]                               
+      - ["global", "Member[jQuery].Member[sap].Member[sjax].Argument[0]", "path-injection"]                                    
+      - ["global", "Member[jQuery].Member[sap].Member[syncHead].Argument[0]", "path-injection"]                                
+      - ["global", "Member[jQuery].Member[sap].Member[syncGet].Argument[0..1]", "path-injection"]                              
+      - ["global", "Member[jQuery].Member[sap].Member[syncPost].Argument[0..1]", "path-injection"]                             
+      - ["global", "Member[jQuery].Member[sap].Member[syncGetText].Argument[0..1]", "path-injection"]                          
+      - ["global", "Member[jQuery].Member[sap].Member[syncGetJSON].Argument[0..1]", "path-injection"]                          
+      - ["SapLogger", "Member[fatal].Argument[0..2]", "log-injection"]                                          
+      - ["SapLogger", "Member[error].Argument[0..2]", "log-injection"]                                          
+      - ["SapLogger", "Member[warning].Argument[0..2]", "log-injection"]                                        
+      - ["SapLogger", "Member[info].Argument[0..2]", "log-injection"]                                           
+      - ["SapLogger", "Member[debug].Argument[0..2]", "log-injection"]                                          
+      - ["SapLogger", "Member[trace].Argument[0..2]", "log-injection"]                                          
+      - ["Assert", "Argument[1]", "log-injection"]                                       
+      - ["sap/base/i18n/ResourceBundle", "Instance.Member[create].Argument[0]", "path-injection"]                              
+      - ["sap/base/util/LoaderExtensions", "Instance.Member[registerResourcePath].Argument[1]", "path-injection"]              
+      - ["sap/base/util/Properties", "Instance.Member[create].Argument[0]", "path-injection"]                                  
       - ["HTMLControl", "Argument[0].Member[content]", "html-injection"]
-      # sap.ui.core.HTML#content
-      - ["HTMLControl", "Instance.Member[content]", "html-injection"]
-      # sap.ui.core.HTML#setContent
-      - ["HTMLControl", "Instance.Member[setContent].Argument[0]", "html-injection"]
-      # sap.ui.core.Patcher.unsafeHtml
-      - ["sap/ui/core/Patcher", "Instance.Member[unsafeHtml].Argument[0]", "html-injection"]
-      # RenderManager.write
-      - ["RenderManager", "Member[write].Argument[0]", "html-injection"]
-      # RenderManager.writeAttribute
-      - ["RenderManager", "Member[writeAttribute].Argument[0]", "html-injection"]
-      # RenderManager.writeAttributeEscaped
-      - ["RenderManager", "Member[writeAttributeEscaped].Argument[0]", "html-injection"]
-      # RenderManager.addStyle
-      - ["RenderManager", "Member[addStyle].Argument[0]", "html-injection"]
-      # RenderManager.addClass
-      - ["RenderManager", "Member[addClass].Argument[0]", "html-injection"]
-      # RenderManager.unsafeHtml
-      - ["RenderManager", "Member[unsafeHtml].Argument[0]", "html-injection"]
+      - ["HTMLControl", "Instance.Member[content]", "html-injection"]                                                         
+      - ["HTMLControl", "Instance.Member[setContent].Argument[0]", "html-injection"]                                                         
+      - ["sap/ui/core/Patcher", "Instance.Member[unsafeHtml].Argument[0..]", "html-injection"]                                  
+      - ["sap/ui/core/RenderManager", "Instance.Member[write].Argument[0..]", "html-injection"]                                 
+      - ["sap/ui/core/RenderManager", "Instance.Member[writeAttribute].Argument[0..1]", "html-injection"]                       
+      - ["sap/ui/core/RenderManager", "Instance.Member[writeAttributeEscaped].Argument[0]", "html-injection"]                   
+      - ["sap/ui/core/RenderManager", "Instance.Member[addStyle].Argument[0..1]", "html-injection"]                             
+      - ["sap/ui/core/RenderManager", "Instance.Member[addClass].Argument[0]", "html-injection"]                                
+      - ["sap/ui/core/RenderManager", "Instance.Member[unsafeHtml].Argument[0..]", "html-injection"]                            
+      - ["SapUIDom", "Member[includeScript].Argument[0]", "path-injection"]                         
+      - ["SapUIDom", "Member[includeStyleSheet].Argument[0]", "path-injection"]                 
 
   - addsTo:
       pack: codeql/javascript-all
-      extensible: summaryModel
+      extensible: "summaryModel"
     data:
       - ["sap/base/strings/camelize", "", "Argument[0]", "ReturnValue", "taint"]
       - ["sap/base/strings/capitalize", "", "Argument[0]", "ReturnValue", "taint"]
       - ["sap/base/strings/escapeRegExp", "", "Argument[0]", "ReturnValue", "taint"]
       - ["sap/base/strings/formatMessage", "", "Argument[0]", "ReturnValue", "taint"]
       - ["sap/base/strings/hyphenate", "", "Argument[0]", "ReturnValue", "taint"]
+      - ["global", "Member[jQuery].Member[sap].Member[charToUpperCase]", "Argument[0]", "ReturnValue", "taint"]
+      - ["global", "Member[jQuery].Member[sap].Member[padLeft]", "Argument[0]", "ReturnValue", "taint"]
+      - ["global", "Member[jQuery].Member[sap].Member[padRight]", "Argument[0]", "ReturnValue", "taint"]
+      - ["global", "Member[jQuery].Member[sap].Member[camelCase]", "Argument[0]", "ReturnValue", "taint"]
+      - ["global", "Member[jQuery].Member[sap].Member[hyphen]", "Argument[0]", "ReturnValue", "taint"]
+      - ["global", "Member[jQuery].Member[sap].Member[escapeRegExp]", "Argument[0]", "ReturnValue", "taint"]
+      - ["global", "Member[jQuery].Member[sap].Member[formatMessage]", "Argument[0..]", "ReturnValue", "taint"]

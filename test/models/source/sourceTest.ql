@@ -5,9 +5,8 @@
  */
 
 import javascript
-import semmle.javascript.security.dataflow.DomBasedXssQuery
-import models.UI5AMDModule
+import queries.UI5XssConfiguration
 
-from DataFlow::Configuration cfg, DataFlow::Node source
+from DataFlow::Configuration cfg, DataFlow::Node source, string sourceBindingPathStr
 where cfg.isSource(source, _)
-select source, source.toString()
+select getUI5SinkLocation(source, sourceBindingPathStr), source.toString()

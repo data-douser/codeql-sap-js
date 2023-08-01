@@ -7,21 +7,17 @@
         labelFor="tokenText" />
     <MultiInput id="tokenText"
         placeholder="Enter Payload"
-        value="{/input}"> <!--User
-        input source sap.ui.webc.main.MultiInput.value -->
+        value="{/input}"> <!--User input source sap.ui.webc.main.MultiInput.value -->
         <tokens>
-            <Token text="{/input}"/> <!--User
-            input source sap.ui.webc.main.MultiInput.text -->
+            <Token text="{/input}"/> <!--User input source sap.ui.webc.main.MultiInput.text -->
         </tokens>
     </MultiInput>
     <Input
         id="inputText"
         placeholder="Enter Payload"
-        value="{/input}" />  <!--User
-    input source sap.ui.webc.main.Input.value -->
+        value="{/input}" />  <!--User input source sap.ui.webc.main.Input.value -->
     <Label id="suggestionsInputLabel2"
         text="Try: &lt;img src=x onerror=alert(&quot;XSS&quot;)&gt;"
         labelFor="inputText" />
-    <core:HTML content="{/input}" /> <!--XSS
-    sink sap.ui.core.HTML.content -->
+    <core:HTML content="{/input}" /> <!--XSS sink sap.ui.core.HTML.content -->
 </mvc:View>
