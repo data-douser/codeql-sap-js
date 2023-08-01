@@ -1,8 +1,6 @@
 private import javascript
 private import DataFlow
 
-predicate isHTMLFile(HTML::HtmlFile html) { any() }
-
 /*
  * Useful ones:
  *   IframeElement: https://codeql.github.com/codeql-standard-libraries/javascript/semmle/javascript/HTML.qll/type.HTML$HTML$IframeElement.html
@@ -10,8 +8,9 @@ predicate isHTMLFile(HTML::HtmlFile html) { any() }
  */
 
 /**
- * This prohibits framing altogether, at all. E.g.:
- * ```
+ * Check the value of this page's `frameOptions` as declared in HTML.
+ * Setting `frameOptions` to `deny` prohibits framing altogether, at all. E.g.:
+ * ```html
  *  <script id='sap-ui-bootstrap'
  *	  src='resources/sap-ui-core.js'
  *	  data-sap-ui-frameOptions='deny'>
@@ -22,6 +21,20 @@ string htmlFrameOptions(HTML::ScriptElement scriptTag) {
   result = scriptTag.getAttributeByName("data-sap-ui-frameOptions").getValue()
 }
 
+/**
+ * Check the value of this page's `frameOptions` as declared in JavaScript.
+ * Setting `frameOptions` to `trusted` allows framing from the same origin. E.g.:
+ * ```js
+ * window["sap-ui-config"] = {
+ *     frameOptions: 'trusted',
+ *     ...
+ * }
+ * ```
+ * or
+ * ```js
+ * window["sap-ui-config"].frameOptions = 'trusted';
+ * ```
+ */
 string jsFrameOptions(PropRef windowDecl) {
   /*
    * window["sap-ui-config"] = {
