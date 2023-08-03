@@ -1,65 +1,84 @@
 private import javascript
 private import DataFlow
 
-/*
- * Useful ones:
- *   IframeElement: https://codeql.github.com/codeql-standard-libraries/javascript/semmle/javascript/HTML.qll/type.HTML$HTML$IframeElement.html
- *   ScriptElement: https://codeql.github.com/codeql-standard-libraries/javascript/semmle/javascript/HTML.qll/type.HTML$HTML$ScriptElement.html
- */
+newtype TFrameOptions =
+  HtmlFrameOptions(HTML::ScriptElement scriptElement) or
+  JsFrameOptions(DataFlow::PropRef windowDecl)
 
-/**
- * Check the value of this page's `frameOptions` as declared in HTML.
- * Setting `frameOptions` to `deny` prohibits framing altogether, at all. E.g.:
- * ```html
- *  <script id='sap-ui-bootstrap'
- *	  src='resources/sap-ui-core.js'
- *	  data-sap-ui-frameOptions='deny'>
- *  </script>
- * ```
- */
-string htmlFrameOptions(HTML::ScriptElement scriptTag) {
-  result = scriptTag.getAttributeByName("data-sap-ui-frameOptions").getValue()
+class FrameOptions extends TFrameOptions {
+  HTML::ScriptElement asHtmlFrameOptions() { this = HtmlFrameOptions(result) }
+
+  DataFlow::PropRef asJsFrameOptions() { this = JsFrameOptions(result) }
+
+  private string getHtmlFrameOptions() {
+    /*
+     * Check the value of this page's `frameOptions` as declared in HTML.
+     * Setting `frameOptions` to `deny` prohibits framing altogether, at all. E.g.:
+     * ```html
+     *  <script id='sap-ui-bootstrap'
+     * 	  src='resources/sap-ui-core.js'
+     * 	  data-sap-ui-frameOptions='deny'>
+     *  </script>
+     * ```
+     */
+
+    result = this.asHtmlFrameOptions().getAttributeByName("data-sap-ui-frameOptions").getValue()
+    or
+    /*
+     * Check the value of this page's `frameOptions` as declared in JavaScript.
+     * Setting `frameOptions` to `trusted` allows framing from the same origin. E.g.:
+     * ```js
+     * window["sap-ui-config"] = {
+     *     frameOptions: 'trusted',
+     *     ...
+     * }
+     * ```
+     */
+
+    exists(DataFlow::PropRef windowDecl | windowDecl = this.asJsFrameOptions() |
+      windowDecl.getPropertyName() = "sap-ui-config" and
+      result =
+        windowDecl
+            .(PropWrite)
+            .getRhs()
+            .(ObjectLiteralNode)
+            .getAPropertySource("frameOptions")
+            .asExpr()
+            .(StringLiteral)
+            .getValue()
+      or
+      /*
+       * ```js
+       * window["sap-ui-config"].frameOptions = 'trusted';
+       * ```
+       */
+
+      exists(PropWrite windowFrameOptions |
+        windowDecl.getALocalSource().flowsTo(windowFrameOptions) and
+        result = windowFrameOptions.getRhs().asExpr().(StringLiteral).getValue()
+      )
+    )
+  }
+
+  predicate allowsSharedOriginEmbedding() { this.getHtmlFrameOptions() = "trusted" }
+
+  predicate deniesEmbedding() { this.getHtmlFrameOptions() = "deny" }
+
+  predicate allowsAllOriginEmbedding() { this.getHtmlFrameOptions() = "allow" }
+
+  string toString() {
+    result = this.asHtmlFrameOptions().toString() or
+    result = this.asJsFrameOptions().toString()
+  }
 }
 
 /**
- * Check the value of this page's `frameOptions` as declared in JavaScript.
- * Setting `frameOptions` to `trusted` allows framing from the same origin. E.g.:
- * ```js
- * window["sap-ui-config"] = {
- *     frameOptions: 'trusted',
- *     ...
- * }
- * ```
- * or
- * ```js
- * window["sap-ui-config"].frameOptions = 'trusted';
- * ```
+ * Holds if the frame options are left untouched as the default value `trusted`.
  */
-string jsFrameOptions(PropRef windowDecl) {
-  /*
-   * window["sap-ui-config"] = {
-   *     frameOptions: 'trusted',
-   *     ...
-   * }
-   */
-
-  windowDecl.getPropertyName() = "sap-ui-config" and
-  result =
-    windowDecl
-        .(PropWrite)
-        .getRhs()
-        .(ObjectLiteralNode)
-        .getAPropertySource("frameOptions")
-        .asExpr()
-        .(StringLiteral)
-        .getValue()
-  or
-  /*
-   * window["sap-ui-config"].frameOptions = 'trusted';
-   */
-
-  exists(PropWrite windowFrameOptions |
-    windowDecl.getALocalSource().flowsTo(windowFrameOptions) and
-    result = windowFrameOptions.getRhs().asExpr().(StringLiteral).getValue()
+predicate thereIsNoFrameOptionSet() {
+  not exists(FrameOptions frameOptions |
+    frameOptions.allowsSharedOriginEmbedding() or
+    frameOptions.deniesEmbedding() or
+    frameOptions.allowsAllOriginEmbedding()
   )
 }
