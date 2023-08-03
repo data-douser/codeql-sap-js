@@ -1,7 +1,7 @@
 /**
- * @name Client-side cross-site scripting
- * @description Writing user input directly to a UI5 View allows for
- *              a cross-site scripting vulnerability.
+ * @name Log injection
+ * @description Building log entries from user-controlled sources is vulnerable to
+ *              insertion of forged log entries by a malicious user.
  * @kind path-problem
  * @problem.severity error
  * @security-severity 7.8
