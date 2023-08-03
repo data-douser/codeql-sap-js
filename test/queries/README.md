@@ -5,26 +5,26 @@ All XSS examples run locally using the [UI5 tooling](https://sap.github.io/ui5-t
 ## [log-html-control-df](log-html-control-df)
 - log-injection in the controller
 
-## [xss-custom-control-api1
+## [xss-custom-control-api1](xss-custom-control-api1)
 - custom Control
 - classic string-based API
 - `renderer` property is set to a render function
 
-## [xss-custom-control-api2
+## [xss-custom-control-api2](xss-custom-control-api2)
 - custom Control
 - DOM-like API
 - `renderer` property is set to an object literal 
 
-## [xss-custom-control-jquery
+## [xss-custom-control-jquery](xss-custom-control-jquery)
 - custom Control declared using JQuery
 
-## [xss-custom-control-property-sanitized
+## [xss-custom-control-property-sanitized](xss-custom-control-property-sanitized)
 - custom Control
 - DOM-like API
 - the type of the control property `text` is set to `int` (sanitized)
 - the sanitizer is not affecting the log-injection
 
-## [xss-custom-control-property-sanitized
+## [xss-custom-control-property-sanitized](xss-custom-control-property-sanitized)
 - custom Control
 - DOM-like API
 - the value of `text` is sanitized using `sap/base/security/encodeXML`
