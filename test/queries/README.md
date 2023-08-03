@@ -2,6 +2,9 @@
 
 All XSS examples run locally using the [UI5 tooling](https://sap.github.io/ui5-tooling/stable/)
 
+## log-html-control-df
+- log-injection in the controller
+
 ## xss-custom-control-api1
 - custom Control
 - classic string-based API
@@ -19,11 +22,13 @@ All XSS examples run locally using the [UI5 tooling](https://sap.github.io/ui5-t
 - custom Control
 - DOM-like API
 - the type of the control property `text` is set to `int` (sanitized)
+- the sanitizer is not affecting the log-injection
 
 ## xss-custom-control-property-sanitized
 - custom Control
 - DOM-like API
 - the value of `text` is sanitized using `sap/base/security/encodeXML`
+
 
 ## xss-html-control
 - `sap.ui.core.HTML` Control
@@ -31,6 +36,10 @@ All XSS examples run locally using the [UI5 tooling](https://sap.github.io/ui5-t
 ## xss-html-control-df
 - `sap.ui.core.HTML` Control
 - dataflow in the controller
+
+## xss-html-control-oneway
+- `sap.ui.core.HTML` Control
+- one-way binding makes the xss fail
 
 ## xss-html-external-model
 - `sap.ui.core.HTML` Control
@@ -44,6 +53,10 @@ All XSS examples run locally using the [UI5 tooling](https://sap.github.io/ui5-t
 
 ## xss-json-view
 - `sap.ui.core.mvc.JSONView` View
+
+## xss-log-custom-control-sanitized
+- the value of `text` is sanitized using `sap/base/security/encodeXML`
+- the sanitizer is not affecting the log-injection
 
 ## xss-separate-renderer
 - `renderer` property is set to a class name (a string)
