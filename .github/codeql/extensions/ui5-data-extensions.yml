@@ -125,3 +125,4 @@ extensions:
       - ["global", "Member[jQuery].Member[sap].Member[hyphen]", "Argument[0]", "ReturnValue", "taint"]
       - ["global", "Member[jQuery].Member[sap].Member[escapeRegExp]", "Argument[0]", "ReturnValue", "taint"]
       - ["global", "Member[jQuery].Member[sap].Member[formatMessage]", "Argument[0..]", "ReturnValue", "taint"]
+      - ["sap/base/security/encodeXML", "", "Argument[0]", "ReturnValue", "taint"]

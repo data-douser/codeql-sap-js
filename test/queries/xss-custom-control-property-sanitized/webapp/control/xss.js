@@ -13,6 +13,7 @@ sap.ui.define([
                 oRm.openStart("div", oControl);
                 oRm.unsafeHtml(oControl.getText()); // XSS sink sanitized
                 oRm.close("div");
+                jQuery.sap.log.debug(oControl.getText()); //log-injection sink non-sanitized
             }
         }
     });
