@@ -2,11 +2,14 @@ private import javascript
 private import DataFlow
 
 newtype TFrameOptions =
-  HtmlFrameOptions(HTML::ScriptElement scriptElement) or
-  JsFrameOptions(DataFlow::PropRef windowDecl)
+  HtmlFrameOptions(HTML::Attribute dataSapUIFrameOptions) {
+    dataSapUIFrameOptions.getName() = "data-sap-ui-frameOptions" and
+    dataSapUIFrameOptions.getElement() instanceof HTML::ScriptElement
+  } or
+  JsFrameOptions(DataFlow::PropRef windowDecl) { windowDecl.getPropertyName() = "sap-ui-config" }
 
 class FrameOptions extends TFrameOptions {
-  HTML::ScriptElement asHtmlFrameOptions() { this = HtmlFrameOptions(result) }
+  HTML::Attribute asHtmlFrameOptions() { this = HtmlFrameOptions(result) }
 
   DataFlow::PropRef asJsFrameOptions() { this = JsFrameOptions(result) }
 
@@ -22,7 +25,7 @@ class FrameOptions extends TFrameOptions {
      * ```
      */
 
-    result = this.asHtmlFrameOptions().getAttributeByName("data-sap-ui-frameOptions").getValue()
+    result = this.asHtmlFrameOptions().getValue()
     or
     /*
      * Check the value of this page's `frameOptions` as declared in JavaScript.
@@ -36,7 +39,6 @@ class FrameOptions extends TFrameOptions {
      */
 
     exists(DataFlow::PropRef windowDecl | windowDecl = this.asJsFrameOptions() |
-      windowDecl.getPropertyName() = "sap-ui-config" and
       result =
         windowDecl
             .(PropWrite)
@@ -65,6 +67,12 @@ class FrameOptions extends TFrameOptions {
   predicate deniesEmbedding() { this.getHtmlFrameOptions() = "deny" }
 
   predicate allowsAllOriginEmbedding() { this.getHtmlFrameOptions() = "allow" }
+
+  Location getLocation() {
+    result = this.asHtmlFrameOptions().getLocation()
+    or
+    result = this.asJsFrameOptions().asExpr().getLocation()
+  }
 
   string toString() {
     result = this.asHtmlFrameOptions().toString() or
