@@ -2,10 +2,21 @@ private import javascript
 private import DataFlow
 
 newtype TFrameOptions =
+  /*
+   *  <script id='sap-ui-bootstrap'
+   * 	  src='resources/sap-ui-core.js'
+   * 	  data-sap-ui-frameOptions='deny'>
+   *  </script>
+   */
+
   HtmlFrameOptions(HTML::Attribute dataSapUIFrameOptions) {
     dataSapUIFrameOptions.getName() = "data-sap-ui-frameOptions" and
     dataSapUIFrameOptions.getElement() instanceof HTML::ScriptElement
   } or
+  /*
+   * window["sap-ui-config"]
+   */
+
   JsFrameOptions(DataFlow::PropRef windowDecl) { windowDecl.getPropertyName() = "sap-ui-config" }
 
 class FrameOptions extends TFrameOptions {
@@ -16,20 +27,12 @@ class FrameOptions extends TFrameOptions {
   private string getHtmlFrameOptions() {
     /*
      * Check the value of this page's `frameOptions` as declared in HTML.
-     * Setting `frameOptions` to `deny` prohibits framing altogether, at all. E.g.:
-     * ```html
-     *  <script id='sap-ui-bootstrap'
-     * 	  src='resources/sap-ui-core.js'
-     * 	  data-sap-ui-frameOptions='deny'>
-     *  </script>
-     * ```
      */
 
     result = this.asHtmlFrameOptions().getValue()
     or
     /*
      * Check the value of this page's `frameOptions` as declared in JavaScript.
-     * Setting `frameOptions` to `trusted` allows framing from the same origin. E.g.:
      * ```js
      * window["sap-ui-config"] = {
      *     frameOptions: 'trusted',
