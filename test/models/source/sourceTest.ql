@@ -7,6 +7,6 @@
 import javascript
 import queries.UI5XssConfiguration
 
-from UI5XssConfiguration cfg, DataFlow::Node source
+from DataFlow::Configuration cfg, DataFlow::Node source, string sourceBindingPathStr
 where cfg.isSource(source, _)
-select getUI5SourceLocation(source), source.toString()
+select getUI5SinkLocation(source, sourceBindingPathStr), source.toString()

@@ -283,6 +283,52 @@ module UI5 {
     result = constructPathStringInner(object.asExpr(), property)
   }
 
+  /**
+   * Create all recursive path strings of a JSON object, e.g.
+   * if `object = { "p1": { "p2": 1 }, "p3": 2 }`, then create:
+   * - `/p1/p2`, and
+   * - `/p3`.
+   */
+  string constructPathStringJson(JsonValue object) {
+    if not object instanceof JsonObject
+    then result = ""
+    else
+      exists(string property | exists(object.(JsonObject).getPropValue(property)) |
+        result = "/" + property + constructPathStringJson(object.getPropValue(property))
+      )
+  }
+
+  /**
+   * Create all possible path strings of a JSON object up to a certain property name, e.g.
+   * if `object = { "p1": { "p2": 1 }, "p3": 2 }` and `propName = "p3"` then create `"/p3"`.
+   * PRECONDITION: All of `object`'s keys are unique.
+   */
+  bindingset[propName]
+  string constructPathStringJson(JsonValue object, string propName) {
+    exists(string pathString | pathString = constructPathStringJson(object) |
+      pathString.regexpMatch(propName) and
+      result = pathString
+    )
+  }
+
+  /**  When given a constructor call `new JSONModel("controller/model.json")`, get the content of the file referred to by URI (`"controller/model.json"`) inside the string argument. */
+  bindingset[path]
+  JsonObject resolveDirectPath(string path) {
+    exists(Project project, File jsonFile |
+      // project contains this file
+      project.isInThisProject(jsonFile) and
+      jsonFile.getExtension() = "json" and
+      jsonFile.getAbsolutePath() = project.getASubFolder().getAbsolutePath() + "/" + path and
+      result.getJsonFile() = jsonFile
+    )
+  }
+
+  /** When given a constructor call `new JSONModel(sap.ui.require.toUrl("sap/ui/demo/mock/products.json")`, get the content of the file referred to by resolving the argument. Currently only supports sap.ui.require.toUrl. */
+  bindingset[path]
+  JsonObject resolveIndirectPath(string path) {
+    result = any(JsonObject tODO | tODO.getFile().getAbsolutePath() = path)
+  }
+
   class JsonModel extends UI5Model {
     JsonModel() {
       this instanceof NewNode and
@@ -292,9 +338,57 @@ module UI5 {
       )
     }
 
-    ObjectLiteralNode getContent() { result.flowsTo(this.getAnArgument()) }
+    override string getPathString() {
+      /* 1. new JSONModel("controller/model.json") */
+      if this.getAnArgument().asExpr() instanceof StringLiteral
+      then
+        result =
+          constructPathStringJson(resolveDirectPath(this.getAnArgument()
+                  .asExpr()
+                  .(StringLiteral)
+                  .getValue()))
+      else
+        if this.getAnArgument().(MethodCallNode).getAnArgument().asExpr() instanceof StringLiteral
+        then
+          /* 2. new JSONModel(sap.ui.require.toUrl("sap/ui/demo/mock/products.json")) */
+          result =
+            constructPathStringJson(resolveIndirectPath(this.getAnArgument()
+                    .(MethodCallNode)
+                    .getAnArgument()
+                    .asExpr()
+                    .(StringLiteral)
+                    .getValue()))
+        else
+          /*
+           * 3. new JSONModel(oData) where
+           *    var oData = { input: null };
+           */
 
-    override string getPathString() { result = constructPathString(this.getContent()) }
+          exists(ObjectLiteralNode objectNode |
+            objectNode.flowsTo(this.getAnArgument()) and constructPathString(objectNode) = result
+          )
+    }
+
+    string getPathString(Property property) {
+      /*
+       * 3. new JSONModel(oData) where
+       *    var oData = { input: null };
+       */
+
+      exists(ObjectLiteralNode objectNode |
+        objectNode.flowsTo(this.getAnArgument()) and
+        constructPathString(objectNode, property) = result
+      )
+    }
+
+    bindingset[propName]
+    string getPathStringPropName(string propName) {
+      exists(JsonObject jsonObject |
+        jsonObject = resolveDirectPath(this.getAnArgument().asExpr().(StringLiteral).getValue())
+      |
+        constructPathStringJson(jsonObject, propName) = result
+      )
+    }
 
     /**
      * A model possibly supporting two-way binding explicitly set as a one-way binding model.
