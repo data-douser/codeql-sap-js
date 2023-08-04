@@ -151,43 +151,64 @@ class FortifySinkTag extends FortifyTag {
   }
 }
 
-// class FortifyValidateTag extends FortifyTag {
-//   FortifyValidateTag() { exists(JSDoc doc | this = doc.getATagByTitle("SecValidate")) }
-//   string getInSpec() {
-//     result = this.getFortifySpecContents().splitAt("|", 0).splitAt(" ").replaceAll("*", "0..")
-//   }
-//   string getOutSpec() {
-//     if this.getFortifySpecContents().splitAt("|", 1) = "return"
-//     then result = "ReturnValue"
-//     else result = ""
-//   }
-//   string getFlags() {
-//     if not exists(this.getFortifySpecContents().splitAt("|", 2))
-//     then result = ""
-//     else result = this.getFortifySpecContents().splitAt("|", 2)
-//   }
-//   predicate hasNameTag() { exists(this.getJSDocComment().getATagByTitle("name")) }
-//   string getNameTag() { result = this.getJSDocComment().getATagByTitle("name").getName() }
-//   predicate isJQuery() { this.getFile().getStem().prefix(6) = "jquery" }
-//   string getModuleName() {
-//     /* "~/openui5/src/sap.ui.core/src/jquery.sap.sjax.js" */
-//     if this.isJQuery() or this.hasNameTag()
-//     then result = "global"
-//     else
-//       /* "~/openui5/src/sap.ui.core/src/sap/base/util/UriParameters.js" */
-//       result =
-//         this.getFile()
-//             .getParentContainer()
-//             .getAbsolutePath()
-//             .regexpCapture(".*(sap\\/[a-zA-Z]+\\/.*)", 1)
-//   }
-// string getAPILangStringInSpec() { result = "Argument[" + this.getInSpec() + "]" }
-// string getAPILangStringOutSpec() { result = this.getOutSpec() }
-// override string getYamlRow() {
-//   result =
-//   "[\"" + this.getModuleName() + "\"," + "\"taint\"]"
-// }
-// }
+class FortifyValidateTag extends FortifyTag {
+  FortifyValidateTag() { exists(JSDoc doc | this = doc.getATagByTitle("SecValidate")) }
+
+  string getInSpec() {
+    result = this.getFortifySpecContents().splitAt("|", 0).splitAt(" ").replaceAll("*", "0..")
+  }
+
+  string getOutSpec() {
+    if this.getFortifySpecContents().splitAt("|", 1) = "return"
+    then result = "ReturnValue"
+    else result = ""
+  }
+
+  string getFlags() {
+    if not exists(this.getFortifySpecContents().splitAt("|", 2))
+    then result = ""
+    else result = this.getFortifySpecContents().splitAt("|", 2)
+  }
+
+  predicate hasNameTag() { exists(this.getJSDocComment().getATagByTitle("name")) }
+
+  string getNameTag() { result = this.getJSDocComment().getATagByTitle("name").getName() }
+
+  predicate isJQuery() { this.getFile().getStem().prefix(6) = "jquery" }
+
+  string getModuleName() {
+    /* "~/openui5/src/sap.ui.core/src/jquery.sap.sjax.js" */
+    if this.isJQuery()
+    then result = "global"
+    else
+      /* "~/openui5/src/sap.ui.core/src/sap/base/util/UriParameters.js" */
+      result =
+        this.getFile()
+            .getAbsolutePath()
+            .regexpCapture(".*(sap/[a-zA-Z]+/.*)", 1)
+            .regexpCapture("(.*)\\.js", 1)
+  }
+
+  string getPathString() {
+    if this.isJQuery()
+    then
+      result =
+        this.getDocumentedObject().getExprString().regexpReplaceAll("([a-zA-Z]+)", "Member[$1]")
+    else result = ""
+  }
+
+  string getAPILangStringInSpec() { result = "Argument[" + this.getInSpec() + "]" }
+
+  string getAPILangStringOutSpec() { result = this.getOutSpec() }
+
+  override string getYamlRow() {
+    result =
+      "[\"" + this.getModuleName() + "\", " + "\"" + this.getPathString() + "\", " + "\"" +
+        this.getAPILangStringInSpec() + "\", " + "\"" + this.getAPILangStringOutSpec() + "\", " +
+        "\"taint\"]"
+  }
+}
+
 class FortifyPassthroughTag extends FortifyTag {
   FortifyPassthroughTag() { exists(JSDoc doc | this = doc.getATagByTitle("SecPassthrough")) }
 
