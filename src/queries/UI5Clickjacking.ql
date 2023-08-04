@@ -17,10 +17,16 @@ from Location location, string message
 where
   exists(FrameOptions frameOptions | frameOptions.allowsAllOriginEmbedding() |
     location = frameOptions.getLocation() and
-    message = "Possible clickjacking vulnerability due to " + frameOptions.toString() + " being set to `allow`."
+    message =
+      "Possible clickjacking vulnerability due to " + frameOptions.toString() +
+        " being set to `allow`."
   )
   or
   thereIsNoFrameOptionSet() and
-  location = any(HTML::HtmlFile file | file.getBaseName() = "index.html").getLocation() and
+  exists(HTML::HtmlFile file, HTML::DocumentElement doc |
+    file.getBaseName() = "index.html" and
+    doc.getFile() = file and
+    location = doc.getLocation()
+  ) and
   message = "Possible clickjacking vulnerability due to missing frame options."
 select location, message
