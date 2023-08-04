@@ -88,8 +88,16 @@ module PathGraph {
       // UI5 sanitizers
       exists(SapAmdModuleDefinition d, DataFlow::ParameterNode par |
         node = par.getACall() and
-        par.getParameter() = d.getDependencyParameter("sap/base/security/encodeXML")
+        par.getParameter() =
+          d.getDependencyParameter("sap/base/security/" +
+              ["encodeCSS", "encodeJS", "encodeURL", "encodeURLParameters", "encodeXML"])
       )
+      or
+      // UI5 jQuery sanitizers
+      node.(DataFlow::CallNode).getReceiver().asExpr().(PropAccess).getQualifiedName() =
+        "jQuery.sap" and
+      node.(DataFlow::CallNode).getCalleeName() =
+        ["encodeCSS", "encodeJS", "encodeURL", "encodeURLParameters", "encodeXML", "encodeHTML"]
     }
   }
 
