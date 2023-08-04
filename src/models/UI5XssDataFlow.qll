@@ -81,8 +81,9 @@ module PathGraph {
       super.isSanitizer(node)
       or
       // value read from a non-string property
-      node = any(Metadata m).getProperty(_) and
-      node.(DataFlow::SourceNode).getAPropertySource("type").getStringValue() != ["string"]
+      exists(string prop_name |
+        node = any(Metadata m | not m.isUnrestrictedStringType(prop_name)).getProperty(prop_name)
+      )
       or
       // UI5 sanitizers
       exists(SapAmdModuleDefinition d, DataFlow::ParameterNode par |
