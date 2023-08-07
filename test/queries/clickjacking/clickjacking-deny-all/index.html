@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creating Custom Controls in SAPUI5 Demo</title>
+    <script>
+        window["sap-ui-config"] = {
+            frameOptions: 'deny',
+            frameOptionsConfig: {
+                callback: function (bSuccess) {
+                    if (bSuccess) {
+                        alert("App is allowed to run!");
+                    } else {
+                        alert("App is not allowed to run!");
+                    }
+                }
+            }
+        };
+        window["sap-ui-config"].frameOptions = "deny";
+    </script>
+
+    <script id="sap-ui-bootstrap" src="resources/sap-ui-core.js" data-sap-ui-libs="sap.m"
+        data-sap-ui-xx-waitForTheme="true" data-sap-ui-theme="sap_fiori_3" data-sap-ui-resourceRoots='{
+            "ghas.sample": "./"
+        }' data-sap-ui-onInit="module:sap/ui/core/ComponentSupport" data-sap-ui-compatVersion="edge"
+        data-sap-ui-async="true" data-sap-ui-frameOptions='deny'>
+        </script>
+</head>
+
+<body class="sapUiBody" role="application">
+    <div data-sap-ui-component data-name="ghas.sample.webapp.book" data-id="container"></div>
+</body>
+
+</html>

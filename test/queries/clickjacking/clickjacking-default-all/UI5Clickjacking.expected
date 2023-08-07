@@ -1,0 +1,1 @@
+| index.html:2:1:34:7 | index.html:2 | Possible clickjacking vulnerability due to missing frame options. |
