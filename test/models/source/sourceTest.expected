@@ -1,3 +1,7 @@
+nodes
+| source1.xml:5:5:7:28 | value={/input} |
+edges
+#select
 | source.js:25:17:25:25 | obj.value | obj.value |
 | source.js:27:17:27:30 | obj.getValue() | obj.getValue() |
 | source.js:29:17:29:25 | obj.value | obj.value |
