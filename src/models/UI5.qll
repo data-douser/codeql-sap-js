@@ -16,6 +16,18 @@ module UI5 {
     File getProjectYaml() { result = this.getFile("ui5.yaml") }
 
     predicate isInThisProject(File file) { this = file.getParentContainer*() }
+
+    private predicate hasSapUICoreScript(HTML::HtmlFile file) {
+      exists(HTML::ScriptElement script |
+        file = script.getFile() and
+        this.isInThisProject(file) and
+        script.getSourcePath().matches("%/sap-ui-core.js")
+      )
+    }
+
+    HTML::HtmlFile getMainHTML() {
+      result = any(HTML::HtmlFile file | this.hasSapUICoreScript(file))
+    }
   }
 
   /**
@@ -311,7 +323,11 @@ module UI5 {
     )
   }
 
-  /**  When given a constructor call `new JSONModel("controller/model.json")`, get the content of the file referred to by URI (`"controller/model.json"`) inside the string argument. */
+  /**
+   *  When given a constructor call `new JSONModel("controller/model.json")`,
+   *  get the content of the file referred to by URI (`"controller/model.json"`)
+   *  inside the string argument.
+   */
   bindingset[path]
   JsonObject resolveDirectPath(string path) {
     exists(Project project, File jsonFile |
@@ -323,7 +339,11 @@ module UI5 {
     )
   }
 
-  /** When given a constructor call `new JSONModel(sap.ui.require.toUrl("sap/ui/demo/mock/products.json")`, get the content of the file referred to by resolving the argument. Currently only supports sap.ui.require.toUrl. */
+  /**
+   *  When given a constructor call `new JSONModel(sap.ui.require.toUrl("sap/ui/demo/mock/products.json")`,
+   *  get the content of the file referred to by resolving the argument.
+   *  Currently only supports `sap.ui.require.toUrl`.
+   */
   bindingset[path]
   JsonObject resolveIndirectPath(string path) {
     result = any(JsonObject tODO | tODO.getFile().getAbsolutePath() = path)
@@ -476,8 +496,7 @@ module UI5 {
   }
 
   /**
-   * Controller.extend or
-   * Control.extend
+   * `SomeModule.extend(...)` where `SomeModule` stands for a module imported with `sap.ui.define`.
    */
   class Extension extends SapElement, MethodCallNode {
     Extension() {

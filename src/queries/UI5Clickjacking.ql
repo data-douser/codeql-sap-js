@@ -25,8 +25,7 @@ where
   or
   exists(UI5::Project p | thereIsNoFrameOptionSet(p) |
     exists(HTML::HtmlFile file, HTML::DocumentElement doc |
-      p.isInThisProject(file) and
-      file.getBaseName() = "index.html" and
+      file = p.getMainHTML() and
       doc.getFile() = file and
       location = doc.getLocation()
     ) and
