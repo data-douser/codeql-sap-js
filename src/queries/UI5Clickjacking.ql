@@ -12,6 +12,7 @@
 
 import javascript
 import models.UI5HTML
+private import models.UI5
 
 from Location location, string message
 where
@@ -22,11 +23,6 @@ where
         " being set to `allow`."
   )
   or
-  thereIsNoFrameOptionSet() and
-  exists(HTML::HtmlFile file, HTML::DocumentElement doc |
-    file.getBaseName() = "index.html" and
-    doc.getFile() = file and
-    location = doc.getLocation()
-  ) and
+  location = any(UI5::Project p | thereIsNoFrameOptionSet(p)).getProjectYaml().getLocation() and
   message = "Possible clickjacking vulnerability due to missing frame options."
 select location, message
