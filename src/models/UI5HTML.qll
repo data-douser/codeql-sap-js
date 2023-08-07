@@ -1,5 +1,6 @@
 private import javascript
 private import DataFlow
+private import models.UI5
 
 newtype TFrameOptions =
   /*
@@ -86,8 +87,8 @@ class FrameOptions extends TFrameOptions {
 /**
  * Holds if the frame options are left untouched as the default value `trusted`.
  */
-predicate thereIsNoFrameOptionSet() {
-  not exists(FrameOptions frameOptions |
+predicate thereIsNoFrameOptionSet(UI5::Project p) {
+  not exists(FrameOptions frameOptions | p.isInThisProject(frameOptions.getLocation().getFile()) |
     frameOptions.allowsSharedOriginEmbedding() or
     frameOptions.deniesEmbedding() or
     frameOptions.allowsAllOriginEmbedding()
