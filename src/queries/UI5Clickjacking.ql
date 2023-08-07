@@ -23,6 +23,13 @@ where
         " being set to `allow`."
   )
   or
-  location = any(UI5::Project p | thereIsNoFrameOptionSet(p)).getProjectYaml().getLocation() and
-  message = "Possible clickjacking vulnerability due to missing frame options."
+  exists(UI5::Project p | thereIsNoFrameOptionSet(p) |
+    exists(HTML::HtmlFile file, HTML::DocumentElement doc |
+      p.isInThisProject(file) and
+      file.getBaseName() = "index.html" and
+      doc.getFile() = file and
+      location = doc.getLocation()
+    ) and
+    message = "Possible clickjacking vulnerability due to missing frame options."
+  )
 select location, message
