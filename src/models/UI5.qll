@@ -72,6 +72,17 @@ module UI5 {
     }
 
     Project getProject() { result = this.getFile().getParentContainer*() }
+
+    SapDefineModule getExtendingDefine() {
+      exists(Extension baseExtension, Extension subclassExtension, SapDefineModule subclassDefine |
+        baseExtension.getDefine() = this and
+        subclassDefine = subclassExtension.getDefine() and
+        any(RequiredObject module_ |
+          module_ = subclassDefine.getRequiredObject(baseExtension.getName().replaceAll(".", "/"))
+        ).flowsTo(subclassExtension.getReceiver()) and
+        result = subclassDefine
+      )
+    }
   }
 
   class JQuerySap extends DataFlow::SourceNode {
@@ -131,7 +142,10 @@ module UI5 {
   SourceNode sapController() { result = sapController(TypeTracker::end()) }
 
   class CustomControl extends Extension {
-    CustomControl() { this.getReceiver().getALocalSource() = sapControl() }
+    CustomControl() {
+      this.getReceiver().getALocalSource() = sapControl() or 
+      this.getDefine() = any(SapDefineModule sapModule).getExtendingDefine()
+    }
 
     FunctionNode getRenderer() {
       exists(SourceNode propValue |
@@ -185,17 +199,6 @@ module UI5 {
           result.getFile().getBaseName().splitAt(".", 0) =
             this.getFile().getBaseName().splitAt(".", 0) + "Renderer"
         ).getArgument(1).(ObjectLiteralNode).getAPropertySource("render")
-    }
-
-    // TODO
-    predicate indirectlyExtendedControl(SapDefineModule define) {
-      /*
-       * Sketch:
-       *     1. SapDefineModule a predicate that maps the current module to the extended module
-       *     2. * or + the predicate
-       */
-
-      any()
     }
   }
 
@@ -510,7 +513,13 @@ module UI5 {
 
     ObjectLiteralNode getContent() { result = this.getArgument(1) }
 
-    Metadata getMetadata() { result = this.getContent().getAPropertySource("metadata") }
+    Metadata getMetadata() {
+       result = this.getContent().getAPropertySource("metadata") or
+       exists(Extension baseExtension |
+         baseExtension.getDefine().getExtendingDefine() = this.getDefine() and
+         result = baseExtension.getMetadata()
+       )
+      }
 
     /** Gets the `sap.ui.define` call that wraps this extension. */
     SapDefineModule getDefine() { this.getEnclosingFunction() = result.getArgument(1).asExpr() }
