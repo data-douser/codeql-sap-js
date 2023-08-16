@@ -20,7 +20,7 @@ CodeQL queries and supporting models for the SAP UI5 JavaScript framework
 ### Supported Features with tests
 The following tables list the main supported features with corresponding test cases
 #### Detecting XSS and Log injection vulnerabilities
-|test | library controls | [MaD sources/sinks](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml) | custom controls | UI5View | JS dataflow | HTML APIs | sanitizer | acc.path via handler |
+|test | library controls | [MaD sources sinks](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml) | custom controls | UI5View | JS dataflow | HTML APIs | sanitizer | acc.path via handler |
 | - | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
 | [xss-declarative](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/248) | ✅︎ | ✅︎ | | XMLView |
 | [xss-custom-control](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/249)| ✅︎ | ✅︎ | ✅︎ | XMLView | | classic |
