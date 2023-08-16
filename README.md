@@ -14,7 +14,7 @@ CodeQL queries and supporting models for the SAP UI5 JavaScript framework
     - UI5 [declarative Views](DeclarativeApp.png) (XML/JSON/HTML/JS)
     - Library/custom UI5 Controls
     - Project naming conventions (e.g. Control-Renderer)
-  - Source/Sink definition via [ModelAsData extensions](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml#L41)
+  - Source/Sink definition via [ModelAsData extensions](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml#L37-L110)
   - Controls inheritance via [ModelAsData extensions](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml#L1-35)
 
 ### Supported Features with tests
