@@ -3,9 +3,9 @@
 CodeQL queries and supporting models for the SAP UI5 JavaScript framework
 
 ### Queries
-- XSS
-- Log Injection
-- Clickjacking
+- [XSS](https://github.com/advanced-security/codeql-sap-js/blob/mbaluda-readme/src/queries/UI5Xss.ql)
+- [Log Injection](https://github.com/advanced-security/codeql-sap-js/blob/mbaluda-readme/src/queries/UI5LogInjection.ql)
+- [Clickjacking](https://github.com/advanced-security/codeql-sap-js/blob/mbaluda-readme/src/queries/UI5Clickjacking.ql)
  
 ### Modeled elements
  - UI5 AMD-style components (also via jQuery)
@@ -15,7 +15,7 @@ CodeQL queries and supporting models for the SAP UI5 JavaScript framework
     - Library/custom UI5 Controls
     - Project naming conventions (e.g. Control-Renderer)
   - Source/Sink definition via [ModelAsData extensions](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml#L41)
-  - Control inheritance via [ModelAsData extensions](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml#L16)
+  - Controls inheritance via [ModelAsData extensions](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml#L16)
 
 ### Supported Features with tests
 The following tables list the main supported features with corresponding test cases
