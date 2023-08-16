@@ -22,7 +22,7 @@ The following tables list the main supported features with corresponding test ca
 #### Detecting XSS and Log injection vulnerabilities
 |test | library controls | [MaD sources sinks](https://github.com/advanced-security/codeql-sap-js/blob/main/.github/codeql/extensions/ui5-data-extensions.yml#L37-L110) | custom controls | UI5View | JS dataflow | HTML APIs | sanitizer | acc.path via handler |
 | - | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
-| [xss-webc-control](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/248) | ✅︎ | ✅︎ | | XMLView |
+| [xss-html-control](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/242) | ✅︎ | ✅︎ | | XMLView |
 | [xss-custom-control-api1](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/249)| ✅︎ | ✅︎ | ✅︎ | XMLView | | classic |
 | [xss-custom-control-api2](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/250)| ✅︎ | ✅︎ | ✅︎ | XMLView | | DOM |
 | [xss-json-view](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/247)<br/>[xss-html-view](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/245)<br/>[xss-js-view](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/246) | ✅︎ | ✅︎ | | JsonView<br/>HTMLView<br/>JSView |
