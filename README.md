@@ -7,7 +7,7 @@ CodeQL queries and supporting models for the SAP UI5 JavaScript framework
 - [Log Injection](https://github.com/advanced-security/codeql-sap-js/blob/mbaluda-readme/src/queries/UI5LogInjection.ql)
 - [Clickjacking](https://github.com/advanced-security/codeql-sap-js/blob/mbaluda-readme/src/queries/UI5Clickjacking.ql)
  
-### Modeled elements
+### Modeled UI5 framework elements
  - UI5 AMD-style components (also via jQuery)
  - MVC elements: 
     - UI5 Controllers and Data Models (literal/external JSON models)
