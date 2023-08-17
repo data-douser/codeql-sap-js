@@ -35,4 +35,4 @@ The following tables list the main supported features with corresponding test ca
 | - | :-: | :-: | :-: |
 | [clickjacking-deny-all]( https://github.com/advanced-security/codeql-sap-js/blob/main/test/queries/clickjacking/clickjacking-deny-all/index.html#L10) | ✅︎ | |
 | [clickjacking-allow-all:l9](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/240)<br/>[clickjacking-allow-all:l28](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/241) | | ✅︎ |
-| [clickjacking-default-all](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/280) | | | ✅︎ |
+| [clickjacking-default-all](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/281) | | | ✅︎ |
