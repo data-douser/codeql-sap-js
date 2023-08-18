@@ -41,19 +41,19 @@
     <p>
       <!-- Sample UI5 application that has XSS with Custom Control -->
     </p>
-    <sample src="CustomControlWithXSS.js" />
+    <sample src="examples/CustomControlWithXSS.js" />
     <p>
       <!-- The same application with XSS removed -->
     </p>
-    <sample src="CustomControlWithXSSRemoved.js" />
+    <sample src="examples/CustomControlWithXSSRemoved.js" />
     <p>
       <!-- Sample UI5 application that has XSS with Library Control -->
     </p>
-    <sample src="LibraryControlWithXSS.js" />
+    <sample src="examples/LibraryControlWithXSS.js" />
     <p>
       <!-- The same application with XSS removed -->
     </p>
-    <sample src="LibraryControlWithXSSRemoved.js" />
+    <sample src="examples/LibraryControlWithXSSRemoved.js" />
   </example>
 
   <references>
