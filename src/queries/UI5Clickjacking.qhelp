@@ -1,0 +1,51 @@
+<!DOCTYPE qhelp PUBLIC
+ "-//Semmle//qhelp//EN"
+ "qhelp.dtd">
+<qhelp>
+  <overview>
+    <p>
+    </p>
+  </overview>
+
+  <recommendation>
+    <p>
+      <!-- Set frameOptions to `"deny"` either through
+	   `window["sap-ui-options"]` or `data-sap-ui-frameOptions` -->
+    </p>
+  </recommendation>
+
+  <example>
+    <p>
+      <!-- 1. Sample UI5 application that has `frameOptions` set to `"allow"` -->
+    </p>
+    <sample src="FrameOptionsSetToAllow.js" />
+    <p>
+      <!-- 2. Sample UI5 application that has no `frameOptions` set -->
+    </p>
+    <sample src="FrameOptionsUseDefault.js" />
+    <p>
+      <!-- Sample UI5 application that explicitly sets frameOptions to `"deny"` -->
+    </p>
+    <sample src="FrameOptionsSetToDeny.js" />
+  </example>
+
+  <references>
+    <li>
+      OWASP:
+      <a href="https://cheatsheetseries.owasp.org/cheatsheets/Clickjacking_Defense_Cheat_Sheet.html">Clickjacking Defense Cheat Sheet</a>.
+    </li>
+    <li>
+      Mozilla:
+      <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options">X-Frame-Options</a>
+    </li>
+    <li>
+      SAP:
+      <a href="https://sapui5.hana.ondemand.com/sdk/#/topic/62d9c4d8f5ad49aa914624af9551beb7.html">Frame Options</a>
+    </li>
+    <li>
+      SAP:
+      <a href="https://sapui5.hana.ondemand.com/sdk/#/topic/d04a6d41480c4396af16b5d2b25509ec.html">Allowlist Service</a>
+    </li>
+  </references>
+</qhelp>
+
