@@ -29,12 +29,10 @@
       </ul>
     </div>
     <div>
-      An XSS attack vector can still exist even when no user-defined control is used. In this case, a model property or a control property act as a intermediate step when passing the external data.
+      An XSS attack vector can still exist even when no user-defined control is used. In this case, a model property or a control property act as a intermediate step when external data is passed.
       <li>
 	<!-- Don't directly funnel user input from one control to another -->
-	The view component of a UI5 application can be declared such that one control
-	<!-- 1. either through model property -->
-	<!-- 2. or through control property -->
+	The view component of a UI5 application can be declared such that one control can funnel its property value to that of another. This can happen either through a property of the model attached to the view, or by some controller mechanism that sets the target control's property to the property value of a source control. 
       </li>
     </div>
   </recommendation>
