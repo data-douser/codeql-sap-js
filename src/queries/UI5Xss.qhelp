@@ -75,11 +75,11 @@
     <!-- ========== UI5 SAP documentations ========== -->
     <li>
       SAP:
-      <a href="https://help.sap.com/docs/SAP_NETWEAVER_750/0ce0b8c56fa74dd897fffda8407e8272/91f0bd316f4d1014b6dd926db0e91070.html">Cross-site Scripting</a> in UI5.
+      <a href="https://sapui5.hana.ondemand.com/sdk/#/topic/91f0bd316f4d1014b6dd926db0e91070.html">Cross-site Scripting</a> in UI5.
     </li>
     <li>
       SAP:
-      <a href="https://help.sap.com/docs/SAP_NETWEAVER_750/0ce0b8c56fa74dd897fffda8407e8272/4de64e2e191f4a7297d4fd2d1e233a2d.html">Prevention of Cross-site Scripting</a> in UI5.
+      <a href="https://sapui5.hana.ondemand.com/sdk/#/topic/4de64e2e191f4a7297d4fd2d1e233a2d.html">Prevention of Cross-site Scripting</a> in UI5.
     </li>
   </references>
 </qhelp>
