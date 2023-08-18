@@ -1,0 +1,86 @@
+<!DOCTYPE qhelp PUBLIC
+ "-//Semmle//qhelp//EN"
+ "qhelp.dtd">
+<qhelp>
+  <overview>
+    <p>
+      Extracting text from a DOM node and interpreting it as HTML can lead to a cross-site scripting vulnerability.
+    </p>
+  </overview>
+
+  <recommendation>
+    <div>
+      <!-- Custom Control -->
+      <p>
+	<!-- API1: Don't use `write`, use `writeEscaped` -->
+      </p>
+      <p>
+	<!-- API2: Don't use `unsafeHtml` or `text` -->
+      </p>
+      <p>
+	<!-- Use domain-specific sanitizers such as `encodeXML` or
+	     enforce the property to something other than `string` or `any` -->
+      </p>
+    </div>
+    <div>
+      <!-- Library Control -->
+      <p>
+	<!-- Don't directly funnel user input from one control to another -->
+	<!-- 1. either through model property -->
+	<!-- 2. or through control property -->
+      </p>
+    </div>
+  </recommendation>
+
+  <example>
+    <p>
+      <!-- Sample UI5 application that has XSS with Custom Control -->
+    </p>
+    <sample src="CustomControlWithXSS.js" />
+    <p>
+      <!-- The same application with XSS removed -->
+    </p>
+    <sample src="CustomControlWithXSSRemoved.js" />
+    <p>
+      <!-- Sample UI5 application that has XSS with Library Control -->
+    </p>
+    <sample src="LibraryControlWithXSS.js" />
+    <p>
+      <!-- The same application with XSS removed -->
+    </p>
+    <sample src="LibraryControlWithXSSRemoved.js" />
+  </example>
+
+  <references>
+    <!-- ========== Generic OWASP documentations ========== -->
+    <li>
+      OWASP:
+      <a href="https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html">DOM based
+	XSS Prevention Cheat Sheet</a>.
+    </li>
+    <li>
+      OWASP:
+      <a href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html">XSS
+	(Cross Site Scripting) Prevention Cheat Sheet</a>.
+    </li>
+    <li>
+      OWASP:
+      <a href="https://owasp.org/www-community/attacks/DOM_Based_XSS">DOM Based XSS</a>.
+    </li>
+    <li>
+      OWASP:
+      <a href="https://owasp.org/www-community/Types_of_Cross-Site_Scripting">Types of Cross-Site
+	Scripting</a>.
+    </li>
+    <!-- ========== UI5 SAP documentations ========== -->
+    <li>
+      SAP:
+      <a href="https://help.sap.com/docs/SAP_NETWEAVER_750/0ce0b8c56fa74dd897fffda8407e8272/91f0bd316f4d1014b6dd926db0e91070.html">Cross-site Scripting</a> in UI5.
+    </li>
+    <li>
+      SAP:
+      <a href="https://help.sap.com/docs/SAP_NETWEAVER_750/0ce0b8c56fa74dd897fffda8407e8272/4de64e2e191f4a7297d4fd2d1e233a2d.html">Prevention of Cross-site Scripting</a> in UI5.
+    </li>
+  </references>
+</qhelp>
+
