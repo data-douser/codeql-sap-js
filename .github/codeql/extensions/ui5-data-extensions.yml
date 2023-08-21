@@ -135,4 +135,4 @@ extensions:
       - ["sap/base/security/encodeJS", "", "Argument[0]", "ReturnValue", "taint"]
       - ["sap/base/security/encodeURL", "", "Argument[0]", "ReturnValue", "taint"]
       - ["sap/base/security/encodeURLParameters", "", "Argument[0]", "ReturnValue", "taint"]
-      - ["sap/base/security/encodeXML", "", "Argument[0]", "ReturnValue", "taint"]
+      - [, "", "Argument[0]", "ReturnValue", "taint"]
