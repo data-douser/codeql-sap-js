@@ -4,17 +4,19 @@ Receiving text from the user, most notably through a control, and rendering it a
 
 ## Recommendation
 
-If the XSS attack vector includes a user-defined control, then we can mitigate the issue by improving on the implementation of the control. Specifically, we can change the method calls on instances of `sap.ui.core.RenderManager` (henceforth `RenderManager`).
+### Preventing XSS Involving User Defined Control
+ If the XSS attack vector includes a user-defined control, then we can mitigate the issue by improving on the implementation of the control. Specifically, we can change the method calls on instances of `sap.ui.core.RenderManager` (henceforth `RenderManager`).
 
-When using the now-deprecated older API with `RenderManager.write` or `RenderManager.writeAttribute`, use their respective counterparts `RenderManager.writeEscaped` and `RenderManager.writeAttributeEscaped` which sanitizes their rendered contents.
+- When using the now-deprecated older API with `RenderManager.write` or `RenderManager.writeAttribute`, use their respective counterparts `RenderManager.writeEscaped` and `RenderManager.writeAttributeEscaped` which sanitizes their rendered contents.
+- When using the newer API  with `apiVersion: 2` (dubbed Semantic Rendering), do not use `RenderManager.unsafeHtml` unless the control property `sanitizeContent` is set to `true`.
+- Regardless of the API version, it is also a good idea to use escaping functions in `sap.base.security`. Relevant sanitizers include `encodeXML` and `encodeHTML`.
+- Lastly, enforce the property to something other than `string` or `any`. If a value should be used, then opt for the `enum` type which only allows a predefined set of strings.
 
-When using the newer API  with `apiVersion: 2` (dubbed Semantic Rendering), do not use `RenderManager.unsafeHtml` unless the control property `sanitizeContent` is set to `true`.
+### Preventing XSS Not Involving User Defined Control
 
-Regardless of the API version, it is also a good idea to use escaping functions in `sap.base.security`. Relevant sanitizers include `encodeXML` and `encodeHTML`.
+An XSS attack vector can still exist even when no user-defined control is used. In this case, a model property or a control property act as a intermediate step when external data is passed. The view component of a UI5 application can be declared such that one control can funnel its property value to that of another.
 
-Lastly, enforce the property to something other than `string` or `any`. If a value should be used, then opt for the `enum` type which only allows a predefined set of strings.
-
-An XSS attack vector can still exist even when no user-defined control is used. In this case, a model property or a control property act as a intermediate step when external data is passed. The view component of a UI5 application can be declared such that one control can funnel its property value to that of another. This can happen either through a property of the model attached to the view, or by some controller mechanism that sets the target control's property to the property value of a source control.
+In this case, the UI5 application should not use the property as is, but should sanitize the contents before reading it. Such sanitization can take place in the controller or in the view declaration using expression bindings.
 
 ## Example
 
@@ -100,5 +102,6 @@ The issue can be resolved by using an expression binding that denotes applying a
 - SAP: [API Documentation of sap.ui.core.RenderManager](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.RenderManager)
 - SAP: [Documentation of sap.ui.core.HTML](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.HTML%23methods/setSanitizeContent)
 - SAP: [Defining Control Properties](https://sapui5.hana.ondemand.com/sdk/#/topic/ac56d92162ed47ff858fdf1ce26c18c4.html).
+- SAP: [Expression Binding](https://sapui5.hana.ondemand.com/sdk/#/topic/daf6852a04b44d118963968a1239d2c0).
 - Common Weakness Enumeration: [CWE-79](https://cwe.mitre.org/data/definitions/79.html).
 - Common Weakness Enumeration: [CWE-116](https://cwe.mitre.org/data/definitions/116.html).
