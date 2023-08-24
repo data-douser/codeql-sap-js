@@ -12,34 +12,28 @@
 
 import javascript
 import models.UI5HTML
+import semmle.javascript.RestrictedLocations
 private import models.UI5
 
-class IndexHtmlElement extends HTML::DocumentElement {
-  IndexHtmlElement() { this.getFile() = any(UI5::Project p).getMainHTML() }
-
-  predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
-    exists(Location loc | loc = this.getLocation() |
-      path = this.getFile().getAbsolutePath() and
-      sl = loc.getStartLine() and
-      sc = loc.getStartColumn() and
-      el = sl and
-      ec = sc
-    )
+class HtmlStartTag extends HTML::DocumentElement, FirstLineOf {
+  HtmlStartTag() {
+    this.getFile() =
+      any(FirstLineOf firstLineOf | firstLineOf.getFile() = any(UI5::Project p).getMainHTML())
   }
 }
 
-newtype TAlertPosition =
-  TFrameOptions(FrameOptions fo) or
-  TIndexHtmlElement(IndexHtmlElement ihe)
+newtype TAlertLocation =
+  TFrameOptions(FrameOptions frameOptions) or
+  THtmlStartTag(HtmlStartTag htmlStartTag)
 
-class AlertPosition extends TAlertPosition {
+class AlertLocation extends TAlertLocation {
   FrameOptions asFrameOptions() { this = TFrameOptions(result) }
 
-  IndexHtmlElement asIndexHtmlElement() { this = TIndexHtmlElement(result) }
+  HtmlStartTag asHtmlStartTag() { this = THtmlStartTag(result) }
 
   string toString() {
     result = this.asFrameOptions().toString() or
-    result = this.asIndexHtmlElement().toString()
+    result = this.asHtmlStartTag().toString()
   }
 
   predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
@@ -52,12 +46,12 @@ class AlertPosition extends TAlertPosition {
       ec = location.getEndColumn()
     )
     or
-    /* This is an IndexHtmlElement */
-    this.asIndexHtmlElement().hasLocationInfo(path, sl, sc, el, ec)
+    /* This is an HtmlStartTag */
+    this.asHtmlStartTag().hasLocationInfo(path, sl, sc, el, ec)
   }
 }
 
-from AlertPosition alert, string message
+from AlertLocation alert, string message
 where
   exists(FrameOptions frameOptions | frameOptions.allowsAllOriginEmbedding() |
     alert.asFrameOptions() = frameOptions and
@@ -67,10 +61,10 @@ where
   )
   or
   exists(UI5::Project p | thereIsNoFrameOptionSet(p) |
-    exists(HTML::HtmlFile file, IndexHtmlElement doc |
+    exists(HTML::HtmlFile file, HtmlStartTag doc |
       file = p.getMainHTML() and
       doc.getFile() = file and
-      alert.asIndexHtmlElement() = doc
+      alert.asHtmlStartTag() = doc
     ) and
     message = "Possible clickjacking vulnerability due to missing frame options."
   )
