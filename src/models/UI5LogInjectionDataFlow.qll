@@ -7,10 +7,10 @@ import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjection
 module PathGraph {
   newtype TNode =
     TUI5BindingPathNode(UI5BindingPath path) or
-    TDataFlowPathNode(DataFlow::PathNode node)
+    TDataFlowPathNode(DataFlow::Node node)
 
   class UI5PathNode extends TNode {
-    DataFlow::PathNode asDataFlowPathNode() { this = TDataFlowPathNode(result) }
+    DataFlow::PathNode asDataFlowPathNode() { this = TDataFlowPathNode(result.getNode()) }
 
     UI5BindingPath asUI5BindingPathNode() { this = TUI5BindingPathNode(result) }
 

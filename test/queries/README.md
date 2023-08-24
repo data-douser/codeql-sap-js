@@ -2,6 +2,7 @@
 Eamples can be run locally using [UI5 tooling](https://sap.github.io/ui5-tooling/stable/)
 
 ## XSS and log-injection
+
 ### [log-html-control-df](xss/log-html-control-df)
 - log-injection in the controller
 
@@ -24,10 +25,16 @@ Eamples can be run locally using [UI5 tooling](https://sap.github.io/ui5-tooling
 - the type of the control property `text` is set to `int` (sanitized)
 - the sanitizer is not affecting the log-injection
 
-### [xss-custom-control-property-sanitized](xss/xss-custom-control-property-sanitized)
+### [xss-custom-control-sanitized](xss/xss-custom-control-sanitized)
 - custom Control
 - DOM-like API
 - the value of `text` is sanitized using `sap/base/security/encodeXML`
+
+### [xss-event-handlers](xss/xss-event-handlers)
+User input flows to XSS sinks via event handlers in 3 different ways:
+1. function `sap.ui.model.Model#getProperty` 
+2. model property passed as handler parameter
+3. function `sap.ui.base.Event#getSource#getValue`
 
 ### [xss-html-control](xss/xss-html-control)
 - `sap.ui.core.HTML` Control
@@ -72,5 +79,5 @@ Eamples can be run locally using [UI5 tooling](https://sap.github.io/ui5-tooling
 ### [clickjacking-default-all](clickjacking/clickjacking-default-all)
 - `frameOptions` not set
 
-### [clickjacking-deny-all](clickjacking-deny-all)
+### [clickjacking-deny-all](clickjacking/clickjacking-deny-all)
 - frameOptions = `deny`
