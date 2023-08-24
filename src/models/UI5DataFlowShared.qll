@@ -13,8 +13,16 @@ module UI5Shared {
       // same project
       p.isInThisProject(metadata.getFile()) and
       p.isInThisProject(node.getFile()) and
-      // same control
-      metadata.getControl().getName() = node.getBindingPath().getControlName() and
+      (
+        // same control
+        metadata.getControl().getName() = node.getBindingPath().getControlName()
+        or
+        // extended control
+        exists(Extension subclass |
+          metadata.getControl().getDefine().getExtendingDefine() = subclass.getDefine() and
+          node.getBindingPath().getControlName() = subclass.getName()
+        )
+      ) and
       property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
       (
         start = property and end = node
@@ -35,11 +43,11 @@ module UI5Shared {
       or
       /* 1. Control metadata property being the intermediate flow node */
       exists(string propName, Metadata metadata |
-        // getAWrite -> control metadata
+        // writing site -> control metadata
         start = metadata.getAWrite(propName).getArgument(1) and
         end = metadata.getProperty(propName)
         or
-        // control metadata -> getTitle
+        // control metadata -> reading site
         start = metadata.getProperty(propName) and
         end = metadata.getARead(propName)
       )
