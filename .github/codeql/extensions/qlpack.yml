@@ -1,7 +1,7 @@
 ---
 library: true
 name: advanced-security/javascript-sap-ui5-extensions
-version: 0.0.1
+version: 1.0.0
 extensionTargets:
   codeql/javascript-all: "*"
   codeql/javascript-queries: "*"
