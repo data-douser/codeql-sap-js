@@ -17,8 +17,7 @@ private import models.UI5
 
 class HtmlStartTag extends HTML::DocumentElement, FirstLineOf {
   HtmlStartTag() {
-    this.getFile() =
-      any(FirstLineOf firstLineOf | firstLineOf.getFile() = any(UI5::Project p).getMainHTML())
+    exists(UI5::Project p | this.getFile().(FirstLineOf).getFile() = p.getMainHTML())
   }
 }
 
@@ -55,11 +54,7 @@ where
   )
   or
   exists(UI5::Project p | thereIsNoFrameOptionSet(p) |
-    exists(HTML::HtmlFile file, HtmlStartTag doc |
-      file = p.getMainHTML() and
-      doc.getFile() = file and
-      alert.asHtmlStartTag() = doc
-    ) and
+    alert.asHtmlStartTag().getFile() = p.getMainHTML() and
     message = "Possible clickjacking vulnerability due to missing frame options."
   )
 select alert, message
