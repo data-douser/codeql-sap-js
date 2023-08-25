@@ -15,30 +15,30 @@ import models.UI5HTML
 import semmle.javascript.RestrictedLocations
 private import models.UI5
 
-class HtmlStartTag extends HTML::DocumentElement, FirstLineOf {
-  HtmlStartTag() {
+class FirstLineOfMainHtml extends HTML::DocumentElement, FirstLineOf {
+  FirstLineOfMainHtml() {
     exists(UI5::Project p | this.getFile().(FirstLineOf).getFile() = p.getMainHTML())
   }
 }
 
 newtype TAlertLocation =
   TFrameOptions(FrameOptions frameOptions) or
-  THtmlStartTag(HtmlStartTag htmlStartTag)
+  TFirstLineOfMainHtml(FirstLineOfMainHtml htmlStartTag)
 
 class AlertLocation extends TAlertLocation {
   FrameOptions asFrameOptions() { this = TFrameOptions(result) }
 
-  HtmlStartTag asHtmlStartTag() { this = THtmlStartTag(result) }
+  FirstLineOfMainHtml asFirstLineOfMainHtml() { this = TFirstLineOfMainHtml(result) }
 
   string toString() {
     result = this.asFrameOptions().toString() or
-    result = this.asHtmlStartTag().toString()
+    result = this.asFirstLineOfMainHtml().toString()
   }
 
   predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
     this.asFrameOptions().getLocation().hasLocationInfo(path, sl, sc, el, ec)
     or
-    this.asHtmlStartTag().hasLocationInfo(path, sl, sc, el, ec)
+    this.asFirstLineOfMainHtml().hasLocationInfo(path, sl, sc, el, ec)
   }
 }
 
@@ -52,7 +52,7 @@ where
   )
   or
   exists(UI5::Project p | thereIsNoFrameOptionSet(p) |
-    alert.asHtmlStartTag().getFile() = p.getMainHTML() and
+    alert.asFirstLineOfMainHtml().getFile() = p.getMainHTML() and
     message = "Possible clickjacking vulnerability due to missing frame options."
   )
 select alert, message
