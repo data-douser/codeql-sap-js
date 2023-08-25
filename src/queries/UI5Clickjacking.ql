@@ -38,13 +38,7 @@ class AlertLocation extends TAlertLocation {
 
   predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
     /* This is a FrameOption */
-    exists(Location location | location = this.asFrameOptions().getLocation() |
-      path = location.getFile().getAbsolutePath() and
-      sl = location.getStartLine() and
-      sc = location.getStartColumn() and
-      el = location.getEndLine() and
-      ec = location.getEndColumn()
-    )
+    this.asFrameOptions().getLocation().hasLocationInfo(path, sl, sc, el, ec)
     or
     /* This is an HtmlStartTag */
     this.asHtmlStartTag().hasLocationInfo(path, sl, sc, el, ec)
