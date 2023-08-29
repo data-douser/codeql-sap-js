@@ -4,7 +4,7 @@ If a UI5 application does not explicitly set its frame options to `deny`, then i
 
 ## Recommendation
 
-Explicitly set the frame options to `"deny"`, either through `window["sap-ui-config"]`, or `data-sap-ui-frameOptions` attribute of the script tag where it sources the bootstrap script` "sap-ui-core.js"`:
+Explicitly set the frame options to `"deny"`, either through `window["sap-ui-config"]`, or `data-sap-ui-frameOptions` attribute of the script tag where it sources the bootstrap script `"sap-ui-core.js"`:
 
 ``` javascript
 window["sap-ui-config"] = {
