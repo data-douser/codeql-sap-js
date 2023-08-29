@@ -96,6 +96,24 @@ abstract class UI5BindingPath extends Locatable {
     }
 }
 
+abstract class UI5ControlProperty extends Locatable {
+  abstract UI5Control getControl();
+
+  abstract string getName();
+
+  abstract string getValue();
+}
+
+class XmlControlProperty extends UI5ControlProperty instanceof XmlAttribute {
+  XmlControlProperty() { this.getElement() = any(XmlControl control) }
+
+  override string getName() { result = XmlAttribute.super.getName() }
+
+  override string getValue() { result = XmlAttribute.super.getValue() }
+
+  override UI5Control getControl() { result = XmlAttribute.super.getElement() }
+}
+
 /**
  * Models a UI5 View that might include
  * XSS sources and sinks in standard controls
@@ -362,6 +380,11 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
       result = control.getNamespace().getUri() + "." + control.getName()
     )
   }
+
+  UI5Control getControl() {
+    this = result.(XmlElement).getAttribute(this.getPropertyName()) and
+    result = XmlAttribute.super.getElement()
+  }
 }
 
 class XmlView extends UI5View, XmlFile {
@@ -434,69 +457,188 @@ class XmlView extends UI5View, XmlFile {
   }
 }
 
-class XmlControl extends XmlElement {
-  XmlControl() { this.getParent+() = any(XmlView view) }
-
+abstract class UI5Control extends Locatable {
   /** Get the qualified type string, e.g. `sap.m.SearchField` */
-  string getQualifiedType() { result = this.getNamespace().getUri() + "." + this.getName() }
+  abstract string getQualifiedType();
 
   /** Get the JS Control definition if this is a custom control. */
-  Extension getJSDefinition() {
-    result = any(CustomControl control | control.getName() = this.getQualifiedType())
-  }
+  abstract Extension getJSDefinition();
 
   /** Get a reference to this control in the controller code. Currently supports only such references made through `byId`. */
   MethodCallNode getAReference() {
     result.getEnclosingFunction() = any(CustomController controller).getAMethod().asExpr() and
     result.getMethodName() = "byId" and
-    result.getArgument(0).asExpr().(StringLiteral).getValue() = this.getAttributeValue("id")
+    result.getArgument(0).asExpr().(StringLiteral).getValue() = this.getAProperty("id").getValue()
   }
 
-  CustomControl getDefinition() {
+  /** Get a property of this control having the name. */
+  abstract UI5ControlProperty getAProperty(string propName);
+
+  /** Get the definition of this control, given that it's a user-defined one. */
+  abstract CustomControl getDefinition();
+
+  bindingset[propName]
+  abstract MethodCallNode getARead(string propName);
+
+  bindingset[propName]
+  abstract MethodCallNode getAWrite(string propName);
+
+  /** Holds if this control reads from or writes to a model. */
+  abstract predicate accessesModel(UI5Model model);
+
+  /** Holds if this control reads from or writes to a model with regards to a binding path. */
+  abstract predicate accessesModel(UI5Model model, XmlBindingPath bindingPath);
+
+  /** Holds if this control is a source of XSS. */
+  abstract predicate isXssSource();
+
+  /** Holds if this control is a sink of XSS. */
+  abstract predicate isXssSink();
+
+  /** Get the view that this control is part of. */
+  abstract UI5View getView();
+
+  /** If any, get the handler that this control accesses. */
+  abstract FunctionNode getHandler();
+
+  /** Get the controller that manages this control. */
+  CustomController getController() { result = this.getView().getController() }
+}
+
+class XmlControl extends UI5Control, XmlElement {
+  XmlControl() { this.getParent+() = any(XmlView view) }
+
+  /** Get the qualified type string, e.g. `sap.m.SearchField` */
+  override string getQualifiedType() {
+    result = XmlElement.super.getNamespace().getUri() + "." + XmlElement.super.getName()
+  }
+
+  /** Get the JS Control definition if this is a custom control. */
+  override Extension getJSDefinition() {
+    result = any(CustomControl control | control.getName() = this.getQualifiedType())
+  }
+
+  override Location getLocation() { result = XmlElement.super.getLocation() }
+
+  override XmlFile getFile() { result = XmlElement.super.getFile() }
+
+  override UI5ControlProperty getAProperty(string name) { result = this.getAttribute(name) }
+
+  override CustomControl getDefinition() {
     result.getName() = this.getQualifiedType() and
     exists(Project project |
       project.isInThisProject(this.getFile()) and project.isInThisProject(result.getFile())
     )
   }
 
-  predicate accessesModel(UI5Model model) {
+  bindingset[propName]
+  override MethodCallNode getARead(string propName) {
+    exists(Project project |
+      project.isInThisProject(this.getFile()) and
+      project.isInThisProject(result.getFile())
+    |
+      result.getMethodName() = "get" + capitalize(propName)
+    )
+  }
+
+  bindingset[propName]
+  override MethodCallNode getAWrite(string propName) {
+    exists(Project project |
+      project.isInThisProject(this.getFile()) and
+      project.isInThisProject(result.getFile())
+    |
+      result.getMethodName() = "set" + capitalize(propName)
+    )
+  }
+
+  override predicate accessesModel(UI5Model model) {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view
       this = view.getXmlControl() and
       model = view.getController().getModel() and
-      model.getPathString() = this.getAnAttribute().(XmlBindingPath).getPath()
+      model.getPathString() = XmlElement.super.getAnAttribute().(XmlBindingPath).getPath()
     )
     // TODO: Add case where modelName is present
   }
 
-  predicate accessesModel(UI5Model model, XmlBindingPath bindingPath) {
+  override predicate accessesModel(UI5Model model, XmlBindingPath bindingPath) {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view
       this = view.getXmlControl() and
       model = view.getController().getModel() and
       model.getPathString() = bindingPath.getPath() and
-      bindingPath.getPath() = this.getAnAttribute().(XmlBindingPath).getPath()
+      bindingPath.getPath() = XmlElement.super.getAnAttribute().(XmlBindingPath).getPath()
     )
     // TODO: Add case where modelName is present
   }
 
-  predicate isXssSource() {
+  override predicate isXssSource() {
     exists(XmlView view, string type, string path, string property |
-      view = this.getParent+() and
+      view = XmlElement.super.getParent+() and
       type = this.getQualifiedType().replaceAll(".", "/") and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1)
     )
   }
 
-  predicate isXssSink() {
+  override predicate isXssSink() {
     exists(XmlView view, string type, string path, string property |
-      view = this.getParent+() and
+      view = XmlElement.super.getParent+() and
       type = this.getQualifiedType().replaceAll(".", "/") and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1)
     )
   }
+
+  override UI5View getView() { result = XmlElement.super.getParent+().(XmlView) }
+
+  override FunctionNode getHandler() {
+    result = XmlElement.super.getAnAttribute().(XmlHandler).getDefinition()
+  }
+
+  override string toString() { result = XmlElement.super.toString() }
+}
+
+abstract class UI5Handler extends Locatable {
+  /** Get the control that this handler notation is part of. */
+  abstract string getPath();
+
+  abstract UI5Control getControl();
+
+  CustomController getController() { result = this.getControl().getController() }
+
+  /** Get the definition of the handler being referred to. */
+  abstract FunctionNode getDefinition();
+}
+
+/**
+ *  Utility predicate capturing the handler name.
+ */
+bindingset[notation]
+private string handlerNotationCapture(string notation) {
+  result = notation.regexpCapture("\\.([a-zA-Z0-9]+)(\\(.*\\))?", 1)
+}
+
+class XmlHandler extends UI5Handler instanceof XmlAttribute {
+  string handlerName;
+  string notation;
+
+  XmlHandler() {
+    notation = XmlAttribute.super.getValue() and
+    handlerName = handlerNotationCapture(notation) and
+    XmlAttribute.super.getElement() instanceof XmlControl
+  }
+
+  override string getPath() { result = notation }
+
+  override UI5Control getControl() { result = XmlAttribute.super.getElement().(XmlControl) }
+
+  override FunctionNode getDefinition() {
+    result = this.getControl().getController().getAMethod() and
+    result.getName() = handlerName
+  }
+
+  override string toString() { result = XmlAttribute.super.toString() }
 }

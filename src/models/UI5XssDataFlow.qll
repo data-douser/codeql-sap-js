@@ -73,7 +73,8 @@ module PathGraph {
       DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
       DataFlow::FlowLabel outLabel
     ) {
-      super.isAdditionalFlowStep(start, end, inLabel, outLabel) or
+      super.isAdditionalFlowStep(start, end, inLabel, outLabel)
+      or
       UI5Shared::isAdditionalFlowStep(start, end, inLabel, outLabel)
     }
 

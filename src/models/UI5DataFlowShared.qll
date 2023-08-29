@@ -54,18 +54,10 @@ module UI5Shared {
       or
       /* 2. Model property being the intermediate flow node */
       // JS object property (corresponding to binding path) -> getProperty('/path')
-      exists(UI5BoundNode p, GetBoundValue getP |
-        start = p and
-        end = getP and
-        p = getP.getBind()
-      )
+      start = end.(GetBoundValue).getBind()
       or
       // setProperty('/path') -> JS object property (corresponding to binding path)
-      exists(UI5BoundNode p, SetBoundValue setP |
-        start = setP and
-        end = p and
-        p = setP.getBind()
-      )
+      end = start.(SetBoundValue).getBind()
       // or
       /* 3. Argument to JSONModel constructor being the intermediate flow node */
       // exists(UI5 model, GetBoundValue getP |
@@ -117,7 +109,14 @@ module UI5Shared {
       // direct read access to a binding path
       this.getCalleeName() = ["getProperty", "getObject"] and
       bind.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
-      bind.getBindingPath().getModel() = this.getReceiver().getALocalSource()
+      exists(DataFlow::SourceNode receiverSource, UI5Model model |
+        receiverSource = this.getReceiver().getALocalSource() and
+        model = bind.getBindingPath().getModel()
+      |
+        model = receiverSource
+        or
+        model.getController().getAModelReference() = receiverSource
+      )
     }
 
     UI5BoundNode getBind() { result = bind }
@@ -135,7 +134,16 @@ module UI5Shared {
         this = setProp.getArgument(1) and
         setProp.getCalleeName() = ["setProperty", "setObject"] and
         bind.getBindingPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
-        bind.getBindingPath().getModel() = setProp.getReceiver().getALocalSource()
+        exists(DataFlow::SourceNode receiverSource, UI5Model model |
+          receiverSource = setProp.getReceiver().getALocalSource()
+        |
+          model = bind.getBindingPath().getModel() and
+          (
+            model = receiverSource
+            or
+            model.getController().getAModelReference() = receiverSource
+          )
+        )
       )
     }
 
