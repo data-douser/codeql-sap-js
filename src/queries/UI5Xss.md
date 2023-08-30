@@ -89,7 +89,7 @@ The issue can be resolved by using an expression binding that denotes applying a
 ``` xml
 <sap.ui.core.mvc.View controllerName="vulnerable.controller.app">
   <sap.m.Input value="{/input}" />
-  <sap.ui.core.HTML conten="sap.base.security.encodeXML({/input})"
+  <sap.ui.core.HTML content="sap.base.security.encodeXML({/input})"
   sanitizeContent="true" />
 </sap.ui.core.mvc.View>
 ```
