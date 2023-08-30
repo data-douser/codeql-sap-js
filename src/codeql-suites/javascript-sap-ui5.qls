@@ -1,6 +1,0 @@
-- qlpack: advanced-security/javascript-sap-ui5-queries
-- exclude:
-    id:
-      - js/log-injection
-      - js/missing-x-frame-options
-      - js/xss
