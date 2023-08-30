@@ -37,7 +37,7 @@ jobs:
       env:
         CODEQL_PATH: ${{ steps.init.outputs.codeql-path }}
       run: |
-        $CODEQL_PATH test run --no-show-extractor-output --format=json --threads=0 --verbosity=errors ./test | 
-        jq -r '.|sort_by(.pass)|.[]|"\(if .pass then "✅" else "❌" end) \(.test)<br/>"' >> results.md
+        $CODEQL_PATH test run --no-show-extractor-output --format=json --threads=0 --verbosity=errors ./test |
+        jq -r '.|sort_by(.pass)|.[]|"\(if .pass then "✅" else "❌" end) \(.test / "/test/" | .[1])  "' >> results.md
         cat results.md >> $GITHUB_STEP_SUMMARY
-        if grep -q "❌" results.md; then echo "Some test failed, see the summary." && exit 1; fi
+        if grep -n "❌" results.md; then exit 1; fi
