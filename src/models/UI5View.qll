@@ -24,7 +24,7 @@ private string getASuperType(string base) {
  */
 bindingset[property]
 private string bindingPathCapture(string property) {
-  property.matches("{%}") and
+  //property.matches("{%}") and
   exists(string pattern |
     // matches "Control>country"
     pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
@@ -34,6 +34,9 @@ private string bindingPathCapture(string property) {
       or
       // object {other:{foo:'bar'} path: 'Result>country'}
       result = property.regexpCapture("(?s)\\{[^\"]*path\\s*:\\s*'" + pattern + "'[^\"]*\\}", 1)
+      or
+      // event handler simple parameter .doSomething(${/input})
+      result = property.regexpCapture("(?s)\\.[\\w-]+\\(\\$\\{" + pattern + "\\}\\)", 1)
     )
   )
 }
@@ -610,11 +613,6 @@ private string handlerNotationCaptureName(string notation) {
   result = notation.regexpCapture("\\.([\\w-]+)(?:\\([^)]*\\$(\\{[^}]+}).*)?", 1)
 }
 
-bindingset[notation]
-private string handlerNotationCaptureBinding(string notation) {
-  result = notation.regexpCapture("\\.([\\w-]+)(?:\\([^)]*\\$(\\{[^}]+}).*)?", 2)
-}
-
 /**
  * Function referenced in a Control property.
  * e.g. the function `doSomething()` referred in `<Button press=".doSomething"/>`
@@ -625,6 +623,14 @@ class UI5Handler extends FunctionNode {
   UI5Handler() {
     this = control.getController().getAMethod() and
     handlerNotationCaptureName(control.getAProperty(_).getValue()) = this.getName()
+  }
+
+  UI5BindingPath getBindingPath() {
+    exists(string propName |
+      handlerNotationCaptureName(control.getAProperty(propName).getValue()) = this.getName() and
+      //result.control
+      result = control.getAProperty(result.getPropertyName())
+    )
   }
 
   UI5Control getControl() { result = control }

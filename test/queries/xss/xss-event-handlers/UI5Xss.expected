@@ -1,0 +1,29 @@
+nodes
+| webapp/controller/app.controller.js:9:17:9:52 | input |
+| webapp/controller/app.controller.js:9:25:9:52 | oModel. ... input') |
+| webapp/controller/app.controller.js:10:44:10:48 | input |
+| webapp/controller/app.controller.js:12:33:12:45 | modelProperty |
+| webapp/controller/app.controller.js:14:44:14:56 | modelProperty |
+| webapp/controller/app.controller.js:31:17:31:27 | input: null |
+| webapp/controller/app.controller.js:32:17:32:29 | output1: null |
+| webapp/controller/app.controller.js:33:17:33:29 | output2: null |
+| webapp/view/app.view.xml:5:5:7:28 | value={/input} |
+| webapp/view/app.view.xml:9:5:9:38 | content={/output1} |
+| webapp/view/app.view.xml:11:5:11:68 | press=.doSomething2(${/input}) |
+| webapp/view/app.view.xml:12:5:12:38 | content={/output2} |
+| webapp/view/app.view.xml:17:5:17:38 | content={/output3} |
+edges
+| webapp/controller/app.controller.js:9:17:9:52 | input | webapp/controller/app.controller.js:10:44:10:48 | input |
+| webapp/controller/app.controller.js:9:25:9:52 | oModel. ... input') | webapp/controller/app.controller.js:9:17:9:52 | input |
+| webapp/controller/app.controller.js:10:44:10:48 | input | webapp/controller/app.controller.js:32:17:32:29 | output1: null |
+| webapp/controller/app.controller.js:12:33:12:45 | modelProperty | webapp/controller/app.controller.js:14:44:14:56 | modelProperty |
+| webapp/controller/app.controller.js:14:44:14:56 | modelProperty | webapp/controller/app.controller.js:33:17:33:29 | output2: null |
+| webapp/controller/app.controller.js:31:17:31:27 | input: null | webapp/controller/app.controller.js:9:25:9:52 | oModel. ... input') |
+| webapp/controller/app.controller.js:31:17:31:27 | input: null | webapp/controller/app.controller.js:12:33:12:45 | modelProperty |
+| webapp/controller/app.controller.js:32:17:32:29 | output1: null | webapp/view/app.view.xml:9:5:9:38 | content={/output1} |
+| webapp/controller/app.controller.js:33:17:33:29 | output2: null | webapp/view/app.view.xml:12:5:12:38 | content={/output2} |
+| webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:31:17:31:27 | input: null |
+#select
+| webapp/view/app.view.xml:9:5:9:38 | content={/output1} | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/view/app.view.xml:9:5:9:38 | content={/output1} | XSS vulnerability due to $@. | webapp/view/app.view.xml:5:5:7:28 | value={/input} | user-provided value |
+| webapp/view/app.view.xml:12:5:12:38 | content={/output2} | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/view/app.view.xml:12:5:12:38 | content={/output2} | XSS vulnerability due to $@. | webapp/view/app.view.xml:5:5:7:28 | value={/input} | user-provided value |
+!!2 more findings!! missing

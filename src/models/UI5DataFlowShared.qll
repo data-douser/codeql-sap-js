@@ -41,6 +41,15 @@ module UI5Shared {
     (
       bidiModelControl(start, end)
       or
+      // handler argument node to handler parameter
+      exists(UI5Handler h |
+        start = h.getBindingPath().getNode() and
+        // ideally we would like to show an intermediate node where
+        // the handler is bound to a control, but there is no sourceNode there
+        // `end = h.getBindingPath() or start = h.getBindingPath()`
+        end = h.getParameter(0)
+      )
+      or
       /* 1. Control metadata property being the intermediate flow node */
       exists(string propName, Metadata metadata |
         // writing site -> control metadata
