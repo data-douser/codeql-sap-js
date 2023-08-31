@@ -629,3 +629,16 @@ class UI5Handler extends FunctionNode {
 
   UI5Control getControl() { result = control }
 }
+
+/**
+ * Models controller references in event handlers as types
+ */
+class ControlTypeInHandlerModel extends ModelInput::TypeModel {
+  override DataFlow::CallNode getASource(string type) {
+    exists(UI5Handler h |
+      result.getCalleeName() = "getSource" and
+      result.getReceiver().getALocalSource() = h.getParameter(0) and
+      type = h.getControl().getTypeName()
+    )
+  }
+}

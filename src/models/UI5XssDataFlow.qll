@@ -103,19 +103,6 @@ module PathGraph {
   }
 
   /**
-   * Models controller references in event handlers as types
-   */
-  class ControlInHandlerModel extends ModelInput::TypeModel {
-    override DataFlow::CallNode getASource(string type) {
-      exists(UI5Handler h |
-        result.getCalleeName() = "getSource" and
-        result.getReceiver().getALocalSource() = h.getParameter(0) and
-        type = h.getControl().getTypeName()
-      )
-    }
-  }
-
-  /**
    * An remote source associated with a `UI5BoundNode`
    */
   class UI5ModelSource extends UI5Shared::UI5BoundNode, DomBasedXss::Source {
