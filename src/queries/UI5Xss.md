@@ -49,7 +49,7 @@ sap.ui.define(["sap/ui/core/Control", "sap/base/security/encodeXML"], function (
             apiVersion: 2,
             render: function (oRm, oControl) {
                 oRm.openStart("div", oControl);
-                oRm.unsafeHtml(encodeXML(oControl.getText()); // 2. use security functions
+                oRm.unsafeHtml(encodeXML(oControl.getText()); // encode with security functions
             
     oRm.close("div");
             }
