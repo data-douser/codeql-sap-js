@@ -1,6 +1,6 @@
 # Clickjacking
 
-If a UI5 application does not explicitly set its frame options to `deny`, then it allows the application to be embedded in a overlaid child frame of a webpage of an unrelated domain. This can trick the user to unknowingly trigger operations of the application, while the user thinks it is the embedding webpage that is being interacted with.
+UI5 applications that do not explicitly set the frame options to `deny` may be vulnerable to UI redress attacks (”clickjacking”). In these attacks, the vulnerable site is loaded in a frame on an attacker-controlled site which uses opaque or transparent layers to trick the user into unintentionally clicking a button or link on the vulnerable site.
 
 ## Recommendation
 
