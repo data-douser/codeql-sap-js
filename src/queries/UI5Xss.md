@@ -13,8 +13,7 @@ If the XSS attack vector includes a user-defined control, then we can mitigate t
 
 ### Preventing XSS Not Involving User Defined Control
 
-An XSS attack vector can still exist even when no user-defined control is used. In this case, a model property or a control property act as a intermediate step when external data is passed. The view component of a UI5 application can be declared such that one control can funnel its property value to that of another.
-
+An XSS attack vector can still exist even when no user-defined control is used. In this case, a model property or a control property act as an intermediate step when external data is passed in.
 In this case, the UI5 application should not use the property as is, but should sanitize the contents before reading it. Such sanitization can take place in the controller or in the view declaration using expression bindings.
 
 ## Example
