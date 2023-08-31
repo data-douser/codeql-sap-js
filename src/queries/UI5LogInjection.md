@@ -1,12 +1,10 @@
 # Log Injection
 
-A UI5 application may leak sensitive information through its logging facility if it directly or indirectly passes the data around which ends up in a logging function provided by UI5. It is also possible that a malicious actor submits a crafted user input which might lead to forging log entries.
+If an untrusted input, possibly through a UI5 control, is not sanitized and passed onto a logging function, it is possible that a malicious actor submits a crafted input which might lead to forging log entries. If the entries are logged as plaintext, then newline characters may be inserted by the malicious actor. If the entry is interpreted as HTML, then artitrary HTML code my be included to forge log entries.
 
 ## Recommendation
 
-The author of the application should be aware of what sensitive information there is, prepare appropriate sanitizers such as anonymizing functions, and keep check of how and whether the logged information is being sanitized.
-
-Also, avoid directly logging untrusted input from a remote source. Only log parts of the input, not the whole content, so that it becomes indistinguishable from system-generated log messages.
+Avoid directly logging untrusted input from a remote source and sanitize it by replaceing characters so that the input no longer contains control characters and substrings that may be interpreted as HTML.
 
 ## Examples
 
@@ -41,5 +39,6 @@ sap.ui.define(
 
 ## References
 
+- OWASP: [Log Injection](https://owasp.org/www-community/attacks/Log_Injection)
 - OWASP: [Log Injection Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
 - SAP: [namespace `sap/base/Log`](https://sapui5.hana.ondemand.com/sdk/#api/module:sap/base/Log)
