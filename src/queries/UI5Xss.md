@@ -5,6 +5,7 @@ Receiving text from the user, most notably through a control, and rendering it a
 ## Recommendation
 
 ### Preventing XSS Involving User Defined Control
+
 If the XSS attack vector includes a user-defined control, then we can mitigate the issue by sanitizing the user-provided input in the implementation of the control:
 - Where possible, define the property type to something other than `string` or `any`. If a value should be used, then opt for the `enum` type which only allows a predefined set of strings.
 - Use escaping functions in `sap.base.security`. Relevant sanitizers include `encodeXML` and `encodeHTML`.
