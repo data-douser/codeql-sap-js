@@ -38,17 +38,17 @@ sap.ui.define(["sap/ui/core/Control"], function (Control) {
 })
 ```
 
-This is the same custom control without the possibility of XSS using several means of sanitization: The property `text` is enforced to a non-string type, hence disallows unrestricted strings. Also, the `sap.base.security.encodeXML` function is used to escape HTML control characters.
+This is the same custom control without the possibility of XSS using several means of sanitization: The property `text` is enforced to a non-string type, hence disallows unrestricted strings (This is espcially applicable if the expected input is a number anyways). Also, the `sap.base.security.encodeXML` function is used to escape HTML control characters.
 
 ```javascript
 sap.ui.define(["sap/ui/core/Control", "sap/base/security/encodeXML"], function (Control, encodeXML) {
     return Control.extend("vulnerable.control.xss", {
-        metadata: { properties: { text: { type: "int" } } }, // 1. constrain the type
+        metadata: { properties: { text: { type: "int" } } }, // constrain the type
         renderer: {
             apiVersion: 2,
             render: function (oRm, oControl) {
                 oRm.openStart("div", oControl);
-                oRm.unsafeHtml(encodeXML(oControl.getText()); // encode with security functions
+                oRm.unsafeHtml(encodeXML(oControl.getText()); // encode using security functions
             
     oRm.close("div");
             }
