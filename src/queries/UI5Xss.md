@@ -82,13 +82,12 @@ sap.ui.define(["sap/ui/core/mvc/Controller", "sap/ui/model/json/JSONModel"],
 );
 ```
 
-The issue can be resolved by using an expression binding that applies a sanitizer to the data, or setting the `HTML` control's `sanitizeContent` attribute to true.
+The issue can be resolved by setting the `HTML` control's `sanitizeContent` attribute to true.
 
 ``` xml
 <sap.ui.core.mvc.View controllerName="vulnerable.controller.app">
   <sap.m.Input value="{/input}" />
-  <sap.ui.core.HTML content="sap.base.security.encodeXML({/input})"
-  sanitizeContent="true" />
+  <sap.ui.core.HTML content="{/input}" sanitizeContent="true" />
 </sap.ui.core.mvc.View>
 ```
 
