@@ -37,6 +37,7 @@ sap.ui.define(
     });
   },
 );
+```
 
 ## References
 
