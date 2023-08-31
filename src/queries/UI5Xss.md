@@ -5,12 +5,11 @@ Receiving text from the user, most notably through a control, and rendering it a
 ## Recommendation
 
 ### Preventing XSS Involving User Defined Control
- If the XSS attack vector includes a user-defined control, then we can mitigate the issue by improving on the implementation of the control. Specifically, we can change the method calls on instances of `sap.ui.core.RenderManager` (henceforth `RenderManager`).
-
+If the XSS attack vector includes a user-defined control, then we can mitigate the issue by sanitizing the user-provided input in the implementation of the control:
+- Where possible, define the property type to something other than `string` or `any`. If a value should be used, then opt for the `enum` type which only allows a predefined set of strings.
+- Use escaping functions in `sap.base.security`. Relevant sanitizers include `encodeXML` and `encodeHTML`.
+- When using API  with `apiVersion: 2` (Semantic Rendering), do not use `RenderManager.unsafeHtml` unless the control property `sanitizeContent` is set to `true`.
 - When using the now-deprecated older API with `RenderManager.write` or `RenderManager.writeAttribute`, use their respective counterparts `RenderManager.writeEscaped` and `RenderManager.writeAttributeEscaped` which sanitizes their rendered contents.
-- When using the newer API  with `apiVersion: 2` (dubbed Semantic Rendering), do not use `RenderManager.unsafeHtml` unless the control property `sanitizeContent` is set to `true`.
-- Regardless of the API version, it is also a good idea to use escaping functions in `sap.base.security`. Relevant sanitizers include `encodeXML` and `encodeHTML`.
-- Lastly, enforce the property to something other than `string` or `any`. If a value should be used, then opt for the `enum` type which only allows a predefined set of strings.
 
 ### Preventing XSS Not Involving User Defined Control
 
