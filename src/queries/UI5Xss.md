@@ -13,8 +13,7 @@ If the XSS attack vector includes a user-defined control, then we can mitigate t
 
 ### Preventing XSS Not Involving User Defined Control
 
-An XSS attack vector can still exist even when no user-defined control is used. In this case, a model property or a control property act as a intermediate step when external data is passed. The view component of a UI5 application can be declared such that one control can funnel its property value to that of another.
-
+An XSS attack vector can still exist even when no user-defined control is used. In this case, a model property or a control property act as an intermediate step when external data is passed in.
 In this case, the UI5 application should not use the property as is, but should sanitize the contents before reading it. Such sanitization can take place in the controller or in the view declaration using expression bindings.
 
 ## Example
@@ -49,7 +48,7 @@ sap.ui.define(["sap/ui/core/Control", "sap/base/security/encodeXML"], function (
             apiVersion: 2,
             render: function (oRm, oControl) {
                 oRm.openStart("div", oControl);
-                oRm.unsafeHtml(encodeXML(oControl.getText()); // 2. use security functions
+                oRm.unsafeHtml(encodeXML(oControl.getText()); // encode with security functions
             
     oRm.close("div");
             }
@@ -83,7 +82,7 @@ sap.ui.define(["sap/ui/core/mvc/Controller", "sap/ui/model/json/JSONModel"],
 );
 ```
 
-The issue can be resolved by using an expression binding that denotes applying a sanitizer to the data binding path, or by setting the `HTML` control's `sanitizeContent` attribute to true.
+The issue can be resolved by using an expression binding that applies a sanitizer to the data, or setting the `HTML` control's `sanitizeContent` attribute to true.
 
 ``` xml
 <sap.ui.core.mvc.View controllerName="vulnerable.controller.app">
