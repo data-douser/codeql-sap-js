@@ -66,9 +66,14 @@ abstract class UI5BindingPath extends Locatable {
   abstract string getPropertyName();
 
   /**
+   * Return the qualified type of the associated Control
+   */
+  abstract string getControlQualifiedType();
+
+  /**
    * Return the name of the associated Control
    */
-  abstract string getControlName();
+  string getControlTypeName() { result = this.getControlQualifiedType().replaceAll(".", "/") }
 
   /**
    * Get the model declaration, which this data binding refers to in a Controller
@@ -162,7 +167,7 @@ class JsonBindingPath extends UI5BindingPath, JsonValue {
 
   override string getPropertyName() { this = any(JsonValue v).getPropValue(result) }
 
-  override string getControlName() {
+  override string getControlQualifiedType() {
     exists(JsonObject control |
       this = control.getPropValue(this.getPropertyName()) and
       result = control.getPropStringValue("Type")
@@ -201,7 +206,7 @@ class JsView extends UI5View {
   override JsBindingPath getASource() {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
-      type = result.getControlName().replaceAll(".", "/") and
+      type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropertyByName(property)
@@ -211,7 +216,7 @@ class JsView extends UI5View {
   override JsBindingPath getAnHtmlISink() {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
-      type = result.getControlName().replaceAll(".", "/") and
+      type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropertyByName(property)
@@ -232,7 +237,7 @@ class JsonView extends UI5View {
   override JsonBindingPath getASource() {
     exists(JsonObject control, string type, string path, string property |
       root = control.getParent+() and
-      type = result.getControlName().replaceAll(".", "/") and
+      type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropValue(property)
@@ -242,7 +247,7 @@ class JsonView extends UI5View {
   override JsonBindingPath getAnHtmlISink() {
     exists(JsonObject control, string type, string path, string property |
       root = control.getParent+() and
-      type = result.getControlName().replaceAll(".", "/") and
+      type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropValue(property)
@@ -272,7 +277,7 @@ class JsBindingPath extends UI5BindingPath, Property {
   private string dotExprToString(DotExpr dot) { result = dotExprToStringInner(dot) }
 
   /* `new sap.m.Input({...})` => `"sap.m.Input"` */
-  override string getControlName() {
+  override string getControlQualifiedType() {
     result =
       dotExprToString(this.getInit().(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr))
   }
@@ -304,7 +309,7 @@ class HtmlBindingPath extends UI5BindingPath, HTML::Attribute {
 
   override string getPropertyName() { this = any(HTML::Element v).getAttributeByName(result) }
 
-  override string getControlName() {
+  override string getControlQualifiedType() {
     exists(HTML::Element control |
       this = control.getAttributeByName(this.getPropertyName()) and
       result = control.getAttributeByName("data-sap-ui-type").getValue()
@@ -328,7 +333,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
   override HtmlBindingPath getASource() {
     exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
-      type = result.getControlName().replaceAll(".", "/") and
+      type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttributeByName("data-" + property)
@@ -338,7 +343,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
   override HtmlBindingPath getAnHtmlISink() {
     exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
-      type = result.getControlName().replaceAll(".", "/") and
+      type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttributeByName("data-" + property)
@@ -373,7 +378,7 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
 
   override string getPropertyName() { result = XmlAttribute.super.getName() }
 
-  override string getControlName() {
+  override string getControlQualifiedType() {
     exists(XmlElement control |
       control = XmlAttribute.super.getElement() and
       this = control.getAttribute(this.getPropertyName()) and
@@ -404,7 +409,7 @@ class XmlView extends UI5View, XmlFile {
   override XmlBindingPath getASource() {
     exists(XmlElement control, string type, string path, string property |
       this = control.getFile() and
-      type = result.getControlName().replaceAll(".", "/") and
+      type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
@@ -414,7 +419,7 @@ class XmlView extends UI5View, XmlFile {
   override XmlBindingPath getAnHtmlISink() {
     exists(XmlElement control, string type, string path, string property |
       this = control.getFile() and
-      type = result.getControlName().replaceAll(".", "/") and
+      type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
@@ -461,6 +466,9 @@ abstract class UI5Control extends Locatable {
   /** Get the qualified type string, e.g. `sap.m.SearchField` */
   abstract string getQualifiedType();
 
+  /** Get the qualified type name, e.g. `sap/m/SearchField` */
+  string getTypeName() { result = this.getQualifiedType().replaceAll(".", "/") }
+
   /** Get the JS Control definition if this is a custom control. */
   abstract Extension getJSDefinition();
 
@@ -497,9 +505,6 @@ abstract class UI5Control extends Locatable {
 
   /** Get the view that this control is part of. */
   abstract UI5View getView();
-
-  /** If any, get the handler that this control accesses. */
-  abstract FunctionNode getHandler();
 
   /** Get the controller that manages this control. */
   CustomController getController() { result = this.getView().getController() }
@@ -577,7 +582,7 @@ class XmlControl extends UI5Control, XmlElement {
   override predicate isXssSource() {
     exists(XmlView view, string type, string path, string property |
       view = XmlElement.super.getParent+() and
-      type = this.getQualifiedType().replaceAll(".", "/") and
+      type = this.getTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1)
     )
@@ -586,7 +591,7 @@ class XmlControl extends UI5Control, XmlElement {
   override predicate isXssSink() {
     exists(XmlView view, string type, string path, string property |
       view = XmlElement.super.getParent+() and
-      type = this.getQualifiedType().replaceAll(".", "/") and
+      type = this.getTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
       property = path.regexpCapture("Instance\\.Member\\[([^\\]]+)\\]", 1)
     )
@@ -594,51 +599,33 @@ class XmlControl extends UI5Control, XmlElement {
 
   override UI5View getView() { result = XmlElement.super.getParent+().(XmlView) }
 
-  override FunctionNode getHandler() {
-    result = XmlElement.super.getAnAttribute().(XmlHandler).getDefinition()
-  }
-
   override string toString() { result = XmlElement.super.toString() }
-}
-
-abstract class UI5Handler extends Locatable {
-  /** Get the control that this handler notation is part of. */
-  abstract string getPath();
-
-  abstract UI5Control getControl();
-
-  CustomController getController() { result = this.getControl().getController() }
-
-  /** Get the definition of the handler being referred to. */
-  abstract FunctionNode getDefinition();
 }
 
 /**
  *  Utility predicate capturing the handler name.
  */
 bindingset[notation]
-private string handlerNotationCapture(string notation) {
-  result = notation.regexpCapture("\\.([a-zA-Z0-9]+)(\\(.*\\))?", 1)
+private string handlerNotationCaptureName(string notation) {
+  result = notation.regexpCapture("\\.([\\w-]+)(?:\\([^)]*\\$(\\{[^}]+}).*)?", 1)
 }
 
-class XmlHandler extends UI5Handler instanceof XmlAttribute {
-  string handlerName;
-  string notation;
+bindingset[notation]
+private string handlerNotationCaptureBinding(string notation) {
+  result = notation.regexpCapture("\\.([\\w-]+)(?:\\([^)]*\\$(\\{[^}]+}).*)?", 2)
+}
 
-  XmlHandler() {
-    notation = XmlAttribute.super.getValue() and
-    handlerName = handlerNotationCapture(notation) and
-    XmlAttribute.super.getElement() instanceof XmlControl
+/**
+ * Function referenced in a Control property.
+ * e.g. the function `doSomething()` referred in `<Button press=".doSomething"/>`
+ */
+class UI5Handler extends FunctionNode {
+  UI5Control control;
+
+  UI5Handler() {
+    this = control.getController().getAMethod() and
+    handlerNotationCaptureName(control.getAProperty(_).getValue()) = this.getName()
   }
 
-  override string getPath() { result = notation }
-
-  override UI5Control getControl() { result = XmlAttribute.super.getElement().(XmlControl) }
-
-  override FunctionNode getDefinition() {
-    result = this.getControl().getController().getAMethod() and
-    result.getName() = handlerName
-  }
-
-  override string toString() { result = XmlAttribute.super.toString() }
+  UI5Control getControl() { result = control }
 }

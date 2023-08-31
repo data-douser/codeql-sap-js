@@ -15,12 +15,12 @@ module UI5Shared {
       p.isInThisProject(node.getFile()) and
       (
         // same control
-        metadata.getControl().getName() = node.getBindingPath().getControlName()
+        metadata.getControl().getName() = node.getBindingPath().getControlQualifiedType()
         or
         // extended control
         exists(Extension subclass |
           metadata.getControl().getDefine().getExtendingDefine() = subclass.getDefine() and
-          node.getBindingPath().getControlName() = subclass.getName()
+          node.getBindingPath().getControlQualifiedType() = subclass.getName()
         )
       ) and
       property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
