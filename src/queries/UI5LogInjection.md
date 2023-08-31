@@ -41,5 +41,5 @@ sap.ui.define(
 
 ## References
 
-- OWASP: [Log Injection](https://www.owasp.org/index.php/Log_Injection)
+- OWASP: [Log Injection Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html)
 - SAP: [namespace `sap/base/Log`](https://sapui5.hana.ondemand.com/sdk/#api/module:sap/base/Log)
