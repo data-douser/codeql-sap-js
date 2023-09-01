@@ -89,10 +89,13 @@ abstract class UI5BindingPath extends Locatable {
   }
 
   DataFlow::PropWrite getNode() {
-    exists(Property p, JsonModel model |
+    exists(Property p, JsonModel model, Project project |
       // The property bound to an UI5View source
       result.getPropertyNameExpr() = p.getNameExpr() and
-      this.getAbsolutePath() = model.getPathString(p)
+      this.getAbsolutePath() = model.getPathString(p) and
+      //restrict search inside the same project
+      project.isInThisProject(this.getFile()) and
+      project.isInThisProject(result.getFile())
     )
     // TODO
     /*
