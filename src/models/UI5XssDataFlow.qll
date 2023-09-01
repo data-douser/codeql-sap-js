@@ -57,7 +57,13 @@ module PathGraph {
   }
 
   query predicate edges(UI5PathNode pred, UI5PathNode succ) {
-    DataFlowPathGraph::edges(pred.asDataFlowPathNode(), succ.asDataFlowPathNode())
+    // all dataflow edges
+    DataFlowPathGraph::edges(pred.asDataFlowPathNode(), succ.asDataFlowPathNode()) and
+    // exclude duplicate edge from model to handler parameter
+    not exists(UI5Handler h |
+      pred.asDataFlowPathNode().getNode() = h.getBindingPath().getNode() and
+      succ.asDataFlowPathNode().getNode() = h.getParameter(0)
+    )
     or
     pred.asUI5BindingPathNode() =
       succ.asDataFlowPathNode().getNode().(UI5ModelSource).getBindingPath() and
@@ -66,6 +72,14 @@ module PathGraph {
     succ.asUI5BindingPathNode() =
       pred.asDataFlowPathNode().getNode().(UI5ModelSink).getBindingPath() and
     succ.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
+    or
+    // flow to event handler parameter through the binding argument
+    pred.asDataFlowPathNode().getNode() = succ.asUI5BindingPathNode().getNode()
+    or
+    exists(UI5Handler h |
+      pred.asUI5BindingPathNode() = h.getBindingPath() and
+      succ.asDataFlowPathNode().getNode() = h.getParameter(0)
+    )
   }
 
   class UI5XssConfiguration extends DomBasedXss::Configuration {

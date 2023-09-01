@@ -4,6 +4,7 @@ nodes
 | webapp/view/app.view.js:21:13:21:31 | content: "{/input}" |
 edges
 | webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/controller/app.controller.js:9:17:9:27 | input: null |
+| webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/view/app.view.js:18:13:18:29 | value: "{/input}" |
 | webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/view/app.view.js:21:13:21:31 | content: "{/input}" |
 | webapp/view/app.view.js:18:13:18:29 | value: "{/input}" | webapp/controller/app.controller.js:9:17:9:27 | input: null |
 #select

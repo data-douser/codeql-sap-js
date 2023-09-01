@@ -28,4 +28,3 @@ edges
 #select
 | webapp/view/app.view.xml:9:5:9:39 | content={/output1} | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/view/app.view.xml:9:5:9:39 | content={/output1} | XSS vulnerability due to $@. | webapp/view/app.view.xml:5:5:7:28 | value={/input} | user-provided value |
 | webapp/view/app.view.xml:12:5:12:39 | content={/output2} | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/view/app.view.xml:12:5:12:39 | content={/output2} | XSS vulnerability due to $@. | webapp/view/app.view.xml:5:5:7:28 | value={/input} | user-provided value |
-!!2 more findings!! missing
