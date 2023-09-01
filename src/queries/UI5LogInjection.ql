@@ -12,11 +12,35 @@
  */
 
 import javascript
-import models.UI5LogInjectionDataFlow::PathGraph
+import models.UI5DataFlowShared
+import models.UI5DataFlowShared::UI5PathGraph
+import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjection
+
+class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfiguration {
+  override predicate isAdditionalFlowStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
+    DataFlow::FlowLabel outLabel
+  ) {
+    super.isAdditionalFlowStep(start, end, inLabel, outLabel)
+    or
+    UI5DataFlow::isAdditionalFlowStep(start, end, inLabel, outLabel)
+  }
+}
+
+/**
+ * An remote source associated with a `UI5BoundNode`
+ */
+class UI5ModelSource extends UI5DataFlow::UI5ModelSource, LogInjection::Source { }
+
+/**
+ * A log-injection sink associated with a `UI5BoundNode`
+ */
+class UI5ModelSink extends UI5DataFlow::UI5ModelSink, LogInjection::Sink { }
 
 from
-  UI5LogInjectionConfiguration cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource,
-  UI5PathNode primarySink
+  UI5LogInjectionConfiguration cfg, UI5PathGraph::UI5PathNode source,
+  UI5PathGraph::UI5PathNode sink, UI5PathGraph::UI5PathNode primarySource,
+  UI5PathGraph::UI5PathNode primarySink
 where
   cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
   primarySource = source.getAPrimarySource() and

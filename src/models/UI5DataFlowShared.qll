@@ -2,8 +2,9 @@ import javascript
 import models.UI5::UI5
 import models.UI5View
 import models.UI5AMDModule
+private import DataFlow::PathGraph as DataFlowPathGraph
 
-module UI5Shared {
+module UI5DataFlow {
   /**
    * Additional Flow Step:
    * Binding path in the model <-> control metadata
@@ -109,6 +110,25 @@ module UI5Shared {
   }
 
   /**
+   * An remote source associated with a `UI5BoundNode`
+   */
+  class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
+    UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
+  }
+
+  /**
+   * An html injection sink associated with a `UI5BoundNode`
+   */
+  class UI5ModelSink extends UI5DataFlow::UI5BoundNode {
+    UI5View view;
+
+    UI5ModelSink() {
+      not view.getController().getModel().(JsonModel).isOneWayBinding() and
+      bindingPath = view.getAnHtmlISink()
+    }
+  }
+
+  /**
    * Models calls to `Model.getProperty` and `Model.getObject`
    */
   class GetBoundValue extends DataFlow::CallNode {
@@ -157,5 +177,85 @@ module UI5Shared {
     }
 
     UI5BoundNode getBind() { result = bind }
+  }
+}
+
+module UI5PathGraph {
+  newtype TNode =
+    TUI5BindingPathNode(UI5BindingPath path) or
+    TDataFlowPathNode(DataFlow::Node node)
+
+  class UI5PathNode extends TNode {
+    DataFlow::PathNode asDataFlowPathNode() { this = TDataFlowPathNode(result.getNode()) }
+
+    UI5BindingPath asUI5BindingPathNode() { this = TUI5BindingPathNode(result) }
+
+    string toString() {
+      result = this.asDataFlowPathNode().toString()
+      or
+      result = this.asUI5BindingPathNode().toString()
+    }
+
+    predicate hasLocationInfo(
+      string filepath, int startline, int startcolumn, int endline, int endcolumn
+    ) {
+      this.asDataFlowPathNode()
+          .getNode()
+          .hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+      or
+      this.asUI5BindingPathNode()
+          .getLocation()
+          .hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+    }
+
+    UI5PathNode getAPrimarySource() {
+      not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5BoundNode and
+      this.asDataFlowPathNode() = result.asDataFlowPathNode()
+      or
+      this.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
+        result.asUI5BindingPathNode() and
+      result.asUI5BindingPathNode() = any(UI5View view).getASource()
+    }
+
+    UI5PathNode getAPrimarySink() {
+      not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5BoundNode and
+      this.asDataFlowPathNode() = result.asDataFlowPathNode()
+      or
+      this.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
+        result.asUI5BindingPathNode() and
+      result.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
+    }
+  }
+
+  query predicate nodes(UI5PathNode nd) {
+    exists(nd.asUI5BindingPathNode())
+    or
+    DataFlowPathGraph::nodes(nd.asDataFlowPathNode())
+  }
+
+  query predicate edges(UI5PathNode pred, UI5PathNode succ) {
+    // all dataflow edges
+    DataFlowPathGraph::edges(pred.asDataFlowPathNode(), succ.asDataFlowPathNode()) and
+    // exclude duplicate edge from model to handler parameter
+    not exists(UI5Handler h |
+      pred.asDataFlowPathNode().getNode() = h.getBindingPath().getNode() and
+      succ.asDataFlowPathNode().getNode() = h.getParameter(0)
+    )
+    or
+    pred.asUI5BindingPathNode() =
+      succ.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
+    pred.asUI5BindingPathNode() = any(UI5View view).getASource()
+    or
+    succ.asUI5BindingPathNode() =
+      pred.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
+    succ.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
+    or
+    // flow to event handler parameter through the binding argument
+    pred.asDataFlowPathNode().getNode() = succ.asUI5BindingPathNode().getNode()
+    or
+    exists(UI5Handler h |
+      pred.asUI5BindingPathNode() = h.getBindingPath() and
+      succ.asDataFlowPathNode().getNode() = h.getParameter(0)
+    )
   }
 }
