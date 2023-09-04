@@ -4,6 +4,13 @@ private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
 private import UI5View
 
 module UI5 {
+  /**
+   * Helper predicate checking if two elements are in the same Project
+   */
+  predicate inSameUI5Project(File f1, File f2) {
+    exists(Project p | p.isInThisProject(f1) and p.isInThisProject(f2))
+  }
+
   class Project extends Folder {
     /**
      * An UI5 project root folder.
@@ -494,20 +501,15 @@ module UI5 {
     MethodCallNode getAWrite(string propName) {
       result.getMethodName() = "setProperty" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-      //same Control
-      exists(Project project |
-        project.isInThisProject(this.getFile()) and
-        project.isInThisProject(result.getFile())
-      )
+      // TODO: in same controller
+      inSameUI5Project(this.getFile(), result.getFile())
     }
 
     bindingset[propName]
     MethodCallNode getARead(string propName) {
       result.getMethodName() = "get" + capitalize(propName) and
-      exists(Project project |
-        project.isInThisProject(this.getFile()) and
-        project.isInThisProject(result.getFile())
-      )
+      // TODO: in same controller
+      inSameUI5Project(this.getFile(), result.getFile())
     }
   }
 }

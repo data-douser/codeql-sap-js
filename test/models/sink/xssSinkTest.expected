@@ -1,7 +1,3 @@
-nodes
-| sink1.xml:5:5:5:44 | content={path: '/input'} |
-edges
-#select
 | sink.js:57:39:57:43 | code0 | code0 |
 | sink.js:93:34:93:38 | code0 | code0 |
 | sink.js:94:19:94:23 | code0 | code0 |

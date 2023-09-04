@@ -10,10 +10,9 @@ module UI5DataFlow {
    * Binding path in the model <-> control metadata
    */
   private predicate bidiModelControl(DataFlow::Node start, DataFlow::Node end) {
-    exists(Project p, DataFlow::SourceNode property, Metadata metadata, UI5BoundNode node |
+    exists(DataFlow::SourceNode property, Metadata metadata, UI5BoundNode node |
       // same project
-      p.isInThisProject(metadata.getFile()) and
-      p.isInThisProject(node.getFile()) and
+      inSameUI5Project(metadata.getFile(), node.getFile()) and
       (
         // same control
         metadata.getControl().getName() = node.getBindingPath().getControlQualifiedType()
@@ -89,22 +88,20 @@ module UI5DataFlow {
 
     UI5BoundNode() {
       /* The relevant portion of the content of a JSONModel */
-      exists(Property p, JsonModel model, Project project |
+      exists(Property p, JsonModel model |
         // The property bound to an UI5View source
         this.(DataFlow::PropRef).getPropertyNameExpr() = p.getNameExpr() and
         // The binding path refers to this model
         bindingPath.getAbsolutePath() = model.getPathString(p) and
-        project.isInThisProject(this.getFile()) and
-        project.isInThisProject(bindingPath.getFile())
+        inSameUI5Project(this.getFile(), bindingPath.getFile())
       )
       or
       /* The URI string to the JSONModel constructor call */
-      exists(JsonModel model, Project project |
+      exists(JsonModel model |
         this = model.getArgument(0) and
         this.asExpr() instanceof StringLiteral and
         bindingPath.getAbsolutePath() = model.getPathString() and
-        project.isInThisProject(this.getFile()) and
-        project.isInThisProject(bindingPath.getFile())
+        inSameUI5Project(this.getFile(), bindingPath.getFile())
       )
     }
   }
@@ -119,10 +116,10 @@ module UI5DataFlow {
   /**
    * An html injection sink associated with a `UI5BoundNode`
    */
-  class UI5ModelSink extends UI5DataFlow::UI5BoundNode {
+  class UI5ModelHtmlISink extends UI5DataFlow::UI5BoundNode {
     UI5View view;
 
-    UI5ModelSink() {
+    UI5ModelHtmlISink() {
       not view.getController().getModel().(JsonModel).isOneWayBinding() and
       bindingPath = view.getAnHtmlISink()
     }

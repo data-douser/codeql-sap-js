@@ -2,6 +2,7 @@
  * @id ui5-bindings
  * @name UI5 bindings
  * @kind problem
+ * @problem.severity error
  */
 
 import javascript

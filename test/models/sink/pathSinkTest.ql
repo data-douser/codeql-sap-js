@@ -2,12 +2,12 @@
  * @id log-sinks
  * @name Path injection sinks
  * @kind problem
+ * @problem.severity error
  */
 
 import javascript
-import models.UI5AMDModule
-import semmle.javascript.security.dataflow.TaintedPathQuery
+import models.UI5DataFlowShared
+import semmle.javascript.security.dataflow.TaintedPathQuery as TaintedPathQuery
 
-from Configuration config, DataFlow::Node sink
-where config.isSink(sink, _)
+from TaintedPathQuery::Sink sink
 select sink, sink.toString()

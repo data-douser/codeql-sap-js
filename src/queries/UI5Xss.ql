@@ -58,7 +58,7 @@ class UI5ModelSource extends UI5DataFlow::UI5ModelSource, DomBasedXss::Source { 
 /**
  * An html injection sink associated with a `UI5BoundNode`
  */
-class UI5ModelSink extends UI5DataFlow::UI5ModelSink, DomBasedXss::Sink { }
+class UI5ModelHtmlISink extends UI5DataFlow::UI5ModelHtmlISink, DomBasedXss::Sink { }
 
 from
   UI5XssConfiguration cfg, UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink,

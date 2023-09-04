@@ -89,13 +89,12 @@ abstract class UI5BindingPath extends Locatable {
   }
 
   DataFlow::PropWrite getNode() {
-    exists(Property p, JsonModel model, Project project |
+    exists(Property p, JsonModel model |
       // The property bound to an UI5View source
       result.getPropertyNameExpr() = p.getNameExpr() and
       this.getAbsolutePath() = model.getPathString(p) and
       //restrict search inside the same project
-      project.isInThisProject(this.getFile()) and
-      project.isInThisProject(result.getFile())
+      inSameUI5Project(this.getFile(), result.getFile())
     )
     // TODO
     /*
@@ -139,9 +138,7 @@ abstract class UI5View extends File {
     // The controller name should match
     result.getName() = this.getControllerName() and
     // The View and the Controller are in a same project
-    exists(Project project |
-      project.isInThisProject(this) and project.isInThisProject(result.getFile())
-    )
+    inSameUI5Project(this, result.getFile())
   }
 
   abstract UI5BindingPath getASource();
@@ -185,7 +182,6 @@ class JsView extends UI5View {
   /* sap.ui.jsview("...", ) { ... } */
   MethodCallNode rootJsViewCall;
 
-  // TODO: It has a lot of spurious rows
   JsView() {
     exists(TopLevel toplevel, Stmt stmt |
       toplevel = unique(TopLevel t | t = this.getATopLevel()) and
@@ -458,10 +454,9 @@ class XmlView extends UI5View, XmlFile {
           builtInControl(element.getNamespace())
           or
           // or a custom control with implementation code found in the project
-          exists(CustomControl control, Project project |
+          exists(CustomControl control |
             control.getName() = element.getNamespace().getUri() + "." + element.getName() and
-            project.isInThisProject(control.getFile()) and
-            project.isInThisProject(element.getFile())
+            inSameUI5Project(control.getFile(), element.getFile())
           )
         )
       )
@@ -537,29 +532,21 @@ class XmlControl extends UI5Control, XmlElement {
 
   override CustomControl getDefinition() {
     result.getName() = this.getQualifiedType() and
-    exists(Project project |
-      project.isInThisProject(this.getFile()) and project.isInThisProject(result.getFile())
-    )
+    inSameUI5Project(this.getFile(), result.getFile())
   }
 
   bindingset[propName]
   override MethodCallNode getARead(string propName) {
-    exists(Project project |
-      project.isInThisProject(this.getFile()) and
-      project.isInThisProject(result.getFile())
-    |
-      result.getMethodName() = "get" + capitalize(propName)
-    )
+    // TODO: in same view
+    inSameUI5Project(this.getFile(), result.getFile()) and
+    result.getMethodName() = "get" + capitalize(propName)
   }
 
   bindingset[propName]
   override MethodCallNode getAWrite(string propName) {
-    exists(Project project |
-      project.isInThisProject(this.getFile()) and
-      project.isInThisProject(result.getFile())
-    |
-      result.getMethodName() = "set" + capitalize(propName)
-    )
+    // TODO: in same view
+    inSameUI5Project(this.getFile(), result.getFile()) and
+    result.getMethodName() = "set" + capitalize(propName)
   }
 
   override predicate accessesModel(UI5Model model) {
@@ -586,7 +573,7 @@ class XmlControl extends UI5Control, XmlElement {
   }
 
   override predicate isXssSource() {
-    exists(XmlView view, string type, string path, string property |
+    exists(UI5View view, string type, string path, string property |
       view = XmlElement.super.getParent+() and
       type = this.getTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
@@ -595,7 +582,7 @@ class XmlControl extends UI5Control, XmlElement {
   }
 
   override predicate isXssSink() {
-    exists(XmlView view, string type, string path, string property |
+    exists(UI5View view, string type, string path, string property |
       view = XmlElement.super.getParent+() and
       type = this.getTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
@@ -603,7 +590,7 @@ class XmlControl extends UI5Control, XmlElement {
     )
   }
 
-  override UI5View getView() { result = XmlElement.super.getParent+().(XmlView) }
+  override UI5View getView() { result = XmlElement.super.getParent+() }
 
   override string toString() { result = XmlElement.super.toString() }
 }
@@ -643,6 +630,8 @@ class UI5Handler extends FunctionNode {
  * Models controller references in event handlers as types
  */
 class ControlTypeInHandlerModel extends ModelInput::TypeModel {
+  // TODO (see https://github.com/github/codeql/pull/14120)
+  // override predicate isTypeUsed(string type) { type = any(UI5Control c).getTypeName() }
   override DataFlow::CallNode getASource(string type) {
     // oEvent.getSource() is of the type of the Control calling the handler
     exists(UI5Handler h |
@@ -656,5 +645,15 @@ class ControlTypeInHandlerModel extends ModelInput::TypeModel {
       type = c.getTypeName() and
       result = c.getAReference()
     )
+  }
+}
+
+/**
+ * A workaround for the interfearence of pruning with TypeModel
+ * TODO remove after https://github.com/github/codeql/pull/14120
+ */
+class DisablePruning extends ModelInput::TypeModelCsv {
+  override predicate row(string row) {
+    row = any(UI5Control c).getTypeName() + ";global;DummyAccessPathForPruning"
   }
 }
