@@ -1,8 +1,8 @@
 ---
 library: true
 name: advanced-security/javascript-sap-ui5-test
-version: 0.0.1
+version: 0.1.0
 extractor: javascript
 dependencies:
-  advanced-security/javascript-sap-ui5-queries: "*"
-  advanced-security/javascript-sap-ui5-extensions: "*"
+  advanced-security/javascript-sap-ui5-queries: "^0.1.1"
+  advanced-security/javascript-sap-ui5-extensions: "^0.1.0"
