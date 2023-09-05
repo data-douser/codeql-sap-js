@@ -1,7 +1,7 @@
 ---
 library: false
 name: advanced-security/javascript-sap-ui5-queries
-version: 0.1.1
+version: 0.1.2
 suites: codeql-suites
 extractor: javascript
 defaultSuiteFile: codeql-suites/javascript-sap-ui5.qls
