@@ -496,7 +496,7 @@ abstract class UI5Control extends Locatable {
   abstract predicate accessesModel(UI5Model model);
 
   /** Holds if this control reads from or writes to a model with regards to a binding path. */
-  abstract predicate accessesModel(UI5Model model, XmlBindingPath bindingPath);
+  abstract predicate accessesModel(UI5Model model, UI5BindingPath bindingPath);
 
   /** Holds if this control is a source of XSS. */
   abstract predicate isXssSource();
@@ -560,7 +560,7 @@ class XmlControl extends UI5Control, XmlElement {
     // TODO: Add case where modelName is present
   }
 
-  override predicate accessesModel(UI5Model model, XmlBindingPath bindingPath) {
+  override predicate accessesModel(UI5Model model, UI5BindingPath bindingPath) {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view

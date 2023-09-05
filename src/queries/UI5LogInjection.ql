@@ -33,7 +33,10 @@ class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfigurati
 class UI5ModelSource extends UI5DataFlow::UI5ModelSource, LogInjection::Source { }
 
 class UI5ModelLogISink extends LogInjection::Sink {
-  UI5ModelLogISink() { this = ModelOutput::getASinkNode("log-injection").asSink() }
+  UI5ModelLogISink() {
+    //TODO remove after https://github.com/github/codeql/pull/13841
+    this = ModelOutput::getASinkNode("log-injection").asSink()
+  }
 }
 
 from
