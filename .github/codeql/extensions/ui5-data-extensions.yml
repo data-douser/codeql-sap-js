@@ -94,7 +94,7 @@ extensions:
       - ["Patcher", "Member[unsafeHtml].Argument[0..]", "html-injection"]
       - ["RenderManager", "Member[write,unsafeHtml].Argument[0..]", "html-injection"]
       - ["RenderManager", "Member[writeAttribute,addStyle].Argument[0..1]", "html-injection"]
-      - ["RenderManager", "Member[writeAttributeEscaped,addClass].Argument[0]", "html-injection"]
+      - ["RenderManager", "Member[addClass].Argument[0]", "html-injection"]
 
   - addsTo:
       pack: codeql/javascript-all
