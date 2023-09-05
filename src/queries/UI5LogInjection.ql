@@ -41,11 +41,9 @@ class UI5ModelLogISink extends LogInjection::Sink {
 
 from
   UI5LogInjectionConfiguration cfg, UI5PathGraph::UI5PathNode source,
-  UI5PathGraph::UI5PathNode sink, UI5PathGraph::UI5PathNode primarySource,
-  UI5PathGraph::UI5PathNode primarySink
+  UI5PathGraph::UI5PathNode sink, UI5PathGraph::UI5PathNode primarySource
 where
   cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
-  primarySource = source.getAPrimarySource() and
-  primarySink = sink.getAPrimarySink()
-select primarySink, primarySource, primarySink, "Log entry depends on a $@.", primarySource,
+  primarySource = source.getAPrimarySource()
+select sink, primarySource, sink, "Log entry depends on a $@.", primarySource,
   "user-provided value"

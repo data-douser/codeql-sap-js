@@ -214,7 +214,7 @@ module UI5PathGraph {
       result.asUI5BindingPathNode() = any(UI5View view).getASource()
     }
 
-    UI5PathNode getAPrimarySink() {
+    UI5PathNode getAPrimaryHtmlISink() {
       not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5BoundNode and
       this.asDataFlowPathNode() = result.asDataFlowPathNode()
       or

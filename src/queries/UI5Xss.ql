@@ -66,6 +66,6 @@ from
 where
   cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
   primarySource = source.getAPrimarySource() and
-  primarySink = sink.getAPrimarySink()
+  primarySink = sink.getAPrimaryHtmlISink()
 select primarySink, primarySource, primarySink, "XSS vulnerability due to $@.", primarySource,
   "user-provided value"
