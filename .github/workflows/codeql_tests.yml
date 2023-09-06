@@ -31,7 +31,6 @@ jobs:
       uses: github/codeql-action/init@v2
       with:
         languages: javascript
-        config-file: ./.github/codeql/codeql-config.yaml
 
     - name: Run CodeQL Tests
       env:
