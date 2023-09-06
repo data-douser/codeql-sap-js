@@ -24,19 +24,24 @@ private string getASuperType(string base) {
  */
 bindingset[property]
 private string bindingPathCapture(string property) {
-  //property.matches("{%}") and
   exists(string pattern |
     // matches "Control>country"
     pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
     (
       // simple {Control>country}
-      result = property.regexpCapture("(?s)\\{" + pattern + "\\}", 1)
+      result = property.replaceAll(" ", "").regexpCapture("(?s)\\{" + pattern + "\\}", 1)
       or
       // object {other:{foo:'bar'} path: 'Result>country'}
-      result = property.regexpCapture("(?s)\\{[^\"]*path\\s*:\\s*'" + pattern + "'[^\"]*\\}", 1)
+      result =
+        property
+            .replaceAll(" ", "")
+            .regexpCapture("(?s)\\{[^\"]*path:'" + pattern + "'[^\"]*\\}", 1)
       or
-      // event handler simple parameter .doSomething(${/input})
-      result = property.regexpCapture("(?s)\\.[\\w-]+\\(\\$\\{" + pattern + "\\}\\)", 1)
+      // event handler simple parameter {.doSomething(${/input})}
+      result =
+        property
+            .replaceAll(" ", "")
+            .regexpCapture("(?s)\\.[\\w-]+\\(\\$\\{" + pattern + "\\}\\)", 1)
     )
   )
 }
@@ -210,7 +215,7 @@ class JsView extends UI5View {
       this = control.getFile() and
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropertyByName(property)
     )
   }
@@ -220,7 +225,7 @@ class JsView extends UI5View {
       this = control.getFile() and
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropertyByName(property)
     )
   }
@@ -241,7 +246,7 @@ class JsonView extends UI5View {
       root = control.getParent+() and
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropValue(property)
     )
   }
@@ -251,7 +256,7 @@ class JsonView extends UI5View {
       root = control.getParent+() and
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropValue(property)
     )
   }
@@ -337,7 +342,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
       this = control.getFile() and
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttributeByName("data-" + property)
     )
   }
@@ -347,7 +352,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
       this = control.getFile() and
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttributeByName("data-" + property)
     )
   }
@@ -413,7 +418,7 @@ class XmlView extends UI5View, XmlFile {
       this = control.getFile() and
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
     )
   }
@@ -423,7 +428,7 @@ class XmlView extends UI5View, XmlFile {
       this = control.getFile() and
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
     )
   }
@@ -498,12 +503,6 @@ abstract class UI5Control extends Locatable {
   /** Holds if this control reads from or writes to a model with regards to a binding path. */
   abstract predicate accessesModel(UI5Model model, UI5BindingPath bindingPath);
 
-  /** Holds if this control is a source of XSS. */
-  abstract predicate isXssSource();
-
-  /** Holds if this control is a sink of XSS. */
-  abstract predicate isXssSink();
-
   /** Get the view that this control is part of. */
   abstract UI5View getView();
 
@@ -572,24 +571,6 @@ class XmlControl extends UI5Control, XmlElement {
     // TODO: Add case where modelName is present
   }
 
-  override predicate isXssSource() {
-    exists(UI5View view, string type, string path, string property |
-      view = XmlElement.super.getParent+() and
-      type = this.getTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1)
-    )
-  }
-
-  override predicate isXssSink() {
-    exists(UI5View view, string type, string path, string property |
-      view = XmlElement.super.getParent+() and
-      type = this.getTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
-      property = path.regexpCapture("Member\\[([^\\]]+)\\]", 1)
-    )
-  }
-
   override UI5View getView() { result = XmlElement.super.getParent+() }
 
   override string toString() { result = XmlElement.super.toString() }
@@ -600,7 +581,8 @@ class XmlControl extends UI5Control, XmlElement {
  */
 bindingset[notation]
 private string handlerNotationCaptureName(string notation) {
-  result = notation.regexpCapture("\\.([\\w-]+)(?:\\([^)]*\\$(\\{[^}]+}).*)?", 1)
+  result =
+    notation.replaceAll(" ", "").regexpCapture("\\.([\\w-]+)(?:\\([^)]*\\$(\\{[^}]+}).*)?", 1)
 }
 
 /**
