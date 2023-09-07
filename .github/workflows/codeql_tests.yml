@@ -29,15 +29,12 @@ jobs:
     - name: Initialize CodeQL
       id: init
       uses: github/codeql-action/init@v2
-      with:
-        languages: javascript
-        config-file: ./.github/codeql/codeql-config.yaml
 
     - name: Run CodeQL Tests
       env:
         CODEQL_PATH: ${{ steps.init.outputs.codeql-path }}
       run: |
-        $CODEQL_PATH test run --strict-test-discovery --no-show-extractor-output --format=json --threads=0 --verbosity=errors ./test |
+        $CODEQL_PATH test run --strict-test-discovery --show-extractor-output --format=json --threads=0 --verbosity=errors ./test |
         jq -r '.|sort_by(.pass)|.[]|"\(if .pass then "✅" else "❌" end) \(.test / "/test/" | .[1])  "' >> results.md
         cat results.md >> $GITHUB_STEP_SUMMARY
         if grep -n "❌" results.md; then exit 1; fi
