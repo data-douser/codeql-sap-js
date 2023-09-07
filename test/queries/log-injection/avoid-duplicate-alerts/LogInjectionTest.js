@@ -22,6 +22,6 @@ const server2 = http.createServer((req, res) => {
     let value = q.query.username;
     var value1 = jQuery.sap.camelCase(value);
     console.info(`[INFO] User: ${value1}`); // log-injection
-    jQuery.sap.log.debug(value1); //NO UI5 log-injection 
+    jQuery.sap.log.debug(value1); //UI5 log-injection 
 });
 
