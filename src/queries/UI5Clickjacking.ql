@@ -4,7 +4,7 @@
  * @kind problem
  * @problem.severity error
  * @security-severity 6.1
- * @precision low
+ * @precision high
  * @id js/ui5-clickjacking
  * @tags security
  *      external/cwe/cwe-451
