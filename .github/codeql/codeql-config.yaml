@@ -1,6 +1,9 @@
 name: "My CodeQL config"
 
 queries:
+  # for log-injection
+  - uses: security-and-quality
+  # for ui5 queries
   - uses: ./src
 
 paths:
