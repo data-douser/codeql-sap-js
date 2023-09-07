@@ -13,7 +13,8 @@ sap.ui.define([
             this.getView().setModel(oModel);
             
             var input = oModel.getProperty('/input');
-            oModel.setProperty('/output', input); 
+
+            jQuery.sap.log.debug(input); //log-injection sink
         }
     });
 }

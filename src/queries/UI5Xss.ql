@@ -60,12 +60,31 @@ class UI5ModelSource extends UI5DataFlow::UI5ModelSource, DomBasedXss::Source { 
  */
 class UI5ModelHtmlISink extends UI5DataFlow::UI5ModelHtmlISink, DomBasedXss::Sink { }
 
+// Sources and Sinks from data-extensions
+class UI5ExtSource extends DomBasedXss::Source {
+  UI5ExtSource() { this = ModelOutput::getASourceNode("ui5-remote").asSource() }
+}
+
+class UI5ExtLogISink extends DomBasedXss::Sink {
+  UI5ExtLogISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
+}
+
+// XSS source or sinks that are ui5-specific
+private predicate isUI5Specific(UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink) {
+  source.asDataFlowPathNode().getNode() instanceof UI5ExtSource or
+  source.asDataFlowPathNode().getNode() instanceof UI5ModelSource or
+  sink.asDataFlowPathNode().getNode() instanceof UI5ExtLogISink or
+  sink.asDataFlowPathNode().getNode() instanceof UI5ModelHtmlISink
+}
+
 from
   UI5XssConfiguration cfg, UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink,
   UI5PathGraph::UI5PathNode primarySource, UI5PathGraph::UI5PathNode primarySink
 where
   cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
   primarySource = source.getAPrimarySource() and
-  primarySink = sink.getAPrimaryHtmlISink()
+  primarySink = sink.getAPrimaryHtmlISink() and
+  // source or sink are ui5-specific
+  isUI5Specific(source, sink)
 select primarySink, primarySource, primarySink, "XSS vulnerability due to $@.", primarySource,
   "user-provided value"

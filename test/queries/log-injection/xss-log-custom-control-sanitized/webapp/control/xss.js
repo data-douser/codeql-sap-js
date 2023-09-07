@@ -14,7 +14,8 @@ sap.ui.define([
                 oRm.openStart("div", oControl);
                 var value = oControl.getText();
                 var sanitized = encodeXML(String(value)) //xss sanitized
-                 oRm.unsafeHtml(sanitized); // XSS sink sanitized
+                jQuery.sap.log.debug(sanitized); //log-injection sink non-sanitized
+                oRm.unsafeHtml(sanitized); // XSS sink sanitized
                 oRm.close("div");
             }
         }

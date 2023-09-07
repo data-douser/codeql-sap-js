@@ -6,9 +6,12 @@
  */
 
 import javascript
-import models.UI5AMDModule
-import semmle.javascript.security.dataflow.LogInjectionQuery
+import models.UI5DataFlow
+import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjectionQuery
 
-from DataFlow::Node sink
-where sink = ModelOutput::getASinkNode("log-injection").asSink()
-select sink, "log-injection sink."
+class UI5ExtLogISink extends LogInjectionQuery::Sink {
+  UI5ExtLogISink() { this = ModelOutput::getASinkNode("ui5-log-injection").asSink() }
+}
+
+from UI5ExtLogISink sink
+select sink, sink.toString()
