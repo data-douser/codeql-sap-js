@@ -14,7 +14,7 @@ extensions:
       - ["RenderManager", "Renderer", "Parameter[0]"]
       - ["RenderManager", "Renderer", "Member[render].Parameter[0]"]
       - ["Patcher", "Patcher", "Instance"]
-      - ["Patcher", sap/ui/core/Patcher, ""]
+      - ["Patcher", "sap/ui/core/Patcher", ""]
       - ["HTMLControl", "HTMLControl", "Instance"]
       - ["HTMLControl", "sap/ui/core/HTML", ""]
       - ["HTMLControl", "global", "Member[sap].Member[ui].Member[core].Member[HTML]"]
