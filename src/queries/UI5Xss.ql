@@ -1,5 +1,5 @@
 /**
- * @name Client-side cross-site scripting
+ * @name UI5  Client-side cross-site scripting
  * @description Writing user input directly to a UI5 View allows for
  *              a cross-site scripting vulnerability.
  * @kind path-problem

@@ -1,5 +1,5 @@
 /**
- * @name Log injection
+ * @name UI5 Log injection
  * @description Building log entries from user-controlled sources is vulnerable to
  *              insertion of forged log entries by a malicious user.
  * @kind path-problem
