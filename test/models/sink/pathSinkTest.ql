@@ -6,7 +6,7 @@
  */
 
 import javascript
-import models.UI5DataFlowShared
+import models.UI5DataFlow
 import semmle.javascript.security.dataflow.TaintedPathQuery as TaintedPathQuery
 
 from TaintedPathQuery::Sink sink

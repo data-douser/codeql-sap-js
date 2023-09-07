@@ -12,8 +12,8 @@
  */
 
 import javascript
-import models.UI5DataFlowShared
-import models.UI5DataFlowShared::UI5PathGraph
+import models.UI5DataFlow
+import models.UI5DataFlow::UI5PathGraph
 import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjection
 
 class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfiguration {
