@@ -128,7 +128,7 @@ module UI5DataFlow {
   /**
    * Models calls to `Model.getProperty` and `Model.getObject`
    */
-  class GetBoundValue extends DataFlow::CallNode {
+  class GetBoundValue extends DataFlow::MethodCallNode {
     UI5BoundNode bind;
 
     GetBoundValue() {
@@ -155,7 +155,7 @@ module UI5DataFlow {
     UI5BoundNode bind;
 
     SetBoundValue() {
-      exists(DataFlow::CallNode setProp |
+      exists(DataFlow::MethodCallNode setProp |
         // direct access to a binding path
         this = setProp.getArgument(1) and
         setProp.getCalleeName() = ["setProperty", "setObject"] and
