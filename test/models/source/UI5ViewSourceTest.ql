@@ -2,6 +2,7 @@
  * @id xss-ui5view-sources
  * @name XSS UI5View sources
  * @kind problem
+ * @problem.severity error
  */
 
 import javascript

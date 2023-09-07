@@ -2,6 +2,7 @@
  * @id xss-ui5view-sinks
  * @name XSS UI5View sinks
  * @kind problem
+ * @problem.severity error
  */
 
 import javascript
