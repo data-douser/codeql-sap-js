@@ -6,10 +6,14 @@ Eamples can be run locally using [UI5 tooling](https://sap.github.io/ui5-tooling
 ### [log-html-control-df](xss/log-html-control-df)
 - log-injection in the controller
 
-### [xss-custom-control-api1](xss/xss-custom-control-api1)
+### [xss-book-example](xss/xss-book-example)
 - custom Control
 - classic string-based API
 - `renderer` property is set to a render function
+
+### [xss-custom-control-api1](xss/xss-custom-control-api1)
+- custom Control
+- accessing Control properties byId
 
 ### [xss-custom-control-api2](xss/xss-custom-control-api2)
 - custom Control
@@ -31,10 +35,11 @@ Eamples can be run locally using [UI5 tooling](https://sap.github.io/ui5-tooling
 - the value of `text` is sanitized using `sap/base/security/encodeXML`
 
 ### [xss-event-handlers](xss/xss-event-handlers)
-User input flows to XSS sinks via event handlers in 3 different ways:
+User input flows to XSS sinks via event handlers in 4 different ways:
 1. function `sap.ui.model.Model#getProperty` 
 2. model property passed as handler parameter
 3. function `sap.ui.base.Event#getSource#getValue`
+4. accessing properties byId
 
 ### [xss-html-control](xss/xss-html-control)
 - `sap.ui.core.HTML` Control

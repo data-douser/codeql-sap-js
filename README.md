@@ -27,8 +27,8 @@ The following tables list the main supported features with corresponding test ca
 | [xss-custom-control-api2](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/250)| ✅︎ | ✅︎ | ✅︎ | XMLView | | DOM |
 | [xss-json-view](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/247)<br/>[xss-html-view](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/245)<br/>[xss-js-view](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/246) | ✅︎ | ✅︎ | | JsonView<br/>HTMLView<br/>JSView |
 | [log-html-control-df](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/275) | ✅︎ | ✅︎ | |XMLView| ✅︎ |
-| [sanitized](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/277)| ✅︎ | ✅︎ | ✅︎ | XMLView |✅︎ | DOM | ✅︎ |
-| [xss-event-handlers](https://github.com/advanced-security/codeql-sap-js/blob/main/test/queries/xss/xss-event-handlers/webapp/view/app.view.xml#L11C56-L11C64)| ✅︎ | ✅︎ | ✅︎ | XMLView | | | | 🚧 |
+| [sanitized](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/277)| ✅︎ | ✅︎ | ✅︎ | XMLView | ✅︎ | DOM | ✅︎ |
+| [xss-event-handlers](https://github.com/advanced-security/codeql-sap-js/blob/main/test/queries/xss/xss-event-handlers/webapp/view/app.view.xml#L11C56-L11C64)| ✅︎ | ✅︎ | ✅︎ | XMLView | | | | ✅︎ |
 
 #### Detecting Clickjacking vulnerabilities
 | test | secure | insecure frameOptions | missing frameOptions |
