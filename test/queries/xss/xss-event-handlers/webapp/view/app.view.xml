@@ -8,7 +8,7 @@
     <Button text="Press Me XSS1" press=".doSomething1" />
     <core:HTML content="{/output1}" /> <!--XSS sink sap.ui.core.HTML.content -->
 
-    <Button text="Press Me XSS2" press=".doSomething2(${/input})" />
+    <Button text="Press Me XSS2" press=".doSomething2(${/input})"/> 
     <core:HTML content="{/output2}" /> <!--XSS sink sap.ui.core.HTML.content -->
 
     <Input placeholder="Enter Payload"
