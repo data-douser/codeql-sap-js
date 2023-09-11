@@ -34,4 +34,11 @@ jobs:
         debug: true
 
     - name: Perform CodeQL Analysis
+      id: analyze
       uses: github/codeql-action/analyze@v2
+      continue-on-error: true
+      
+    - uses: mainmatter/continue-on-error-comment@v1
+      with:
+        outcome: ${{ steps.analyze.outcome }}
+        test-id: Error code ${{ matrix.code }}  
