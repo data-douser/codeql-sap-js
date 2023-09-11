@@ -1,5 +1,5 @@
 /**
- * @name Clickjacking
+ * @name UI5 Clickjacking
  * @description The absence of frame options allows for clickjacking.
  * @kind problem
  * @problem.severity error

@@ -10,9 +10,7 @@ sap.ui.define([
         renderer: {
             apiVersion: 2,
             render: function (oRm, oControl) {
-                oRm.openStart("div", oControl);
-                oRm.unsafeHtml(oControl.getText()); // XSS sink sanitized
-                oRm.close("div");
+                jQuery.sap.log.debug(oControl.getText()); //log-injection sink non-sanitized
             }
         }
     });

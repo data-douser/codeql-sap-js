@@ -1,5 +1,5 @@
 /**
- * @name Log injection
+ * @name UI5 Log injection
  * @description Building log entries from user-controlled sources is vulnerable to
  *              insertion of forged log entries by a malicious user.
  * @kind path-problem
@@ -32,11 +32,20 @@ class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfigurati
  */
 class UI5ModelSource extends UI5DataFlow::UI5ModelSource, LogInjection::Source { }
 
-class UI5ModelLogISink extends LogInjection::Sink {
-  UI5ModelLogISink() {
-    //TODO remove after https://github.com/github/codeql/pull/13841
-    this = ModelOutput::getASinkNode("log-injection").asSink()
-  }
+// Sources and Sinks from data-extensions
+class UI5ExtSource extends LogInjection::Source {
+  UI5ExtSource() { this = ModelOutput::getASourceNode("ui5-remote").asSource() }
+}
+
+class UI5ExtLogISink extends LogInjection::Sink {
+  UI5ExtLogISink() { this = ModelOutput::getASinkNode("ui5-log-injection").asSink() }
+}
+
+// log-injections source or sinks that are ui5-specific
+private predicate isUI5Specific(UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink) {
+  source.asDataFlowPathNode().getNode() instanceof UI5ExtSource or
+  source.asDataFlowPathNode().getNode() instanceof UI5ModelSource or
+  sink.asDataFlowPathNode().getNode() instanceof UI5ExtLogISink
 }
 
 from
@@ -44,6 +53,7 @@ from
   UI5PathGraph::UI5PathNode sink, UI5PathGraph::UI5PathNode primarySource
 where
   cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
-  primarySource = source.getAPrimarySource()
-select sink, primarySource, sink, "Log entry depends on a $@.", primarySource,
-  "user-provided value"
+  primarySource = source.getAPrimarySource() and
+  // source or sink are ui5-specific
+  isUI5Specific(source, sink)
+select sink, primarySource, sink, "Log entry depends on a $@.", primarySource, "user-provided value"

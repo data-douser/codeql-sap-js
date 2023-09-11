@@ -214,7 +214,7 @@ class JsView extends UI5View {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "ui5-remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropertyByName(property)
     )
@@ -224,7 +224,7 @@ class JsView extends UI5View {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropertyByName(property)
     )
@@ -245,7 +245,7 @@ class JsonView extends UI5View {
     exists(JsonObject control, string type, string path, string property |
       root = control.getParent+() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "ui5-remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropValue(property)
     )
@@ -255,7 +255,7 @@ class JsonView extends UI5View {
     exists(JsonObject control, string type, string path, string property |
       root = control.getParent+() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropValue(property)
     )
@@ -341,7 +341,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
     exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "ui5-remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttributeByName("data-" + property)
     )
@@ -351,7 +351,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
     exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttributeByName("data-" + property)
     )
@@ -417,7 +417,7 @@ class XmlView extends UI5View, XmlFile {
     exists(XmlElement control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "ui5-remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
     )
@@ -427,7 +427,7 @@ class XmlView extends UI5View, XmlFile {
     exists(XmlElement control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "html-injection") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
     )

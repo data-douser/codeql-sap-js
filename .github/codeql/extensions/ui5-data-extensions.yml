@@ -62,39 +62,39 @@ extensions:
       pack: codeql/javascript-all
       extensible: "sourceModel"
     data:
-      - ["UI5Control", "Member[value]", "remote"]
-      - ["UI5Control", "Member[getValue].ReturnValue", "remote"]
-      - ["UI5CodeEditor", "Member[value]", "remote"]
-      - ["UI5CodeEditor", "Member[getCurrentValue].ReturnValue", "remote"]
-      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get].ReturnValue", "remote"]
-      - ["global", "Member[jQuery].Member[sap].Member[syncHead,syncGet,syncGetText,syncPost,syncPostText].ReturnValue", "remote"]
-      - ["UI5URIParameters", "Member[get].ReturnValue", "remote"]
-      - ["UI5URIParameters", "Member[getAll].ReturnValue", "remote"]
+      - ["UI5Control", "Member[value]", "ui5-remote"]
+      - ["UI5Control", "Member[getValue].ReturnValue", "ui5-remote"]
+      - ["UI5CodeEditor", "Member[value]", "ui5-remote"]
+      - ["UI5CodeEditor", "Member[getCurrentValue].ReturnValue", "ui5-remote"]
+      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get].ReturnValue", "ui5-remote"]
+      - ["global", "Member[jQuery].Member[sap].Member[syncHead,syncGet,syncGetText,syncPost,syncPostText].ReturnValue", "ui5-remote"]
+      - ["UI5URIParameters", "Member[get].ReturnValue", "ui5-remote"]
+      - ["UI5URIParameters", "Member[getAll].ReturnValue", "ui5-remote"]
 
   - addsTo:
       pack: codeql/javascript-all
       extensible: "sinkModel"
     data:
-      # log-injection
-      - ["Assert", "Argument[1]", "log-injection"]
-      - ["SapLogger", "Member[debug,error,fatal,info,trace,warning].Argument[0..2]", "log-injection"]
-      # path-injection
-      - ["global", "Member[jQuery].Member[sap].Member[registerModulePath,registerResourcePath].Argument[1]", "path-injection"]
-      - ["global", "Member[jQuery].Member[sap].Member[require,includeScript,includeStyleSheet,properties,resources,sjax,syncHead].Argument[0]", "path-injection"]
-      - ["SapUIDom", "Member[includeScript,includeStyleSheet].Argument[0]", "path-injection"]
-      - ["global", "Member[jQuery].Member[sap].Member[syncGet,syncPost,syncGetText,syncGetJSON].Argument[0..1]", "path-injection"]
-      - ["ResourceBundle", "Member[create].Argument[0]", "path-injection"]
-      - ["Properties", "Member[create].Argument[0]", "path-injection"]
-      - ["LoaderExtensions", "Member[registerResourcePath].Argument[1]", "path-injection"]
       # html-injection
-      - ["global", "Member[jQuery].Member[sap].Member[globalEval].Argument[0]", "html-injection"]
-      - ["HTMLControl", "Argument[0].Member[content]", "html-injection"]
-      - ["HTMLControl", "Member[content]", "html-injection"]
-      - ["HTMLControl", "Member[setContent].Argument[0]", "html-injection"]
-      - ["Patcher", "Member[unsafeHtml].Argument[0..]", "html-injection"]
-      - ["RenderManager", "Member[write,unsafeHtml].Argument[0..]", "html-injection"]
-      - ["RenderManager", "Member[writeAttribute,addStyle].Argument[0..1]", "html-injection"]
-      - ["RenderManager", "Member[addClass].Argument[0]", "html-injection"]
+      - ["global", "Member[jQuery].Member[sap].Member[globalEval].Argument[0]", "ui5-html-injection"]
+      - ["HTMLControl", "Argument[0].Member[content]", "ui5-html-injection"]
+      - ["HTMLControl", "Member[content]", "ui5-html-injection"]
+      - ["HTMLControl", "Member[setContent].Argument[0]", "ui5-html-injection"]
+      - ["Patcher", "Member[unsafeHtml].Argument[0..]", "ui5-html-injection"]
+      - ["RenderManager", "Member[write,unsafeHtml].Argument[0..]", "ui5-html-injection"]
+      - ["RenderManager", "Member[writeAttribute,addStyle].Argument[0..1]", "ui5-html-injection"]
+      - ["RenderManager", "Member[addClass].Argument[0]", "ui5-html-injection"]
+      # log-injection
+      - ["Assert", "Argument[1]", "ui5-log-injection"]
+      - ["SapLogger", "Member[debug,error,fatal,info,trace,warning].Argument[0..2]", "ui5-log-injection"]
+      # path-injection
+      - ["global", "Member[jQuery].Member[sap].Member[registerModulePath,registerResourcePath].Argument[1]", "ui5-path-injection"]
+      - ["global", "Member[jQuery].Member[sap].Member[require,includeScript,includeStyleSheet,properties,resources,sjax,syncHead].Argument[0]", "ui5-path-injection"]
+      - ["SapUIDom", "Member[includeScript,includeStyleSheet].Argument[0]", "ui5-path-injection"]
+      - ["global", "Member[jQuery].Member[sap].Member[syncGet,syncPost,syncGetText,syncGetJSON].Argument[0..1]", "ui5-path-injection"]
+      - ["ResourceBundle", "Member[create].Argument[0]", "ui5-path-injection"]
+      - ["Properties", "Member[create].Argument[0]", "ui5-path-injection"]
+      - ["LoaderExtensions", "Member[registerResourcePath].Argument[1]", "ui5-path-injection"]
 
   - addsTo:
       pack: codeql/javascript-all
