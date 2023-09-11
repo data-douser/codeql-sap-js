@@ -40,5 +40,6 @@ jobs:
       
     - uses: mainmatter/continue-on-error-comment@v1
       with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
         outcome: ${{ steps.analyze.outcome }}
         test-id: Error code ${{ matrix.code }}  
