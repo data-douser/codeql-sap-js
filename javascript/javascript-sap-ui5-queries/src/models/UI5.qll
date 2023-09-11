@@ -1,4 +1,4 @@
-private import javascript
+private import javascript 
 private import DataFlow
 private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
 private import UI5View
