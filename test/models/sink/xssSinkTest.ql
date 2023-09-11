@@ -9,8 +9,8 @@ import javascript
 import models.UI5DataFlow
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
 
-class UI5ExtLogISink extends DomBasedXss::Sink {
-  UI5ExtLogISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
+class UI5ExtHtmlISink extends DomBasedXss::Sink {
+  UI5ExtHtmlISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
 }
 
 from DomBasedXss::Sink sink

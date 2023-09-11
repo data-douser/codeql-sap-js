@@ -9,8 +9,8 @@ import javascript
 import models.UI5DataFlow
 import semmle.javascript.security.dataflow.TaintedPathQuery as TaintedPathQuery
 
-class UI5ExtLogISink extends TaintedPathQuery::Sink {
-    UI5ExtLogISink() { this = ModelOutput::getASinkNode("ui5-path-injection").asSink() }
+class UI5ExtPathISink extends TaintedPathQuery::Sink {
+  UI5ExtPathISink() { this = ModelOutput::getASinkNode("ui5-path-injection").asSink() }
   }
 
 from TaintedPathQuery::Sink sink

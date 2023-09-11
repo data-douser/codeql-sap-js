@@ -1,5 +1,5 @@
 /**
- * @name UI5  Client-side cross-site scripting
+ * @name UI5 Client-side cross-site scripting
  * @description Writing user input directly to a UI5 View allows for
  *              a cross-site scripting vulnerability.
  * @kind path-problem
@@ -65,16 +65,16 @@ class UI5ExtSource extends DomBasedXss::Source {
   UI5ExtSource() { this = ModelOutput::getASourceNode("ui5-remote").asSource() }
 }
 
-class UI5ExtLogISink extends DomBasedXss::Sink {
-  UI5ExtLogISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
+class UI5ExtHtmlISink extends DomBasedXss::Sink {
+  UI5ExtHtmlISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
 }
 
 // XSS source or sinks that are ui5-specific
 private predicate isUI5Specific(UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink) {
   source.asDataFlowPathNode().getNode() instanceof UI5ExtSource or
   source.asDataFlowPathNode().getNode() instanceof UI5ModelSource or
-  sink.asDataFlowPathNode().getNode() instanceof UI5ExtLogISink or
-  sink.asDataFlowPathNode().getNode() instanceof UI5ModelHtmlISink
+  sink.asDataFlowPathNode().getNode() instanceof UI5ModelHtmlISink or
+  sink.asDataFlowPathNode().getNode() instanceof UI5ExtHtmlISink
 }
 
 from
