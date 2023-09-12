@@ -3,9 +3,9 @@
 CodeQL queries and supporting models for the SAP UI5 JavaScript framework
 
 ### Queries
-- [XSS](src/queries/UI5Xss.ql)
-- [Log Injection](src/queries/UI5LogInjection.ql)
-- [Clickjacking](src/queries/UI5Clickjacking.ql)
+- [XSS](javascript/javascript-sap-ui5-queries/src/queries/UI5Xss.ql)
+- [Log Injection](javascript/javascript-sap-ui5-queries/src/queries/UI5LogInjection.ql)
+- [Clickjacking](javascript/javascript-sap-ui5-queries/src/queries/UI5Clickjacking.ql)
  
 ### Modeled UI5 framework elements
  - UI5 AMD-style components (also via jQuery)
@@ -33,6 +33,6 @@ The following tables list the main supported features with corresponding test ca
 #### Detecting Clickjacking vulnerabilities
 | test | secure | insecure frameOptions | missing frameOptions |
 | - | :-: | :-: | :-: |
-| [clickjacking-deny-all]( test/queries/clickjacking/clickjacking-deny-all/index.html#L10) | ✅︎ | |
+| [clickjacking-deny-all](javascript/javascript-sap-ui5-queries/test/queries/clickjacking/clickjacking-deny-all/index.html#L10) | ✅︎ | |
 | [clickjacking-allow-all:l9](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/240)<br/>[clickjacking-allow-all:l28](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/241) | | ✅︎ |
 | [clickjacking-default-all](https://github.com/advanced-security/codeql-sap-js/security/code-scanning/330) | | | ✅︎ |
