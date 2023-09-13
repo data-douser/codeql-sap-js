@@ -1,3 +1,6 @@
+# CodeQL Result Files
+*.actual 
+
 # Logs
 logs
 *.log
