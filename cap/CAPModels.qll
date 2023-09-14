@@ -68,32 +68,57 @@ class Request extends ValueNode, ClassNode {
   }
 }
 
-private ModuleImportNode isCdsInner(TypeTracker t) {
-  t.start() and
-  result.getPath() = "@sap/cds"
-  or
-  exists(TypeTracker t2 | result = isCdsInner(t2).track(t2, t))
-}
-
-predicate isCds(ModuleImportNode node) { node = isCdsInner(TypeTracker::end()) }
-
 /**
  * ```js
  * const cds = require('@sap/cds')
  * ```
  */
 class CdsFacade extends ModuleImportNode {
-  CdsFacade() { isCds(this) }
+  CdsFacade() { this = moduleImport("@sap/cds") }
 }
 
-abstract class CqlBuilder extends SourceNode { }
+predicate selectCqlBuilder(TaggedTemplateExpr tagExpr) {
+  exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
+    /* 1. SELECT `Bar` where SELECT is a local variable */
+    taggingExpr.(VarRef).getName() = "SELECT" or
+    /* 2. SELECT `Bar` where SELECT is a global variable */
+    taggingExpr.(GlobalVarAccess).getName() = "SELECT" or
+    /* 3. SELECT.one `Foo` or SELECT.from `Bar` */
+    taggingExpr.(DotExpr).accesses(any(VarRef var | var.getName() = "SELECT"), _) or
+    selectCqlBuilder(taggingExpr.getAChildExpr())
+  )
+}
 
-class Select extends CqlBuilder { }
+predicate deleteCqlBuilder(TaggedTemplateExpr tagExpr) {
+  exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
+    taggingExpr.(VarRef).getName() = "DELETE" or
+    taggingExpr.(GlobalVarAccess).getName() = "DELETE" or
+    taggingExpr.(DotExpr).accesses(any(VarRef var | var.getName() = "DELETE"), _) or
+    deleteCqlBuilder(taggingExpr.getAChildExpr())
+  )
+}
 
-class Update extends CqlBuilder { }
+abstract class CqlBuilder extends ValueNode { }
 
-class Insert extends CqlBuilder { }
+class Select extends CqlBuilder {
+  Select() {
+    exists(TaggedTemplateExpr tagExpr |
+      selectCqlBuilder(tagExpr) and this = tagExpr.flow()
+    )
+  }
+}
 
-class Delete extends CqlBuilder { }
+class Update extends CqlBuilder {
+}
 
-class Upsert extends CqlBuilder { }
+class Insert extends CqlBuilder {
+  // Name's INSERT
+}
+
+class Delete extends CqlBuilder {
+  // Name's DELETE
+}
+
+class Upsert extends CqlBuilder {
+  // Name's UPSERT
+}
