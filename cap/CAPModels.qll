@@ -6,12 +6,23 @@ abstract class Service extends ValueNode { }
 class ApplicationService extends Service {
   ApplicationService() {
     /* 1. Awaiting or directly getting return value of `cds.serve` */
-    any()
+    // either CallExpr or AwaitExpr surrounding it
+    exists(MethodCallNode cdsServeCall |
+      any(CdsFacade cds).flowsTo(cdsServeCall.getReceiver()) and
+      cdsServeCall.getMethodName() = "serve" and
+      (
+        this = cdsServeCall
+        or
+        this = any(AwaitExpr await).getOperand().flow()
+      )
+    )
     or
-    /* 2. From directly using the constructor: `new cds.ApplicationService` */
+    /* 2. From directly using the constructor: `new cds.ApplicationService` or `new cds.Service` */
+    // NewExpr
     any()
     or
     /* 3. Awaiting or directly getting return value of `cds.connect.to` */
+    // either CallExpr or AwaitExpr surrounding it
     any()
   }
 }
@@ -22,17 +33,18 @@ private class RequestHandler extends FunctionNode { }
 private class ErrorHandler extends RequestHandler { }
 
 /**
- *  Subclassing ApplicationService via `extends`:
- *  ```js
- *  class SomeService extends cds.ApplicationService
- *  ```
+ * Subclassing ApplicationService via `extends`:
+ * ```js
+ * class SomeService extends cds.ApplicationService
+ * ```
  */
 class UserDefinedApplicationService extends ApplicationService, ClassNode { }
 
 /**
- *  Subclassing ApplicationService via `cds.service.impl`:
+ * Subclassing ApplicationService via `cds.service.impl`:
  * ```js
- * cds.service.impl(() => {...})
+ * const cds = require('@sap/cds')
+ * module.exports = cds.service.impl (function() { ... }) 
  * ```
  */
 class OldStyleApplicationService extends UserDefinedApplicationService, ClassNode { }
@@ -54,7 +66,7 @@ class DatabaseService extends Service, ClassNode { }
 
 class SqlService extends Service, ClassNode { }
 
-class Request extends ValueNode, ClassNode {
+class Request extends ValueNode, ParameterNode {
   Request() {
     /*
      * 1. Parameter of request handler of `srv.on`:
@@ -102,14 +114,11 @@ abstract class CqlBuilder extends ValueNode { }
 
 class Select extends CqlBuilder {
   Select() {
-    exists(TaggedTemplateExpr tagExpr |
-      selectCqlBuilder(tagExpr) and this = tagExpr.flow()
-    )
+    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
   }
 }
 
-class Update extends CqlBuilder {
-}
+class Update extends CqlBuilder { }
 
 class Insert extends CqlBuilder {
   // Name's INSERT
