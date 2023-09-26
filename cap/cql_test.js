@@ -24,39 +24,161 @@ var select = SELECT.from`Table`.columns("col1", {
   as: "property",
 });
 
+var select = SELECT.from(Table).columns`col1, col2`;
+var select = SELECT.from(Table).columns((data) => {
+  data.col1, data.col2;
+});
+var select = SELECT.from(Table).columns`{ col1, col2 as column }`;
+var select = SELECT.from(Table).columns("col1", "col2 as column");
+var select = SELECT.from(Table).columns([
+  "col1",
+  { ref: ["col2", "prop"], as: "property" },
+]);
+var select = SELECT.from(Table).columns("col1", {
+  ref: ["col2", "prop"],
+  as: "property",
+});
+
 // .where()
-var select = SELECT.from`Table`.where();
+var select = SELECT.from`Table`.where({ col1: "*" });
+var select = SELECT.from`Table`.where("col1='*'");
+var select = SELECT.from`Table`.where`"col1='*'"`;
+var select = SELECT.from`Table`.where("col1=", "*");
+var select = SELECT.from`Table`.where`col = ${"*"}`;
+var select = SELECT.from`Table`.where("col1 in ('*', 10)");
+var select = SELECT.from`Table`.where`col1 in ${[("*", 10)]}`;
+var select = SELECT.from`Table`.where({ col1: 10, and: { col2: 11 } });
+
+// .groupBy()
+var select = SELECT.from`Table`.groupBy("col1", "col2");
+var select = SELECT.from`Table`.groupBy`col1, col2`;
+var select = SELECT.from`Table`.groupBy("col1.prop1", "col2.prop2");
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`;
+var select = SELECT.from`Table`.groupBy(
+  { ref: ["col1", "prop1"] },
+  { ref: ["col2", "prop2"] }
+);
+
+// .having()
+var select = SELECT.from`Table`.having({ col1: "*" });
+var select = SELECT.from`Table`.having("col1='*'");
+var select = SELECT.from`Table`.having`"col1='*'"`;
+var select = SELECT.from`Table`.having("col1=", "*");
+var select = SELECT.from`Table`.having`col = ${"*"}`;
+var select = SELECT.from`Table`.having("col1 in ('*', 10)");
+var select = SELECT.from`Table`.having`col1 in ${[("*", 10)]}`;
+var select = SELECT.from`Table`.having({ col1: 10, and: { col2: 11 } });
+
+var select = SELECT.from`Table`.groupBy("col1", "col2").having({ col1: "*" });
+var select = SELECT.from`Table`.groupBy("col1", "col2").having("col1='*'");
+var select = SELECT.from`Table`.groupBy("col1", "col2").having`"col1='*'"`;
+var select = SELECT.from`Table`.groupBy("col1", "col2").having("col1=", "*");
+var select = SELECT.from`Table`.groupBy("col1", "col2").having`col = ${"*"}`;
+var select = SELECT.from`Table`
+  .groupBy("col1", "col2")
+  .having("col1 in ('*', 10)");
+var select = SELECT.from`Table`.groupBy("col1", "col2").having`col1 in ${[
+  ("*", 10),
+]}`;
+var select = SELECT.from`Table`
+  .groupBy("col1", "col2")
+  .having({ col1: 10, and: { col2: 11 } });
+
+var select = SELECT.from`Table`.groupBy`col1, col2`.having({ col1: "*" });
+var select = SELECT.from`Table`.groupBy`col1, col2`.having("col1='*'");
+var select = SELECT.from`Table`.groupBy`col1, col2`.having`"col1='*'"`;
+var select = SELECT.from`Table`.groupBy`col1, col2`.having("col1=", "*");
+var select = SELECT.from`Table`.groupBy`col1, col2`.having`col = ${"*"}`;
+var select = SELECT.from`Table`.groupBy`col1, col2`.having("col1 in ('*', 10)");
+var select = SELECT.from`Table`.groupBy`col1, col2`.having`col1 in ${[
+  ("*", 10),
+]}`;
+var select = SELECT.from`Table`.groupBy`col1, col2`.having({
+  col1: 10,
+  and: { col2: 11 },
+});
+
+var select = SELECT.from`Table`
+  .groupBy("col1.prop1", "col2.prop2")
+  .having({ col1: "*" });
+var select = SELECT.from`Table`
+  .groupBy("col1.prop1", "col2.prop2")
+  .having("col1='*'");
+var select = SELECT.from`Table`.groupBy("col1.prop1", "col2.prop2")
+  .having`"col1='*'"`;
+var select = SELECT.from`Table`
+  .groupBy("col1.prop1", "col2.prop2")
+  .having("col1=", "*");
+var select = SELECT.from`Table`.groupBy("col1.prop1", "col2.prop2")
+  .having`col = ${"*"}`;
+var select = SELECT.from`Table`
+  .groupBy("col1.prop1", "col2.prop2")
+  .having("col1 in ('*', 10)");
+var select = SELECT.from`Table`.groupBy("col1.prop1", "col2.prop2")
+  .having`col1 in ${[("*", 10)]}`;
+var select = SELECT.from`Table`
+  .groupBy("col1.prop1", "col2.prop2")
+  .having({ col1: 10, and: { col2: 11 } });
+
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`.having({
+  col1: "*",
+});
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`.having(
+  "col1='*'"
+);
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`
+  .having`"col1='*'"`;
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`.having(
+  "col1=",
+  "*"
+);
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`
+  .having`col = ${"*"}`;
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`.having(
+  "col1 in ('*', 10)"
+);
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`
+  .having`col1 in ${[("*", 10)]}`;
+var select = SELECT.from`Table`.groupBy`col1.prop1, col2.prop2`.having({
+  col1: 10,
+  and: { col2: 11 },
+});
+
+var select = SELECT.from`Table`
+  .groupBy({ ref: ["col1", "prop1"] }, { ref: ["col2", "prop2"] })
+  .having({ col1: "*" });
+var select = SELECT.from`Table`
+  .groupBy({ ref: ["col1", "prop1"] }, { ref: ["col2", "prop2"] })
+  .having("col1='*'");
+var select = SELECT.from`Table`.groupBy(
+  { ref: ["col1", "prop1"] },
+  { ref: ["col2", "prop2"] }
+).having`"col1='*'"`;
+var select = SELECT.from`Table`
+  .groupBy({ ref: ["col1", "prop1"] }, { ref: ["col2", "prop2"] })
+  .having("col1=", "*");
+var select = SELECT.from`Table`.groupBy(
+  { ref: ["col1", "prop1"] },
+  { ref: ["col2", "prop2"] }
+).having`col = ${"*"}`;
+var select = SELECT.from`Table`
+  .groupBy({ ref: ["col1", "prop1"] }, { ref: ["col2", "prop2"] })
+  .having("col1 in ('*', 10)");
+var select = SELECT.from`Table`.groupBy(
+  { ref: ["col1", "prop1"] },
+  { ref: ["col2", "prop2"] }
+).having`col1 in ${[("*", 10)]}`;
+var select = SELECT.from`Table`
+  .groupBy({ ref: ["col1", "prop1"] }, { ref: ["col2", "prop2"] })
+  .having({ col1: 10, and: { col2: 11 } });
+
+// .orderBy()
+// .limit()
+// .forUpdate()
+// .forShareLock()
 
 /* SELECTS with property access and method calls */
-
-/*
-  - Property: .one
-    - const one = await SELECT.one.from (Authors)
-    - const [one] = await SELECT.from (Authors)
-  - Property: .distinct
-    - SELECT.distinct.from (Authors)
-  - Method: .columns()
-    - SELECT.from `Books` .columns (b => { b.title, b.author.name.as('author') })
-    - SELECT.from `Books` .columns `{ title, author.name as author }`
-    - SELECT.from `Books` .columns `title, author.name as author`
-    - SELECT.from `Books` .columns ( 'title', 'author.name as author')
-    - SELECT.from `Books` .columns ( 'title', {ref:['author','name'],as:'author'} )
-    - SELECT.from `Books` .columns (['title', {ref:['author','name'],as:'author'} ])  
-  - Method: .from()
-    - SELECT.from (Books,201)
-    - SELECT.from (Books,201, b => { b.ID, b.title })
-    - SELECT.one.from (Books) .where ({ID:201})
-    - SELECT.one.from (Books) .where ({ID:201}) .columns (b => { b.ID, b.title })
-  - Method: .alias()
-    - SELECT.from ('Authors').alias('a').where({ exists: SELECT.from('Books').where('author_ID = a.ID')})
-  - Method: .where()
-  - Method: .having()
-  - Method: .groupBy()
-  - Method: .orderBy()
-  - Method: .limit()
-  - Method: forUpdate()
-  - Method: forShareLock()
- */
+TODO;
 
 /* CQL tagged function */
 CQL`SELECT col1, col2, col3 from Table`;
