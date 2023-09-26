@@ -1,0 +1,128 @@
+| select.js:2:14:2:26 | SELECT`Table` |
+| select.js:12:14:12:31 | SELECT.from`Table` |
+| select.js:12:14:12:51 | SELECT. ... , col2` |
+| select.js:13:14:13:31 | SELECT.from`Table` |
+| select.js:16:14:16:31 | SELECT.from`Table` |
+| select.js:16:14:16:68 | SELECT. ... lias }` |
+| select.js:17:14:17:31 | SELECT.from`Table` |
+| select.js:18:14:18:31 | SELECT.from`Table` |
+| select.js:22:14:22:31 | SELECT.from`Table` |
+| select.js:43:14:43:31 | SELECT.from`Table` |
+| select.js:44:14:44:31 | SELECT.from`Table` |
+| select.js:45:14:45:31 | SELECT.from`Table` |
+| select.js:45:14:45:49 | SELECT. ... 1='*'"` |
+| select.js:46:14:46:31 | SELECT.from`Table` |
+| select.js:47:14:47:31 | SELECT.from`Table` |
+| select.js:47:14:47:51 | SELECT. ... ${"*"}` |
+| select.js:48:14:48:31 | SELECT.from`Table` |
+| select.js:49:14:49:31 | SELECT.from`Table` |
+| select.js:49:14:49:61 | SELECT. ...  10)]}` |
+| select.js:50:14:50:31 | SELECT.from`Table` |
+| select.js:53:14:53:31 | SELECT.from`Table` |
+| select.js:54:14:54:31 | SELECT.from`Table` |
+| select.js:54:14:54:51 | SELECT. ... , col2` |
+| select.js:55:14:55:31 | SELECT.from`Table` |
+| select.js:56:14:56:31 | SELECT.from`Table` |
+| select.js:56:14:56:63 | SELECT. ... .prop2` |
+| select.js:57:14:57:31 | SELECT.from`Table` |
+| select.js:63:14:63:31 | SELECT.from`Table` |
+| select.js:64:14:64:31 | SELECT.from`Table` |
+| select.js:65:14:65:31 | SELECT.from`Table` |
+| select.js:65:14:65:50 | SELECT. ... 1='*'"` |
+| select.js:66:14:66:31 | SELECT.from`Table` |
+| select.js:67:14:67:31 | SELECT.from`Table` |
+| select.js:67:14:67:52 | SELECT. ... ${"*"}` |
+| select.js:68:14:68:31 | SELECT.from`Table` |
+| select.js:69:14:69:31 | SELECT.from`Table` |
+| select.js:69:14:69:62 | SELECT. ...  10)]}` |
+| select.js:70:14:70:31 | SELECT.from`Table` |
+| select.js:72:14:72:31 | SELECT.from`Table` |
+| select.js:73:14:73:31 | SELECT.from`Table` |
+| select.js:74:14:74:31 | SELECT.from`Table` |
+| select.js:75:14:75:31 | SELECT.from`Table` |
+| select.js:76:14:76:31 | SELECT.from`Table` |
+| select.js:77:14:77:31 | SELECT.from`Table` |
+| select.js:80:14:80:31 | SELECT.from`Table` |
+| select.js:83:14:83:31 | SELECT.from`Table` |
+| select.js:87:14:87:31 | SELECT.from`Table` |
+| select.js:87:14:87:51 | SELECT. ... , col2` |
+| select.js:88:14:88:31 | SELECT.from`Table` |
+| select.js:88:14:88:51 | SELECT. ... , col2` |
+| select.js:89:14:89:31 | SELECT.from`Table` |
+| select.js:89:14:89:51 | SELECT. ... , col2` |
+| select.js:89:14:89:70 | SELECT. ... 1='*'"` |
+| select.js:90:14:90:31 | SELECT.from`Table` |
+| select.js:90:14:90:51 | SELECT. ... , col2` |
+| select.js:91:14:91:31 | SELECT.from`Table` |
+| select.js:91:14:91:51 | SELECT. ... , col2` |
+| select.js:91:14:91:72 | SELECT. ... ${"*"}` |
+| select.js:92:14:92:31 | SELECT.from`Table` |
+| select.js:92:14:92:51 | SELECT. ... , col2` |
+| select.js:93:14:93:31 | SELECT.from`Table` |
+| select.js:93:14:93:51 | SELECT. ... , col2` |
+| select.js:93:14:95:3 | SELECT. ... 0),\\n]}` |
+| select.js:96:14:96:31 | SELECT.from`Table` |
+| select.js:96:14:96:51 | SELECT. ... , col2` |
+| select.js:101:14:101:31 | SELECT.from`Table` |
+| select.js:104:14:104:31 | SELECT.from`Table` |
+| select.js:107:14:107:31 | SELECT.from`Table` |
+| select.js:109:14:109:31 | SELECT.from`Table` |
+| select.js:112:14:112:31 | SELECT.from`Table` |
+| select.js:114:14:114:31 | SELECT.from`Table` |
+| select.js:117:14:117:31 | SELECT.from`Table` |
+| select.js:119:14:119:31 | SELECT.from`Table` |
+| select.js:123:14:123:31 | SELECT.from`Table` |
+| select.js:123:14:123:63 | SELECT. ... .prop2` |
+| select.js:126:14:126:31 | SELECT.from`Table` |
+| select.js:126:14:126:63 | SELECT. ... .prop2` |
+| select.js:129:14:129:31 | SELECT.from`Table` |
+| select.js:129:14:129:63 | SELECT. ... .prop2` |
+| select.js:129:14:130:21 | SELECT. ... 1='*'"` |
+| select.js:131:14:131:31 | SELECT.from`Table` |
+| select.js:131:14:131:63 | SELECT. ... .prop2` |
+| select.js:135:14:135:31 | SELECT.from`Table` |
+| select.js:135:14:135:63 | SELECT. ... .prop2` |
+| select.js:135:14:136:23 | SELECT. ... ${"*"}` |
+| select.js:137:14:137:31 | SELECT.from`Table` |
+| select.js:137:14:137:63 | SELECT. ... .prop2` |
+| select.js:140:14:140:31 | SELECT.from`Table` |
+| select.js:140:14:140:63 | SELECT. ... .prop2` |
+| select.js:140:14:141:33 | SELECT. ...  10)]}` |
+| select.js:142:14:142:31 | SELECT.from`Table` |
+| select.js:142:14:142:63 | SELECT. ... .prop2` |
+| select.js:147:14:147:31 | SELECT.from`Table` |
+| select.js:150:14:150:31 | SELECT.from`Table` |
+| select.js:153:14:153:31 | SELECT.from`Table` |
+| select.js:157:14:157:31 | SELECT.from`Table` |
+| select.js:160:14:160:31 | SELECT.from`Table` |
+| select.js:164:14:164:31 | SELECT.from`Table` |
+| select.js:167:14:167:31 | SELECT.from`Table` |
+| select.js:171:14:171:31 | SELECT.from`Table` |
+| select.js:176:14:176:31 | SELECT.from`Table` |
+| select.js:176:14:176:63 | SELECT. ... .prop2` |
+| select.js:177:14:177:31 | SELECT.from`Table` |
+| select.js:177:14:177:61 | SELECT. ... .prop2` |
+| select.js:178:14:178:31 | SELECT.from`Table` |
+| select.js:178:14:178:61 | SELECT. ... l2 asc` |
+| select.js:179:14:179:31 | SELECT.from`Table` |
+| select.js:179:14:179:58 | SELECT. ... l2 asc` |
+| select.js:180:14:180:31 | SELECT.from`Table` |
+| select.js:180:14:180:63 | SELECT. ... .prop2` |
+| select.js:181:14:181:31 | SELECT.from`Table` |
+| select.js:181:14:181:62 | SELECT. ... .prop2` |
+| select.js:182:14:182:31 | SELECT.from`Table` |
+| select.js:182:14:182:62 | SELECT. ... 2 desc` |
+| select.js:183:14:183:31 | SELECT.from`Table` |
+| select.js:183:14:183:60 | SELECT. ... 2 desc` |
+| select.js:186:14:186:31 | SELECT.from`Table` |
+| select.js:187:14:187:31 | SELECT.from`Table` |
+| select.js:188:14:188:31 | SELECT.from`Table` |
+| select.js:189:14:189:31 | SELECT.from`Table` |
+| select.js:190:14:190:31 | SELECT.from`Table` |
+| select.js:191:14:191:31 | SELECT.from`Table` |
+| select.js:196:14:196:31 | SELECT.from`Table` |
+| select.js:196:14:196:51 | SELECT. ... , col2` |
+| select.js:196:14:197:23 | SELECT. ... ${"*"}` |
+| select.js:200:14:200:31 | SELECT.from`Table` |
+| select.js:200:14:200:51 | SELECT. ... , col2` |
+| select.js:200:14:201:23 | SELECT. ... ${"*"}` |

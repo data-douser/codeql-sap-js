@@ -1,7 +1,7 @@
 ---
 library: false
 warnOnImplicitThis: false
-name: advanced-security/cap
+name: advanced-security/javascript-sap-cap-models
 version: 0.0.1
 dependencies:
-  codeql/javascript-all: "*"
+  codeql/javascript-all: "^0.6.3"

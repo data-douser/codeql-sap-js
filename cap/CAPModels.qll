@@ -156,16 +156,30 @@ class Select extends CqlBuilder {
   }
 }
 
-class Update extends CqlBuilder { }
+class Update extends CqlBuilder {
+  Update() {
+    // TODO
+    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
+  }
+}
 
 class Insert extends CqlBuilder {
-  // Name's INSERT
+  Insert() {
+    // TODO
+    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
+  }
 }
 
 class Delete extends CqlBuilder {
-  // Name's DELETE
+  Delete() {
+    // TODO
+    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
+  }
 }
 
 class Upsert extends CqlBuilder {
-  // Name's UPSERT
+  Upsert() {
+    // TODO
+    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
+  }
 }
