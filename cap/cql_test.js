@@ -215,8 +215,27 @@ CQL`SELECT col1, col2, col3 from Table`;
 
 var select = {
   SELECT: {
+    from: { ref: ["Bar"] },
+  },
+};
+
+var select = {
+  SELECT: {
     one: true,
     columns: [{ ref: ["Foo"] }, { ref: ["Boo"] }, { ref: ["Moo"] }],
     from: { ref: ["Bar"] },
+  },
+};
+
+var select = {
+  SELECT: {
+    distinct: true,
+    columns: [{ ref: ["Foo"] }, { ref: ["Boo"] }, { ref: ["Moo"] }],
+    from: { ref: ["Bar"] },
+    limit: {
+      rows: { val: 7 },
+    },
+    where: [{ ref: ["col1"] }, ">", { val: 2 }],
+    groupBy: [{ ref: ["col1"] }, { ref: ["col2", "prop2"] }],
   },
 };
