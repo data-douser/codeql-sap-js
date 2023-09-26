@@ -1,20 +1,20 @@
 /* Simplest SELECTs without property accesses or method calls */
 var select = SELECT`Table`;
 
-/* SELECTs with property accesses */
+/* ========== SELECTs with property accesses ========== */
 var select = SELECT.one.from`Table`;
 var select = SELECT.one.from(Table);
 var select = SELECT.distinct.from`Table`;
 var select = SELECT.distinct.from(Table);
 
-/* SELECTs with method calls */
+/*  ========== SELECTs with method calls ========== */
 // .columns()
 var select = SELECT.from`Table`.columns`col1, col2`;
 var select = SELECT.from`Table`.columns((data) => {
   data.col1, data.col2;
 });
-var select = SELECT.from`Table`.columns`{ col1, col2 as column }`;
-var select = SELECT.from`Table`.columns("col1", "col2 as column");
+var select = SELECT.from`Table`.columns`{ col1, col2 as col2Alias }`;
+var select = SELECT.from`Table`.columns("col1", "col2 as col2Alias");
 var select = SELECT.from`Table`.columns([
   "col1",
   { ref: ["col2", "prop"], as: "property" },
@@ -28,8 +28,8 @@ var select = SELECT.from(Table).columns`col1, col2`;
 var select = SELECT.from(Table).columns((data) => {
   data.col1, data.col2;
 });
-var select = SELECT.from(Table).columns`{ col1, col2 as column }`;
-var select = SELECT.from(Table).columns("col1", "col2 as column");
+var select = SELECT.from(Table).columns`{ col1, col2 as col2Alias }`;
+var select = SELECT.from(Table).columns("col1", "col2 as col2Alias");
 var select = SELECT.from(Table).columns([
   "col1",
   { ref: ["col2", "prop"], as: "property" },
@@ -173,17 +173,47 @@ var select = SELECT.from`Table`
   .having({ col1: 10, and: { col2: 11 } });
 
 // .orderBy()
+var select = SELECT.from`Table`.orderBy`col1.prop1, col2.prop2`;
+var select = SELECT.from`Table`.orderBy`col1 asc, col2.prop2`;
+var select = SELECT.from`Table`.orderBy`col1.prop1, col2 asc`;
+var select = SELECT.from`Table`.orderBy`col1 asc col2 asc`;
+var select = SELECT.from`Table`.orderBy`col1.prop1, col2.prop2`;
+var select = SELECT.from`Table`.orderBy`col1 desc, col2.prop2`;
+var select = SELECT.from`Table`.orderBy`col1.prop1, col2 desc`;
+var select = SELECT.from`Table`.orderBy`col1 desc col2 desc`;
+
 // .limit()
+var select = SELECT.from`Table`.limit(10);
+var select = SELECT.from`Table`.limit(10, 20);
+var select = SELECT.from`Table`.limit({ val: 10 });
+var select = SELECT.from`Table`.limit({ val: 10 }, { val: 20 });
+var select = SELECT.from`Table`.limit({ ref: ["limitVal"] });
+var select = SELECT.from`Table`.limit({
+  ref: [{ id: "function", args: { p: { ref: ["arg1"] } } }],
+});
+
 // .forUpdate()
+var select = SELECT.from`Table`.groupBy`col1, col2`
+  .having`col = ${"*"}`.forUpdate();
+
 // .forShareLock()
+var select = SELECT.from`Table`.groupBy`col1, col2`
+  .having`col = ${"*"}`.forShareLock();
 
-/* SELECTS with property access and method calls */
-TODO;
+/* ========== SELECTS with property access and method calls ========== */
+var select = SELECT.distinct.from`Table`.where`col1 in ${[("*", 10)]}`.groupBy(
+  "col1",
+  "col2"
+).having`col1 in ${[("*", 10)]}`
+  .limit({
+    ref: [{ id: "function", args: { p: { ref: ["arg1"] } } }],
+  })
+  .forShareLock();
 
-/* CQL tagged function */
+/* ========== CQL tagged function ========== */
 CQL`SELECT col1, col2, col3 from Table`;
 
-/* JSON literal queries */
+/* ========== JSON literal queries ========== */
 
 var select = {
   SELECT: {
