@@ -204,11 +204,9 @@ var select = SELECT.from`Table`.groupBy`col1, col2`
 var select = SELECT.distinct.from`Table`.where`col1 in ${[("*", 10)]}`.groupBy(
   "col1",
   "col2"
-).having`col1 in ${[("*", 10)]}`
-  .limit({
-    ref: [{ id: "function", args: { p: { ref: ["arg1"] } } }],
-  })
-  .forShareLock();
+).having`col1 in ${[("*", 10)]}`.limit({
+  ref: [{ id: "function", args: { p: { ref: ["arg1"] } } }],
+}).orderBy`col1 desc, col2.prop2`.forShareLock();
 
 /* ========== CQL tagged function ========== */
 CQL`SELECT col1, col2, col3 from Table`;
