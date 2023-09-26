@@ -1,4 +1,6 @@
 | select.js:2:14:2:26 | SELECT`Table` |
+| select.js:5:14:5:35 | SELECT. ... `Table` |
+| select.js:7:14:7:40 | SELECT. ... `Table` |
 | select.js:12:14:12:31 | SELECT.from`Table` |
 | select.js:12:14:12:51 | SELECT. ... , col2` |
 | select.js:13:14:13:31 | SELECT.from`Table` |
@@ -126,3 +128,5 @@
 | select.js:200:14:200:31 | SELECT.from`Table` |
 | select.js:200:14:200:51 | SELECT. ... , col2` |
 | select.js:200:14:201:23 | SELECT. ... ${"*"}` |
+| select.js:204:14:204:40 | SELECT. ... `Table` |
+| select.js:204:14:204:70 | SELECT. ...  10)]}` |

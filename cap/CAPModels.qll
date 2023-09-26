@@ -129,16 +129,19 @@ class CdsFacade extends ModuleImportNode {
 
 predicate selectCqlBuilder(TaggedTemplateExpr tagExpr) {
   exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
-    /* 1. SELECT `Bar` where SELECT is a local variable */
+    /* SELECT `Bar` */
     taggingExpr.(VarRef).getName() = "SELECT" or
-    /* 2. SELECT `Bar` where SELECT is a global variable */
-    taggingExpr.(GlobalVarAccess).getName() = "SELECT" or
-    /* 3. SELECT.one `Foo` or SELECT.from `Bar` */
+    /* SELECT.one `Foo`, SELECT.from `Bar` */
     taggingExpr.(DotExpr).accesses(any(VarRef var | var.getName() = "SELECT"), _) or
+    taggingExpr
+        .(DotExpr)
+        .accesses(any(DotExpr var | var.accesses(any(VarRef var_ | var_.getName() = "SELECT"), _)),
+          _) or
     selectCqlBuilder(taggingExpr.getAChildExpr())
   )
 }
 
+// SELECT.one.from`Table`
 predicate deleteCqlBuilder(TaggedTemplateExpr tagExpr) {
   exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
     taggingExpr.(VarRef).getName() = "DELETE" or
