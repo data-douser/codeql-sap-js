@@ -6,6 +6,8 @@ var select = SELECT.one.from`Table`;
 var select = SELECT.one.from(Table);
 var select = SELECT.distinct.from`Table`;
 var select = SELECT.distinct.from(Table);
+var select = SELECT.one.two.three.distinct.from(Table);
+var select = SELECT.one.two.three.distinct.from`Table`;
 
 /*  ========== SELECTs with method calls ========== */
 // .columns()

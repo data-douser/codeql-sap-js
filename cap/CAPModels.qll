@@ -133,6 +133,7 @@ predicate selectCqlBuilder(TaggedTemplateExpr tagExpr) {
     taggingExpr.(VarRef).getName() = "SELECT" or
     /* SELECT.one `Foo`, SELECT.from `Bar` */
     taggingExpr.(DotExpr).accesses(any(VarRef var | var.getName() = "SELECT"), _) or
+    /* SELECT.one.from`Table` */
     taggingExpr
         .(DotExpr)
         .accesses(any(DotExpr var | var.accesses(any(VarRef var_ | var_.getName() = "SELECT"), _)),
@@ -141,7 +142,32 @@ predicate selectCqlBuilder(TaggedTemplateExpr tagExpr) {
   )
 }
 
-// SELECT.one.from`Table`
+private predicate accessesSelect(DotExpr dot) {
+  dot.accesses(any(VarRef var | var.getName() = "SELECT"), _)
+  or
+  accessesSelect(dot.getAChildExpr())
+}
+
+/** Tagged SELECTs with property accesses */
+predicate accessesSelectTagged(TaggedTemplateExpr tagExpr) { accessesSelect(tagExpr.getTag()) }
+
+/** Nested Tagged SELECTs (includes accessesSelectTagged: Tagged SELECTs with property accesses) */
+predicate nestedSelectTaggedTemplate(TaggedTemplateExpr tagExpr) {
+  // tagExpr = SELECT.from`Table`.columns`col1, col2`
+  exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
+    // taggingExpr = SELECT.from`Table`.columns
+    // base
+    accessesSelect(taggingExpr)
+    or
+    // recursive
+    exists(TaggedTemplateExpr nestedTaggingExpr |
+      taggingExpr.(DotExpr).accesses(nestedTaggingExpr, _)
+    |
+      nestedSelectTaggedTemplate(nestedTaggingExpr)
+    )
+  )
+}
+
 predicate deleteCqlBuilder(TaggedTemplateExpr tagExpr) {
   exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
     taggingExpr.(VarRef).getName() = "DELETE" or
