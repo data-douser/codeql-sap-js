@@ -34,9 +34,10 @@ jobs:
         debug: true
 
     - name: Perform CodeQL Analysis
+      id: analyze
       uses: github/codeql-action/analyze@v2
     
     - uses: actions/upload-artifact@v3
       with:
         name: SARIF
-        path: ../results/
+        path: ${{ steps.analyze.outputs.sarif-output }}
