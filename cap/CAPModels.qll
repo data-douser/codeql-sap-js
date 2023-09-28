@@ -154,7 +154,7 @@ private predicate isMethodCallSelect(MethodCallExpr callExpr) {
   exists(Expr receiver | receiver = callExpr.getCallee() |
     /*
      * Only property accesses are left up to SELECT, e.g.
-     * SELECT.x.y. ...z`cond`
+     * SELECT.x.y. ...z(cond)
      */
 
     accessesSelect(receiver)
