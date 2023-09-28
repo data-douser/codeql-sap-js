@@ -221,22 +221,18 @@ predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
   )
 }
 
-predicate deleteCqlBuilder(TaggedTemplateExpr tagExpr) {
-  exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
-    taggingExpr.(VarRef).getName() = "DELETE" or
-    taggingExpr.(GlobalVarAccess).getName() = "DELETE" or
-    taggingExpr.(DotExpr).accesses(any(VarRef var | var.getName() = "DELETE"), _) or
-    deleteCqlBuilder(taggingExpr.getAChildExpr())
-  )
-}
+newtype TCqlExpr =
+  TCqlSelectExpr(TCqlSelect cqlSelect) or
+  TCqlInsertExpr(TCqlInsert cqlInsert) or
+  TCqlUpdateExpr(TCqlUpdate cqlUpdate) or
+  TCqlDeleteExpr(TCqlDelete cqlDelete) or
+  TCqlUpsertExpr(TCqlUpsert cqlUpsert)
 
-abstract class CqlBuilder extends ValueNode { }
+newtype TCqlSelect =
+  TaggedTemplateSelect(TaggedTemplateExpr tagExpr) { isTaggedTemplateSelect(tagExpr) } or
+  MethodCallSelect(MethodCallExpr callExpr) { isMethodCallSelect(callExpr) }
 
-newtype TCQLSelect =
-  TaggedTemplateSelect(TaggedTemplateExpr tagExpr) or
-  MethodCallSelect(MethodCallExpr callExpr)
-
-class CQLSelect extends TCQLSelect {
+class Select extends TCqlSelect {
   TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplateSelect(result) }
 
   MethodCallExpr asMethodCall() { this = MethodCallSelect(result) }
@@ -247,38 +243,18 @@ class CQLSelect extends TCQLSelect {
   }
 }
 
-deprecated predicate selectCqlBuilder(TaggedTemplateExpr tagExpr) { any() }
+newtype TCqlInsert =
+  TaggedTemplateInsert(TaggedTemplateExpr tagExpr) or
+  MethodCallInsert(MethodCallExpr callExpr)
 
-class Select extends CqlBuilder {
-  Select() {
-    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
-  }
-}
+newtype TCqlUpdate =
+  TaggedTemplateUpdate(TaggedTemplateExpr tagExpr) or
+  MethodCallUpdate(MethodCallExpr callExpr)
 
-class Update extends CqlBuilder {
-  Update() {
-    // TODO
-    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
-  }
-}
+newtype TCqlDelete =
+  TaggedTemplateDelete(TaggedTemplateExpr tagExpr) or
+  MethodCallDelete(MethodCallExpr callExpr)
 
-class Insert extends CqlBuilder {
-  Insert() {
-    // TODO
-    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
-  }
-}
-
-class Delete extends CqlBuilder {
-  Delete() {
-    // TODO
-    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
-  }
-}
-
-class Upsert extends CqlBuilder {
-  Upsert() {
-    // TODO
-    exists(TaggedTemplateExpr tagExpr | selectCqlBuilder(tagExpr) and this = tagExpr.flow())
-  }
-}
+newtype TCqlUpsert =
+  TaggedTemplateUpsert(TaggedTemplateExpr tagExpr) or
+  MethodCallUpsert(MethodCallExpr callExpr)
