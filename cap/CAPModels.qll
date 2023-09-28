@@ -152,14 +152,29 @@ private predicate accessesSelect(DotExpr dot) {
  */
 predicate isMethodCallSelect(MethodCallExpr callExpr) {
   exists(Expr receiver | receiver = callExpr.getCallee() |
+    /*
+     * Only property accesses are left up to SELECT, e.g.
+     * SELECT.x.y. ...z`cond`
+     */
+
     accessesSelect(receiver)
     or
+    /*
+     * The immediate prefix is a TaggedTemplateExpr:
+     * SELECT.x. ... .z`cond1`.w`cond2`
+     */
+
     exists(TaggedTemplateExpr nestedTaggingExpr |
       receiver.(DotExpr).accesses(nestedTaggingExpr, _)
     |
       isTaggedTemplateSelect(nestedTaggingExpr)
     )
     or
+    /*
+     * The immediate prefix is a MethodCallExpr:
+     * SELECT.x. ... .z(cond1).w`cond2`
+     */
+
     exists(MethodCallExpr nestedCallExpr | receiver.(DotExpr).accesses(nestedCallExpr, _) |
       isMethodCallSelect(nestedCallExpr)
     )
@@ -177,14 +192,29 @@ predicate isMethodCallSelect(MethodCallExpr callExpr) {
  */
 predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
   exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
+    /*
+     * Only property accesses are left up to SELECT, e.g.
+     * SELECT.x.y. ...z`cond`
+     */
+
     accessesSelect(taggingExpr)
     or
+    /*
+     * The immediate prefix is a TaggedTemplateExpr:
+     * SELECT.x. ... .z`cond1`.w`cond2`
+     */
+
     exists(TaggedTemplateExpr nestedTaggingExpr |
       taggingExpr.(DotExpr).accesses(nestedTaggingExpr, _)
     |
       isTaggedTemplateSelect(nestedTaggingExpr)
     )
     or
+    /*
+     * The immediate prefix is a MethodCallExpr:
+     * SELECT.x. ... .z(cond1).w`cond2`
+     */
+
     exists(MethodCallExpr nestedCallExpr | taggingExpr.(DotExpr).accesses(nestedCallExpr, _) |
       isMethodCallSelect(nestedCallExpr)
     )
