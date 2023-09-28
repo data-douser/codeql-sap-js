@@ -127,43 +127,66 @@ class CdsFacade extends ModuleImportNode {
   CdsFacade() { this = moduleImport("@sap/cds") }
 }
 
-predicate selectCqlBuilder(TaggedTemplateExpr tagExpr) {
-  exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
-    /* SELECT `Bar` */
-    taggingExpr.(VarRef).getName() = "SELECT" or
-    /* SELECT.one `Foo`, SELECT.from `Bar` */
-    taggingExpr.(DotExpr).accesses(any(VarRef var | var.getName() = "SELECT"), _) or
-    /* SELECT.one.from`Table` */
-    taggingExpr
-        .(DotExpr)
-        .accesses(any(DotExpr var | var.accesses(any(VarRef var_ | var_.getName() = "SELECT"), _)),
-          _) or
-    selectCqlBuilder(taggingExpr.getAChildExpr())
+/**
+ * Holds if a `DotExpr` ultimately accesses a `SELECT` variable, e.g.
+ * ```js
+ * SELECT.from
+ * SELECT.one.from
+ * SELECT.distinct.from
+ * ```
+ */
+private predicate accessesSelect(DotExpr dot) {
+  exists(DotExpr descendant | descendant = dot.getAChildExpr*() |
+    descendant.accesses(any(VarRef var | var.getName() = "SELECT"), _)
   )
 }
 
-private predicate accessesSelect(DotExpr dot) {
-  dot.accesses(any(VarRef var | var.getName() = "SELECT"), _)
-  or
-  accessesSelect(dot.getAChildExpr())
+/**
+ * Method call `SELECT` CQL query expressions, e.g.
+ * ```js
+ * SELECT.from(Table)
+ * SELECT.distinct.from(Table);
+ * SELECT.from`Table`.where("col1='*'");
+ * SELECT.from(Table).having("col1='*'");
+ * ```
+ */
+predicate isMethodCallSelect(MethodCallExpr callExpr) {
+  exists(Expr receiver | receiver = callExpr.getCallee() |
+    accessesSelect(receiver)
+    or
+    exists(TaggedTemplateExpr nestedTaggingExpr |
+      receiver.(DotExpr).accesses(nestedTaggingExpr, _)
+    |
+      isTaggedTemplateSelect(nestedTaggingExpr)
+    )
+    or
+    exists(MethodCallExpr nestedCallExpr | receiver.(DotExpr).accesses(nestedCallExpr, _) |
+      isMethodCallSelect(nestedCallExpr)
+    )
+  )
 }
 
-/** Tagged SELECTs with property accesses */
-predicate accessesSelectTagged(TaggedTemplateExpr tagExpr) { accessesSelect(tagExpr.getTag()) }
-
-/** Nested Tagged SELECTs (includes accessesSelectTagged: Tagged SELECTs with property accesses) */
-predicate nestedSelectTaggedTemplate(TaggedTemplateExpr tagExpr) {
-  // tagExpr = SELECT.from`Table`.columns`col1, col2`
+/**
+ * Tagged `SELECT` CQL query expressions, e.g.
+ * ```js
+ * SELECT.from`Table`
+ * SELECT.distinct.from`Table`;
+ * SELECT.from(Table).where`"col1='*'"`;
+ * SELECT.from`Table`.having`"col1='*'"`;
+ * ```
+ */
+predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
   exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
-    // taggingExpr = SELECT.from`Table`.columns
-    // base
     accessesSelect(taggingExpr)
     or
-    // recursive
     exists(TaggedTemplateExpr nestedTaggingExpr |
       taggingExpr.(DotExpr).accesses(nestedTaggingExpr, _)
     |
-      nestedSelectTaggedTemplate(nestedTaggingExpr)
+      isTaggedTemplateSelect(nestedTaggingExpr)
+    )
+    or
+    exists(MethodCallExpr nestedCallExpr | taggingExpr.(DotExpr).accesses(nestedCallExpr, _) |
+      isMethodCallSelect(nestedCallExpr)
     )
   )
 }
@@ -178,6 +201,23 @@ predicate deleteCqlBuilder(TaggedTemplateExpr tagExpr) {
 }
 
 abstract class CqlBuilder extends ValueNode { }
+
+newtype TCQLSelect =
+  TaggedTemplateSelect(TaggedTemplateExpr tagExpr) or
+  MethodCallSelect(MethodCallExpr callExpr)
+
+class CQLSelect extends TCQLSelect {
+  TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplateSelect(result) }
+
+  MethodCallExpr asMethodCall() { this = MethodCallSelect(result) }
+
+  string toString() {
+    result = this.asTaggedTemplate().toString() or
+    result = this.asMethodCall().toString()
+  }
+}
+
+deprecated predicate selectCqlBuilder(TaggedTemplateExpr tagExpr) { any() }
 
 class Select extends CqlBuilder {
   Select() {
