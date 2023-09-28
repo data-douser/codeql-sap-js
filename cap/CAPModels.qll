@@ -241,6 +241,11 @@ class Select extends TCqlSelect {
     result = this.asTaggedTemplate().toString() or
     result = this.asMethodCall().toString()
   }
+
+  Location getLocation() {
+    result = this.asTaggedTemplate().getLocation() or
+    result = this.asMethodCall().getLocation()
+  }
 }
 
 newtype TCqlInsert =
