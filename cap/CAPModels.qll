@@ -150,7 +150,7 @@ private predicate accessesSelect(DotExpr dot) {
  * SELECT.from(Table).having("col1='*'");
  * ```
  */
-predicate isMethodCallSelect(MethodCallExpr callExpr) {
+private predicate isMethodCallSelect(MethodCallExpr callExpr) {
   exists(Expr receiver | receiver = callExpr.getCallee() |
     /*
      * Only property accesses are left up to SELECT, e.g.
@@ -190,7 +190,7 @@ predicate isMethodCallSelect(MethodCallExpr callExpr) {
  * SELECT.from`Table`.having`"col1='*'"`;
  * ```
  */
-predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
+private predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
   exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
     /*
      * Only property accesses are left up to SELECT, e.g.
