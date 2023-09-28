@@ -161,7 +161,7 @@ private predicate isMethodCallSelect(MethodCallExpr callExpr) {
     or
     /*
      * The immediate prefix is a TaggedTemplateExpr:
-     * SELECT.x. ... .z`cond1`.w`cond2`
+     * SELECT.x. ... .z`cond1`.w(cond2)
      */
 
     exists(TaggedTemplateExpr nestedTaggingExpr |
@@ -172,7 +172,7 @@ private predicate isMethodCallSelect(MethodCallExpr callExpr) {
     or
     /*
      * The immediate prefix is a MethodCallExpr:
-     * SELECT.x. ... .z(cond1).w`cond2`
+     * SELECT.x. ... .z(cond1).w(cond2)
      */
 
     exists(MethodCallExpr nestedCallExpr | receiver.(DotExpr).accesses(nestedCallExpr, _) |
