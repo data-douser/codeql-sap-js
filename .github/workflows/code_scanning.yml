@@ -41,3 +41,12 @@ jobs:
       with:
         name: SARIF
         path: ${{ steps.analyze.outputs.sarif-output }}
+
+    - uses: actions/setup-python@v4
+      with:
+        cache: 'pip'
+    - run: |
+        pip install sarif-tools
+        sarif --version
+        sarif diff ${{ steps.analyze.outputs.sarif-output }} .github/workflows/javascript.sarif.expected | grep "all levels: +0 +0"
+        
