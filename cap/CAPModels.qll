@@ -136,9 +136,18 @@ class CdsFacade extends ModuleImportNode {
  * ```
  */
 private predicate accessesSelect(DotExpr dot) {
-  exists(DotExpr descendant | descendant = dot.getAChildExpr*() |
-    descendant.accesses(any(VarRef var | var.getName() = "SELECT"), _)
-  )
+  dot.accesses(any(VarRef var | var.getName() = "SELECT"),
+    [
+      "one", "distinct", "columns", "from", "alias", "where", "having", "groupBy", "orderBy",
+      "limit", "forUpdate", "forShareLock"
+    ])
+  or
+  dot.getPropertyName() =
+    [
+      "one", "distinct", "columns", "from", "alias", "where", "having", "groupBy", "orderBy",
+      "limit", "forUpdate", "forShareLock"
+    ] and
+  accessesSelect(dot.getAChildExpr())
 }
 
 /**
@@ -151,6 +160,11 @@ private predicate accessesSelect(DotExpr dot) {
  * ```
  */
 private predicate isMethodCallSelect(MethodCallExpr callExpr) {
+  callExpr.getCalleeName() =
+    [
+      "columns", "from", "alias", "where", "having", "groupBy", "orderBy", "limit", "forUpdate",
+      "forShareLock"
+    ] and
   exists(Expr receiver | receiver = callExpr.getCallee() |
     /*
      * Only property accesses are left up to SELECT, e.g.
@@ -191,7 +205,14 @@ private predicate isMethodCallSelect(MethodCallExpr callExpr) {
  * ```
  */
 private predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
-  exists(Expr taggingExpr | taggingExpr = tagExpr.getTag() |
+  exists(Expr taggingExpr |
+    taggingExpr = tagExpr.getTag() and
+    taggingExpr.(DotExpr).getPropertyName() =
+      [
+        "columns", "from", "alias", "where", "having", "groupBy", "orderBy", "limit", "forUpdate",
+        "forShareLock"
+      ]
+  |
     /*
      * Only property accesses are left up to SELECT, e.g.
      * SELECT.x.y. ...z`cond`
@@ -241,24 +262,31 @@ class CqlExpr extends TCqlExpr {
   }
 }
 
-class CqlSelect extends CqlExpr {
-  CqlSelect() {
+class CqlSelectExpr extends CqlExpr {
+  CqlSelectExpr() {
     isMethodCallSelect(this.asMethodCall()) or isTaggedTemplateSelect(this.asTaggedTemplate())
   }
+
+  /* TODO */
+  predicate selectWhere() { any() }
+
+  /* TODO */
+  predicate selectFrom() { any() }
+  // TODO: propname validation
 }
 
-class CqlInsert extends CqlExpr {
-  CqlInsert() { any() }
+class CqlInsertExpr extends CqlExpr {
+  CqlInsertExpr() { any() }
 }
 
-class CqlDelete extends CqlExpr {
-  CqlDelete() { any() }
+class CqlDeleteExpr extends CqlExpr {
+  CqlDeleteExpr() { any() }
 }
 
-class CqlUpdate extends CqlExpr {
-  CqlUpdate() { any() }
+class CqlUpdateExpr extends CqlExpr {
+  CqlUpdateExpr() { any() }
 }
 
-class CqlUpsert extends CqlExpr {
-  CqlUpsert() { any() }
+class CqlUpsertExpr extends CqlExpr {
+  CqlUpsertExpr() { any() }
 }
