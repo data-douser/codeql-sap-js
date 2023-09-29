@@ -222,20 +222,13 @@ private predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
 }
 
 newtype TCqlExpr =
-  TCqlSelectExpr(TCqlSelect cqlSelect) or
-  TCqlInsertExpr(TCqlInsert cqlInsert) or
-  TCqlUpdateExpr(TCqlUpdate cqlUpdate) or
-  TCqlDeleteExpr(TCqlDelete cqlDelete) or
-  TCqlUpsertExpr(TCqlUpsert cqlUpsert)
+  TaggedTemplate(TaggedTemplateExpr tagExpr) or
+  MethodCall(MethodCallExpr callExpr)
 
-newtype TCqlSelect =
-  TaggedTemplateSelect(TaggedTemplateExpr tagExpr) { isTaggedTemplateSelect(tagExpr) } or
-  MethodCallSelect(MethodCallExpr callExpr) { isMethodCallSelect(callExpr) }
+class CqlExpr extends TCqlExpr {
+  TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplate(result) }
 
-class Select extends TCqlSelect {
-  TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplateSelect(result) }
-
-  MethodCallExpr asMethodCall() { this = MethodCallSelect(result) }
+  MethodCallExpr asMethodCall() { this = MethodCall(result) }
 
   string toString() {
     result = this.asTaggedTemplate().toString() or
@@ -248,18 +241,24 @@ class Select extends TCqlSelect {
   }
 }
 
-newtype TCqlInsert =
-  TaggedTemplateInsert(TaggedTemplateExpr tagExpr) or
-  MethodCallInsert(MethodCallExpr callExpr)
+class CqlSelect extends CqlExpr {
+  CqlSelect() {
+    isMethodCallSelect(this.asMethodCall()) or isTaggedTemplateSelect(this.asTaggedTemplate())
+  }
+}
 
-newtype TCqlUpdate =
-  TaggedTemplateUpdate(TaggedTemplateExpr tagExpr) or
-  MethodCallUpdate(MethodCallExpr callExpr)
+class CqlInsert extends CqlExpr {
+  CqlInsert() { any() }
+}
 
-newtype TCqlDelete =
-  TaggedTemplateDelete(TaggedTemplateExpr tagExpr) or
-  MethodCallDelete(MethodCallExpr callExpr)
+class CqlDelete extends CqlExpr {
+  CqlDelete() { any() }
+}
 
-newtype TCqlUpsert =
-  TaggedTemplateUpsert(TaggedTemplateExpr tagExpr) or
-  MethodCallUpsert(MethodCallExpr callExpr)
+class CqlUpdate extends CqlExpr {
+  CqlUpdate() { any() }
+}
+
+class CqlUpsert extends CqlExpr {
+  CqlUpsert() { any() }
+}
