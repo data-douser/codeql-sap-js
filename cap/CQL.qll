@@ -1,6 +1,7 @@
 private import javascript
 private import DataFlow
 
+/* TODO: Query bases */
 /**
  * Holds if a `DotExpr` ultimately accesses a `SELECT` variable, e.g.
  * ```js
@@ -116,6 +117,50 @@ private predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
   )
 }
 
+private predicate accessesInsert(DotExpr dot) {
+  dot.accesses(any(VarRef var | var.getName() = "INSERT"),
+    ["into", "entries", "values", "rows", "as"])
+  or
+  dot.getPropertyName() = ["into", "entries", "values", "rows", "as"] and
+  accessesInsert(dot.getAChildExpr())
+}
+
+private predicate isMethodCallInsert(MethodCallExpr callExpr) {
+  callExpr.getCalleeName() = ["into", "entries", "values", "rows", "as"] and
+  exists(Expr receiver | receiver = callExpr.getCallee() |
+    accessesInsert(receiver)
+    or
+    exists(TaggedTemplateExpr nestedTaggingExpr |
+      receiver.(DotExpr).accesses(nestedTaggingExpr, _)
+    |
+      isTaggedTemplateInsert(nestedTaggingExpr)
+    )
+    or
+    exists(MethodCallExpr nestedCallExpr | receiver.(DotExpr).accesses(nestedCallExpr, _) |
+      isMethodCallInsert(nestedCallExpr)
+    )
+  )
+}
+
+private predicate isTaggedTemplateInsert(TaggedTemplateExpr tagExpr) {
+  exists(Expr taggingExpr |
+    taggingExpr = tagExpr.getTag() and
+    taggingExpr.(DotExpr).getPropertyName() = ["into", "entries", "values", "rows", "as"]
+  |
+    accessesInsert(taggingExpr)
+    or
+    exists(TaggedTemplateExpr nestedTaggingExpr |
+      taggingExpr.(DotExpr).accesses(nestedTaggingExpr, _)
+    |
+      isTaggedTemplateInsert(nestedTaggingExpr)
+    )
+    or
+    exists(MethodCallExpr nestedCallExpr | taggingExpr.(DotExpr).accesses(nestedCallExpr, _) |
+      isMethodCallInsert(nestedCallExpr)
+    )
+  )
+}
+
 newtype TCqlExpr =
   TaggedTemplate(TaggedTemplateExpr tagExpr) or
   MethodCall(MethodCallExpr callExpr)
@@ -153,17 +198,17 @@ class CqlSelectExpr extends CqlExpr {
 }
 
 class CqlInsertExpr extends CqlExpr {
-  CqlInsertExpr() { any() }
+  CqlInsertExpr() { isMethodCallInsert(this.asMethodCall()) }
 }
 
-class CqlDeleteExpr extends CqlExpr {
-  CqlDeleteExpr() { any() }
-}
+// class CqlDeleteExpr extends CqlExpr {
+//   CqlDeleteExpr() { any() }
+// }
 
-class CqlUpdateExpr extends CqlExpr {
-  CqlUpdateExpr() { any() }
-}
+// class CqlUpdateExpr extends CqlExpr {
+//   CqlUpdateExpr() { any() }
+// }
 
-class CqlUpsertExpr extends CqlExpr {
-  CqlUpsertExpr() { any() }
-}
+// class CqlUpsertExpr extends CqlExpr {
+//   CqlUpsertExpr() { any() }
+// }
