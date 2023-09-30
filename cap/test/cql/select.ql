@@ -1,4 +1,5 @@
 import javascript
-import CAPModels
+import CQL
 
-select any(Select s)
+// select any(CqlSelectExpr s)
+select "hihi"
