@@ -1,7 +1,32 @@
 private import javascript
 private import DataFlow
+private import CAPModels
 
-/* TODO: Query bases */
+class CqlQueryBase extends VarRef {
+  CqlQueryBase() {
+    /* Made available as a global variable */
+    exists(GlobalVariable queryBase |
+      queryBase.getName() = ["SELECT", "INSERT", "DELETE", "UPDATE", "UPSERT"]
+    |
+      this = queryBase.getAReference()
+    )
+    or
+    /* Imported from `cds.ql` */
+    exists(CdsFacade cds, PropRef cdsDotQl |
+      this.flow().getALocalSource() = cdsDotQl and
+      cdsDotQl.getBase() = cds
+    )
+  }
+}
+
+class CqlSelectBase extends CqlQueryBase {
+  CqlSelectBase() { this.getName() = "SELECT" }
+}
+
+class CqlInsertBase extends CqlQueryBase {
+  CqlInsertBase() { this.getName() = "INSERT" }
+}
+
 /**
  * Holds if a `DotExpr` ultimately accesses a `SELECT` variable, e.g.
  * ```js
@@ -76,7 +101,12 @@ private predicate isMethodCallSelect(MethodCallExpr callExpr) {
  * SELECT.from`Table`
  * SELECT.distinct.from`Table`;
  * SELECT.from(Table).where`"col1='*'"`;
- * SELECT.from`Table`.having`"col1='*'"`;
+ * SELECT.from`Table`.having`"col1='*'"`;  ==> "Select having call"
+ *
+ *
+ * SELECT.having`"col1='*'".`from`Table`; ==> "Select from call", if we omit `having` from consideration? getLocation()
+ *
+ *
  * ```
  */
 private predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
@@ -161,9 +191,25 @@ private predicate isTaggedTemplateInsert(TaggedTemplateExpr tagExpr) {
   )
 }
 
+Expr getRootReceiver(Expr e) {
+  result = e and e instanceof VarRef
+  or
+  result = getRootReceiver(e.(DotExpr).getBase())
+  or
+  result = getRootReceiver(e.(MethodCallExpr).getReceiver())
+  or
+  result = getRootReceiver(e.(PropAccess).getBase())
+  or
+  result = getRootReceiver(e.(TaggedTemplateExpr).getTag())
+}
+
 newtype TCqlExpr =
-  TaggedTemplate(TaggedTemplateExpr tagExpr) or
-  MethodCall(MethodCallExpr callExpr)
+  TaggedTemplate(TaggedTemplateExpr tagExpr) {
+    exists(CqlQueryBase base | base = getRootReceiver(tagExpr))
+  } or
+  MethodCall(MethodCallExpr callExpr) {
+    exists(CqlQueryBase base | base = getRootReceiver(callExpr))
+  }
 
 class CqlExpr extends TCqlExpr {
   TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplate(result) }
@@ -179,11 +225,31 @@ class CqlExpr extends TCqlExpr {
     result = this.asTaggedTemplate().getLocation() or
     result = this.asMethodCall().getLocation()
   }
+
+  CqlQueryBase getCqlBase() {
+    result = getRootReceiver(this.asTaggedTemplate()) or
+    result = getRootReceiver(this.asMethodCall())
+  }
+
+  Expr getReceiver() {
+    result = this.asMethodCall().getReceiver()
+    or
+    result = this.asTaggedTemplate().getTag().(DotExpr).getBase()
+  }
+
+  Expr getParent() {
+    result = this.asMethodCall().getParent() or
+    result = this.asTaggedTemplate().getParent()
+  }
 }
 
 class CqlSelectExpr extends CqlExpr {
   CqlSelectExpr() {
-    isMethodCallSelect(this.asMethodCall()) or isTaggedTemplateSelect(this.asTaggedTemplate())
+    exists(CqlSelectBase cqlSelect |
+      this.getCqlBase() = cqlSelect and
+      not this.getParent() instanceof TaggedTemplateExpr and
+      not this.getParent() instanceof MethodCallExpr
+    )
   }
 
   predicate selectWhere() {
@@ -198,17 +264,14 @@ class CqlSelectExpr extends CqlExpr {
 }
 
 class CqlInsertExpr extends CqlExpr {
-  CqlInsertExpr() { isMethodCallInsert(this.asMethodCall()) }
+  CqlInsertExpr() { exists(CqlInsertBase cqlInsert | this.getCqlBase() = cqlInsert) }
 }
-
 // class CqlDeleteExpr extends CqlExpr {
 //   CqlDeleteExpr() { any() }
 // }
-
 // class CqlUpdateExpr extends CqlExpr {
 //   CqlUpdateExpr() { any() }
 // }
-
 // class CqlUpsertExpr extends CqlExpr {
 //   CqlUpsertExpr() { any() }
 // }
