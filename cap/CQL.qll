@@ -103,14 +103,9 @@ class CqlExpr extends TCqlExpr {
     result = this.asTaggedTemplate().getParentExpr()
   }
 
-  Expr getAChildExpr() {
-    result = this.asMethodCall().getAChildExpr() or
-    result = this.asTaggedTemplate().getAChildExpr()
-  }
-
-  Expr getADescendantExpr() {
-    result = this.asMethodCall().getAChildExpr+() or
-    result = this.asTaggedTemplate().getAChildExpr+()
+  CqlExpr getCqlParentExpr() {
+    result.asTaggedTemplate() = this.asMethodCall().getParentExpr() or
+    result.asMethodCall() = this.asTaggedTemplate().getParentExpr()
   }
 
   Expr getAnAncestorExpr() {
@@ -123,9 +118,19 @@ class CqlExpr extends TCqlExpr {
     result.asMethodCall() = this.getAnAncestorExpr()
   }
 
+  Expr getAChildExpr() {
+    result = this.asMethodCall().getAChildExpr() or
+    result = this.asTaggedTemplate().getAChildExpr()
+  }
+
   CqlExpr getAChildCqlExpr() {
     result.asTaggedTemplate() = this.asMethodCall().getAChildExpr() or
     result.asMethodCall() = this.asTaggedTemplate().getAChildExpr()
+  }
+
+  Expr getADescendantExpr() {
+    result = this.asMethodCall().getAChildExpr+() or
+    result = this.asTaggedTemplate().getAChildExpr+()
   }
 
   CqlExpr getADescendantCqlExpr() {
