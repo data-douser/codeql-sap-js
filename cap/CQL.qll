@@ -108,6 +108,11 @@ class CqlExpr extends TCqlExpr {
     result = this.asTaggedTemplate().getAChildExpr()
   }
 
+  Expr getADescendantExpr() {
+    result = this.asMethodCall().getAChildExpr+() or
+    result = this.asTaggedTemplate().getAChildExpr+()
+  }
+
   Expr getAnAncestorExpr() {
     result = this.asMethodCall().getParentExpr+() or
     result = this.asTaggedTemplate().getParentExpr+()
@@ -123,15 +128,17 @@ class CqlExpr extends TCqlExpr {
     result.asMethodCall() = this.asTaggedTemplate().getAChildExpr()
   }
 
+  CqlExpr getADescendantCqlExpr() {
+    result.asTaggedTemplate() = this.getADescendantExpr() or
+    result.asMethodCall() = this.getADescendantExpr()
+  }
+
   /**
    * Matches the given CqlExpr to its method/property name, nested at arbitrary depth.
    */
   string getAnAPIName() {
-    /* Base case */
-    this.asDotExpr().accesses(_, result)
-    or
-    /* Inductive case */
-    result = this.getAChildCqlExpr().getAnAPIName()
+    result = this.asDotExpr().getPropertyName() or
+    result = this.getADescendantCqlExpr().getAnAPIName()
   }
 }
 
