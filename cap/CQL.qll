@@ -27,168 +27,16 @@ class CqlInsertBase extends CqlQueryBase {
   CqlInsertBase() { this.getName() = "INSERT" }
 }
 
-/**
- * Holds if a `DotExpr` ultimately accesses a `SELECT` variable, e.g.
- * ```js
- * SELECT.from
- * SELECT.one.from
- * SELECT.distinct.from
- * ```
- */
-private predicate accessesSelect(DotExpr dot) {
-  dot.accesses(any(VarRef var | var.getName() = "SELECT"),
-    [
-      "one", "distinct", "columns", "from", "alias", "where", "having", "groupBy", "orderBy",
-      "limit", "forUpdate", "forShareLock"
-    ])
-  or
-  dot.getPropertyName() =
-    [
-      "one", "distinct", "columns", "from", "alias", "where", "having", "groupBy", "orderBy",
-      "limit", "forUpdate", "forShareLock"
-    ] and
-  accessesSelect(dot.getAChildExpr())
+class CqlDeleteBase extends CqlQueryBase {
+  CqlDeleteBase() { this.getName() = "DELETE" }
 }
 
-/**
- * Method call `SELECT` CQL query expressions, e.g.
- * ```js
- * SELECT.from(Table)
- * SELECT.distinct.from(Table);
- * SELECT.from`Table`.where("col1='*'");
- * SELECT.from(Table).having("col1='*'");
- * ```
- */
-private predicate isMethodCallSelect(MethodCallExpr callExpr) {
-  callExpr.getCalleeName() =
-    [
-      "columns", "from", "alias", "where", "having", "groupBy", "orderBy", "limit", "forUpdate",
-      "forShareLock"
-    ] and
-  exists(Expr receiver | receiver = callExpr.getCallee() |
-    /*
-     * Only property accesses are left up to SELECT, e.g.
-     * SELECT.x.y. ...z(cond)
-     */
-
-    accessesSelect(receiver)
-    or
-    /*
-     * The immediate prefix is a TaggedTemplateExpr:
-     * SELECT.x. ... .z`cond1`.w(cond2)
-     */
-
-    exists(TaggedTemplateExpr nestedTaggingExpr |
-      receiver.(DotExpr).accesses(nestedTaggingExpr, _)
-    |
-      isTaggedTemplateSelect(nestedTaggingExpr)
-    )
-    or
-    /*
-     * The immediate prefix is a MethodCallExpr:
-     * SELECT.x. ... .z(cond1).w(cond2)
-     */
-
-    exists(MethodCallExpr nestedCallExpr | receiver.(DotExpr).accesses(nestedCallExpr, _) |
-      isMethodCallSelect(nestedCallExpr)
-    )
-  )
+class CqlUpdateBase extends CqlQueryBase {
+  CqlUpdateBase() { this.getName() = "UPDATE" }
 }
 
-/**
- * Tagged `SELECT` CQL query expressions, e.g.
- * ```js
- * SELECT.from`Table`
- * SELECT.distinct.from`Table`;
- * SELECT.from(Table).where`"col1='*'"`;
- * SELECT.from`Table`.having`"col1='*'"`;  ==> "Select having call"
- *
- *
- * SELECT.having`"col1='*'".`from`Table`; ==> "Select from call", if we omit `having` from consideration? getLocation()
- *
- *
- * ```
- */
-private predicate isTaggedTemplateSelect(TaggedTemplateExpr tagExpr) {
-  exists(Expr taggingExpr |
-    taggingExpr = tagExpr.getTag() and
-    taggingExpr.(DotExpr).getPropertyName() =
-      [
-        "columns", "from", "alias", "where", "having", "groupBy", "orderBy", "limit", "forUpdate",
-        "forShareLock"
-      ]
-  |
-    /*
-     * Only property accesses are left up to SELECT, e.g.
-     * SELECT.x.y. ...z`cond`
-     */
-
-    accessesSelect(taggingExpr)
-    or
-    /*
-     * The immediate prefix is a TaggedTemplateExpr:
-     * SELECT.x. ... .z`cond1`.w`cond2`
-     */
-
-    exists(TaggedTemplateExpr nestedTaggingExpr |
-      taggingExpr.(DotExpr).accesses(nestedTaggingExpr, _)
-    |
-      isTaggedTemplateSelect(nestedTaggingExpr)
-    )
-    or
-    /*
-     * The immediate prefix is a MethodCallExpr:
-     * SELECT.x. ... .z(cond1).w`cond2`
-     */
-
-    exists(MethodCallExpr nestedCallExpr | taggingExpr.(DotExpr).accesses(nestedCallExpr, _) |
-      isMethodCallSelect(nestedCallExpr)
-    )
-  )
-}
-
-private predicate accessesInsert(DotExpr dot) {
-  dot.accesses(any(VarRef var | var.getName() = "INSERT"),
-    ["into", "entries", "values", "rows", "as"])
-  or
-  dot.getPropertyName() = ["into", "entries", "values", "rows", "as"] and
-  accessesInsert(dot.getAChildExpr())
-}
-
-private predicate isMethodCallInsert(MethodCallExpr callExpr) {
-  callExpr.getCalleeName() = ["into", "entries", "values", "rows", "as"] and
-  exists(Expr receiver | receiver = callExpr.getCallee() |
-    accessesInsert(receiver)
-    or
-    exists(TaggedTemplateExpr nestedTaggingExpr |
-      receiver.(DotExpr).accesses(nestedTaggingExpr, _)
-    |
-      isTaggedTemplateInsert(nestedTaggingExpr)
-    )
-    or
-    exists(MethodCallExpr nestedCallExpr | receiver.(DotExpr).accesses(nestedCallExpr, _) |
-      isMethodCallInsert(nestedCallExpr)
-    )
-  )
-}
-
-private predicate isTaggedTemplateInsert(TaggedTemplateExpr tagExpr) {
-  exists(Expr taggingExpr |
-    taggingExpr = tagExpr.getTag() and
-    taggingExpr.(DotExpr).getPropertyName() = ["into", "entries", "values", "rows", "as"]
-  |
-    accessesInsert(taggingExpr)
-    or
-    exists(TaggedTemplateExpr nestedTaggingExpr |
-      taggingExpr.(DotExpr).accesses(nestedTaggingExpr, _)
-    |
-      isTaggedTemplateInsert(nestedTaggingExpr)
-    )
-    or
-    exists(MethodCallExpr nestedCallExpr | taggingExpr.(DotExpr).accesses(nestedCallExpr, _) |
-      isMethodCallInsert(nestedCallExpr)
-    )
-  )
+class CqlUpsertBase extends CqlQueryBase {
+  CqlUpsertBase() { this.getName() = "UPSERT" }
 }
 
 Expr getRootReceiver(Expr e) {
@@ -216,6 +64,19 @@ class CqlExpr extends TCqlExpr {
 
   MethodCallExpr asMethodCall() { this = MethodCall(result) }
 
+  /**
+   * Convert this `CqlExpr` into a `DotExpr`, i.e.
+   * Get SELECT.from`Table` when given SELECT.from`Table`.where`cond`,
+   * Get SELECT.from(table) when given SELECT.from(table).where`cond`,
+   * Get SELECT.from`Table` when given SELECT.from`Table`.where(cond),
+   * Get SELECT.from(table) when given SELECT.from(table).where(cond).
+   */
+  DotExpr asDotExpr() {
+    result = this.asTaggedTemplate().getTag().(DotExpr)
+    or
+    result = this.asMethodCall().getCallee().(DotExpr)
+  }
+
   string toString() {
     result = this.asTaggedTemplate().toString() or
     result = this.asMethodCall().toString()
@@ -237,9 +98,40 @@ class CqlExpr extends TCqlExpr {
     result = this.asTaggedTemplate().getTag().(DotExpr).getBase()
   }
 
-  Expr getParent() {
-    result = this.asMethodCall().getParent() or
-    result = this.asTaggedTemplate().getParent()
+  Expr getParentExpr() {
+    result = this.asMethodCall().getParentExpr() or
+    result = this.asTaggedTemplate().getParentExpr()
+  }
+
+  Expr getAChildExpr() {
+    result = this.asMethodCall().getAChildExpr() or
+    result = this.asTaggedTemplate().getAChildExpr()
+  }
+
+  Expr getAnAncestorExpr() {
+    result = this.asMethodCall().getParentExpr+() or
+    result = this.asTaggedTemplate().getParentExpr+()
+  }
+
+  CqlExpr getAnAncestorCqlExpr() {
+    result.asTaggedTemplate() = this.getAnAncestorExpr() or
+    result.asMethodCall() = this.getAnAncestorExpr()
+  }
+
+  CqlExpr getAChildCqlExpr() {
+    result.asTaggedTemplate() = this.asMethodCall().getAChildExpr() or
+    result.asMethodCall() = this.asTaggedTemplate().getAChildExpr()
+  }
+
+  /**
+   * Matches the given CqlExpr to its method/property name, nested at arbitrary depth.
+   */
+  string getAnAPIName() {
+    /* Base case */
+    this.asDotExpr().accesses(_, result)
+    or
+    /* Inductive case */
+    result = this.getAChildCqlExpr().getAnAPIName()
   }
 }
 
@@ -247,31 +139,67 @@ class CqlSelectExpr extends CqlExpr {
   CqlSelectExpr() {
     exists(CqlSelectBase cqlSelect |
       this.getCqlBase() = cqlSelect and
-      not this.getParent() instanceof TaggedTemplateExpr and
-      not this.getParent() instanceof MethodCallExpr
+      not exists(
+        any(CqlExpr ancestorSelect |
+          ancestorSelect = this.getAnAncestorCqlExpr() and ancestorSelect.getCqlBase() = cqlSelect
+        )
+      )
     )
   }
 
-  predicate selectWhere() {
-    this.asMethodCall().getMethodName() = "where" or
-    this.asTaggedTemplate().getTag().(DotExpr).getPropertyName() = "where"
-  }
+  predicate selectWhere() { this.getAnAPIName() = "where" }
 
-  predicate selectFrom() {
-    this.asMethodCall().getMethodName() = "from" or
-    this.asTaggedTemplate().getTag().(DotExpr).getPropertyName() = "from"
-  }
+  predicate selectFrom() { this.getAnAPIName() = "from" }
 }
 
 class CqlInsertExpr extends CqlExpr {
-  CqlInsertExpr() { exists(CqlInsertBase cqlInsert | this.getCqlBase() = cqlInsert) }
+  CqlInsertExpr() {
+    exists(CqlInsertBase cqlInsert |
+      this.getCqlBase() = cqlInsert and
+      not exists(
+        any(CqlExpr ancestorInsert |
+          ancestorInsert = this.getAnAncestorCqlExpr() and ancestorInsert.getCqlBase() = cqlInsert
+        )
+      )
+    )
+  }
 }
-// class CqlDeleteExpr extends CqlExpr {
-//   CqlDeleteExpr() { any() }
-// }
-// class CqlUpdateExpr extends CqlExpr {
-//   CqlUpdateExpr() { any() }
-// }
-// class CqlUpsertExpr extends CqlExpr {
-//   CqlUpsertExpr() { any() }
-// }
+
+class CqlDeleteExpr extends CqlExpr {
+  CqlDeleteExpr() {
+    exists(CqlDeleteBase cqlDelete |
+      this.getCqlBase() = cqlDelete and
+      not exists(
+        any(CqlExpr ancestorDelete |
+          ancestorDelete = this.getAnAncestorCqlExpr() and ancestorDelete.getCqlBase() = cqlDelete
+        )
+      )
+    )
+  }
+}
+
+class CqlUpdateExpr extends CqlExpr {
+  CqlUpdateExpr() {
+    exists(CqlUpdateBase cqlUpdate |
+      this.getCqlBase() = cqlUpdate and
+      not exists(
+        any(CqlExpr ancestorUpdate |
+          ancestorUpdate = this.getAnAncestorCqlExpr() and ancestorUpdate.getCqlBase() = cqlUpdate
+        )
+      )
+    )
+  }
+}
+
+class CqlUpsertExpr extends CqlExpr {
+  CqlUpsertExpr() {
+    exists(CqlUpsertBase cqlUpsert |
+      this.getCqlBase() = cqlUpsert and
+      not exists(
+        any(CqlExpr ancestorUpsert |
+          ancestorUpsert = this.getAnAncestorCqlExpr() and ancestorUpsert.getCqlBase() = cqlUpsert
+        )
+      )
+    )
+  }
+}
