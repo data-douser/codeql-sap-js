@@ -3,6 +3,10 @@ var insert = INSERT.into(Table, [
   { col1: "val11", col2: "val12" },
   { col1: "val21", col2: "val22" },
 ]);
+var insert = INSERT.into("Table", [
+  { col1: "val11", col2: "val12" },
+  { col1: "val21", col2: "val22" },
+]);
 
 /* ========== into, entries ========== */
 var insert = INSERT.into(Table).entries(
