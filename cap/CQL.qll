@@ -98,6 +98,8 @@ class CqlExpr extends TCqlExpr {
     result = this.asTaggedTemplate().getTag().(DotExpr).getBase()
   }
 
+  /* ========== Parent relationships ========== */
+
   Expr getParentExpr() {
     result = this.asMethodCall().getParentExpr() or
     result = this.asTaggedTemplate().getParentExpr()
@@ -117,6 +119,8 @@ class CqlExpr extends TCqlExpr {
     result.asTaggedTemplate() = this.getAnAncestorExpr() or
     result.asMethodCall() = this.getAnAncestorExpr()
   }
+
+  /* ========== Children relationships ========== */
 
   Expr getAChildExpr() {
     result = this.asMethodCall().getAChildExpr() or
