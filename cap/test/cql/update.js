@@ -1,5 +1,3 @@
-// TaggedTemplate: UPDATE, entity, set, with, where
-
 let diff = 1;
 let val = 2;
 
