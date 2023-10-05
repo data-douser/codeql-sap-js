@@ -1,6 +1,6 @@
 private import javascript
 private import DataFlow
-private import CAPModels
+private import CDS
 
 class CqlQueryBase extends VarRef {
   CqlQueryBase() {
