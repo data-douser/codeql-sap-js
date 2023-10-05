@@ -1,4 +1,13 @@
 /* ========== into ========== */
+var insert = INSERT([
+  { col1: "val11", col2: "val12" },
+  { col1: "val21", col2: "val22" },
+]).into(Table);
+var insert = INSERT([
+  { col1: "val11", col2: "val12" },
+  { col1: "val21", col2: "val22" },
+]).into("Table");
+
 var insert = INSERT.into(Table, [
   { col1: "val11", col2: "val12" },
   { col1: "val21", col2: "val22" },
@@ -13,14 +22,26 @@ var insert = INSERT.into(Table).entries(
   { col1: "val11", col2: "val12" },
   { col1: "val21", col2: "val22" }
 );
-var insert = INSERT.into("Table").entries(
+var insert = INSERT.into(Table).entries([
   { col1: "val11", col2: "val12" },
-  { col1: "val21", col2: "val22" }
-);
-var insert = INSERT.into`Table`.entries(
+  { col1: "val21", col2: "val22" },
+]);
+var insert = INSERT.into("Table").entries([
   { col1: "val11", col2: "val12" },
-  { col1: "val21", col2: "val22" }
-);
+  { col1: "val21", col2: "val22" },
+]);
+var insert = INSERT.into("Table").entries([
+  { col1: "val11", col2: "val12" },
+  { col1: "val21", col2: "val22" },
+]);
+var insert = INSERT.into`Table`.entries([
+  { col1: "val11", col2: "val12" },
+  { col1: "val21", col2: "val22" },
+]);
+var insert = INSERT.into`Table`.entries([
+  { col1: "val11", col2: "val12" },
+  { col1: "val21", col2: "val22" },
+]);
 
 /* ========== into, columns, values ========== */
 var insert = INSERT.into(Table)
