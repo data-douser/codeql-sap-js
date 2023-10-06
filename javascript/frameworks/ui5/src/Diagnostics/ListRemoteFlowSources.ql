@@ -9,6 +9,7 @@
  */
 
 import javascript
+import advanced_security.javascript.frameworks.ui5.UI5DataFlow
 
 from RemoteFlowSource source, string type
 where type = source.getSourceType()
