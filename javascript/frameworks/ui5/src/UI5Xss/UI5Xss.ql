@@ -51,28 +51,16 @@ class UI5XssConfiguration extends DomBasedXss::Configuration {
 }
 
 /**
- * An remote source associated with a `UI5BoundNode`
- */
-class UI5ModelSource extends UI5DataFlow::UI5ModelSource, DomBasedXss::Source { }
-
-/**
  * An html injection sink associated with a `UI5BoundNode`
  */
 class UI5ModelHtmlISink extends UI5DataFlow::UI5ModelHtmlISink, DomBasedXss::Sink { }
-
-// Sources and Sinks from data-extensions
-class UI5ExtSource extends DomBasedXss::Source {
-  UI5ExtSource() { this = ModelOutput::getASourceNode("ui5-remote").asSource() }
-}
 
 class UI5ExtHtmlISink extends DomBasedXss::Sink {
   UI5ExtHtmlISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
 }
 
 // XSS source or sinks that are ui5-specific
-private predicate isUI5Specific(UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink) {
-  source.asDataFlowPathNode().getNode() instanceof UI5ExtSource or
-  source.asDataFlowPathNode().getNode() instanceof UI5ModelSource or
+private predicate isUI5Specific(UI5PathGraph::UI5PathNode sink) {
   sink.asDataFlowPathNode().getNode() instanceof UI5ModelHtmlISink or
   sink.asDataFlowPathNode().getNode() instanceof UI5ExtHtmlISink
 }
@@ -84,7 +72,7 @@ where
   cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
   primarySource = source.getAPrimarySource() and
   primarySink = sink.getAPrimaryHtmlISink() and
-  // source or sink are ui5-specific
-  isUI5Specific(source, sink)
+  // sink are ui5-specific
+  isUI5Specific(sink)
 select primarySink, primarySource, primarySink, "XSS vulnerability due to $@.", primarySource,
   "user-provided value"

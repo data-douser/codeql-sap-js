@@ -109,8 +109,12 @@ module UI5DataFlow {
   /**
    * An remote source associated with a `UI5BoundNode`
    */
-  class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
+  class UI5ModelSource extends UI5DataFlow::UI5BoundNode, RemoteFlowSource {
     UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
+
+    override string getSourceType() {
+      result = "UI5 model remote flow source"
+    }
   }
 
   /**

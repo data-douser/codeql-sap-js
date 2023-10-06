@@ -62,14 +62,14 @@ extensions:
       pack: codeql/javascript-all
       extensible: "sourceModel"
     data:
-      - ["UI5Control", "Member[value]", "ui5-remote"]
-      - ["UI5Control", "Member[getValue].ReturnValue", "ui5-remote"]
-      - ["UI5CodeEditor", "Member[value]", "ui5-remote"]
-      - ["UI5CodeEditor", "Member[getCurrentValue].ReturnValue", "ui5-remote"]
-      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get].ReturnValue", "ui5-remote"]
-      - ["global", "Member[jQuery].Member[sap].Member[syncHead,syncGet,syncGetText,syncPost,syncPostText].ReturnValue", "ui5-remote"]
-      - ["UI5URIParameters", "Member[get].ReturnValue", "ui5-remote"]
-      - ["UI5URIParameters", "Member[getAll].ReturnValue", "ui5-remote"]
+      - ["UI5Control", "Member[value]", "remote"]
+      - ["UI5Control", "Member[getValue].ReturnValue", "remote"]
+      - ["UI5CodeEditor", "Member[value]", "remote"]
+      - ["UI5CodeEditor", "Member[getCurrentValue].ReturnValue", "remote"]
+      - ["global", "Member[jQuery].Member[sap].Member[getUriParameters].ReturnValue.Member[get].ReturnValue", "remote"]
+      - ["global", "Member[jQuery].Member[sap].Member[syncHead,syncGet,syncGetText,syncPost,syncPostText].ReturnValue", "remote"]
+      - ["UI5URIParameters", "Member[get].ReturnValue", "remote"]
+      - ["UI5URIParameters", "Member[getAll].ReturnValue", "remote"]
 
   - addsTo:
       pack: codeql/javascript-all

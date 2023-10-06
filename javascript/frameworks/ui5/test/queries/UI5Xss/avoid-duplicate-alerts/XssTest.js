@@ -1,7 +1,7 @@
 // source is ui5-specific
 function testXss1() {
     var value = jQuery.sap.syncGet("url", "param")
-    $('myId').html(value) //UI5 Xss
+    $('myId').html(value) // Xss
     jQuery.sap.globalEval(value); //UI5 Xss
 };
 
