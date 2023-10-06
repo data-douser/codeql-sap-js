@@ -1,0 +1,13 @@
+- description: SAP UI5 Code Scanning Suite
+- queries: .
+- include:
+    tags contain: security
+    kind:
+    - problem
+    - path-problem
+    precision:
+    - high
+    - very-high
+    problem.severity:
+    - warning
+    - error

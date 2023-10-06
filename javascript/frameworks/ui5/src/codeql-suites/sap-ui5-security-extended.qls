@@ -1,0 +1,14 @@
+- description: SAP UI5 Security Extended Suite
+- queries: .
+- include:
+    tags contain: security
+    kind:
+    - problem
+    - path-problem
+    precision:
+    - medium
+    - high
+    - very-high
+    problem.severity:
+    - warning
+    - error
