@@ -1,6 +1,3 @@
-let diff = 1;
-let val = 2;
-
 /* ========== UPDATE (entity), set ========== */
 
 /* UPDATE acting as shortcut to UPDATE.entity */
