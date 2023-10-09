@@ -3,10 +3,18 @@ let val = 2;
 
 /* ========== UPDATE (entity), set ========== */
 
-/* Without `entity` */
+/* UPDATE acting as shortcut to UPDATE.entity */
 var update = UPDATE`Table`.set`col1 = col1 - ${diff}`;
 var update = UPDATE`Table`.set({ col1: { xpr: [{ ref: ["col1"] }, "-", { ref: ["diff"] }] }, }); // CQN
 var update = UPDATE`Table`.set({ col1: diff }); // QBE
+
+var update = UPDATE(Table).set`col1 = col1 - ${diff}`;
+var update = UPDATE(Table).set({ col1: { xpr: [{ ref: ["col1"] }, "-", { ref: ["diff"] }] }, }); // CQN
+var update = UPDATE(Table).set({ col1: diff }); // QBE
+
+var update = UPDATE("Table").set`col1 = col1 - ${diff}`;
+var update = UPDATE("Table").set({ col1: { xpr: [{ ref: ["col1"] }, "-", { ref: ["diff"] }] }, }); // CQN
+var update = UPDATE("Table").set({ col1: diff }); // QBE
 
 /* With `entity` */
 var update = UPDATE.entity(Table).set`col1 = col1 - ${diff}`;

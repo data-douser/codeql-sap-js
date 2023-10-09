@@ -1,5 +1,10 @@
-/* Simplest SELECTs without property accesses or method calls */
-var select = SELECT`Table`;
+/* ========== SELECT acting as shortcut to SELECT.columns ========== */
+var select = SELECT`col1, col2`.from`Table`;
+var select = SELECT`col1, col2`.from(Table);
+var select = SELECT`col1, col2`.from("Table");
+var select = SELECT("col1, col2").from`Table`;
+var select = SELECT("col1, col2").from(Table);
+var select = SELECT("col1, col2").from("Table");
 
 /* ========== SELECTs with property accesses ========== */
 var select = SELECT.one.from`Table`;
