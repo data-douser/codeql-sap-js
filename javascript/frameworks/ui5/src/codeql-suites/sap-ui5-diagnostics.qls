@@ -1,0 +1,4 @@
+- description: SAP UI5 Code Scanning Suite
+- queries: .
+- include:
+    tags contain: diagnostics
