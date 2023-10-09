@@ -39,8 +39,37 @@ class CqlUpsertBase extends CqlQueryBase {
   CqlUpsertBase() { this.getName() = "UPSERT" }
 }
 
+abstract class CqlQueryBaseCall extends CallExpr {
+  // TODO: Express "It's a global function or a local function imported from cds.ql"
+}
+
+class CqlSelectBaseCall extends CqlQueryBaseCall {
+  CqlSelectBaseCall() { this.getCalleeName() = "SELECT" }
+}
+
+class CqlInsertBaseCall extends CqlQueryBaseCall {
+  CqlInsertBaseCall() { this.getCalleeName() = "INSERT" }
+}
+
+class CqlDeleteBaseCall extends CqlQueryBaseCall {
+  CqlDeleteBaseCall() { this.getCalleeName() = "DELETE" }
+}
+
+class CqlUpdateBaseCall extends CqlQueryBaseCall {
+  CqlUpdateBaseCall() { this.getCalleeName() = "UPDATE" }
+}
+
+class CqlUpsertBaseCall extends CqlQueryBaseCall {
+  CqlUpsertBaseCall() { this.getCalleeName() = "UPSERT" }
+}
+
 Expr getRootReceiver(Expr e) {
-  result = e and e instanceof VarRef
+  result = e and
+  (
+    e instanceof VarRef
+    or
+    e instanceof CallExpr and not exists(e.(CallExpr).getReceiver())
+  )
   or
   result = getRootReceiver(e.(DotExpr).getBase())
   or
@@ -53,16 +82,21 @@ Expr getRootReceiver(Expr e) {
 
 newtype TCqlExpr =
   TaggedTemplate(TaggedTemplateExpr tagExpr) {
-    exists(CqlQueryBase base | base = getRootReceiver(tagExpr))
+    exists(CqlQueryBase base | base = getRootReceiver(tagExpr)) or
+    exists(CqlQueryBaseCall call | call = getRootReceiver(tagExpr))
   } or
   MethodCall(MethodCallExpr callExpr) {
-    exists(CqlQueryBase base | base = getRootReceiver(callExpr))
-  }
+    exists(CqlQueryBase base | base = getRootReceiver(callExpr)) or
+    exists(CqlQueryBaseCall call | call = getRootReceiver(callExpr))
+  } or
+  ShortcutCall(CqlQueryBaseCall callExpr)
 
 class CqlExpr extends TCqlExpr {
   TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplate(result) }
 
   MethodCallExpr asMethodCall() { this = MethodCall(result) }
+
+  CallExpr asShortcutCall() { this = ShortcutCall(result) }
 
   /**
    * Convert this `CqlExpr` into a `DotExpr`, i.e.
@@ -79,17 +113,24 @@ class CqlExpr extends TCqlExpr {
 
   string toString() {
     result = this.asTaggedTemplate().toString() or
-    result = this.asMethodCall().toString()
+    result = this.asMethodCall().toString() or
+    result = this.asShortcutCall().toString()
   }
 
   Location getLocation() {
     result = this.asTaggedTemplate().getLocation() or
-    result = this.asMethodCall().getLocation()
+    result = this.asMethodCall().getLocation() or
+    result = this.asShortcutCall().getLocation()
   }
 
   CqlQueryBase getCqlBase() {
     result = getRootReceiver(this.asTaggedTemplate()) or
     result = getRootReceiver(this.asMethodCall())
+  }
+
+  CqlQueryBaseCall getCqlBaseCall() {
+    result = getRootReceiver(this.asTaggedTemplate()).(CqlQueryBaseCall) or
+    result = getRootReceiver(this.asMethodCall()).(CqlQueryBaseCall)
   }
 
   Expr getReceiver() {
@@ -99,47 +140,53 @@ class CqlExpr extends TCqlExpr {
   }
 
   /* ========== Parent relationships ========== */
-
   Expr getParentExpr() {
     result = this.asMethodCall().getParentExpr() or
-    result = this.asTaggedTemplate().getParentExpr()
+    result = this.asTaggedTemplate().getParentExpr() or
+    result = this.asShortcutCall().getParentExpr()
   }
 
   CqlExpr getCqlParentExpr() {
     result.asTaggedTemplate() = this.asMethodCall().getParentExpr() or
-    result.asMethodCall() = this.asTaggedTemplate().getParentExpr()
+    result.asMethodCall() = this.asTaggedTemplate().getParentExpr() or
+    result.asShortcutCall() = this.asShortcutCall().getParentExpr()
   }
 
   Expr getAnAncestorExpr() {
     result = this.asMethodCall().getParentExpr+() or
-    result = this.asTaggedTemplate().getParentExpr+()
+    result = this.asTaggedTemplate().getParentExpr+() or
+    result = this.asShortcutCall().getParentExpr+()
   }
 
   CqlExpr getAnAncestorCqlExpr() {
     result.asTaggedTemplate() = this.getAnAncestorExpr() or
-    result.asMethodCall() = this.getAnAncestorExpr()
+    result.asMethodCall() = this.getAnAncestorExpr() or
+    result.asShortcutCall() = this.getAnAncestorExpr()
   }
 
   /* ========== Children relationships ========== */
-
   Expr getAChildExpr() {
     result = this.asMethodCall().getAChildExpr() or
-    result = this.asTaggedTemplate().getAChildExpr()
+    result = this.asTaggedTemplate().getAChildExpr() or
+    result = this.asShortcutCall().getAChildExpr()
   }
 
   CqlExpr getAChildCqlExpr() {
     result.asTaggedTemplate() = this.asMethodCall().getAChildExpr() or
-    result.asMethodCall() = this.asTaggedTemplate().getAChildExpr()
+    result.asMethodCall() = this.asTaggedTemplate().getAChildExpr() or
+    result.asShortcutCall() = this.asShortcutCall().getAChildExpr()
   }
 
   Expr getADescendantExpr() {
     result = this.asMethodCall().getAChildExpr+() or
-    result = this.asTaggedTemplate().getAChildExpr+()
+    result = this.asTaggedTemplate().getAChildExpr+() or
+    result = this.asShortcutCall().getAChildExpr+()
   }
 
   CqlExpr getADescendantCqlExpr() {
     result.asTaggedTemplate() = this.getADescendantExpr() or
-    result.asMethodCall() = this.getADescendantExpr()
+    result.asMethodCall() = this.getADescendantExpr() or
+    result.asShortcutCall() = this.getADescendantExpr()
   }
 
   /**
@@ -161,11 +208,20 @@ class CqlSelectExpr extends CqlExpr {
         )
       )
     )
+    or
+    this.getCqlBaseCall() instanceof CqlSelectBaseCall
   }
 
   predicate selectWhere() { this.getAnAPIName() = "where" }
 
   predicate selectFrom() { this.getAnAPIName() = "from" }
+
+  predicate selectColumns() {
+    this.getAnAPIName() = "columns"
+    or
+    /* SELECT itself is a shortcut of SELECT.columns */
+    this.getCqlBaseCall() instanceof CqlSelectBaseCall
+  }
 }
 
 class CqlInsertExpr extends CqlExpr {
@@ -178,6 +234,15 @@ class CqlInsertExpr extends CqlExpr {
         )
       )
     )
+    or
+    this.getCqlBaseCall() instanceof CqlInsertBaseCall
+  }
+
+  predicate insertEntries() {
+    this.getAnAPIName() = "entries"
+    or
+    /* INSERT itself is a shortcut of INSERT.entries */
+    this.getCqlBaseCall() instanceof CqlInsertBaseCall
   }
 }
 
@@ -204,6 +269,15 @@ class CqlUpdateExpr extends CqlExpr {
         )
       )
     )
+    or
+    this.getCqlBaseCall() instanceof CqlUpdateBaseCall
+  }
+
+  predicate updateEntity() {
+    this.getAnAPIName() = "entity"
+    or
+    /* UPDATE itself is a shortcut of UPDATE.entity */
+    this.getCqlBaseCall() instanceof CqlUpdateBaseCall
   }
 }
 
@@ -217,5 +291,14 @@ class CqlUpsertExpr extends CqlExpr {
         )
       )
     )
+    or
+    this.getCqlBaseCall() instanceof CqlUpsertBaseCall
+  }
+
+  predicate upsertEntries() {
+    this.getAnAPIName() = "entries"
+    or
+    /* UPSERT itself is a shortcut of UPSERT.entries */
+    this.getCqlBaseCall() instanceof CqlUpsertBaseCall
   }
 }
