@@ -1,5 +1,6 @@
 import javascript
-import CQL
+import advanced_security.javascript.frameworks.cap.CQL
 
-select any(CqlDeleteExpr s)
+from CqlDeleteExpr s
+select s.getLocation(), s
 

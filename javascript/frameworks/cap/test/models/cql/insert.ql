@@ -1,4 +1,5 @@
 import javascript
-import CQL
+import advanced_security.javascript.frameworks.cap.CQL
 
-select any(CqlInsertExpr s)
+from CqlInsertExpr s
+select s.getLocation(), s
