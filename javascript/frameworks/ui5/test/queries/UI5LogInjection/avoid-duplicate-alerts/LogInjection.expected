@@ -1,4 +1,10 @@
 nodes
+| LogInjectionTest.js:6:9:6:50 | value |
+| LogInjectionTest.js:6:17:6:50 | jQuery. ... param") |
+| LogInjectionTest.js:6:17:6:50 | jQuery. ... param") |
+| LogInjectionTest.js:7:18:7:40 | `[INFO] ... value}` |
+| LogInjectionTest.js:7:18:7:40 | `[INFO] ... value}` |
+| LogInjectionTest.js:7:34:7:38 | value |
 | LogInjectionTest.js:13:9:13:36 | q |
 | LogInjectionTest.js:13:13:13:36 | url.par ... , true) |
 | LogInjectionTest.js:13:23:13:29 | req.url |
@@ -25,6 +31,11 @@ nodes
 | LogInjectionTest.js:24:18:24:41 | `[INFO] ... alue1}` |
 | LogInjectionTest.js:24:34:24:39 | value1 |
 edges
+| LogInjectionTest.js:6:9:6:50 | value | LogInjectionTest.js:7:34:7:38 | value |
+| LogInjectionTest.js:6:17:6:50 | jQuery. ... param") | LogInjectionTest.js:6:9:6:50 | value |
+| LogInjectionTest.js:6:17:6:50 | jQuery. ... param") | LogInjectionTest.js:6:9:6:50 | value |
+| LogInjectionTest.js:7:34:7:38 | value | LogInjectionTest.js:7:18:7:40 | `[INFO] ... value}` |
+| LogInjectionTest.js:7:34:7:38 | value | LogInjectionTest.js:7:18:7:40 | `[INFO] ... value}` |
 | LogInjectionTest.js:13:9:13:36 | q | LogInjectionTest.js:14:17:14:17 | q |
 | LogInjectionTest.js:13:13:13:36 | url.par ... , true) | LogInjectionTest.js:13:9:13:36 | q |
 | LogInjectionTest.js:13:23:13:29 | req.url | LogInjectionTest.js:13:13:13:36 | url.par ... , true) |
@@ -49,5 +60,6 @@ edges
 | LogInjectionTest.js:24:34:24:39 | value1 | LogInjectionTest.js:24:18:24:41 | `[INFO] ... alue1}` |
 | LogInjectionTest.js:24:34:24:39 | value1 | LogInjectionTest.js:24:18:24:41 | `[INFO] ... alue1}` |
 #select
+| LogInjectionTest.js:7:18:7:40 | `[INFO] ... value}` | LogInjectionTest.js:6:17:6:50 | jQuery. ... param") | LogInjectionTest.js:7:18:7:40 | `[INFO] ... value}` | Log entry depends on a $@. | LogInjectionTest.js:6:17:6:50 | jQuery. ... param") | user-provided value |
 | LogInjectionTest.js:15:18:15:40 | `[INFO] ... value}` | LogInjectionTest.js:13:23:13:29 | req.url | LogInjectionTest.js:15:18:15:40 | `[INFO] ... value}` | Log entry depends on a $@. | LogInjectionTest.js:13:23:13:29 | req.url | user-provided value |
 | LogInjectionTest.js:24:18:24:41 | `[INFO] ... alue1}` | LogInjectionTest.js:21:23:21:29 | req.url | LogInjectionTest.js:24:18:24:41 | `[INFO] ... alue1}` | Log entry depends on a $@. | LogInjectionTest.js:21:23:21:29 | req.url | user-provided value |

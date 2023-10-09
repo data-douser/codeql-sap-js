@@ -4,7 +4,7 @@ const url = require('url');
 // source is ui5-specific
 function ui5loginjectionXss() {
     let value = jQuery.sap.syncGet("url", "param")
-    console.info(`[INFO] User: ${value}`); //UI5 log-injection 
+    console.info(`[INFO] User: ${value}`); // log-injection
     jQuery.sap.log.debug(value); //UI5 log-injection
 };
 
