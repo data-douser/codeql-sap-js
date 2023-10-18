@@ -510,7 +510,8 @@ module JsonParser<getJsonSig/0 getJson> {
     JsonMember getAMember() { result = getMember(_) }
   }
 
-  class JsonString extends JsonValue, MkJsonString { }
+  class JsonString extends JsonValue, MkJsonString {
+  }
 
   class JsonNumber extends JsonValue, MkJsonNumber { }
 
