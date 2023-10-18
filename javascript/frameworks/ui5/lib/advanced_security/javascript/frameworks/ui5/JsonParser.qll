@@ -1,73 +1,70 @@
+signature string getJsonSig();
 
-signature class JsonStringReader {
-  string read();
-}
-
-module JsonParser<JsonStringReader Reader> {
+module JsonParser<getJsonSig/0 getJson> {
   private newtype TJsonToken =
     MkLeftBracketToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       begin = source.indexOf("{") and
       begin = end and
       value = "{"
     } or
     MkRightBracketToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       begin = source.indexOf("}") and
       begin = end and
       value = "}"
     } or
     MkLeftSquareBracketToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       begin = source.indexOf("[") and
       begin = end and
       value = "["
     } or
     MkRightSquareBracketToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       begin = source.indexOf("]") and
       begin = end and
       value = "]"
     } or
     MkWhiteSpaceToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       value = source.regexpFind("[\\s\\v\\h]", _, begin) and
       begin + value.length() - 1 = end
     } or
     MkCommaToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       begin = source.indexOf(",") and
       begin = end and
       value = ","
     } or
     MkColonToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       begin = source.indexOf(":") and
       begin = end and
       value = ":"
     } or
     MkNumberToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       value = source.regexpFind("-?[1-9]\\d*(\\.\\d+)?((e|E)?(\\+|-)?\\d+)?", _, begin) and
       begin + value.length() - 1 = end
     } or
     MkStringToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       value = source.regexpFind("\"[^\"]*\"", _, begin) and
       begin + value.length() - 1 = end
     } or
     MkTrueToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       value = source.regexpFind("true", _, begin) and
       begin + value.length() - 1 = end
     } or
     MkFalseToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       value = source.regexpFind("false", _, begin) and
       begin + value.length() - 1 = end
     } or
     MkNullToken(int begin, int end, string value, string source) {
-      source = any(Reader r).read() and
+      source = getJson() and
       value = source.regexpFind("null", _, begin) and
       begin + value.length() - 1 = end
     }
@@ -382,51 +379,63 @@ module JsonParser<JsonStringReader Reader> {
   }
 
   private newtype TJsonValue =
-    MkJsonNumber(float n) {
-      exists(NumberToken t | t.getValue().toFloat() = n | not any(StringToken str).contains(t))
+    MkJsonNumber(float n, JsonToken source) {
+      exists(NumberToken t | t.getValue().toFloat() = n and source = t |
+        not any(StringToken str).contains(t)
+      )
     } or
-    MkJsonString(string s) { exists(StringToken t | t.(JsonToken).getValue() = s) } or
-    MkJsonObject(JsonMemberList members) {
+    MkJsonString(string s, JsonToken source) {
+      exists(StringToken t | t.(JsonToken).getValue() = s and t = source)
+    } or
+    MkJsonObject(JsonMemberList members, JsonToken source) {
       exists(LeftBracketToken l, RightBracketToken r, JsonToken last |
         getNextSkippingWhitespace(l) != r
       |
         mkJsonMembers(getNextSkippingWhitespace(l), members, last) and
-        getNextSkippingWhitespace(last) = r
+        getNextSkippingWhitespace(last) = r and
+        source = l
       )
       or
       exists(LeftBracketToken l, RightBracketToken r | getNextSkippingWhitespace(l) = r |
-        members = EmtpyMemberList()
+        members = EmtpyMemberList() and source = l
       )
     } or
-    MkJsonArray(JsonValueList values) {
+    MkJsonArray(JsonValueList values, JsonToken source) {
       exists(LeftSquareBracketToken l, RightSquareBracketToken r, JsonToken last |
         mkJsonValues(getNextSkippingWhitespace(l), values, last) and
-        getNextSkippingWhitespace(last) = r
+        getNextSkippingWhitespace(last) = r and
+        source = l
       )
       or
       exists(LeftSquareBracketToken l, RightSquareBracketToken r |
         getNextSkippingWhitespace(l) = r
       |
-        values = EmtpyJsonValueList()
+        values = EmtpyJsonValueList() and source = l
       )
     } or
-    MkJsonTrue() { exists(TrueToken t | not any(StringToken str).contains(t)) } or
-    MkJsonFalse() { exists(FalseToken t | not any(StringToken str).contains(t)) } or
-    MkJsonNull() { exists(NullToken t | not any(StringToken str).contains(t)) }
+    MkJsonTrue(JsonToken source) {
+      exists(TrueToken t | not any(StringToken str).contains(t) and source = t)
+    } or
+    MkJsonFalse(JsonToken source) {
+      exists(FalseToken t | not any(StringToken str).contains(t) and source = t)
+    } or
+    MkJsonNull(JsonToken source) {
+      exists(NullToken t | not any(StringToken str).contains(t) and source = t)
+    }
 
   private predicate mkJsonValue(JsonToken first, JsonValue value, JsonToken last) {
     first instanceof StringToken and
     first = last and
-    value = MkJsonString(first.getValue())
+    value = MkJsonString(first.getValue(), _)
     or
     first instanceof NumberToken and
     first = last and
-    value = MkJsonNumber(first.getValue().toFloat())
+    value = MkJsonNumber(first.getValue().toFloat(), _)
     or
     first instanceof LeftBracketToken and
     exists(JsonMemberList members, JsonToken membersLast |
       mkJsonMembers(getNextSkippingWhitespace(first), members, membersLast) and
-      value = MkJsonObject(members) and
+      value = MkJsonObject(members, _) and
       last = getNextSkippingWhitespace(membersLast)
     ) and
     last instanceof RightBracketToken
@@ -434,44 +443,64 @@ module JsonParser<JsonStringReader Reader> {
     first instanceof LeftSquareBracketToken and
     exists(JsonValueList values, JsonToken valuesLast |
       mkJsonValues(getNextSkippingWhitespace(first), values, valuesLast) and
-      value = MkJsonArray(values) and
+      value = MkJsonArray(values, _) and
       last = getNextSkippingWhitespace(valuesLast)
     ) and
     last instanceof RightSquareBracketToken
     or
     first instanceof TrueToken and
     first = last and
-    value = MkJsonTrue()
+    value = MkJsonTrue(_)
     or
     first instanceof FalseToken and
     first = last and
-    value = MkJsonFalse()
+    value = MkJsonFalse(_)
     or
     first instanceof NullToken and
     first = last and
-    value = MkJsonNull()
+    value = MkJsonNull(_)
   }
 
   class JsonValue extends TJsonValue {
     string toString() {
-      this = MkJsonString(result)
+      this = MkJsonString(result, _)
       or
-      exists(float number | this = MkJsonNumber(number) | result = number.toString())
+      exists(float number | this = MkJsonNumber(number, _) | result = number.toString())
       or
-      exists(JsonMemberList members | this = MkJsonObject(members) | result = members.toString())
+      exists(JsonMemberList members | this = MkJsonObject(members, _) | result = members.toString())
       or
-      exists(JsonValueList values | this = MkJsonArray(values) | result = values.toString())
+      exists(JsonValueList values | this = MkJsonArray(values, _) | result = values.toString())
       or
-      this = MkJsonTrue() and result = "true"
+      this = MkJsonTrue(_) and result = "true"
       or
-      this = MkJsonFalse() and result = "false"
+      this = MkJsonFalse(_) and result = "false"
       or
-      this = MkJsonNull() and result = "null"
+      this = MkJsonNull(_) and result = "null"
+    }
+
+    string getSource() {
+      exists(JsonToken token |
+        this = MkJsonString(_, token)
+        or
+        this = MkJsonNumber(_, token)
+        or
+        this = MkJsonObject(_, token)
+        or
+        this = MkJsonArray(_, token)
+        or
+        this = MkJsonTrue(token)
+        or
+        this = MkJsonFalse(token)
+        or
+        this = MkJsonNull(token)
+      |
+        result = token.getSource()
+      )
     }
   }
 
   class JsonObject extends JsonValue, MkJsonObject {
-    JsonMemberList getMembers() { this = MkJsonObject(result) }
+    JsonMemberList getMembers() { this = MkJsonObject(result, _) }
 
     JsonMember getMember(int index) { result = getMembers().getMember(index) }
 
@@ -483,19 +512,20 @@ module JsonParser<JsonStringReader Reader> {
   class JsonNumber extends JsonValue, MkJsonNumber { }
 
   class JsonArray extends JsonValue, MkJsonArray {
-    JsonValueList getValues() { this = MkJsonArray(result) }
+    JsonValueList getValues() { this = MkJsonArray(result, _) }
 
     JsonValue getValue(int index) { result = getValues().getValue(index) }
 
     JsonValue getAValue() { result = getValue(_) }
   }
 
-  JsonValue parse() {
+  JsonValue parse(string json) {
+    result.getSource() = json and
     exists(JsonToken firstToken |
-        not any(JsonToken t).getBegin() < firstToken.getBegin() and
-        if firstToken instanceof WhiteSpaceToken
-        then mkJsonValue(getNextSkippingWhitespace(firstToken), result, _)
-        else mkJsonValue(firstToken, result, _)
+      not any(JsonToken t).getBegin() < firstToken.getBegin() and
+      if firstToken instanceof WhiteSpaceToken
+      then mkJsonValue(getNextSkippingWhitespace(firstToken), result, _)
+      else mkJsonValue(firstToken, result, _)
     )
   }
 }
