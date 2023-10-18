@@ -1,5 +1,6 @@
-private import javascript 
+private import javascript
 private import DataFlow
+private import advanced_security.javascript.frameworks.ui5.JsonParser
 private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
 private import advanced_security.javascript.frameworks.ui5.UI5View
 
@@ -9,6 +10,48 @@ module UI5 {
    */
   predicate inSameUI5Project(File f1, File f2) {
     exists(Project p | p.isInThisProject(f1) and p.isInThisProject(f2))
+  }
+
+  bindingset[this]
+  private class JsonStringReader extends string {
+    bindingset[result]
+    string read() { result = this }
+  }
+
+  private newtype TResourceRoot =
+    MkResourceRoot(string name, string path, string source) {
+      exists(
+        JsonParser<getAResourceRootConfig/0>::JsonObject config,
+        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry
+      |
+        source = config.getSource() and
+        config.getAMember() = configEntry
+      |
+        name = configEntry.getKey() and
+        path = configEntry.getValue().toString()
+      )
+    }
+
+  class ResourceRoot extends TResourceRoot, MkResourceRoot {
+    string getName() { this = MkResourceRoot(result, _, _) }
+
+    string getPath() { this = MkResourceRoot(_, result, _) }
+
+    string getSource() { this = MkResourceRoot(_, _, result) }
+
+    string toString() { result = this.getName() + ": " + this.getPath() }
+  }
+
+  private string getAResourceRootConfig() {
+    result = any(SapUiCoreScript script).getAttributeByName("data-sap-ui-resourceroots").getValue()
+  }
+
+  class SapUiCoreScript extends HTML::ScriptElement {
+    SapUiCoreScript() { this.getSourcePath().matches("%/sap-ui-core.js") }
+
+    ResourceRoot getAResourceRoot() {
+      result.getSource() = this.getAttributeByName("data-sap-ui-resourceroots").getValue()
+    }
   }
 
   class Project extends Folder {
