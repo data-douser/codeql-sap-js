@@ -247,13 +247,13 @@ module JsonParser<getJsonSig/0 getJson> {
   }
 
   private newtype TJsonMemberList =
-    EmtpyMemberList() or
+    EmptyMemberList() or
     ConsMemberList(JsonMember head, JsonMemberList tail) {
       exists(JsonToken first, JsonToken last |
         mkJsonMember(first, head, last) and
         if getNextSkippingWhitespace(last) instanceof CommaToken
         then mkJsonMembers(getNextSkippingWhitespace(getNextSkippingWhitespace(last)), tail, _)
-        else tail = EmtpyMemberList()
+        else tail = EmptyMemberList()
       )
     }
 
@@ -267,7 +267,7 @@ module JsonParser<getJsonSig/0 getJson> {
 
   class JsonMemberList extends TJsonMemberList {
     string toString() {
-      this = EmtpyMemberList() and result = "{}"
+      this = EmptyMemberList() and result = "{}"
       or
       exists(JsonMember head, JsonMemberList tail, string tailStr |
         this = ConsMemberList(head, tail) and
@@ -317,7 +317,7 @@ module JsonParser<getJsonSig/0 getJson> {
   private predicate mkJsonMembers(JsonToken first, JsonMemberList members, JsonToken last) {
     exists(JsonMember h, JsonToken memberLast | mkJsonMember(first, h, memberLast) |
       not getNextSkippingWhitespace(memberLast) instanceof CommaToken and
-      members = ConsMemberList(h, EmtpyMemberList()) and
+      members = ConsMemberList(h, EmptyMemberList()) and
       last = memberLast
     )
     or
@@ -331,20 +331,20 @@ module JsonParser<getJsonSig/0 getJson> {
   }
 
   private newtype TJsonValueList =
-    EmtpyJsonValueList() or
+    EmptyJsonValueList() or
     ConsJsonValueList(JsonValue head, JsonValueList tail) {
       exists(JsonToken first, JsonToken last |
         mkJsonValue(first, head, last) and
         if getNextSkippingWhitespace(last) instanceof CommaToken
         then mkJsonValues(getNextSkippingWhitespace(getNextSkippingWhitespace(last)), tail, _)
-        else tail = EmtpyJsonValueList()
+        else tail = EmptyJsonValueList()
       )
     }
 
   private predicate mkJsonValues(JsonToken first, JsonValueList values, JsonToken last) {
     exists(JsonValue h, JsonToken valueLast | mkJsonValue(first, h, valueLast) |
       not getNextSkippingWhitespace(valueLast) instanceof CommaToken and
-      values = ConsJsonValueList(h, EmtpyJsonValueList()) and
+      values = ConsJsonValueList(h, EmptyJsonValueList()) and
       last = valueLast
     )
     or
@@ -365,7 +365,7 @@ module JsonParser<getJsonSig/0 getJson> {
 
   class JsonValueList extends TJsonValueList {
     string toString() {
-      this = EmtpyJsonValueList() and result = "[]"
+      this = EmptyJsonValueList() and result = "[]"
       or
       exists(JsonValue head, JsonValueList tail, string tailStr |
         this = ConsJsonValueList(head, tail) and
@@ -400,7 +400,7 @@ module JsonParser<getJsonSig/0 getJson> {
       )
       or
       exists(LeftBracketToken l, RightBracketToken r | getNextSkippingWhitespace(l) = r |
-        members = EmtpyMemberList() and source = l
+        members = EmptyMemberList() and source = l
       )
     } or
     MkJsonArray(JsonValueList values, JsonToken source) {
@@ -413,7 +413,7 @@ module JsonParser<getJsonSig/0 getJson> {
       exists(LeftSquareBracketToken l, RightSquareBracketToken r |
         getNextSkippingWhitespace(l) = r
       |
-        values = EmtpyJsonValueList() and source = l
+        values = EmptyJsonValueList() and source = l
       )
     } or
     MkJsonTrue(JsonToken source) {
