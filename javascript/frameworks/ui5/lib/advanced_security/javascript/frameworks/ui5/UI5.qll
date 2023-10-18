@@ -18,28 +18,57 @@ module UI5 {
     string read() { result = this }
   }
 
+  private class ResourceRootPathString extends PathString {
+    SapUiCoreScript coreScript;
+
+    ResourceRootPathString() { this = coreScript.getAResourceRoot().getRoot() }
+
+    override Folder getARootFolder() { result = coreScript.getFile().getParentContainer() }
+  }
+
   private newtype TResourceRoot =
-    MkResourceRoot(string name, string path, string source) {
+    MkResourceRoot(string name, string root, string source) {
       exists(
         JsonParser<getAResourceRootConfig/0>::JsonObject config,
-        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry
+        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry, SapUiCoreScript coreScript
       |
+        source = coreScript.getAttributeByName("data-sap-ui-resourceroots").getValue() and
         source = config.getSource() and
         config.getAMember() = configEntry
       |
         name = configEntry.getKey() and
-        path = configEntry.getValue().toString()
+        root = configEntry.getValue().toString()
       )
     }
 
   class ResourceRoot extends TResourceRoot, MkResourceRoot {
     string getName() { this = MkResourceRoot(result, _, _) }
 
-    string getPath() { this = MkResourceRoot(_, result, _) }
+    string getRoot() { this = MkResourceRoot(_, result, _) }
 
     string getSource() { this = MkResourceRoot(_, _, result) }
 
-    string toString() { result = this.getName() + ": " + this.getPath() }
+    string toString() { result = this.getName() + ": " + this.getRoot() }
+  }
+
+  private newtype TResolvedResourceRoot =
+    MkResolvedResourceRoot(string name, Folder root, string source) {
+      exists(ResourceRoot unresolvedRoot, ResourceRootPathString path |
+        name = unresolvedRoot.getName() and
+        source = unresolvedRoot.getSource() and
+        path = unresolvedRoot.getRoot() and
+        root = path.resolve(path.getARootFolder()).getContainer()
+      )
+    }
+
+  class ResolvedResourceRoot extends TResolvedResourceRoot {
+    string getName() { this = MkResolvedResourceRoot(result, _, _) }
+
+    Folder getRoot() { this = MkResolvedResourceRoot(_, result, _) }
+
+    string getSource() { this = MkResolvedResourceRoot(_, _, result) }
+
+    string toString() { result = this.getName() + ": " + this.getRoot() }
   }
 
   private string getAResourceRootConfig() {
@@ -50,6 +79,10 @@ module UI5 {
     SapUiCoreScript() { this.getSourcePath().matches("%/sap-ui-core.js") }
 
     ResourceRoot getAResourceRoot() {
+      result.getSource() = this.getAttributeByName("data-sap-ui-resourceroots").getValue()
+    }
+
+    ResolvedResourceRoot getAResolvedResourceRoot() {
       result.getSource() = this.getAttributeByName("data-sap-ui-resourceroots").getValue()
     }
   }
