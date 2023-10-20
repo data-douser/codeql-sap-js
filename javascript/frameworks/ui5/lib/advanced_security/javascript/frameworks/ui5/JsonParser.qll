@@ -542,7 +542,7 @@ module JsonParser<getJsonSig/0 getJson> {
   JsonValue parse(string json) {
     result.getSource() = json and
     exists(JsonToken firstToken |
-      not any(JsonToken t).getBegin() < firstToken.getBegin() and
+      not exists(JsonToken otherToken | otherToken.getBegin() < firstToken.getBegin() and otherToken.getSource() = firstToken.getSource())  and
       if firstToken instanceof WhiteSpaceToken
       then mkJsonValue(getNextSkippingWhitespace(firstToken), result, _)
       else mkJsonValue(firstToken, result, _)
