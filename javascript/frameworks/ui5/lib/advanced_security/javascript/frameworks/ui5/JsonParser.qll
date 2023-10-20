@@ -500,6 +500,22 @@ module JsonParser<getJsonSig/0 getJson> {
         result = token.getSource()
       )
     }
+
+    string getType() {
+      this = MkJsonString(_, _) and result = "string"
+      or
+      this = MkJsonNumber(_, _) and result = "number"
+      or
+      this = MkJsonObject(_, _) and result = "object"
+      or
+      this = MkJsonArray(_, _) and result = "array"
+      or
+      this = MkJsonTrue(_) and result = "true"
+      or
+      this = MkJsonFalse(_) and result = "false"
+      or
+      this = MkJsonNull(_) and result = "null"
+    }
   }
 
   class JsonObject extends JsonValue, MkJsonObject {
