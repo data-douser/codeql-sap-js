@@ -23,7 +23,7 @@ private string getASuperType(string base) {
  * ```
  */
 bindingset[property]
-private string bindingPathCapture(string property) {
+string bindingPathCapture(string property) {
   exists(string pattern |
     // matches "Control>country"
     pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
