@@ -230,7 +230,60 @@ module UI5 {
   }
 
   abstract class UI5Model extends InvokeNode {
+    CustomController getController() { result.asExpr() = this.asExpr().getParent+() }
+  }
+
+  /**
+   * Represents models that are loaded from an internal source, i.e. XML Models or JSON models
+   * whose contents are hardcoded in a JS file or loaded from a JSON file.
+   */
+  abstract class UI5InternalModel extends UI5Model {
     abstract string getPathString();
+  }
+
+  /** Represents models that are loaded from an external source, e.g. OData service. */
+  abstract class UI5ExternalModel extends UI5Model {
+    abstract string getName();
+  }
+
+  /** Model which gains content from an SAP OData service. */
+  class ODataServiceModel extends UI5ExternalModel {
+    string modelName;
+
+    ODataServiceModel() {
+      /*
+       * SKETCH
+       * This is an argument to a `this.setModel` call if:
+       * - this flows from a DF node corresponding to the parent component's model
+       * - and the the component's manifest.json declares the datasource as being of OData type
+       */
+
+      /*
+       * e.g. this.getView().setModel(this.getOwnerComponent().getModel("booking_nobatch"))
+       */
+
+      // TODO: refactor this!
+      exists(MethodCallNode setModelCall, CustomController controller |
+        /*
+         * 1. This flows from a DF node corresponding to the parent component's model to the `this.setModel` call
+         * i.e. Aims to capture something like:
+         * this.getView().setModel(this.getOwnerComponent().getModel("someModelName"))
+         */
+
+        modelName = this.getArgument(0).asExpr().(StringLiteral).getValue() and
+        this.getCalleeName() = "getModel" and
+        controller = this.getController() and
+        controller.getOwnerComponentRef().flowsTo(this.(MethodCallNode).getReceiver()) and
+        this.flowsTo(setModelCall.getArgument(0)) and
+        setModelCall.getMethodName() = "setModel" and
+        setModelCall.getReceiver().(ThisNode).getBinder() = controller.getAMethod() and
+        /* 2. The component's manifest.json declares the DataSource as being of OData type */
+        controller.getOwnerComponent().getADataSource(modelName).getType() = "OData"
+      )
+    }
+
+    override string getName() { result = modelName }
+  }
 
   private SourceNode sapComponent(TypeTracker t) {
     t.start() and
@@ -467,7 +520,7 @@ module UI5 {
     result = any(JsonObject tODO | tODO.getFile().getAbsolutePath() = path)
   }
 
-  class JsonModel extends UI5Model {
+  class JsonModel extends UI5InternalModel {
     JsonModel() {
       this instanceof NewNode and
       exists(RequiredObject jsonModel |
@@ -540,7 +593,7 @@ module UI5 {
     }
   }
 
-  class XmlModel extends UI5Model {
+  class XmlModel extends UI5InternalModel {
     XmlModel() {
       this instanceof NewNode and
       exists(RequiredObject xmlModel |
