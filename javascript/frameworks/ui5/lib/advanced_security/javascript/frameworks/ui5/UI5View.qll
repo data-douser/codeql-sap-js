@@ -101,14 +101,7 @@ abstract class UI5BindingPath extends Locatable {
       //restrict search inside the same project
       inSameUI5Project(this.getFile(), result.getFile())
     )
-    // TODO
-    /*
-     * or exists(string propName, JsonModel model | ...
-     *        model.getPathStringPropName(propName)
-     *      )
-     */
-
-    }
+  }
 }
 
 abstract class UI5ControlProperty extends Locatable {
