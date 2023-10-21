@@ -1,7 +1,7 @@
-private import javascript
-private import DataFlow
-private import advanced_security.javascript.frameworks.ui5.UI5::UI5
-private import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
+import javascript
+import DataFlow
+import advanced_security.javascript.frameworks.ui5.UI5::UI5
+import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
 
 /**
  * Utiility predicate returning
