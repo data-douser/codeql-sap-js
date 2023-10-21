@@ -130,7 +130,7 @@ module UI5 {
     exists(TypeTracker t2 | result = sapControl(t2).track(t2, t))
   }
 
-  SourceNode sapControl() { result = sapControl(TypeTracker::end()) }
+  private SourceNode sapControl() { result = sapControl(TypeTracker::end()) }
 
   private SourceNode sapController(TypeTracker t) {
     t.start() and
@@ -144,7 +144,7 @@ module UI5 {
     exists(TypeTracker t2 | result = sapController(t2).track(t2, t))
   }
 
-  SourceNode sapController() { result = sapController(TypeTracker::end()) }
+  private SourceNode sapController() { result = sapController(TypeTracker::end()) }
 
   class CustomControl extends Extension {
     CustomControl() {
