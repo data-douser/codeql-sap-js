@@ -15,11 +15,13 @@ module UI5DataFlow {
       inSameUI5Project(metadata.getFile(), node.getFile()) and
       (
         // same control
-        metadata.getControl().getName() = node.getBindingPath().getControlQualifiedType()
+        metadata.getExtension().(CustomControl).getName() =
+          node.getBindingPath().getControlQualifiedType()
         or
         // extended control
         exists(Extension subclass |
-          metadata.getControl().getDefine().getExtendingDefine() = subclass.getDefine() and
+          metadata.getExtension().(CustomControl).getDefine().getExtendingDefine() =
+            subclass.getDefine() and
           node.getBindingPath().getControlQualifiedType() = subclass.getName()
         )
       ) and

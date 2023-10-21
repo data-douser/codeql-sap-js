@@ -203,6 +203,8 @@ module UI5 {
       )
     }
 
+    UI5View getView() { this = result.getController() }
+
     MethodCallNode getAnElementReference() {
       exists(MethodCallNode viewRef |
         viewRef = this.getAViewReference() and
@@ -476,7 +478,7 @@ module UI5 {
     if not object instanceof JsonObject
     then result = ""
     else
-      exists(string property | exists(object.(JsonObject).getPropValue(property)) |
+      exists(string property |
         result = "/" + property + constructPathStringJson(object.getPropValue(property))
       )
   }
@@ -505,7 +507,7 @@ module UI5 {
       // project contains this file
       project.isInThisProject(jsonFile) and
       jsonFile.getExtension() = "json" and
-      jsonFile.getAbsolutePath() = project.getASubFolder().getAbsolutePath() + "/" + path and
+      jsonFile.getAbsolutePath() = project.getAbsolutePath() + "/" + path and
       result.getJsonFile() = jsonFile
     )
   }
@@ -656,6 +658,10 @@ module UI5 {
       this.(MethodCallNode).getMethodName() = "extend"
     }
 
+    FunctionNode getAMethod() {
+      result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource().(FunctionNode)
+    }
+
     string getName() { result = this.getArgument(0).asExpr().(StringLiteral).getValue() }
 
     ObjectLiteralNode getContent() { result = this.getArgument(1) }
@@ -677,11 +683,11 @@ module UI5 {
    * The property metadata found in an Extension.
    */
   class Metadata extends ObjectLiteralNode {
-    CustomControl control;
+    Extension extension;
 
-    CustomControl getControl() { result = control }
+    Extension getExtension() { result = extension }
 
-    Metadata() { this = control.getContent().getAPropertySource("metadata") }
+    Metadata() { this = extension.getContent().getAPropertySource("metadata") }
 
     SourceNode getProperty(string name) {
       result = this.getAPropertySource("properties").getAPropertySource(name)
@@ -717,7 +723,12 @@ module UI5 {
 
     bindingset[propName]
     MethodCallNode getARead(string propName) {
-      result.getMethodName() = "get" + capitalize(propName) and
+      (
+        result.getMethodName() = "get" + capitalize(propName)
+        or
+        result.getMethodName() = "getProperty" and
+        result.getArgument(0).asExpr().(StringLiteral).getValue() = propName
+      ) and
       // TODO: in same controller
       inSameUI5Project(this.getFile(), result.getFile())
     }
