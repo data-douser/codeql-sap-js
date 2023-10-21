@@ -554,7 +554,8 @@ class XmlControl extends UI5Control, XmlElement {
       // Both this control and the model belong to the same view
       this = view.getXmlControl() and
       model = view.getController().getModel() and
-      model.getPathString() = XmlElement.super.getAnAttribute().(XmlBindingPath).getPath()
+      model.(UI5InternalModel).getPathString() =
+        XmlElement.super.getAnAttribute().(XmlBindingPath).getPath()
     )
     // TODO: Add case where modelName is present
   }
@@ -565,7 +566,7 @@ class XmlControl extends UI5Control, XmlElement {
       // Both this control and the model belong to the same view
       this = view.getXmlControl() and
       model = view.getController().getModel() and
-      model.getPathString() = bindingPath.getPath() and
+      model.(UI5InternalModel).getPathString() = bindingPath.getPath() and
       bindingPath.getPath() = XmlElement.super.getAnAttribute().(XmlBindingPath).getPath()
     )
     // TODO: Add case where modelName is present
