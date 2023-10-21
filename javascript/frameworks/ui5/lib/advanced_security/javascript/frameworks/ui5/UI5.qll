@@ -151,6 +151,14 @@ module UI5 {
       this.getReceiver().getALocalSource() = sapControl() or
       this.getDefine() = any(SapDefineModule sapModule).getExtendingDefine()
     }
+
+    MethodCallNode getOwnerComponentRef() {
+      exists(ThisNode controlThis |
+        controlThis.getBinder() = this.getAMethod() and
+        controlThis.flowsTo(result.getReceiver()) and
+        result.getMethodName() = "getOwnerComponent"
+      )
+    }
   }
 
   class CustomController extends Extension {
@@ -160,10 +168,28 @@ module UI5 {
       this.getReceiver().getALocalSource() = sapController() and
       name = this.getFile().getBaseName().regexpCapture("([a-zA-Z0-9]+.controller.js)", 1)
     }
+
+    Component getOwnerComponent() {
+      /*
+       * SKETCH
+       * The result is the owner component of this controller if:
+       * - The controller's name sans the ID prefix can be found in the manifest.json's routing target
+       * - where the manifest.json is the result's ManifestJson
+       */
+
+      exists(ManifestJson manifestJson, JsonObject rootObj |
+        manifestJson = result.getManifestJson()
+      |
+        exists(rootObj.getPropValue("targets").(JsonObject).getPropValue(name))
+      )
     }
 
-    FunctionNode getAMethod() {
-      result = this.getArgument(1).(ObjectLiteralNode).getAPropertySource().(FunctionNode)
+    MethodCallNode getOwnerComponentRef() {
+      exists(ThisNode controlThis |
+        controlThis.getBinder() = this.getAMethod() and
+        controlThis.flowsTo(result.getReceiver()) and
+        result.getMethodName() = "getOwnerComponent"
+      )
     }
 
     /**
@@ -206,7 +232,134 @@ module UI5 {
   abstract class UI5Model extends InvokeNode {
     abstract string getPathString();
 
-    CustomController getController() { result.asExpr() = this.asExpr().getParent+() }
+  private SourceNode sapComponent(TypeTracker t) {
+    t.start() and
+    exists(UserModule d, string dependencyType |
+      dependencyType =
+        [
+          "sap/ui/core/mvc/Component", "sap.ui.core.mvc.Component", "sap/ui/core/UIComponent",
+          "sap.ui.core.UIComponent"
+        ]
+    |
+      d.getADependencyType() = dependencyType and
+      result = d.getRequiredObject(dependencyType)
+    )
+    or
+    exists(TypeTracker t2 | result = sapComponent(t2).track(t2, t))
+  }
+
+  private SourceNode sapComponent() { result = sapComponent(TypeTracker::end()) }
+
+  /** A UI5 Component that may contain other controllers or controls. */
+  class Component extends Extension {
+    Component() { this.getReceiver().getALocalSource() = sapComponent() }
+
+    string getID() { result = this.getName().regexpCapture("([a-zA-Z.]+).Component", 1) }
+
+    ManifestJson getManifestJson() {
+      /*
+       * SKETCH
+       * the result is a manifest.json file of this component if:
+       * - this component states its manifest as string "json"
+       * - this component's ID equals to that of the manifest.json's ID.
+       */
+
+      exists(ManifestJson manifestJson |
+        result = manifestJson and
+        this.getMetadata().getProperty("manifest").asExpr().(StringLiteral).getValue() = "json" and
+        manifestJson.getId() = this.getID()
+      )
+    }
+
+    /** Get a definition of this component's model whose data source is remote. */
+    DataSource getADataSource() { result = this.getADataSource(_) }
+
+    /** Get a definition of this component's model whose data source is remote and is called modelName. */
+    DataSource getADataSource(string modelName) { result.getName() = modelName }
+
+    /** Get a reference to this component's model. */
+    MethodCallNode getAnExternalModelRef() { result = this.getAnExternalModelRef(_) }
+
+    /** Get a reference to this component's model called `modelName`. */
+    MethodCallNode getAnExternalModelRef(string modelName) {
+      result.getMethodName() = "getModel" and
+      result.getArgument(0).asExpr().(StringLiteral).getValue() = modelName and
+      exists(DataSource externModelDef | externModelDef.getName() = modelName)
+    }
+  }
+
+  class DataSource extends JsonObject {
+    string dataSourceName;
+    ManifestJson manifestJson;
+
+    DataSource() {
+      /*
+       * SKETCH
+       * this is a DataSource if:
+       * - its file is a ManifestJson,
+       * - and it's one of the keys that the `dataSources` object has.
+       */
+
+      exists(JsonObject rootObj |
+        this.getJsonFile() = manifestJson and
+        rootObj.getJsonFile() = manifestJson and
+        this =
+          rootObj
+              .getPropValue("sap.app")
+              .(JsonObject)
+              .getPropValue("dataSources")
+              .(JsonObject)
+              .getPropValue(dataSourceName)
+      )
+    }
+
+    string getName() { result = dataSourceName }
+
+    ManifestJson getManifestJson() { result = manifestJson }
+
+    string getType() { result = this.getPropValue("type").(JsonString).getValue() }
+  }
+
+  /** The manifest.json file serving as the app descriptor. */
+  class ManifestJson extends File {
+    string id;
+
+    string getId() { result = id }
+
+    ManifestJson() {
+      /*
+       * SKETCH
+       * This is a manifest.json file if:
+       * - it has at least one of the following keys:
+       *  - "sap.app"
+       *  - "sap.ui"
+       *  - "sap.ui5"
+       *  - "sap.platform.abap"
+       *  - "sap.platform.hcp"
+       *  - "sap.fiori"
+       *  - "sap.card"
+       *  - "_version"
+       * - and it is a json file,
+       * - and its ID is at sap.app/id.
+       */
+
+      exists(JsonObject rootObj |
+        rootObj.getJsonFile() = this and
+        exists(string propertyName | exists(rootObj.getPropValue(propertyName)) |
+          propertyName =
+            [
+              "sap.app", "sap.ui", "sap.ui5", "sap.platform.abap", "sap.platform.hcp", "sap.fiori",
+              "sap.card", "_version"
+            ] and
+          id =
+            rootObj.getPropValue("sap.app").(JsonObject).getPropValue("id").(JsonString).getValue()
+        )
+      ) and
+      /* The name is fixed to "manifest.json": https://sapui5.hana.ondemand.com/sdk/#/topic/be0cf40f61184b358b5faedaec98b2da.html */
+      this.getBaseName() = "manifest.json"
+    }
+
+    DataSource getDataSource() { this = result.getManifestJson() }
   }
 
   private string constructPathStringInner(Expr object) {
