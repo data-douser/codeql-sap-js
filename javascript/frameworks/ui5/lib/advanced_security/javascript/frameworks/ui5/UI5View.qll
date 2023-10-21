@@ -392,12 +392,44 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   }
 }
 
+class XmlRootElement extends XmlElement {
+  XmlRootElement() { any(XmlFile f).getARootElement() = this }
+
+  /**
+   * Returns a XML namespace declaration scoped to the element.
+   * 
+   * The predicate relies on location information to determine the scope of the namespace declaration.
+   * A XML element with the same starting line and column, but a larger ending line and column is considered the
+   * scope of the namespace declaration.
+   */
+  XmlNamespace getANamespaceDeclaration() {
+    exists(Location elemLoc, Location nsLoc |
+      elemLoc = this.getLocation() and
+      nsLoc = result.getLocation()
+     |
+     elemLoc.getStartLine() = nsLoc.getStartLine() and
+     elemLoc.getStartColumn() = nsLoc.getStartColumn() and
+      (
+        elemLoc.getEndLine() > nsLoc.getEndLine()
+        or
+        elemLoc.getEndLine() = nsLoc.getEndLine() and
+        elemLoc.getEndColumn() > nsLoc.getEndColumn()
+      )
+    )
+  }
+}
+
 class XmlView extends UI5View, XmlFile {
-  XmlElement root;
+  XmlRootElement root;
 
   XmlView() {
     root = this.getARootElement() and
-    root.getNamespace().getUri() = "sap.ui.core.mvc" and
+    (
+      root.getNamespace().getUri() = "sap.ui.core.mvc"
+      or
+      root.getNamespace().getUri() = "sap.ui.core" and
+      root.getANamespaceDeclaration().getUri() = "sap.ui.core.mvc"
+    ) and
     root.hasName("View")
   }
 
@@ -503,7 +535,7 @@ abstract class UI5Control extends Locatable {
   CustomController getController() { result = this.getView().getController() }
 }
 
-class XmlControl extends UI5Control, XmlElement {
+class XmlControl extends UI5Control instanceof XmlElement  {
   XmlControl() { this.getParent+() = any(XmlView view) }
 
   /** Get the qualified type string, e.g. `sap.m.SearchField` */
@@ -516,11 +548,11 @@ class XmlControl extends UI5Control, XmlElement {
     result = any(CustomControl control | control.getName() = this.getQualifiedType())
   }
 
-  override Location getLocation() { result = XmlElement.super.getLocation() }
+  override Location getLocation() { result = this.(XmlElement).getLocation() }
 
   override XmlFile getFile() { result = XmlElement.super.getFile() }
 
-  override UI5ControlProperty getAProperty(string name) { result = this.getAttribute(name) }
+  override UI5ControlProperty getAProperty(string name) { result = this.(XmlElement).getAttribute(name) }
 
   override CustomControl getDefinition() {
     result.getName() = this.getQualifiedType() and
