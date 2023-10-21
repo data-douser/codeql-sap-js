@@ -154,8 +154,12 @@ module UI5 {
   }
 
   class CustomController extends Extension {
+    string name;
+
     CustomController() {
-      this instanceof MethodCallNode and this.getReceiver().getALocalSource() = sapController()
+      this.getReceiver().getALocalSource() = sapController() and
+      name = this.getFile().getBaseName().regexpCapture("([a-zA-Z0-9]+.controller.js)", 1)
+    }
     }
 
     FunctionNode getAMethod() {
