@@ -50,9 +50,10 @@ module JsonParser<getJsonSig/0 getJson> {
     } or
     MkStringToken(int begin, int end, string value, string source) {
       source = getJson() and
-      exists(string literal | literal = source.regexpFind("\"(?:[^\"]|\\\")*\"", _, begin) and
+      exists(string literal |
+        literal = source.regexpFind("(?s)\".*?(?<!\\\\)\"", _, begin) and
         // The string without surrounding quotes.
-        value = literal.substring(1, literal.length()-1) and
+        value = literal.substring(1, literal.length() - 1) and
         begin + literal.length() - 1 = end
       )
     } or
