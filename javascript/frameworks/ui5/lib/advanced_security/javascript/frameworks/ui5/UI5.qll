@@ -37,7 +37,7 @@ module UI5 {
         config.getAMember() = configEntry
       |
         name = configEntry.getKey() and
-        root = configEntry.getValue().toString()
+        root = configEntry.getValue().asString()
       )
     }
 
