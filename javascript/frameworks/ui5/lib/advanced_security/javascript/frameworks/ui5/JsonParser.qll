@@ -211,6 +211,12 @@ module JsonParser<getJsonSig/0 getJson> {
       result.getBegin() = this.getEnd() + 1 and
       result.getSource() = this.getSource()
     }
+
+    predicate isFirst() {
+      not exists(JsonToken other |
+        other.getBegin() < this.getBegin() and other.getSource() = this.getSource()
+      )
+    }
   }
 
   private class WhiteSpaceToken extends JsonToken, MkWhiteSpaceToken { }
@@ -557,7 +563,7 @@ module JsonParser<getJsonSig/0 getJson> {
   JsonValue parse(string json) {
     result.getSource() = json and
     exists(JsonToken firstToken |
-      not exists(JsonToken otherToken | otherToken.getBegin() < firstToken.getBegin() and otherToken.getSource() = firstToken.getSource())  and
+      firstToken.isFirst() and
       if firstToken instanceof WhiteSpaceToken
       then mkJsonValue(getNextSkippingWhitespace(firstToken), result, _)
       else mkJsonValue(firstToken, result, _)
