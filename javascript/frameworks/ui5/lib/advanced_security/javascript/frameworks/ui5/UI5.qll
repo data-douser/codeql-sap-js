@@ -69,6 +69,10 @@ module UI5 {
     string getSource() { this = MkResolvedResourceRoot(_, _, result) }
 
     string toString() { result = this.getName() + ": " + this.getRoot() }
+
+    predicate contains(File file) {
+      file.getParentContainer+() = getRoot()
+    }
   }
 
   private string getAResourceRootConfig() {
