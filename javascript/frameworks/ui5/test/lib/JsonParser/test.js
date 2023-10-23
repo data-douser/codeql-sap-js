@@ -8,7 +8,7 @@ const test7 = '1.0e-1';
 
 const test8 = '"hello world"';
 const test9 = '"hello \\"world\\""';
-const test10 = '"hello\nworld\n';
+const test10 = '"hello\nworld\n"';
 
 const test11 = 'true';
 const test12 = 'false';
