@@ -393,8 +393,6 @@ module JsonParser<getJsonSig/0 getJson> {
     } or
     MkJsonObject(JsonMemberList members, JsonToken source) {
       exists(LeftBracketToken l, RightBracketToken r, JsonToken last |
-        getNextSkippingWhitespace(l) != r
-      |
         mkJsonMembers(getNextSkippingWhitespace(l), members, last) and
         getNextSkippingWhitespace(last) = r and
         source = l
