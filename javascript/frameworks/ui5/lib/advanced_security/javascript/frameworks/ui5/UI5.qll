@@ -80,7 +80,7 @@ module UI5 {
   }
 
   class SapUiCoreScript extends HTML::ScriptElement {
-    SapUiCoreScript() { this.getSourcePath().matches("%/sap-ui-core.js") }
+    SapUiCoreScript() { this.getSourcePath().matches(["%/sap-ui-core.js", "%sap-ui-core-nojQuery.js"]) }
 
     ResourceRoot getAResourceRoot() {
       result.getSource() = this.getAttributeByName("data-sap-ui-resourceroots").getValue()
