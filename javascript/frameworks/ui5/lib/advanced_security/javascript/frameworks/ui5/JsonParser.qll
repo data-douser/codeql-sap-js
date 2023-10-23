@@ -477,7 +477,10 @@ module JsonParser<getJsonSig/0 getJson> {
 
   class JsonValue extends TJsonValue {
     string toString() {
-      this = MkJsonString(result, _)
+      exists(string value |
+        this = MkJsonString(value, _) and
+        result = "\"" + value + "\""
+      )
       or
       exists(float number | this = MkJsonNumber(number, _) | result = number.toString())
       or
