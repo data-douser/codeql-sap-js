@@ -332,14 +332,15 @@ module UI5 {
     /** Get a definition of this component's model whose data source is remote and is called modelName. */
     DataSource getADataSource(string modelName) { result.getName() = modelName }
 
-    /** Get a reference to this component's model. */
+    /** Get a reference to this component's external model. */
     MethodCallNode getAnExternalModelRef() { result = this.getAnExternalModelRef(_) }
 
-    /** Get a reference to this component's model called `modelName`. */
+    /** Get a reference to this component's external model called `modelName`. */
     MethodCallNode getAnExternalModelRef(string modelName) {
       result.getMethodName() = "getModel" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = modelName and
-      exists(DataSource externModelDef | externModelDef.getName() = modelName)
+      // Shouldn't be a DataSource, but an external model def (need a new class).
+      exists(ExternalModelDefinition externModelDef | externModelDef.getName() = modelName)
     }
   }
 
@@ -373,6 +374,35 @@ module UI5 {
     ManifestJson getManifestJson() { result = manifestJson }
 
     string getType() { result = this.getPropValue("type").(JsonString).getValue() }
+  }
+
+  /**
+   * The definition of an external model in the `manifest.json`, e.g.
+   * ```js
+   * "someModelName": {
+   *   "dataSource": "someRemoteServiceName",
+   *   "settings": {
+   *      "defaultBindingMode": "TwoWay"
+   *   }
+   * }
+   * ```
+   */
+  class ExternalModelDefinition extends JsonObject {
+    string modelName;
+    string dataSourceName;
+
+    ExternalModelDefinition() {
+      exists(JsonObject models |
+        this = models.getPropValue(modelName) and
+        dataSourceName = this.getPropStringValue("dataSource") and
+        /* This data source can be found in the "dataSources" property */
+        exists(DataSource datasource | datasource.getName() = dataSourceName)
+      )
+    }
+
+    string getName() { result = modelName }
+
+    string getDataSourceName() { result = dataSourceName }
   }
 
   /** The manifest.json file serving as the app descriptor. */
