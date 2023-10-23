@@ -14,13 +14,9 @@ module UI5 {
   class Project extends Folder {
     /**
      * An UI5 project root folder.
+     * TODO: Resolve root path and use it
      */
-    Project() { exists(File yamlFile | yamlFile = this.getFile("ui5.yaml")) }
-
-    /**
-     * The `ui5.yaml` file that declares a UI5 application.
-     */
-    File getProjectYaml() { result = this.getFile("ui5.yaml") }
+    Project() { exists(File yamlFile | yamlFile = this.getFile("manifest.json")) }
 
     predicate isInThisProject(File file) { this = file.getParentContainer*() }
 
@@ -166,7 +162,7 @@ module UI5 {
 
     CustomController() {
       this.getReceiver().getALocalSource() = sapController() and
-      name = this.getFile().getBaseName().regexpCapture("([a-zA-Z0-9]+.controller.js)", 1)
+      name = this.getFile().getBaseName().regexpCapture("([a-zA-Z0-9]+).controller.js", 1)
     }
 
     Component getOwnerComponent() {
@@ -180,7 +176,16 @@ module UI5 {
       exists(ManifestJson manifestJson, JsonObject rootObj |
         manifestJson = result.getManifestJson()
       |
-        exists(rootObj.getPropValue("targets").(JsonObject).getPropValue(name))
+        rootObj
+            .getPropValue("targets")
+            .(JsonObject)
+            // The individual targets
+            .getPropValue(_)
+            .(JsonObject)
+            // The target's "viewName" property
+            .getPropValue("viewName")
+            .(JsonString)
+            .getValue() = name
       )
     }
 
@@ -264,23 +269,22 @@ module UI5 {
        * e.g. this.getView().setModel(this.getOwnerComponent().getModel("booking_nobatch"))
        */
 
-      // TODO: refactor this!
       exists(MethodCallNode setModelCall, CustomController controller |
         /*
          * 1. This flows from a DF node corresponding to the parent component's model to the `this.setModel` call
-         * i.e. Aims to capture something like:
-         * this.getView().setModel(this.getOwnerComponent().getModel("someModelName"))
+         * i.e. Aims to capture something like `this.getOwnerComponent().getModel("someModelName")` as in
+         * `this.getView().setModel(this.getOwnerComponent().getModel("someModelName"))`
          */
 
         modelName = this.getArgument(0).asExpr().(StringLiteral).getValue() and
         this.getCalleeName() = "getModel" and
-        controller = this.getController() and
         controller.getOwnerComponentRef().flowsTo(this.(MethodCallNode).getReceiver()) and
         this.flowsTo(setModelCall.getArgument(0)) and
         setModelCall.getMethodName() = "setModel" and
-        setModelCall.getReceiver().(ThisNode).getBinder() = controller.getAMethod() and
+        setModelCall.getReceiver() = controller.getAViewReference() and
         /* 2. The component's manifest.json declares the DataSource as being of OData type */
-        controller.getOwnerComponent().getADataSource(modelName).getType() = "OData"
+        controller.getOwnerComponent().getExternalModelDef(modelName).getDataSource().getType() =
+          "OData"
       )
     }
 
@@ -309,7 +313,7 @@ module UI5 {
   class Component extends Extension {
     Component() { this.getReceiver().getALocalSource() = sapComponent() }
 
-    string getID() { result = this.getName().regexpCapture("([a-zA-Z.]+).Component", 1) }
+    string getID() { result = this.getName().regexpCapture("([a-zA-Z0-9.]+).Component", 1) }
 
     ManifestJson getManifestJson() {
       /*
@@ -319,11 +323,8 @@ module UI5 {
        * - this component's ID equals to that of the manifest.json's ID.
        */
 
-      exists(ManifestJson manifestJson |
-        result = manifestJson and
-        this.getMetadata().getProperty("manifest").asExpr().(StringLiteral).getValue() = "json" and
-        manifestJson.getId() = this.getID()
-      )
+      this.getMetadata().getAPropertySource("manifest").asExpr().(StringLiteral).getValue() = "json" and
+      result.getId() = this.getID()
     }
 
     /** Get a definition of this component's model whose data source is remote. */
@@ -342,6 +343,12 @@ module UI5 {
       // Shouldn't be a DataSource, but an external model def (need a new class).
       exists(ExternalModelDefinition externModelDef | externModelDef.getName() = modelName)
     }
+
+    ExternalModelDefinition getExternalModelDef(string modelName) {
+      result.getFile() = this.getManifestJson() and result.getName() = modelName
+    }
+
+    ExternalModelDefinition getAnExternalModelDef() { result = this.getExternalModelDef(_) }
   }
 
   class DataSource extends JsonObject {
@@ -403,6 +410,8 @@ module UI5 {
     string getName() { result = modelName }
 
     string getDataSourceName() { result = dataSourceName }
+
+    DataSource getDataSource() { result.getName() = dataSourceName }
   }
 
   /** The manifest.json file serving as the app descriptor. */
