@@ -537,6 +537,8 @@ module JsonParser<getJsonSig/0 getJson> {
       or
       this = MkJsonNull(_) and result = "null"
     }
+
+    string asString() { this = MkJsonString(result, _) }
   }
 
   class JsonObject extends JsonValue, MkJsonObject {
