@@ -1,5 +1,8 @@
 signature string getJsonSig();
 
+/**
+ * A naive Json parser without error recovery.
+ */
 module JsonParser<getJsonSig/0 getJson> {
   private newtype TJsonToken =
     MkLeftBracketToken(int begin, int end, string value, string source) {
