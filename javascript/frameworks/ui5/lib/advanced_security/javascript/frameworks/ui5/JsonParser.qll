@@ -430,39 +430,49 @@ module JsonParser<getJsonSig/0 getJson> {
   private predicate mkJsonValue(JsonToken first, JsonValue value, JsonToken last) {
     first instanceof StringToken and
     first = last and
-    value = MkJsonString(first.getValue(), _)
+    value = MkJsonString(first.getValue(), first)
     or
     first instanceof NumberToken and
     first = last and
-    value = MkJsonNumber(first.getValue().toFloat(), _)
+    value = MkJsonNumber(first.getValue().toFloat(), first)
     or
     first instanceof LeftBracketToken and
-    exists(JsonMemberList members, JsonToken membersLast |
-      mkJsonMembers(getNextSkippingWhitespace(first), members, membersLast) and
-      value = MkJsonObject(members, _) and
-      last = getNextSkippingWhitespace(membersLast)
+    (
+      exists(JsonMemberList members, JsonToken membersLast |
+        mkJsonMembers(getNextSkippingWhitespace(first), members, membersLast) and
+        value = MkJsonObject(members, first) and
+        last = getNextSkippingWhitespace(membersLast)
+      )
+      or
+      last = getNextSkippingWhitespace(first) and
+      value = MkJsonObject(EmptyMemberList(), first)
     ) and
     last instanceof RightBracketToken
     or
     first instanceof LeftSquareBracketToken and
-    exists(JsonValueList values, JsonToken valuesLast |
-      mkJsonValues(getNextSkippingWhitespace(first), values, valuesLast) and
-      value = MkJsonArray(values, _) and
-      last = getNextSkippingWhitespace(valuesLast)
+    (
+      exists(JsonValueList values, JsonToken valuesLast |
+        mkJsonValues(getNextSkippingWhitespace(first), values, valuesLast) and
+        value = MkJsonArray(values, first) and
+        last = getNextSkippingWhitespace(valuesLast)
+      )
+      or
+      last = getNextSkippingWhitespace(first) and
+      value = MkJsonArray(EmptyJsonValueList(), first)
     ) and
     last instanceof RightSquareBracketToken
     or
     first instanceof TrueToken and
     first = last and
-    value = MkJsonTrue(_)
+    value = MkJsonTrue(first)
     or
     first instanceof FalseToken and
     first = last and
-    value = MkJsonFalse(_)
+    value = MkJsonFalse(first)
     or
     first instanceof NullToken and
     first = last and
-    value = MkJsonNull(_)
+    value = MkJsonNull(first)
   }
 
   class JsonValue extends TJsonValue {
