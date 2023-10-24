@@ -99,7 +99,9 @@ abstract class UI5BindingPath extends Locatable {
       result.getPropertyNameExpr() = p.getNameExpr() and
       this.getAbsolutePath() = model.getPathString(p) and
       //restrict search inside the same webapp
-      exists(WebApp webApp | webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile())
+      exists(WebApp webApp |
+        webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+      )
     )
     // TODO
     /*
@@ -143,7 +145,9 @@ abstract class UI5View extends File {
     // The controller name should match
     result.getName() = this.getControllerName() and
     // The View and the Controller are in a same webapp
-    exists(WebApp webApp | webApp.getAResource() = this and webApp.getAResource() = result.getFile())
+    exists(WebApp webApp |
+      webApp.getAResource() = this and webApp.getAResource() = result.getFile()
+    )
   }
 
   abstract UI5BindingPath getASource();
@@ -493,7 +497,10 @@ class XmlView extends UI5View, XmlFile {
           // or a custom control with implementation code found in the webapp
           exists(CustomControl control |
             control.getName() = element.getNamespace().getUri() + "." + element.getName() and
-            exists(WebApp webApp | webApp.getAResource() = control.getFile() and webApp.getAResource() = element.getFile())
+            exists(WebApp webApp |
+              webApp.getAResource() = control.getFile() and
+              webApp.getAResource() = element.getFile()
+            )
           )
         )
       )
@@ -563,20 +570,26 @@ class XmlControl extends UI5Control instanceof XmlElement  {
 
   override CustomControl getDefinition() {
     result.getName() = this.getQualifiedType() and
-    exists(WebApp webApp | webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile())
+    exists(WebApp webApp |
+      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+    )
   }
 
   bindingset[propName]
   override MethodCallNode getARead(string propName) {
     // TODO: in same view
-    exists(WebApp webApp | webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()) and
+    exists(WebApp webApp |
+      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+    ) and
     result.getMethodName() = "get" + capitalize(propName)
   }
 
   bindingset[propName]
   override MethodCallNode getAWrite(string propName) {
     // TODO: in same view
-    exists(WebApp webApp | webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()) and
+    exists(WebApp webApp |
+      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+    ) and
     result.getMethodName() = "set" + capitalize(propName)
   }
 

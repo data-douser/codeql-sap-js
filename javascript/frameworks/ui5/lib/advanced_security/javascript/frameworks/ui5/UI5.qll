@@ -5,7 +5,6 @@ private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
 private import advanced_security.javascript.frameworks.ui5.UI5View
 
 module UI5 {
-
   bindingset[this]
   private class JsonStringReader extends string {
     bindingset[result]
@@ -64,9 +63,7 @@ module UI5 {
 
     string toString() { result = this.getName() + ": " + this.getRoot() }
 
-    predicate contains(File file) {
-      file.getParentContainer+() = getRoot()
-    }
+    predicate contains(File file) { file.getParentContainer+() = getRoot() }
   }
 
   private string getAResourceRootConfig() {
@@ -74,7 +71,9 @@ module UI5 {
   }
 
   class SapUiCoreScript extends HTML::ScriptElement {
-    SapUiCoreScript() { this.getSourcePath().matches(["%/sap-ui-core.js", "%sap-ui-core-nojQuery.js"]) }
+    SapUiCoreScript() {
+      this.getSourcePath().matches(["%/sap-ui-core.js", "%sap-ui-core-nojQuery.js"])
+    }
 
     ResourceRoot getAResourceRoot() {
       result.getSource() = this.getAttributeByName("data-sap-ui-resourceroots").getValue()
@@ -88,8 +87,9 @@ module UI5 {
   /** A UI5 web application manifest associated with a bootstrapped UI5 web application. */
   class WebAppManifest extends File {
     WebApp webapp;
+
     WebAppManifest() {
-      this.getBaseName() = "manifest.json"  and
+      this.getBaseName() = "manifest.json" and
       this.getParentContainer() = webapp.getWebAppFolder()
     }
 
@@ -100,34 +100,34 @@ module UI5 {
   class WebApp extends HTML::HtmlFile {
     SapUiCoreScript coreScript;
 
-    WebApp() {
-      coreScript.getFile() = this
-    }
+    WebApp() { coreScript.getFile() = this }
 
-    File getAResource() {
-      coreScript.getAResolvedResourceRoot().contains(result)
-    }
+    File getAResource() { coreScript.getAResolvedResourceRoot().contains(result) }
 
     File getResource(string path) {
       getWebAppFolder().getAbsolutePath() + "/" + path = result.getAbsolutePath()
     }
 
-    Folder getWebAppFolder() {
-      result = this.getParentContainer()
-    }
+    Folder getWebAppFolder() { result = this.getParentContainer() }
 
-    WebAppManifest getManifest() {
-      result.getWebapp() = this
-    }
+    WebAppManifest getManifest() { result.getWebapp() = this }
 
     File getInitialModule() {
-      exists(string initialModuleResourcePath, string resolvedModulePath, ResolvedResourceRoot resourceRoot |
-        initialModuleResourcePath = coreScript.getAttributeByName("data-sap-ui-onInit").getValue() and coreScript.getAResolvedResourceRoot() = resourceRoot and
-        resolvedModulePath = initialModuleResourcePath.regexpReplaceAll("^module\\s*:\\s*", "").replaceAll(resourceRoot.getName(), resourceRoot.getRoot().getAbsolutePath()) and
+      exists(
+        string initialModuleResourcePath, string resolvedModulePath,
+        ResolvedResourceRoot resourceRoot
+      |
+        initialModuleResourcePath = coreScript.getAttributeByName("data-sap-ui-onInit").getValue() and
+        coreScript.getAResolvedResourceRoot() = resourceRoot and
+        resolvedModulePath =
+          initialModuleResourcePath
+              .regexpReplaceAll("^module\\s*:\\s*", "")
+              .replaceAll(resourceRoot.getName(), resourceRoot.getRoot().getAbsolutePath()) and
         result.getAbsolutePath() = resolvedModulePath + ".js"
       )
     }
   }
+
   /**
    * https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.loader%23methods/sap.ui.loader.config
    */
@@ -169,9 +169,7 @@ module UI5 {
       )
     }
 
-    WebApp getWebApp() {
-      this.getFile() = result.getAResource()
-    }
+    WebApp getWebApp() { this.getFile() = result.getAResource() }
 
     SapDefineModule getExtendingDefine() {
       exists(Extension baseExtension, Extension subclassExtension, SapDefineModule subclassDefine |
@@ -386,9 +384,7 @@ module UI5 {
    */
   bindingset[path]
   JsonObject resolveDirectPath(string path) {
-    exists(WebApp webApp|
-      result.getJsonFile() = webApp.getResource(path)
-    )
+    exists(WebApp webApp | result.getJsonFile() = webApp.getResource(path))
   }
 
   /**
@@ -593,14 +589,18 @@ module UI5 {
       result.getMethodName() = "setProperty" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
       // TODO: in same controller
-      exists(WebApp webApp | webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile())
+      exists(WebApp webApp |
+        webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+      )
     }
 
     bindingset[propName]
     MethodCallNode getARead(string propName) {
       result.getMethodName() = "get" + capitalize(propName) and
       // TODO: in same controller
-      exists(WebApp webApp | webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile())
+      exists(WebApp webApp |
+        webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+      )
     }
   }
 }
