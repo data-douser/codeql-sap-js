@@ -87,8 +87,8 @@ class FrameOptions extends TFrameOptions {
 /**
  * Holds if the frame options are left untouched as the default value `trusted`.
  */
-predicate thereIsNoFrameOptionSet(UI5::Project p) {
-  not exists(FrameOptions frameOptions | p.isInThisProject(frameOptions.getLocation().getFile()) |
+predicate thereIsNoFrameOptionSet(UI5::WebApp webapp) {
+  not exists(FrameOptions frameOptions | webapp.getAResource() = frameOptions.getLocation().getFile() |
     frameOptions.allowsSharedOriginEmbedding() or
     frameOptions.deniesEmbedding() or
     frameOptions.allowsAllOriginEmbedding()

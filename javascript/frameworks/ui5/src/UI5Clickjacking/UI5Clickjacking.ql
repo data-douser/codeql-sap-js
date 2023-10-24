@@ -17,7 +17,7 @@ private import advanced_security.javascript.frameworks.ui5.UI5
 
 class FirstLineOfMainHtml extends HTML::DocumentElement, FirstLineOf {
   FirstLineOfMainHtml() {
-    exists(UI5::Project p | this.getFile().(FirstLineOf).getFile() = p.getMainHTML())
+    exists(UI5::WebApp app | this.getFile().(FirstLineOf).getFile() = app)
   }
 }
 
@@ -51,8 +51,8 @@ where
         " being set to `allow`."
   )
   or
-  exists(UI5::Project p | thereIsNoFrameOptionSet(p) |
-    alert.asFirstLineOfMainHtml().getFile() = p.getMainHTML() and
+  exists(UI5::WebApp app | thereIsNoFrameOptionSet(app) |
+    alert.asFirstLineOfMainHtml().getFile() = app and
     message = "Possible clickjacking vulnerability due to missing frame options."
   )
 select alert, message

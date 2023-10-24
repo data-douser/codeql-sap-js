@@ -12,7 +12,7 @@ module UI5DataFlow {
   private predicate bidiModelControl(DataFlow::Node start, DataFlow::Node end) {
     exists(DataFlow::SourceNode property, Metadata metadata, UI5BoundNode node |
       // same project
-      inSameUI5Project(metadata.getFile(), node.getFile()) and
+      exists(WebApp webApp | webApp.getAResource() = metadata.getFile() and webApp.getAResource() = node.getFile()) and
       (
         // same control
         metadata.getControl().getName() = node.getBindingPath().getControlQualifiedType()
@@ -87,22 +87,22 @@ module UI5DataFlow {
     UI5BindingPath getBindingPath() { result = bindingPath }
 
     UI5BoundNode() {
+      exists(WebApp webApp | webApp.getAResource() = this.getFile() and
+      webApp.getAResource() = bindingPath.getFile() |
       /* The relevant portion of the content of a JSONModel */
       exists(Property p, JsonModel model |
         // The property bound to an UI5View source
         this.(DataFlow::PropRef).getPropertyNameExpr() = p.getNameExpr() and
         // The binding path refers to this model
-        bindingPath.getAbsolutePath() = model.getPathString(p) and
-        inSameUI5Project(this.getFile(), bindingPath.getFile())
+        bindingPath.getAbsolutePath() = model.getPathString(p)
       )
       or
       /* The URI string to the JSONModel constructor call */
       exists(JsonModel model |
         this = model.getArgument(0) and
         this.asExpr() instanceof StringLiteral and
-        bindingPath.getAbsolutePath() = model.getPathString() and
-        inSameUI5Project(this.getFile(), bindingPath.getFile())
-      )
+        bindingPath.getAbsolutePath() = model.getPathString()
+      ))
     }
   }
 
