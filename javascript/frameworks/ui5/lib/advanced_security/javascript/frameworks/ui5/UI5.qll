@@ -3,6 +3,7 @@ private import DataFlow
 private import advanced_security.javascript.frameworks.ui5.JsonParser
 private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
 private import advanced_security.javascript.frameworks.ui5.UI5View
+private import advanced_security.javascript.frameworks.ui5.UI5HTML
 
 module UI5 {
   bindingset[this]
@@ -125,6 +126,18 @@ module UI5 {
               .replaceAll(resourceRoot.getName(), resourceRoot.getRoot().getAbsolutePath()) and
         result.getAbsolutePath() = resolvedModulePath + ".js"
       )
+    }
+
+    FrameOptions getFrameOptions() {
+      exists(HTML::DocumentElement doc | doc.getFile() = this |
+        result.asHtmlFrameOptions() = coreScript.getAnAttribute()
+      )
+      or
+      result.asJsFrameOptions().getFile() = this
+    }
+
+    HTML::DocumentElement getDocument() {
+      result.getFile() = this
     }
   }
 
