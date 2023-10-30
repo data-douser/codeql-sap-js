@@ -401,7 +401,7 @@ class XmlRootElement extends XmlElement {
 
   /**
    * Returns a XML namespace declaration scoped to the element.
-   * 
+   *
    * The predicate relies on location information to determine the scope of the namespace declaration.
    * A XML element with the same starting line and column, but a larger ending line and column is considered the
    * scope of the namespace declaration.
@@ -410,9 +410,9 @@ class XmlRootElement extends XmlElement {
     exists(Location elemLoc, Location nsLoc |
       elemLoc = this.getLocation() and
       nsLoc = result.getLocation()
-     |
-     elemLoc.getStartLine() = nsLoc.getStartLine() and
-     elemLoc.getStartColumn() = nsLoc.getStartColumn() and
+    |
+      elemLoc.getStartLine() = nsLoc.getStartLine() and
+      elemLoc.getStartColumn() = nsLoc.getStartColumn() and
       (
         elemLoc.getEndLine() > nsLoc.getEndLine()
         or
@@ -539,7 +539,7 @@ abstract class UI5Control extends Locatable {
   CustomController getController() { result = this.getView().getController() }
 }
 
-class XmlControl extends UI5Control instanceof XmlElement  {
+class XmlControl extends UI5Control instanceof XmlElement {
   XmlControl() { this.getParent+() = any(XmlView view) }
 
   /** Get the qualified type string, e.g. `sap.m.SearchField` */
@@ -556,7 +556,9 @@ class XmlControl extends UI5Control instanceof XmlElement  {
 
   override XmlFile getFile() { result = XmlElement.super.getFile() }
 
-  override UI5ControlProperty getAProperty(string name) { result = this.(XmlElement).getAttribute(name) }
+  override UI5ControlProperty getAProperty(string name) {
+    result = this.(XmlElement).getAttribute(name)
+  }
 
   override CustomControl getDefinition() {
     result.getName() = this.getQualifiedType() and
