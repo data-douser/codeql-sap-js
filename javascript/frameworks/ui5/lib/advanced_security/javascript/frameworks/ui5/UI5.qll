@@ -309,6 +309,8 @@ module UI5 {
 
   private SourceNode sapComponent() { result = sapComponent(TypeTracker::end()) }
 
+  import ManifestJson
+
   /** A UI5 Component that may contain other controllers or controls. */
   class Component extends Extension {
     Component() { this.getReceiver().getALocalSource() = sapComponent() }
@@ -351,111 +353,129 @@ module UI5 {
     ExternalModelDefinition getAnExternalModelDef() { result = this.getExternalModelDef(_) }
   }
 
-  class DataSource extends JsonObject {
-    string dataSourceName;
-    ManifestJson manifestJson;
+  module ManifestJson {
+    class DataSource extends JsonObject {
+      string dataSourceName;
+      ManifestJson manifestJson;
 
-    DataSource() {
-      /*
-       * SKETCH
-       * this is a DataSource if:
-       * - its file is a ManifestJson,
-       * - and it's one of the keys that the `dataSources` object has.
-       */
+      DataSource() {
+        /*
+         * SKETCH
+         * this is a DataSource if:
+         * - its file is a ManifestJson,
+         * - and it's one of the keys that the `dataSources` object has.
+         */
 
-      exists(JsonObject rootObj |
-        this.getJsonFile() = manifestJson and
-        rootObj.getJsonFile() = manifestJson and
-        this =
-          rootObj
-              .getPropValue("sap.app")
-              .(JsonObject)
-              .getPropValue("dataSources")
-              .(JsonObject)
-              .getPropValue(dataSourceName)
-      )
+        exists(JsonObject rootObj |
+          this.getJsonFile() = manifestJson and
+          rootObj.getJsonFile() = manifestJson and
+          this =
+            rootObj
+                .getPropValue("sap.app")
+                .(JsonObject)
+                .getPropValue("dataSources")
+                .(JsonObject)
+                .getPropValue(dataSourceName)
+        )
+      }
+
+      string getName() { result = dataSourceName }
+
+      ManifestJson getManifestJson() { result = manifestJson }
+
+      string getType() { result = this.getPropValue("type").(JsonString).getValue() }
     }
 
-    string getName() { result = dataSourceName }
+    abstract class ModelDefinition extends JsonObject { }
 
-    ManifestJson getManifestJson() { result = manifestJson }
+    class InternalModelDefinition extends ModelDefinition {
+      string modelName;
 
-    string getType() { result = this.getPropValue("type").(JsonString).getValue() }
-  }
-
-  /**
-   * The definition of an external model in the `manifest.json`, e.g.
-   * ```js
-   * "someModelName": {
-   *   "dataSource": "someRemoteServiceName",
-   *   "settings": {
-   *      "defaultBindingMode": "TwoWay"
-   *   }
-   * }
-   * ```
-   */
-  class ExternalModelDefinition extends JsonObject {
-    string modelName;
-    string dataSourceName;
-
-    ExternalModelDefinition() {
-      exists(JsonObject models |
-        this = models.getPropValue(modelName) and
-        dataSourceName = this.getPropStringValue("dataSource") and
-        /* This data source can be found in the "dataSources" property */
-        exists(DataSource datasource | datasource.getName() = dataSourceName)
-      )
+      InternalModelDefinition() {
+        exists(JsonObject models, JsonObject modelsParent |
+          models = modelsParent.getPropValue("models") and
+          this = models.getPropValue(modelName) and
+          this.getPropStringValue("type") = [
+            "sap.ui.model.json.JSONModel",  // A JSON Model
+            "sap.ui.model.xml.XMLModel",    // An XML Model
+            "sap.ui.model.resource.ResourceModel"  // A Resource Model, typically for i18n
+          ]
+        )
+      }
     }
 
-    string getName() { result = modelName }
+    /**
+     * The definition of an external model in the `manifest.json`, in the `"models"` property.
+     */
+    class ExternalModelDefinition extends ModelDefinition {
+      string modelName;
+      string dataSourceName;
 
-    string getDataSourceName() { result = dataSourceName }
+      ExternalModelDefinition() {
+        exists(JsonObject models |
+          this = models.getPropValue(modelName) and
+          dataSourceName = this.getPropStringValue("dataSource") and
 
-    DataSource getDataSource() { result.getName() = dataSourceName }
+          /* This data source can be found in the "dataSources" property */
+          exists(DataSource datasource | datasource.getName() = dataSourceName)
+        )
+      }
+
+      string getName() { result = modelName }
+
+      string getDataSourceName() { result = dataSourceName }
+
+      DataSource getDataSource() { result.getName() = dataSourceName }
+    }
+
+    class ManifestJson extends File {
+      string id;
+
+      string getId() { result = id }
+
+      ManifestJson() {
+        /*
+         * SKETCH
+         * This is a manifest.json file if:
+         * - it has at least one of the following keys:
+         *  - "sap.app"
+         *  - "sap.ui"
+         *  - "sap.ui5"
+         *  - "sap.platform.abap"
+         *  - "sap.platform.hcp"
+         *  - "sap.fiori"
+         *  - "sap.card"
+         *  - "_version"
+         * - and it is a json file,
+         * - and its ID is at sap.app/id.
+         */
+
+        exists(JsonObject rootObj |
+          rootObj.getJsonFile() = this and
+          exists(string propertyName | exists(rootObj.getPropValue(propertyName)) |
+            propertyName =
+              [
+                "sap.app", "sap.ui", "sap.ui5", "sap.platform.abap", "sap.platform.hcp",
+                "sap.fiori", "sap.card", "_version"
+              ] and
+            id =
+              rootObj
+                  .getPropValue("sap.app")
+                  .(JsonObject)
+                  .getPropValue("id")
+                  .(JsonString)
+                  .getValue()
+          )
+        ) and
+        /* The name is fixed to "manifest.json": https://sapui5.hana.ondemand.com/sdk/#/topic/be0cf40f61184b358b5faedaec98b2da.html */
+        this.getBaseName() = "manifest.json"
+      }
+
+      DataSource getDataSource() { this = result.getManifestJson() }
+    }
   }
 
   /** The manifest.json file serving as the app descriptor. */
-  class ManifestJson extends File {
-    string id;
-
-    string getId() { result = id }
-
-    ManifestJson() {
-      /*
-       * SKETCH
-       * This is a manifest.json file if:
-       * - it has at least one of the following keys:
-       *  - "sap.app"
-       *  - "sap.ui"
-       *  - "sap.ui5"
-       *  - "sap.platform.abap"
-       *  - "sap.platform.hcp"
-       *  - "sap.fiori"
-       *  - "sap.card"
-       *  - "_version"
-       * - and it is a json file,
-       * - and its ID is at sap.app/id.
-       */
-
-      exists(JsonObject rootObj |
-        rootObj.getJsonFile() = this and
-        exists(string propertyName | exists(rootObj.getPropValue(propertyName)) |
-          propertyName =
-            [
-              "sap.app", "sap.ui", "sap.ui5", "sap.platform.abap", "sap.platform.hcp", "sap.fiori",
-              "sap.card", "_version"
-            ] and
-          id =
-            rootObj.getPropValue("sap.app").(JsonObject).getPropValue("id").(JsonString).getValue()
-        )
-      ) and
-      /* The name is fixed to "manifest.json": https://sapui5.hana.ondemand.com/sdk/#/topic/be0cf40f61184b358b5faedaec98b2da.html */
-      this.getBaseName() = "manifest.json"
-    }
-
-    DataSource getDataSource() { this = result.getManifestJson() }
-  }
-
   private string constructPathStringInner(Expr object) {
     if not object instanceof ObjectExpr
     then result = ""
