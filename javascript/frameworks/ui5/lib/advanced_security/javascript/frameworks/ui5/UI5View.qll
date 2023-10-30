@@ -16,28 +16,32 @@ private string getASuperType(string base) {
 }
 
 /**
- * Utility predicate capturing
- * the binding path in the argument
- * ```
- *   value: "{Control>country}"
+ * Holds if the given string contains a binding path. Also gets the
+ * path string itself without the surrounding curly braces.
+ * ```javascript
+ * "{/property}" // Absolute path without a model name
+ * "{property1/property2}" // Relative path
+ * "{model>property}" // Absolute path with a model name
+ * "{ other: { foo: 'bar'}, path: 'model>property' }" // Expression binding with absolute path
+ * "{.doSomething(${/input})}" // Expression binding with absolute path in parameter
  * ```
  */
 bindingset[property]
 string bindingPathCapture(string property) {
   exists(string pattern |
-    // matches "Control>country"
+    // matches "model>property"
     pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
     (
-      // simple {Control>country}
+      // {model>property}
       result = property.replaceAll(" ", "").regexpCapture("(?s)\\{" + pattern + "\\}", 1)
       or
-      // object {other:{foo:'bar'} path: 'Result>country'}
+      // { other: { foo: 'bar'}, path: 'model>property' }
       result =
         property
             .replaceAll(" ", "")
             .regexpCapture("(?s)\\{[^\"]*path:'" + pattern + "'[^\"]*\\}", 1)
       or
-      // event handler simple parameter {.doSomething(${/input})}
+      // event handler with a simple parameter {.doSomething(${/input})}
       result =
         property
             .replaceAll(" ", "")
