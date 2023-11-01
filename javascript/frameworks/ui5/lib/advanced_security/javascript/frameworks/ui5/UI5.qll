@@ -246,6 +246,8 @@ module UI5 {
    */
   abstract class UI5InternalModel extends UI5Model {
     abstract string getPathString();
+
+    abstract string getPathString(Property property);
   }
 
   /** Represents models that are loaded from an external source, e.g. OData service. */
@@ -621,7 +623,7 @@ module UI5 {
           )
     }
 
-    string getPathString(Property property) {
+    override string getPathString(Property property) {
       /*
        * 3. new JSONModel(oData) where
        *    var oData = { input: null };
@@ -652,6 +654,9 @@ module UI5 {
         bindingMode.getOneWay().flowsTo(call.getArgument(0))
       )
     }
+    // JsonValue getManifestDefinition() {
+    //   result = ManifestJson.
+    // }
   }
 
   class XmlModel extends UI5InternalModel {
@@ -662,6 +667,8 @@ module UI5 {
         xmlModel.getDependencyType() = "sap/ui/model/xml/XMLModel"
       )
     }
+
+    override string getPathString(Property property) { result = "WIP" }
 
     override string getPathString() { result = "WIP" }
   }

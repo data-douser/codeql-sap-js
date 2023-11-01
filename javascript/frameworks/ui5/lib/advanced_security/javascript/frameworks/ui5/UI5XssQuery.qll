@@ -1,4 +1,4 @@
-import advanced_security.javascript.frameworks.ui5.UI5DataFlow 
+import advanced_security.javascript.frameworks.ui5.UI5DataFlow
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
 
 class Configuration extends DomBasedXss::Configuration {
@@ -35,15 +35,18 @@ class Configuration extends DomBasedXss::Configuration {
 }
 
 /**
- * An html injection sink associated with a `UI5BoundNode`
+ * An HTML injection sink associated with a `UI5BoundNode`, typically for library controls acting as sinks.
  */
 private class UI5ModelHtmlISink extends UI5DataFlow::UI5ModelHtmlISink, DomBasedXss::Sink { }
 
+/**
+ * An HTML injection sink typically for custom controls whose RenderManager calls acting as sinks.
+ */
 private class UI5ExtHtmlISink extends DomBasedXss::Sink {
   UI5ExtHtmlISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
 }
 
 predicate isUI5Sink(UI5PathGraph::UI5PathNode sink) {
-    sink.asDataFlowPathNode().getNode() instanceof UI5ModelHtmlISink or
-    sink.asDataFlowPathNode().getNode() instanceof UI5ExtHtmlISink
+  sink.asDataFlowPathNode().getNode() instanceof UI5ModelHtmlISink or
+  sink.asDataFlowPathNode().getNode() instanceof UI5ExtHtmlISink
 }

@@ -19,11 +19,11 @@ private string getASuperType(string base) {
  * Holds if the given string contains a binding path. Also gets the
  * path string itself without the surrounding curly braces.
  * ```javascript
- * "{/property}" // Absolute path without a model name
- * "{property1/property2}" // Relative path
- * "{model>property}" // Absolute path with a model name
- * "{ other: { foo: 'bar'}, path: 'model>property' }" // Expression binding with absolute path
- * "{.doSomething(${/input})}" // Expression binding with absolute path in parameter
+ * "{/property}" // Absolute path without a model name, gets `/property`
+ * "{property1/property2}" // Relative path, gets `property1/property2`
+ * "{model>property}" // Absolute path with a model name, gets `model>property`
+ * "{ other: { foo: 'bar'}, path: 'model>property' }" // Gets the absolute path in the expression binding
+ * "{.doSomething(${/input})}" // Gets the absolute path in parameter in the expression binding
  * ```
  */
 bindingset[property]
@@ -31,6 +31,39 @@ string bindingPathCapture(string property) {
   exists(string pattern |
     // matches "model>property"
     pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
+    (
+      // {model>property}
+      result = property.replaceAll(" ", "").regexpCapture("(?s)\\{" + pattern + "\\}", 1)
+      or
+      // { other: { foo: 'bar'}, path: 'model>property' }
+      result =
+        property
+            .replaceAll(" ", "")
+            .regexpCapture("(?s)\\{[^\"]*path:'" + pattern + "'[^\"]*\\}", 1)
+      or
+      // event handler with a simple parameter {.doSomething(${/input})}
+      result =
+        property
+            .replaceAll(" ", "")
+            .regexpCapture("(?s)\\.[\\w-]+\\(\\$\\{" + pattern + "\\}\\)", 1)
+    )
+  )
+}
+
+/**
+ * Holds if the given string contains a binding path. Also gets the
+ * model name before the `>` separator, if the given string has it.
+ * ```javascript
+ * "{model>property}" // Gets `model`
+ * "{ other: { foo: 'bar'}, path: 'model>property' }" // Gets `model` in the parameter
+ * ```
+ */
+bindingset[property]
+string modelNameCapture(string property) {
+  exists(string pattern |
+    // matches "model>property"
+    pattern = "([^'\"\\}]+)>([^'\"\\}]*)"
+  |
     (
       // {model>property}
       result = property.replaceAll(" ", "").regexpCapture("(?s)\\{" + pattern + "\\}", 1)
@@ -67,6 +100,8 @@ abstract class UI5BindingPath extends Locatable {
    */
   abstract string getPath();
 
+  abstract string getLiteralRepr();
+
   /**
    * Return the absolute value of the binding path
    */
@@ -87,25 +122,38 @@ abstract class UI5BindingPath extends Locatable {
    */
   string getControlTypeName() { result = this.getControlQualifiedType().replaceAll(".", "/") }
 
+  UI5View getView() { this.getFile() = result }
+
   /**
    * Get the model declaration, which this data binding refers to in a Controller
    */
-  UI5Model getModel() {
-    exists(UI5View view |
-      this.getFile() = view and
-      view.getController().getModel() = result
-    )
-  }
+  UI5Model getModel() { this.getView().getController().getModel() = result }
 
-  DataFlow::PropWrite getNode() {
+  Node getNode() {
     exists(Property p, JsonModel model |
       // The property bound to an UI5View source
-      result.getPropertyNameExpr() = p.getNameExpr() and
+      result.(DataFlow::PropWrite).getPropertyNameExpr() = p.getNameExpr() and
       this.getAbsolutePath() = model.getPathString(p) and
-      //restrict search inside the same project
+      // restrict search inside the same project
       inSameUI5Project(this.getFile(), result.getFile())
     )
+    or
+    result = this.getModel().(UI5ExternalModel)
   }
+
+  /**
+   * Holds if this binding path is absolute.
+   * Reference: https://sapui5.hana.ondemand.com/sdk/#/topic/2888af49635949eca14fa326d04833b9
+   */
+  predicate isAbsolute() {
+    exists(modelNameCapture(this.getLiteralRepr())) or this.getPath().charAt(0) = "/"
+  }
+
+  /**
+   * Holds if this binding path is relative.
+   * Reference: https://sapui5.hana.ondemand.com/sdk/#/topic/2888af49635949eca14fa326d04833b9
+   */
+  predicate isRelative() { not this.isAbsolute() }
 }
 
 abstract class UI5ControlProperty extends Locatable {
@@ -156,6 +204,8 @@ class JsonBindingPath extends UI5BindingPath, JsonValue {
   override string toString() {
     result = "\"" + this.getPropertyName() + "\": \"" + this.getStringValue() + "\""
   }
+
+  override string getLiteralRepr() { result = this.getStringValue() }
 
   override string getPath() { result = path }
 
@@ -267,6 +317,8 @@ class JsBindingPath extends UI5BindingPath, Property {
     this.(Property).getFile() instanceof JsView
   }
 
+  override string getLiteralRepr() { result = this.getInit().getStringValue() }
+
   private string dotExprToStringInner(Expr expr) {
     if not expr instanceof DotExpr
     then result = expr.toString()
@@ -299,6 +351,8 @@ class HtmlBindingPath extends UI5BindingPath, HTML::Attribute {
   HtmlBindingPath() { path = bindingPathCapture(this.getValue()) }
 
   override string getPath() { result = path }
+
+  override string getLiteralRepr() { result = this.getValue() }
 
   override string getAbsolutePath() {
     if path.matches("/%")
@@ -364,6 +418,8 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   }
 
   override string toString() { result = XmlAttribute.super.toString() }
+
+  override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
 
   override Location getLocation() { result = XmlAttribute.super.getLocation() }
 
