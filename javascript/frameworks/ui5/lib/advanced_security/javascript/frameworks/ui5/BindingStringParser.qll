@@ -120,6 +120,18 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       source = getBindingString() and
       value = source.regexpFind("[a-zA-Z0-9_]+", _, begin) and
       begin + value.length() - 1 = end
+    } or
+    MkSingleQuoteToken(int begin, int end, string value, string source) {
+      source = getBindingString() and
+      begin = source.indexOf("'") and
+      value = "'" and
+      begin + value.length() - 1 = end
+    } or
+    MkDoubleQuoteToken(int begin, int end, string value, string source) {
+      source = getBindingString() and
+      begin = source.indexOf("\"") and
+      value = "\"" and
+      begin + value.length() - 1 = end
     }
 
   private class Token extends TToken {
@@ -157,6 +169,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       this = MkForwardSlash(result, _, _, _)
       or
       this = MkIdentToken(result, _, _, _)
+      or
+      this = MkSingleQuoteToken(result, _, _, _)
+      or
+      this = MkDoubleQuoteToken(result, _, _, _)
     }
 
     int getEnd() {
@@ -193,6 +209,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       this = MkForwardSlash(_, result, _, _)
       or
       this = MkIdentToken(_, result, _, _)
+      or
+      this = MkSingleQuoteToken(_, result, _, _)
+      or
+      this = MkDoubleQuoteToken(_, result, _, _)
     }
 
     string getValue() {
@@ -229,6 +249,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       this = MkForwardSlash(_, _, result, _)
       or
       this = MkIdentToken(_, _, result, _)
+      or
+      this = MkSingleQuoteToken(_, _, result, _)
+      or
+      this = MkDoubleQuoteToken(_, _, result, _)
     }
 
     string toString() {
@@ -265,6 +289,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       this = MkForwardSlash(_, _, _, _) and result = "/"
       or
       exists(string val | this = MkIdentToken(_, _, val, _) and result = val)
+      or
+      this = MkSingleQuoteToken(_, _, _, _) and result = "'"
+      or
+      this = MkDoubleQuoteToken(_, _, _, _) and result = "\""
     }
 
     string getKind() {
@@ -301,6 +329,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       this = MkForwardSlash(_, _, _, _) and result = "/"
       or
       this = MkIdentToken(_, _, _, _) and result = "ident"
+      or
+      this = MkSingleQuoteToken(_, _, _, _) and result = "'"
+      or
+      this = MkDoubleQuoteToken(_, _, _, _) and result = "\""
     }
 
     string getSource() {
@@ -337,6 +369,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       this = MkForwardSlash(_, _, _, result)
       or
       this = MkIdentToken(_, _, _, result)
+      or
+      this = MkSingleQuoteToken(_, _, _, result)
+      or
+      this = MkDoubleQuoteToken(_, _, _, result)
     }
 
     Token getNext() {
@@ -389,6 +425,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
 
   private class IdentToken extends Token, MkIdentToken { }
 
+  private class SingleQuoteToken extends Token, MkSingleQuoteToken { }
+
+  private class DoubleQuoteToken extends Token, MkDoubleQuoteToken { }
+
   private Token getNextSkippingWhitespace(Token t) {
     result = t.getNext() and
     not result instanceof WhiteSpaceToken
@@ -434,33 +474,77 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
   }
 
   private newtype TMember =
-    MkMember(string key, Value value) {
+    MkValueMember(string key, Value value) {
       exists(IdentToken keyToken, ColonToken colonToken, Token firstValueToken |
         colonToken = getNextSkippingWhitespace(keyToken) and
         firstValueToken = getNextSkippingWhitespace(colonToken) and
         key = keyToken.getValue() and
+        key != "path" and
         mkValue(firstValueToken, value, _)
+      )
+    } or
+    MkBindingPathMember(BindingPath path) {
+      exists(IdentToken keyToken, ColonToken colonToken, Token quoteToken, Token firstValueToken |
+        colonToken = getNextSkippingWhitespace(keyToken) and
+        quoteToken = getNextSkippingWhitespace(colonToken) and
+        (quoteToken instanceof SingleQuoteToken or quoteToken instanceof DoubleQuoteToken) and
+        firstValueToken = getNextSkippingWhitespace(quoteToken) and
+        "path" = keyToken.getValue() and
+        mkBindingPath(firstValueToken, path, _)
       )
     }
 
   class Member extends TMember {
     string toString() {
       exists(string key, Value value |
-        this = MkMember(key, value) and
+        this = MkValueMember(key, value) and
         result = key + " : " + value.toString()
+      )
+      or
+      exists(BindingPath path |
+        this = MkBindingPathMember(path) and
+        result = "path : " + path.toString()
       )
     }
 
-    string getKey() { this = MkMember(result, _) }
+    string getKey() {
+      this = MkValueMember(result, _)
+      or
+      result = "path" and this = MkBindingPathMember(_)
+    }
 
-    Value getValue() { this = MkMember(_, result) }
+    Value getValue() { this = MkValueMember(_, result) }
+
+    BindingPath getBindingPath() { this = MkBindingPathMember(result) }
+
+    predicate isValue() { this = MkValueMember(_, _) }
+
+    predicate isBindingPath() { this = MkBindingPathMember(_) }
   }
 
   private predicate mkMember(IdentToken first, Member member, Token last) {
     getNextSkippingWhitespace(first) instanceof ColonToken and
-    exists(Value value |
-      mkValue(getNextSkippingWhitespace(getNextSkippingWhitespace(first)), value, last) and
-      member = MkMember(first.getValue(), value)
+    (
+      exists(Value value | first.getValue() != "path" |
+        mkValue(getNextSkippingWhitespace(getNextSkippingWhitespace(first)), value, last) and
+        member = MkValueMember(first.getValue(), value)
+      )
+      or
+      exists(
+        BindingPath value, Token firstBindingPathToken, Token lastBindingPathToken,
+        ColonToken colonToken, Token quoteToken
+      |
+        first.getValue() = "path" and
+        colonToken = getNextSkippingWhitespace(first) and
+        quoteToken = getNextSkippingWhitespace(colonToken) and
+        (quoteToken instanceof SingleQuoteToken or quoteToken instanceof DoubleQuoteToken) and
+        firstBindingPathToken = getNextSkippingWhitespace(quoteToken)
+      |
+        mkBindingPath(firstBindingPathToken, value, lastBindingPathToken) and
+        last = getNextSkippingWhitespace(lastBindingPathToken) and
+        last.getKind() = quoteToken.getKind() and
+        member = MkBindingPathMember(value)
+      )
     )
   }
 
@@ -593,7 +677,8 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
     } or
     MkIdent(Token source) {
       exists(IdentToken t | source = t and getNextSkippingWhitespace(t) instanceof ColonToken)
-    }
+    } or
+    MkBindingPathValue(BindingPath value, Token source) { mkBindingPath(source, value, _) }
 
   private predicate mkValue(Token first, Value value, Token last) {
     first instanceof StringToken and
@@ -721,9 +806,7 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
 
     Member getAMember() { result = getMember(_) }
 
-    override string toString() {
-      result = "{" + getMembers() + "}"
-    }
+    override string toString() { result = "{" + getMembers() + "}" }
   }
 
   class String extends Value, MkString { }
