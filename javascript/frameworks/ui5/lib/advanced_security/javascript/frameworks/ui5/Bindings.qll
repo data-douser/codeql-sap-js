@@ -1,4 +1,5 @@
 import javascript
+import advanced_security.javascript.frameworks.ui5.BindingStringParser as MakeBindingStringParser
 
 private class ContextBindingAttribute extends XmlAttribute {
   ContextBindingAttribute() {
@@ -7,9 +8,23 @@ private class ContextBindingAttribute extends XmlAttribute {
   }
 }
 
+private string getBindingString() {
+  result.matches("{%}") and
+  (
+    exists(StringLiteral stringLit | result = stringLit.getValue())
+    or
+    exists(XmlAttribute attribute | result = attribute.getValue())
+  )
+}
+
+private module BindingStringParser =
+  MakeBindingStringParser::BindingStringParser<getBindingString/0>;
+
+class BindingValue = BindingStringParser::Binding;
+
 class StringBinding extends string {
   bindingset[this]
-  StringBinding() { this.matches("{%}") }
+  StringBinding() { this = getBindingString() }
 }
 
 class BindPropertyMethodCallNode extends DataFlow::MethodCallNode {
@@ -21,14 +36,18 @@ class BindElementMethodCallNode extends DataFlow::MethodCallNode {
 }
 
 newtype TBinding =
-  TXmlPropertyBinding(XmlAttribute attribute, StringBinding binding) {
-    attribute.getValue() = binding and
-    binding.matches("{%}") and
+  TXmlPropertyBinding(XmlAttribute attribute, BindingValue binding) {
+    exists(StringBinding bindingString |
+      attribute.getValue() = bindingString and
+      binding = BindingStringParser::parseBinding(bindingString)
+    ) and
     not attribute instanceof ContextBindingAttribute
   } or
-  TXmlContextBinding(ContextBindingAttribute attribute, StringBinding binding) {
-    attribute.getValue() = binding and
-    binding.matches("{%}")
+  TXmlContextBinding(ContextBindingAttribute attribute, BindingValue binding) {
+    exists(StringBinding bindingString |
+      attribute.getValue() = bindingString and
+      binding = BindingStringParser::parseBinding(bindingString)
+    )
   } or
   TEarlyJavaScriptPropertyBinding(DataFlow::NewNode newNode, DataFlow::ValueNode binding) {
     exists(StringLiteral constantBinding |
@@ -67,34 +86,38 @@ newtype TBinding =
 
 class Binding extends TBinding {
   string toString() {
-    exists(XmlAttribute attribute, StringBinding binding |
+    exists(XmlAttribute attribute, BindingValue binding |
       this = TXmlPropertyBinding(attribute, binding) and
       result = "XML property binding: " + attribute.getName() + " to " + binding
     )
     or
-    exists(ContextBindingAttribute attribute, StringBinding binding |
+    exists(ContextBindingAttribute attribute, BindingValue binding |
       this = TXmlContextBinding(attribute, binding) and
       result = "XML context binding: " + attribute.getName() + " to " + binding
     )
     or
     exists(DataFlow::NewNode newNode, DataFlow::ValueNode binding |
       this = TEarlyJavaScriptPropertyBinding(newNode, binding) and
-      result = "Early JavaScript property binding: " + newNode.getArgument(0).toString() + " to " + binding
+      result =
+        "Early JavaScript property binding: " + newNode.getArgument(0).toString() + " to " + binding
     )
     or
     exists(BindPropertyMethodCallNode bindProperty, DataFlow::ValueNode binding |
       this = TLateJavaScriptPropertyBinding(bindProperty, binding) and
-      result = "Late JavaScript property binding: " + bindProperty.getArgument(0).toString() + " to " + binding
+      result =
+        "Late JavaScript property binding: " + bindProperty.getArgument(0).toString() + " to " +
+          binding
     )
     or
     exists(BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding |
       this = TJavaScriptContextBinding(bindElementCall, binding) and
-      result = "JavaScript context binding: " + bindElementCall.getReceiver().toString() + " to " + binding
+      result =
+        "JavaScript context binding: " + bindElementCall.getReceiver().toString() + " to " + binding
     )
   }
 
   Location getLocation() {
-    exists(XmlAttribute attribute|
+    exists(XmlAttribute attribute |
       this = TXmlPropertyBinding(attribute, _) and
       result = attribute.getLocation()
     )
