@@ -1069,4 +1069,42 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
 
     string getSource() { result = getSourceToken().getSource() }
   }
+
+  private predicate mkBinding(Token first, Binding binding, Token last) {
+    exists(
+      LeftBracketToken leftBracketToken, RightBracketToken rightBracketToken, Token firstPathToken,
+      Token lastPathToken, BindingPath bindingPath
+    |
+      leftBracketToken = first and
+      rightBracketToken = last and
+      firstPathToken = getNextSkippingWhitespace(leftBracketToken) and
+      rightBracketToken = getNextSkippingWhitespace(lastPathToken) and
+      mkBindingPath(firstPathToken, bindingPath, lastPathToken)
+    |
+      binding = MkBindingPath(first, bindingPath, last)
+    )
+    or
+    exists(
+      LeftBracketToken leftBracketToken, RightBracketToken rightBracketToken, MemberList members,
+      IdentToken firstMemberToken, Token lastMemberToken, Object object
+    |
+      leftBracketToken = first and
+      rightBracketToken = last and
+      firstMemberToken = getNextSkippingWhitespace(leftBracketToken) and
+      mkMembers(firstMemberToken, members, lastMemberToken) and
+      rightBracketToken = getNextSkippingWhitespace(lastMemberToken) and
+      object = MkObject(members, first)
+    |
+      binding = MkBindingObject(first, object, last)
+    )
+  }
+
+  Binding parseBinding(string source) {
+    exists(LeftBracketToken firstToken, RightBracketToken lastToken |
+      firstToken.isFirst() and
+      firstToken.getSource() = source
+    |
+      mkBinding(firstToken, result, lastToken)
+    )
+  }
 }
