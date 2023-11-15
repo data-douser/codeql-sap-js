@@ -48,7 +48,7 @@ newtype TBinding =
   } or
   TEarlyJavaScriptPropertyBinding(DataFlow::NewNode newNode, DataFlow::ValueNode binding) {
     exists(StringLiteral constantBinding |
-      constantBinding.flow() = binding and constantBinding.getValue().matches("{%}")
+      constantBinding.flow() = binding and constantBinding.getValue() instanceof StringBinding
     |
       newNode.getAnArgument().getALocalSource() = binding
     )
@@ -64,7 +64,7 @@ newtype TBinding =
     BindPropertyMethodCallNode bindProperty, DataFlow::ValueNode binding
   ) {
     exists(StringLiteral constantBinding |
-      constantBinding.flow() = binding and constantBinding.getValue().matches("{%}")
+      constantBinding.flow() = binding and constantBinding.getValue() instanceof StringBinding
     |
       bindProperty.getArgument(1).getALocalSource() = binding
     )
