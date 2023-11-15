@@ -2,10 +2,7 @@ import javascript
 import advanced_security.javascript.frameworks.ui5.BindingStringParser as MakeBindingStringParser
 
 private class ContextBindingAttribute extends XmlAttribute {
-  ContextBindingAttribute() {
-    this.getName() = "binding" and
-    this.getNamespace().getUri() = "sap.m"
-  }
+  ContextBindingAttribute() { this.getName() = "binding" }
 }
 
 private string getBindingString() {
