@@ -12,6 +12,20 @@ private string getBindingString() {
     or
     exists(XmlAttribute attribute | result = attribute.getValue())
   )
+  or
+  any(BindPropertyMethodCallNode call)
+      .getArgument(1)
+      .getALocalSource()
+      .asExpr()
+      .(StringLiteral)
+      .getValue() = result
+  or
+  any(BindElementMethodCallNode call)
+      .getArgument(0)
+      .getALocalSource()
+      .asExpr()
+      .(StringLiteral)
+      .getValue() = result
 }
 
 private module BindingStringParser =
