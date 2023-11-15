@@ -77,22 +77,11 @@ newtype TBinding =
   TLateJavaScriptPropertyBinding(
     BindPropertyMethodCallNode bindProperty, DataFlow::ValueNode binding
   ) {
-    exists(StringLiteral constantBinding |
-      constantBinding.flow() = binding and constantBinding.getValue() instanceof StringBinding
-    |
-      bindProperty.getArgument(1).getALocalSource() = binding
-    )
-    or
-    exists(DataFlow::ObjectLiteralNode objectBinding |
-      objectBinding.asExpr().(ObjectExpr).getAProperty().getName() = "path" and
-      binding = objectBinding
-    |
-      bindProperty.getArgument(1).getALocalSource() = objectBinding
-    )
+    bindProperty.getArgument(1).getALocalSource() = binding
   } or
-  TJavaScriptContextBinding(BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding) {
+  TLateJavaScriptContextBinding(BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding) {
     bindElementCall.getMethodName() = "bindElement" and
-    binding = bindElementCall.getArgument(0)
+    bindElementCall.getArgument(0).getALocalSource() = binding
   }
 
 class Binding extends TBinding {
@@ -121,7 +110,7 @@ class Binding extends TBinding {
     )
     or
     exists(BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding |
-      this = TJavaScriptContextBinding(bindElementCall, binding) and
+      this = TLateJavaScriptContextBinding(bindElementCall, binding) and
       result =
         "JavaScript context binding: " + bindElementCall.getReceiver().toString() + " to " + binding
     )
@@ -149,7 +138,7 @@ class Binding extends TBinding {
     )
     or
     exists(DataFlow::ValueNode binding |
-      this = TJavaScriptContextBinding(_, binding) and
+      this = TLateJavaScriptContextBinding(_, binding) and
       result = binding.asExpr().getLocation()
     )
   }
