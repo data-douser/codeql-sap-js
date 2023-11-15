@@ -51,16 +51,16 @@ class BindValueMethodCallNode extends DataFlow::MethodCallNode {
 }
 
 newtype TLateJavaScriptPropertyBindingMethodCall =
-  TBindProperty(BindPropertyMethodCallNode bindProperty)
-  or
+  TBindProperty(BindPropertyMethodCallNode bindProperty) or
   TBindValue(BindValueMethodCallNode bindValue)
 
 class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBindingMethodCall {
   string toString() {
     exists(BindPropertyMethodCallNode bindProperty |
       this = TBindProperty(bindProperty) and
-      result = "bindProperty(" + bindProperty.getArgument(0).toString() + ", " +
-        bindProperty.getArgument(1).toString() + ")"
+      result =
+        "bindProperty(" + bindProperty.getArgument(0).toString() + ", " +
+          bindProperty.getArgument(1).toString() + ")"
     )
     or
     exists(BindValueMethodCallNode bindValue |
@@ -145,7 +145,10 @@ newtype TBinding =
     )
     or
     // Property binding with a composite binding
-    exists(DataFlow::ObjectLiteralNode objectBinding, DataFlow::ObjectLiteralNode valueBinding, Property valueProperty |
+    exists(
+      DataFlow::ObjectLiteralNode objectBinding, DataFlow::ObjectLiteralNode valueBinding,
+      Property valueProperty
+    |
       valueProperty = objectBinding.asExpr().(ObjectExpr).getAProperty() and
       valueProperty.getName() = "value" and
       valueProperty.getInit().flow() = valueBinding and
@@ -162,7 +165,9 @@ newtype TBinding =
     bindProperty.getBinding() = binding
   } or
   // Element binding via a call to `bindElement`.
-  TLateJavaScriptContextBinding(BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding) {
+  TLateJavaScriptContextBinding(
+    BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding
+  ) {
     bindElementCall.getMethodName() = "bindElement" and
     bindElementCall.getArgument(0).getALocalSource() = binding
   }
@@ -188,8 +193,7 @@ class Binding extends TBinding {
     exists(LateJavaScriptPropertyBindingMethodCall bindProperty, DataFlow::ValueNode binding |
       this = TLateJavaScriptPropertyBinding(bindProperty, binding) and
       result =
-        "Late JavaScript property binding: " + bindProperty.getPropertyName() + " to " +
-          binding
+        "Late JavaScript property binding: " + bindProperty.getPropertyName() + " to " + binding
     )
     or
     exists(BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding |
