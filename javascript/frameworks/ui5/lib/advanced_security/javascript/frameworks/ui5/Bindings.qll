@@ -101,6 +101,10 @@ class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBin
 }
 
 newtype TBinding =
+  /**
+   * Any XML attribute that is assigned a binding string.
+   * That is a string enclosed by curly braces.
+   */
   TXmlPropertyBinding(XmlAttribute attribute, BindingValue binding) {
     exists(StringBinding bindingString |
       attribute.getValue() = bindingString and
@@ -108,19 +112,31 @@ newtype TBinding =
     ) and
     not attribute instanceof ContextBindingAttribute
   } or
+  /**
+   * Any XML attribute named "binding" that is assigned a binding string.
+   * That is a string enclosed by curly braces.
+   */
   TXmlContextBinding(ContextBindingAttribute attribute, BindingValue binding) {
     exists(StringBinding bindingString |
       attribute.getValue() = bindingString and
       binding = BindingStringParser::parseBinding(bindingString)
     )
   } or
+  /**
+   * Any call to `new` where the an argument is a binding string, or
+   * an object literal where the property `path` is assigned a value, or
+   * an object literal where the propery `value` is assigned an object literal
+   * with a property `parts` assigned a value.
+   */
   TEarlyJavaScriptPropertyBinding(DataFlow::NewNode newNode, DataFlow::ValueNode binding) {
+    // Property binding via a string binding
     exists(StringLiteral constantBinding |
       constantBinding.flow() = binding and constantBinding.getValue() instanceof StringBinding
     |
       newNode.getAnArgument().getALocalSource() = binding
     )
     or
+    // Property binding via an object literal binding with property `path`.
     exists(DataFlow::ObjectLiteralNode objectBinding |
       objectBinding.asExpr().(ObjectExpr).getAProperty().getName() = "path" and
       binding = objectBinding
@@ -128,6 +144,7 @@ newtype TBinding =
       newNode.getAnArgument().getALocalSource() = objectBinding
     )
     or
+    // Property binding with a composite binding
     exists(DataFlow::ObjectLiteralNode objectBinding, DataFlow::ObjectLiteralNode valueBinding, Property valueProperty |
       valueProperty = objectBinding.asExpr().(ObjectExpr).getAProperty() and
       valueProperty.getName() = "value" and
@@ -138,11 +155,13 @@ newtype TBinding =
       newNode.getAnArgument().getALocalSource() = objectBinding
     )
   } or
+  // Property binding via a call to `bindProperty` or `bindValue`.
   TLateJavaScriptPropertyBinding(
     LateJavaScriptPropertyBindingMethodCall bindProperty, DataFlow::ValueNode binding
   ) {
     bindProperty.getBinding() = binding
   } or
+  // Element binding via a call to `bindElement`.
   TLateJavaScriptContextBinding(BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding) {
     bindElementCall.getMethodName() = "bindElement" and
     bindElementCall.getArgument(0).getALocalSource() = binding
