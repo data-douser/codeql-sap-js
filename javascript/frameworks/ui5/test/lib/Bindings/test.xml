@@ -1,0 +1,6 @@
+<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m">
+    <Input id="propertyBinding1" value="{/value}" />
+    <Input
+        id="contextBinding1" value="{/value}"
+        binding="{/root}" />
+</mvc:View>
