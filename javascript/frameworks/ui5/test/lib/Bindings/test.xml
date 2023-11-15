@@ -1,6 +1,13 @@
 <mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m">
-    <Input id="propertyBinding1" value="{/value}" />
+    <Input value="{foo}" />
+    <Input value="{/foo}" />
+    <Input value="{model>foo}" />
+    <Input value="{model>/foo}" />
     <Input
-        id="contextBinding1" value="{/value}"
+        value="{foo}"
         binding="{/root}" />
+    <Input value="{path: 'foo', type: 'sap.ui.model.type.String'}" />
+    <Input value="{path: '/foo', type: 'sap.ui.model.type.String'}" />
+    <Input value="{path: 'model>/foo', type: 'sap.ui.model.type.String'}" />
+    <Input value="{path: 'model>foo', type: 'sap.ui.model.type.String'}" />
 </mvc:View>
