@@ -10,4 +10,14 @@
     <Input value="{path: '/foo', type: 'sap.ui.model.type.String'}" />
     <Input value="{path: 'model>/foo', type: 'sap.ui.model.type.String'}" />
     <Input value="{path: 'model>foo', type: 'sap.ui.model.type.String'}" />
+
+    <Input
+        value="{
+            parts:
+            [
+                {path: 'foo'},
+                {path: 'bar/baz'},
+                {path: 'quux'}
+            ],
+            formatter: 'some.formatter'}" />
 </mvc:View>

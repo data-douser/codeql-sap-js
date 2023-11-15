@@ -1,5 +1,7 @@
 | test.js:15:28:15:34 | JavaScript context binding: oInput to "/root" |
-| test.js:17:38:17:43 | Late JavaScript property binding: "value" to "name" |
+| test.js:17:38:17:43 | Late JavaScript property binding: value to "name" |
+| test.js:20:60:28:9 | Early JavaScript property binding: {\\n      ...       } to {\\n      ...       } |
+| test.js:32:48:38:9 | Late JavaScript property binding: value to {\\n      ...       } |
 | test.xml:2:5:2:28 | XML property binding: value to {foo} |
 | test.xml:3:5:3:29 | XML property binding: value to {/foo} |
 | test.xml:4:5:4:34 | XML property binding: value to {model>foo} |
@@ -10,3 +12,4 @@
 | test.xml:10:5:10:71 | XML property binding: value to {path : /foo, type : "sap.ui.model.type.String"} |
 | test.xml:11:5:11:77 | XML property binding: value to {path : model>/foo, type : "sap.ui.model.type.String"} |
 | test.xml:12:5:12:76 | XML property binding: value to {path : model>foo, type : "sap.ui.model.type.String"} |
+| test.xml:14:5:22:45 | XML property binding: value to {parts : [{path : foo}, {path : bar/baz}, {path : quux}], formatter : "some.formatter"} |

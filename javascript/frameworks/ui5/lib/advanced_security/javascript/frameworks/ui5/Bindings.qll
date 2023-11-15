@@ -46,6 +46,60 @@ class BindElementMethodCallNode extends DataFlow::MethodCallNode {
   BindElementMethodCallNode() { this.getMethodName() = "bindElement" }
 }
 
+class BindValueMethodCallNode extends DataFlow::MethodCallNode {
+  BindValueMethodCallNode() { this.getMethodName() = "bindValue" }
+}
+
+newtype TLateJavaScriptPropertyBindingMethodCall =
+  TBindProperty(BindPropertyMethodCallNode bindProperty)
+  or
+  TBindValue(BindValueMethodCallNode bindValue)
+
+class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBindingMethodCall {
+  string toString() {
+    exists(BindPropertyMethodCallNode bindProperty |
+      this = TBindProperty(bindProperty) and
+      result = "bindProperty(" + bindProperty.getArgument(0).toString() + ", " +
+        bindProperty.getArgument(1).toString() + ")"
+    )
+    or
+    exists(BindValueMethodCallNode bindValue |
+      this = TBindValue(bindValue) and
+      result = "bindValue(" + bindValue.getArgument(0).toString() + ", " + ")"
+    )
+  }
+
+  DataFlow::MethodCallNode asMethodCallNode() {
+    this = TBindProperty(result)
+    or
+    this = TBindValue(result)
+  }
+
+  string getPropertyName() {
+    exists(BindPropertyMethodCallNode bindProperty |
+      this = TBindProperty(bindProperty) and
+      result = bindProperty.getArgument(0).getStringValue()
+    )
+    or
+    exists(BindValueMethodCallNode bindValue |
+      this = TBindValue(bindValue) and
+      result = "value"
+    )
+  }
+
+  DataFlow::Node getBinding() {
+    exists(BindPropertyMethodCallNode bindProperty |
+      this = TBindProperty(bindProperty) and
+      result = bindProperty.getArgument(1).getALocalSource()
+    )
+    or
+    exists(BindValueMethodCallNode bindValue |
+      this = TBindValue(bindValue) and
+      result = bindValue.getArgument(0).getALocalSource()
+    )
+  }
+}
+
 newtype TBinding =
   TXmlPropertyBinding(XmlAttribute attribute, BindingValue binding) {
     exists(StringBinding bindingString |
@@ -73,11 +127,21 @@ newtype TBinding =
     |
       newNode.getAnArgument().getALocalSource() = objectBinding
     )
+    or
+    exists(DataFlow::ObjectLiteralNode objectBinding, DataFlow::ObjectLiteralNode valueBinding, Property valueProperty |
+      valueProperty = objectBinding.asExpr().(ObjectExpr).getAProperty() and
+      valueProperty.getName() = "value" and
+      valueProperty.getInit().flow() = valueBinding and
+      valueBinding.asExpr().(ObjectExpr).getAProperty().getName() = "parts" and
+      binding = objectBinding
+    |
+      newNode.getAnArgument().getALocalSource() = objectBinding
+    )
   } or
   TLateJavaScriptPropertyBinding(
-    BindPropertyMethodCallNode bindProperty, DataFlow::ValueNode binding
+    LateJavaScriptPropertyBindingMethodCall bindProperty, DataFlow::ValueNode binding
   ) {
-    bindProperty.getArgument(1).getALocalSource() = binding
+    bindProperty.getBinding() = binding
   } or
   TLateJavaScriptContextBinding(BindElementMethodCallNode bindElementCall, DataFlow::ValueNode binding) {
     bindElementCall.getMethodName() = "bindElement" and
@@ -102,10 +166,10 @@ class Binding extends TBinding {
         "Early JavaScript property binding: " + newNode.getArgument(0).toString() + " to " + binding
     )
     or
-    exists(BindPropertyMethodCallNode bindProperty, DataFlow::ValueNode binding |
+    exists(LateJavaScriptPropertyBindingMethodCall bindProperty, DataFlow::ValueNode binding |
       this = TLateJavaScriptPropertyBinding(bindProperty, binding) and
       result =
-        "Late JavaScript property binding: " + bindProperty.getArgument(0).toString() + " to " +
+        "Late JavaScript property binding: " + bindProperty.getPropertyName() + " to " +
           binding
     )
     or

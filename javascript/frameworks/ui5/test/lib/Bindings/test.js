@@ -15,6 +15,28 @@ sap.ui.define([
         oInput.bindElement("/root");
         // Late property binding
         oInput.bindProperty("value", "name");
+
+       // Early composite binding
+       var oInputWithEarlyContextBinding = new sap.m.Input({
+           value: {
+               parts: [
+                   { path: "/foo", type: new sap.ui.model.type.String() },
+                   { path: "/bar" },
+                   { path: "baz>/quux", type: new sap.ui.model.type.Float() }
+               ]
+           }
+        });
+
+        // Late composite binding
+        var oInputWithLateContextBinding = this.byId("foo");
+        oInputWithLateContextBinding.bindValue({
+            parts: [
+                { path: "/foo", type: new sap.ui.model.type.String() },
+                { path: "/bar" },
+                { path: "baz>/quux", type: new sap.ui.model.type.Float() }
+            ]
+        });
        }
+
     });
 });
