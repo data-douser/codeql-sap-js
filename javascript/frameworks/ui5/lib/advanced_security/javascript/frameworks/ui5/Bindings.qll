@@ -11,6 +11,8 @@ private string getBindingString() {
     exists(StringLiteral stringLit | result = stringLit.getValue())
     or
     exists(XmlAttribute attribute | result = attribute.getValue())
+    or
+    exists(JsonObject object | result = object.getPropStringValue(_))
   )
   or
   any(BindPropertyMethodCallNode call)
@@ -171,6 +173,15 @@ newtype TBinding =
     bindElementCall.getMethodName() = "bindElement" and
     bindElementCall.getArgument(0).getALocalSource() = binding
   }
+  or
+  // Json binding
+  TJsonPropertyBinding(JsonValue value, string key, BindingValue binding) {
+    exists(JsonObject object, StringBinding bindingString |
+      value = object.getPropValue(key) and
+      value.getStringValue() = bindingString and
+      binding = BindingStringParser::parseBinding(bindingString)
+    )
+  }
 
 class Binding extends TBinding {
   string toString() {
@@ -201,6 +212,11 @@ class Binding extends TBinding {
       result =
         "JavaScript context binding: " + bindElementCall.getReceiver().toString() + " to " + binding
     )
+    or
+    exists(JsonValue value, string key, BindingValue binding |
+      this = TJsonPropertyBinding(value, key, binding) and
+      result = "JSON property binding: " + key + " to " + binding
+    )
   }
 
   Location getLocation() {
@@ -227,6 +243,11 @@ class Binding extends TBinding {
     exists(DataFlow::ValueNode binding |
       this = TLateJavaScriptContextBinding(_, binding) and
       result = binding.asExpr().getLocation()
+    )
+    or
+    exists(JsonValue value, string key |
+      this = TJsonPropertyBinding(value, key, _) and
+      result = value.getLocation()
     )
   }
 }
