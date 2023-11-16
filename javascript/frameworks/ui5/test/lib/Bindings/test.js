@@ -10,6 +10,12 @@ sap.ui.define([
             value: "{/root/name}"
         });
 
+        // Early dynamic property binding
+        const model = "model";
+        var oInputWithEarlyDynamicPropertyBinding = new sap.m.Input({
+            value: "{" + model + "</root/name}"
+        });
+
         var oInputWithLateBinding = this.byId("foo");
         // Late context binding
         oInput.bindElement("/root");
@@ -36,7 +42,11 @@ sap.ui.define([
                 { path: "baz>/quux", type: new sap.ui.model.type.Float() }
             ]
         });
-       }
 
+        // Early property metadata binding
+        var oLabel = new sap.m.Label({
+            text: "{/#foo/bar/@sap:label}"
+        });
+       }
     });
 });
