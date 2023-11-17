@@ -183,6 +183,20 @@ newtype TBinding =
     )
   }
 
+/**
+ * A class to reason about UI5 bindings.
+ * This is currently limited to:
+ * - XML property bindings, including HTML
+ * - XML context bindings
+ * - JavaScript property bindings
+ * - JavaScript context bindings
+ * - JSON property bindings
+ *
+ * and supports property metadata bindings and composite bindings.
+ * However, it does not support expression bindings.
+ * Expression bindings support a subset of JavaScript and the embeding of model values
+ * as described in the documentation at https://sapui5.hana.ondemand.com/sdk/#/topic/daf6852a04b44d118963968a1239d2c0.
+ */
 class Binding extends TBinding {
   string toString() {
     exists(XmlAttribute attribute, BindingValue binding |
