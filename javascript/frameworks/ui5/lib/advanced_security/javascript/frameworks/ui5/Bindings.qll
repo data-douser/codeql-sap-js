@@ -135,7 +135,8 @@ newtype TBinding =
     exists(StringLiteral constantBinding |
       constantBinding = binding.asExpr() and constantBinding.getValue() instanceof StringBinding
     |
-      newNode.getAnArgument().getALocalSource().(DataFlow::ObjectLiteralNode).getAPropertySource() = binding
+      newNode.getAnArgument().getALocalSource().(DataFlow::ObjectLiteralNode).getAPropertySource() =
+        binding
     )
     or
     // Property binding via an object literal binding with property `path`.
@@ -172,8 +173,7 @@ newtype TBinding =
   ) {
     bindElementCall.getMethodName() = "bindElement" and
     bindElementCall.getArgument(0).getALocalSource() = binding
-  }
-  or
+  } or
   // Json binding
   TJsonPropertyBinding(JsonValue value, string key, BindingValue binding) {
     exists(JsonObject object, StringBinding bindingString |
