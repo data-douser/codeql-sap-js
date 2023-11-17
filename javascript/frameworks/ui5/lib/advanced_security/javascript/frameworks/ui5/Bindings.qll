@@ -33,30 +33,30 @@ private string getBindingString() {
 private module BindingStringParser =
   MakeBindingStringParser::BindingStringParser<getBindingString/0>;
 
-class BindingValue = BindingStringParser::Binding;
+private class BindingValue = BindingStringParser::Binding;
 
 class BindingString extends string {
   bindingset[this]
   BindingString() { this = getBindingString() }
 }
 
-class BindPropertyMethodCallNode extends DataFlow::MethodCallNode {
+private class BindPropertyMethodCallNode extends DataFlow::MethodCallNode {
   BindPropertyMethodCallNode() { this.getMethodName() = "bindProperty" }
 }
 
-class BindElementMethodCallNode extends DataFlow::MethodCallNode {
+private class BindElementMethodCallNode extends DataFlow::MethodCallNode {
   BindElementMethodCallNode() { this.getMethodName() = "bindElement" }
 }
 
-class BindValueMethodCallNode extends DataFlow::MethodCallNode {
+private class BindValueMethodCallNode extends DataFlow::MethodCallNode {
   BindValueMethodCallNode() { this.getMethodName() = "bindValue" }
 }
 
-newtype TLateJavaScriptPropertyBindingMethodCall =
+private newtype TLateJavaScriptPropertyBindingMethodCall =
   TBindProperty(BindPropertyMethodCallNode bindProperty) or
   TBindValue(BindValueMethodCallNode bindValue)
 
-class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBindingMethodCall {
+private class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBindingMethodCall {
   string toString() {
     exists(BindPropertyMethodCallNode bindProperty |
       this = TBindProperty(bindProperty) and
@@ -102,7 +102,7 @@ class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBin
   }
 }
 
-newtype TBinding =
+private newtype TBinding =
   /**
    * Any XML attribute that is assigned a binding string.
    * That is a string enclosed by curly braces.
