@@ -35,9 +35,9 @@ private module BindingStringParser =
 
 class BindingValue = BindingStringParser::Binding;
 
-class StringBinding extends string {
+class BindingString extends string {
   bindingset[this]
-  StringBinding() { this = getBindingString() }
+  BindingString() { this = getBindingString() }
 }
 
 class BindPropertyMethodCallNode extends DataFlow::MethodCallNode {
@@ -108,7 +108,7 @@ newtype TBinding =
    * That is a string enclosed by curly braces.
    */
   TXmlPropertyBinding(XmlAttribute attribute, BindingValue binding) {
-    exists(StringBinding bindingString |
+    exists(BindingString bindingString |
       attribute.getValue() = bindingString and
       binding = BindingStringParser::parseBinding(bindingString)
     ) and
@@ -119,7 +119,7 @@ newtype TBinding =
    * That is a string enclosed by curly braces.
    */
   TXmlContextBinding(ContextBindingAttribute attribute, BindingValue binding) {
-    exists(StringBinding bindingString |
+    exists(BindingString bindingString |
       attribute.getValue() = bindingString and
       binding = BindingStringParser::parseBinding(bindingString)
     )
@@ -133,7 +133,7 @@ newtype TBinding =
   TEarlyJavaScriptPropertyBinding(DataFlow::NewNode newNode, DataFlow::SourceNode binding) {
     // Property binding via a string binding
     exists(StringLiteral constantBinding |
-      constantBinding = binding.asExpr() and constantBinding.getValue() instanceof StringBinding
+      constantBinding = binding.asExpr() and constantBinding.getValue() instanceof BindingString
     |
       newNode.getAnArgument().getALocalSource().(DataFlow::ObjectLiteralNode).getAPropertySource() =
         binding
@@ -176,7 +176,7 @@ newtype TBinding =
   } or
   // Json binding
   TJsonPropertyBinding(JsonValue value, string key, BindingValue binding) {
-    exists(JsonObject object, StringBinding bindingString |
+    exists(JsonObject object, BindingString bindingString |
       value = object.getPropValue(key) and
       value.getStringValue() = bindingString and
       binding = BindingStringParser::parseBinding(bindingString)
