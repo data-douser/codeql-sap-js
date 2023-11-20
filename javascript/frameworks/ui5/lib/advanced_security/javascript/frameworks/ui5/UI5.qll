@@ -6,12 +6,6 @@ private import advanced_security.javascript.frameworks.ui5.UI5View
 private import advanced_security.javascript.frameworks.ui5.UI5HTML
 
 module UI5 {
-  bindingset[this]
-  private class JsonStringReader extends string {
-    bindingset[result]
-    string read() { result = this }
-  }
-
   private class ResourceRootPathString extends PathString {
     SapUiCoreScript coreScript;
 
