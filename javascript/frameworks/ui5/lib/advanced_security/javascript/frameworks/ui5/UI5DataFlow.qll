@@ -6,12 +6,18 @@ private import DataFlow::PathGraph as DataFlowPathGraph
 
 module UI5DataFlow {
   /**
-   * Additional Flow Step:
-   * Binding path in the model <-> control metadata
+   * Holds if there is a bi-directional data flow between
+   * a model and a control. What might be referred to as "model" depends:
+   * 
+   * For an internal model,
+   * it might be the constructor call or the relevant part of the argument to the call.
+   * 
+   * For an external model,
+   * it is the argument to the `setModel` call of a controller.
    */
   private predicate bidiModelControl(DataFlow::Node start, DataFlow::Node end) {
     /* ========== Internal Model ========== */
-    exists(DataFlow::SourceNode property, Metadata metadata, UI5BoundNode node |
+    exists(Metadata metadata, UI5BoundNode node |
       // same project
       inSameUI5Project(metadata.getFile(), node.getFile()) and
       (
@@ -26,11 +32,13 @@ module UI5DataFlow {
           node.getBindingPath().getControlQualifiedType() = subclass.getName()
         )
       ) and
-      property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
-      (
-        start = property and end = node
-        or
-        start = node and end = property
+      exists(PropertyMetadata property |
+        property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
+        (
+          start = property and end = node
+          or
+          start = node and end = property
+        )
       )
     )
     or
@@ -95,14 +103,14 @@ module UI5DataFlow {
       )
       or
       /* 1. Control metadata property being the intermediate flow node */
-      exists(string propName, Metadata metadata |
-        // writing site -> control metadata
-        start = metadata.getAWrite(propName).getArgument(1) and
-        end = metadata.getProperty(propName)
+      exists(PropertyMetadata property |
+        // writing site -> control property
+        start = property.getAWrite().getArgument(1) and
+        end = property
         or
-        // control metadata -> reading site
-        start = metadata.getProperty(propName) and
-        end = metadata.getARead(propName)
+        // control property -> reading site
+        start = property and
+        end = property.getARead()
       )
       or
       /* 2. Model property being the intermediate flow node */

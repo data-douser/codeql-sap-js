@@ -759,44 +759,86 @@ module UI5 {
     Metadata() { this = extension.getContent().getAPropertySource("metadata") }
 
     SourceNode getProperty(string name) {
-      result = this.getAPropertySource("properties").getAPropertySource(name)
+      result =
+        any(PropertyMetadata property |
+          property.getParentMetadata() = this and property.getName() = name
+        )
+    }
+  }
+
+  class AggregationMetadata extends ObjectLiteralNode {
+    string name;
+    Metadata parentMetadata;
+
+    AggregationMetadata() {
+      this = parentMetadata.getAPropertySource("aggregations").getAPropertySource(name)
     }
 
-    predicate isUnrestrictedStringType(string propName) {
+    Metadata getParentMetadata() { result = parentMetadata }
+
+    string getName() { result = name }
+
+    /**
+     * Gets the type of this aggregation.
+     */
+    string getType() {
+      result = this.getAPropertySource("type").getALocalSource().asExpr().(StringLiteral).getValue()
+    }
+  }
+
+  class PropertyMetadata extends ObjectLiteralNode {
+    string name;
+    Metadata parentMetadata;
+
+    PropertyMetadata() {
+      this = parentMetadata.getAPropertySource("properties").getAPropertySource(name)
+    }
+
+    Metadata getParentMetadata() { result = parentMetadata }
+
+    string getName() { result = name }
+
+    /**
+     * Gets the type of this aggregation.
+     */
+    string getType() {
+      if this.isUnrestrictedStringType()
+      then result = "string"
+      else
+        result =
+          this.getAPropertySource("type").getALocalSource().asExpr().(StringLiteral).getValue()
+    }
+
+    /**
+     * Holds if this property's type is an unrestricted string not belonging to any enum.
+     * This makes the property a possible avenue of a client-side XSS.
+     */
+    predicate isUnrestrictedStringType() {
       /* text : "string" */
-      exists(SourceNode propRef |
-        propRef = this.getProperty(propName) and
-        propRef.asExpr().(StringLiteral).getValue() = "string"
-      )
+      this.asExpr().(StringLiteral).getValue() = "string"
       or
       /* text: { type: "string" } */
-      exists(SourceNode propRef |
-        propRef = this.getProperty(propName) and
-        propRef.getAPropertySource("type").asExpr().(StringLiteral).getValue() = "string"
-      )
+      this.getAPropertySource("type").asExpr().(StringLiteral).getValue() = "string"
       or
       /* text: { someOther: "someOtherVal", ... } */
-      exists(SourceNode propRef |
-        propRef = this.getProperty(propName) and
-        not exists(propRef.getAPropertySource("type"))
-      )
+      not exists(this.getAPropertySource("type"))
     }
 
-    bindingset[propName]
-    MethodCallNode getAWrite(string propName) {
+    MethodCallNode getAWrite() {
       result.getMethodName() = "setProperty" and
-      result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
+      result.getArgument(0).asExpr().(StringLiteral).getValue() = name and
+      // TODO: in same controller
       inSameUI5Project(this.getFile(), result.getFile())
     }
 
-    bindingset[propName]
-    MethodCallNode getARead(string propName) {
+    MethodCallNode getARead() {
       (
-        result.getMethodName() = "get" + capitalize(propName)
+        result.getMethodName() = "get" + capitalize(name)
         or
         result.getMethodName() = "getProperty" and
-        result.getArgument(0).asExpr().(StringLiteral).getValue() = propName
+        result.getArgument(0).asExpr().(StringLiteral).getValue() = name
       ) and
+      // TODO: in same controller
       inSameUI5Project(this.getFile(), result.getFile())
     }
   }

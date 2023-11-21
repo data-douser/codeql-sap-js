@@ -15,9 +15,7 @@ class Configuration extends DomBasedXss::Configuration {
     super.isSanitizer(node)
     or
     // value read from a non-string property
-    exists(string prop_name |
-      node = any(Metadata m | not m.isUnrestrictedStringType(prop_name)).getProperty(prop_name)
-    )
+    node = any(PropertyMetadata m | not m.isUnrestrictedStringType())
     or
     // UI5 sanitizers
     exists(SapAmdModuleDefinition d, DataFlow::ParameterNode par |
