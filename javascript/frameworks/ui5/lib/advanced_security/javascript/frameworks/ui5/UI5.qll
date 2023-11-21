@@ -344,7 +344,6 @@ module UI5 {
     MethodCallNode getAnExternalModelRef(string modelName) {
       result.getMethodName() = "getModel" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = modelName and
-      // Shouldn't be a DataSource, but an external model def (need a new class).
       exists(ExternalModelDefinition externModelDef | externModelDef.getName() = modelName)
     }
 
@@ -573,7 +572,6 @@ module UI5 {
   bindingset[path]
   JsonObject resolveDirectPath(string path) {
     exists(Project project, File jsonFile |
-      // project contains this file
       project.isInThisProject(jsonFile) and
       jsonFile.getExtension() = "json" and
       jsonFile.getAbsolutePath() = project.getAbsolutePath() + "/" + path and
@@ -662,9 +660,6 @@ module UI5 {
         bindingMode.getOneWay().flowsTo(call.getArgument(0))
       )
     }
-    // JsonValue getManifestDefinition() {
-    //   result = ManifestJson.
-    // }
   }
 
   class XmlModel extends UI5InternalModel {
@@ -791,7 +786,6 @@ module UI5 {
     MethodCallNode getAWrite(string propName) {
       result.getMethodName() = "setProperty" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = propName and
-      // TODO: in same controller
       inSameUI5Project(this.getFile(), result.getFile())
     }
 
@@ -803,7 +797,6 @@ module UI5 {
         result.getMethodName() = "getProperty" and
         result.getArgument(0).asExpr().(StringLiteral).getValue() = propName
       ) and
-      // TODO: in same controller
       inSameUI5Project(this.getFile(), result.getFile())
     }
   }
