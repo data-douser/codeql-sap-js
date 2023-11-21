@@ -264,7 +264,7 @@ module UI5 {
        * SKETCH
        * This is an argument to a `this.setModel` call if:
        * - this flows from a DF node corresponding to the parent component's model
-       * - and the the component's manifest.json declares the datasource as being of OData type
+       * - and the the component's manifest.json declares the DataSource as being of OData type
        */
 
       /*
@@ -278,15 +278,15 @@ module UI5 {
          * `this.getView().setModel(this.getOwnerComponent().getModel("someModelName"))`
          */
 
-        modelName = this.getArgument(0).asExpr().(StringLiteral).getValue() and
+        modelName = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() and
         this.getCalleeName() = "getModel" and
         controller.getOwnerComponentRef().flowsTo(this.(MethodCallNode).getReceiver()) and
         this.flowsTo(setModelCall.getArgument(0)) and
         setModelCall.getMethodName() = "setModel" and
         setModelCall.getReceiver() = controller.getAViewReference() and
         /* 2. The component's manifest.json declares the DataSource as being of OData type */
-        controller.getOwnerComponent().getExternalModelDef(modelName).getDataSource().getType() =
-          "OData"
+        controller.getOwnerComponent().getExternalModelDef(modelName).getDataSource() instanceof
+          ODataDataSourceDefinition
       )
     }
 
@@ -317,7 +317,7 @@ module UI5 {
   class Component extends Extension {
     Component() { this.getReceiver().getALocalSource() = sapComponent() }
 
-    string getID() { result = this.getName().regexpCapture("([a-zA-Z0-9.]+).Component", 1) }
+    string getId() { result = this.getName().regexpCapture("([a-zA-Z0-9.]+).Component", 1) }
 
     ManifestJson getManifestJson() {
       /*
@@ -328,14 +328,14 @@ module UI5 {
        */
 
       this.getMetadata().getAPropertySource("manifest").asExpr().(StringLiteral).getValue() = "json" and
-      result.getId() = this.getID()
+      result.getId() = this.getId()
     }
 
     /** Get a definition of this component's model whose data source is remote. */
-    DataSource getADataSource() { result = this.getADataSource(_) }
+    DataSourceDefinition getADataSource() { result = this.getADataSource(_) }
 
     /** Get a definition of this component's model whose data source is remote and is called modelName. */
-    DataSource getADataSource(string modelName) { result.getName() = modelName }
+    DataSourceDefinition getADataSource(string modelName) { result.getName() = modelName }
 
     /** Get a reference to this component's external model. */
     MethodCallNode getAnExternalModelRef() { result = this.getAnExternalModelRef(_) }
@@ -356,11 +356,11 @@ module UI5 {
   }
 
   module ManifestJson {
-    class DataSource extends JsonObject {
+    class DataSourceDefinition extends JsonObject {
       string dataSourceName;
       ManifestJson manifestJson;
 
-      DataSource() {
+      DataSourceDefinition() {
         /*
          * SKETCH
          * this is a DataSource if:
@@ -388,6 +388,14 @@ module UI5 {
       string getType() { result = this.getPropValue("type").(JsonString).getValue() }
     }
 
+    class ODataDataSourceDefinition extends DataSourceDefinition {
+      ODataDataSourceDefinition() { this.getType() = "OData" }
+    }
+
+    class JsonDataSourceDefinition extends DataSourceDefinition {
+      JsonDataSourceDefinition() { this.getType() = "JSON" }
+    }
+
     abstract class ModelDefinition extends JsonObject { }
 
     class InternalModelDefinition extends ModelDefinition {
@@ -397,11 +405,12 @@ module UI5 {
         exists(JsonObject models, JsonObject modelsParent |
           models = modelsParent.getPropValue("models") and
           this = models.getPropValue(modelName) and
-          this.getPropStringValue("type") = [
-            "sap.ui.model.json.JSONModel",  // A JSON Model
-            "sap.ui.model.xml.XMLModel",    // An XML Model
-            "sap.ui.model.resource.ResourceModel"  // A Resource Model, typically for i18n
-          ]
+          this.getPropStringValue("type") =
+            [
+              "sap.ui.model.json.JSONModel", // A JSON Model
+              "sap.ui.model.xml.XMLModel", // An XML Model
+              "sap.ui.model.resource.ResourceModel" // A Resource Model, typically for i18n
+            ]
         )
       }
     }
@@ -417,9 +426,8 @@ module UI5 {
         exists(JsonObject models |
           this = models.getPropValue(modelName) and
           dataSourceName = this.getPropStringValue("dataSource") and
-
           /* This data source can be found in the "dataSources" property */
-          exists(DataSource datasource | datasource.getName() = dataSourceName)
+          exists(DataSourceDefinition dataSource | dataSource.getName() = dataSourceName)
         )
       }
 
@@ -427,7 +435,7 @@ module UI5 {
 
       string getDataSourceName() { result = dataSourceName }
 
-      DataSource getDataSource() { result.getName() = dataSourceName }
+      DataSourceDefinition getDataSource() { result.getName() = dataSourceName }
     }
 
     class ManifestJson extends File {
@@ -473,7 +481,7 @@ module UI5 {
         this.getBaseName() = "manifest.json"
       }
 
-      DataSource getDataSource() { this = result.getManifestJson() }
+      DataSourceDefinition getDataSource() { this = result.getManifestJson() }
     }
   }
 
