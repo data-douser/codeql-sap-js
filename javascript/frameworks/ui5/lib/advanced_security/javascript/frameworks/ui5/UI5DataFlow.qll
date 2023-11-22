@@ -8,10 +8,9 @@ module UI5DataFlow {
   /**
    * Holds if there is a bi-directional data flow between
    * a model and a control. What might be referred to as "model" depends:
-   * 
+   *
    * For an internal model,
    * it might be the constructor call or the relevant part of the argument to the call.
-   * 
    * For an external model,
    * it is the argument to the `setModel` call of a controller.
    */
@@ -129,17 +128,17 @@ module UI5DataFlow {
   }
 
   /**
-   * DataFlow nodes that correspond to some **internal** model and are bound to a UI5 View via some `UI5BindingPath`.
+   * DataFlow nodes that correspond to an **internal** model and are bound to a `UI5View` via some `UI5BindingPath`.
    */
   class UI5InternalBoundNode extends UI5BoundNode {
     UI5InternalBoundNode() {
       /* ========== Case 1: The contents of the model are statically observable ========== */
       /* The relevant portion of the content of a JSONModel */
-      exists(Property p, UI5InternalModel internalModel |
+      exists(Property modelProperty, UI5InternalModel internalModel |
         // The property bound to an UI5View source
-        this.(DataFlow::PropRef).getPropertyNameExpr() = p.getNameExpr() and
+        this.(DataFlow::PropRef).getPropertyNameExpr() = modelProperty.getNameExpr() and
         // The binding path refers to this model
-        bindingPath.getAbsolutePath() = internalModel.getPathString(p) and
+        bindingPath.getAbsolutePath() = internalModel.getPathString(modelProperty) and
         inSameUI5Project(this.getFile(), bindingPath.getFile())
       )
       or
@@ -162,7 +161,7 @@ module UI5DataFlow {
   }
 
   /**
-   * DataFlow nodes that correspond to some **external** model and are bound to a UI5 View via some `UI5BindingPath`.
+   * DataFlow nodes that correspond to some **external** model and are bound to a `UI5View` via some `UI5BindingPath`.
    */
   class UI5ExternalBoundNode extends UI5BoundNode {
     UI5ExternalBoundNode() {
@@ -198,7 +197,7 @@ module UI5DataFlow {
   }
 
   /**
-   * An remote source associated with a `UI5InternalBoundNode`
+   * A remote source associated with a `UI5InternalBoundNode`.
    */
   class UI5ModelSource extends UI5DataFlow::UI5InternalBoundNode, RemoteFlowSource {
     UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
@@ -207,7 +206,7 @@ module UI5DataFlow {
   }
 
   /**
-   * An html injection sink ascsociated with a `UI5InternalBoundNode`
+   * An HTML injection sink associated with a `UI5InternalBoundNode`.
    */
   class UI5ModelHtmlISink extends UI5DataFlow::UI5InternalBoundNode {
     UI5View view;
@@ -219,54 +218,54 @@ module UI5DataFlow {
   }
 
   /**
-   * Models calls to `Model.getProperty` and `Model.getObject`
+   * A `getProperty` or `getObject` method call on a model.
+   * This is a node which reads from a property of a model.
    */
   class GetBoundValue extends DataFlow::MethodCallNode {
-    UI5InternalBoundNode bind;
+    UI5BoundNode boundNode;
 
     GetBoundValue() {
-      // direct read access to a binding path
       this.getCalleeName() = ["getProperty", "getObject"] and
-      bind.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
-      exists(DataFlow::SourceNode receiverSource, UI5Model model |
-        receiverSource = this.getReceiver().getALocalSource() and
-        model = bind.getBindingPath().getModel()
+      boundNode.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
+      exists(DataFlow::SourceNode receiver, UI5Model model |
+        receiver = this.getReceiver().getALocalSource() and
+        model = boundNode.getBindingPath().getModel()
       |
-        model = receiverSource
+        model = receiver
         or
-        model.getController().getAModelReference() = receiverSource
+        model.getController().getAModelReference() = receiver
       )
     }
 
-    UI5InternalBoundNode getBoundNode() { result = bind }
+    UI5BoundNode getBoundNode() { result = boundNode }
   }
 
   /**
-   * Models calls to `Model.setProperty` and `Model.setObject`
+   * An argument to `setProperty` or `setObject` method call on a model.
+   * This is a node which writes to a property of a model.
    */
   class SetBoundValue extends DataFlow::Node {
-    UI5InternalBoundNode bind;
+    UI5BoundNode boundNode;
 
     SetBoundValue() {
       exists(DataFlow::MethodCallNode setProp |
-        // direct access to a binding path
         this = setProp.getArgument(1) and
         setProp.getCalleeName() = ["setProperty", "setObject"] and
-        bind.getBindingPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
-        exists(DataFlow::SourceNode receiverSource, UI5Model model |
-          receiverSource = setProp.getReceiver().getALocalSource()
+        boundNode.getBindingPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
+        exists(DataFlow::SourceNode receiver, UI5Model model |
+          receiver = setProp.getReceiver().getALocalSource()
         |
-          model = bind.getBindingPath().getModel() and
+          model = boundNode.getBindingPath().getModel() and
           (
-            model = receiverSource
+            model = receiver
             or
-            model.getController().getAModelReference() = receiverSource
+            model.getController().getAModelReference() = receiver
           )
         )
       )
     }
 
-    UI5InternalBoundNode getBoundNode() { result = bind }
+    UI5BoundNode getBoundNode() { result = boundNode }
   }
 }
 
