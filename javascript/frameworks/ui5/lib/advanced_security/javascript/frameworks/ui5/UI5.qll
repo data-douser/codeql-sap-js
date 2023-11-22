@@ -39,26 +39,24 @@ module UI5 {
     string toString() { result = this.getName() + ": " + this.getRoot() }
   }
 
-  private newtype TResolvedResourceRoot =
-    MkResolvedResourceRoot(string name, Folder root, string source) {
-      exists(ResourceRoot unresolvedRoot, ResourceRootPathString path |
-        name = unresolvedRoot.getName() and
-        source = unresolvedRoot.getSource() and
-        path = unresolvedRoot.getRoot() and
-        root = path.resolve(path.getARootFolder()).getContainer()
-      )
+  class ResolvedResourceRoot extends Container {
+    ResourceRoot unresolvedRoot;
+    ResolvedResourceRoot() {
+      exists(ResourceRootPathString resourceRootPathString | unresolvedRoot.getRoot() = resourceRootPathString |
+      this = resourceRootPathString.resolve(resourceRootPathString.getARootFolder()).getContainer())
     }
 
-  class ResolvedResourceRoot extends TResolvedResourceRoot {
-    string getName() { this = MkResolvedResourceRoot(result, _, _) }
+    string getName() {
+      result = unresolvedRoot.getName()
+    }
 
-    Folder getRoot() { this = MkResolvedResourceRoot(_, result, _) }
+    string getSource() {
+      result = unresolvedRoot.getSource()
+    }
 
-    string getSource() { this = MkResolvedResourceRoot(_, _, result) }
-
-    string toString() { result = this.getName() + ": " + this.getRoot() }
-
-    predicate contains(File file) { file.getParentContainer+() = getRoot() }
+    predicate contains(File file) {
+      file.getParentContainer+() = this
+    }
   }
 
   private string getAResourceRootConfig() {
@@ -117,7 +115,7 @@ module UI5 {
         resolvedModulePath =
           initialModuleResourcePath
               .regexpReplaceAll("^module\\s*:\\s*", "")
-              .replaceAll(resourceRoot.getName(), resourceRoot.getRoot().getAbsolutePath()) and
+              .replaceAll(resourceRoot.getName(), resourceRoot.getAbsolutePath()) and
         result.getAbsolutePath() = resolvedModulePath + ".js"
       )
     }
