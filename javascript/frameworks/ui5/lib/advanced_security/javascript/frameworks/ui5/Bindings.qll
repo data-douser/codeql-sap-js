@@ -33,7 +33,7 @@ private string getBindingString() {
 private module BindingStringParser =
   MakeBindingStringParser::BindingStringParser<getBindingString/0>;
 
-private class BindingValue = BindingStringParser::Binding;
+private class StaticBindingValue = BindingStringParser::Binding;
 
 class BindingString extends string {
   bindingset[this]
@@ -107,7 +107,7 @@ private newtype TBinding =
    * Any XML attribute that is assigned a binding string.
    * That is a string enclosed by curly braces.
    */
-  TXmlPropertyBinding(XmlAttribute attribute, BindingValue binding) {
+  TXmlPropertyBinding(XmlAttribute attribute, StaticBindingValue binding) {
     exists(BindingString bindingString |
       attribute.getValue() = bindingString and
       binding = BindingStringParser::parseBinding(bindingString)
@@ -118,7 +118,7 @@ private newtype TBinding =
    * Any XML attribute named "binding" that is assigned a binding string.
    * That is a string enclosed by curly braces.
    */
-  TXmlContextBinding(ContextBindingAttribute attribute, BindingValue binding) {
+  TXmlContextBinding(ContextBindingAttribute attribute, StaticBindingValue binding) {
     exists(BindingString bindingString |
       attribute.getValue() = bindingString and
       binding = BindingStringParser::parseBinding(bindingString)
@@ -175,7 +175,7 @@ private newtype TBinding =
     bindElementCall.getArgument(0).getALocalSource() = binding
   } or
   // Json binding
-  TJsonPropertyBinding(JsonValue value, string key, BindingValue binding) {
+  TJsonPropertyBinding(JsonValue value, string key, StaticBindingValue binding) {
     exists(JsonObject object, BindingString bindingString |
       value = object.getPropValue(key) and
       value.getStringValue() = bindingString and
@@ -199,12 +199,12 @@ private newtype TBinding =
  */
 class Binding extends TBinding {
   string toString() {
-    exists(XmlAttribute attribute, BindingValue binding |
+    exists(XmlAttribute attribute, StaticBindingValue binding |
       this = TXmlPropertyBinding(attribute, binding) and
       result = "XML property binding: " + attribute.getName() + " to " + binding
     )
     or
-    exists(ContextBindingAttribute attribute, BindingValue binding |
+    exists(ContextBindingAttribute attribute, StaticBindingValue binding |
       this = TXmlContextBinding(attribute, binding) and
       result = "XML context binding: " + attribute.getName() + " to " + binding
     )
@@ -227,7 +227,7 @@ class Binding extends TBinding {
         "JavaScript context binding: " + bindElementCall.getReceiver().toString() + " to " + binding
     )
     or
-    exists(JsonValue value, string key, BindingValue binding |
+    exists(JsonValue value, string key, StaticBindingValue binding |
       this = TJsonPropertyBinding(value, key, binding) and
       result = "JSON property binding: " + key + " to " + binding
     )
