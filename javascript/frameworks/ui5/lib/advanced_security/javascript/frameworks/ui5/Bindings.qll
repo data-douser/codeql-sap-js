@@ -130,7 +130,7 @@ private newtype TBinding =
    * an object literal where the propery `value` is assigned an object literal
    * with a property `parts` assigned a value.
    */
-  TEarlyJavaScriptPropertyBinding(DataFlow::NewNode newNode, DataFlow::SourceNode binding) {
+  TEarlyJavaScriptPropertyBinding(DataFlow::NewNode newNode, DataFlow::Node binding) {
     // Property binding via a string binding
     exists(StringLiteral constantBinding |
       constantBinding = binding.asExpr() and constantBinding.getValue() instanceof BindingString
