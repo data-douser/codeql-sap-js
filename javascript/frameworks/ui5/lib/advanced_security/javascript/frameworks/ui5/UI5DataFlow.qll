@@ -121,6 +121,10 @@ module UI5DataFlow {
     )
   }
 
+  /**
+   * A DataFlow node which some binding path refers to. This class is needed because an XML Element / JSON Objects of a view cannot themselves be a DataFlow node, so an UI5BoundNode instead represents the binding paths those declarations carry.
+   * If the binding path lives in a JS code, then it is itself a UI5BoundNode.
+   */
   abstract class UI5BoundNode extends DataFlow::Node {
     UI5BindingPath bindingPath;
 
@@ -162,6 +166,8 @@ module UI5DataFlow {
 
   /**
    * DataFlow nodes that correspond to some **external** model and are bound to a `UI5View` via some `UI5BindingPath`.
+   * Since `UI5ExternalModel` is an argument to a `setModel` call, `UI5ExternalBoundNode` is also a value that flows to the `setModel` call.
+   * `UI5ExternalBoundNode` = `bindingPath` + `UI5ExternalModel`.
    */
   class UI5ExternalBoundNode extends UI5BoundNode {
     UI5ExternalBoundNode() {
