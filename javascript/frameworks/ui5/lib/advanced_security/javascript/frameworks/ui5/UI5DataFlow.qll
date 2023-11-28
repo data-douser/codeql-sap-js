@@ -18,7 +18,9 @@ module UI5DataFlow {
     /* ========== Internal Model ========== */
     exists(Metadata metadata, UI5BoundNode node |
       // same project
-      inSameUI5Project(metadata.getFile(), node.getFile()) and
+      exists(WebApp webApp |
+        webApp.getAResource() = metadata.getFile() and webApp.getAResource() = node.getFile()
+      ) and
       (
         // same control
         metadata.getExtension().(CustomControl).getName() =
@@ -136,22 +138,24 @@ module UI5DataFlow {
    */
   class UI5InternalBoundNode extends UI5BoundNode {
     UI5InternalBoundNode() {
+      exists(WebApp webApp |
+        webApp.getAResource() = this.getFile() and
+        webApp.getAResource() = bindingPath.getFile()
+      |
       /* ========== Case 1: The contents of the model are statically observable ========== */
       /* The relevant portion of the content of a JSONModel */
       exists(Property modelProperty, UI5InternalModel internalModel |
         // The property bound to an UI5View source
         this.(DataFlow::PropRef).getPropertyNameExpr() = modelProperty.getNameExpr() and
         // The binding path refers to this model
-        bindingPath.getAbsolutePath() = internalModel.getPathString(modelProperty) and
-        inSameUI5Project(this.getFile(), bindingPath.getFile())
+        bindingPath.getAbsolutePath() = internalModel.getPathString(modelProperty)
       )
       or
       /* The URI string to the JSONModel constructor call */
       exists(UI5InternalModel internalModel |
         this = internalModel.getArgument(0) and
         this.asExpr() instanceof StringLiteral and
-        bindingPath.getAbsolutePath() = internalModel.getPathString() and
-        inSameUI5Project(this.getFile(), bindingPath.getFile())
+        bindingPath.getAbsolutePath() = internalModel.getPathString()
       )
       or
       /* ========== Case 2: The contents of the model are not statically observable ========== */
@@ -161,7 +165,8 @@ module UI5DataFlow {
         not this instanceof UI5ExternalBoundNode
         // bindingpath condition!!!!!!!!!!!!!!!!!!!!!!!11
       )
-    }
+      )
+  }
   }
 
   /**
@@ -200,6 +205,10 @@ module UI5DataFlow {
         )
       )
     }
+  class UI5ModelSource extends UI5DataFlow::UI5BoundNode, RemoteFlowSource {
+    UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
+
+    override string getSourceType() { result = "UI5 model remote flow source" }
   }
 
   /**
