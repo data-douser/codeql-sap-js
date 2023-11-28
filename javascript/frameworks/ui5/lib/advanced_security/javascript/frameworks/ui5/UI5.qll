@@ -105,6 +105,9 @@ module UI5 {
 
     WebAppManifest getManifest() { result.getWebapp() = this }
 
+    /**
+     * Gets the JavaScript module that serves as an entrypoint to this webapp.
+     */
     File getInitialModule() {
       exists(
         string initialModuleResourcePath, string resolvedModulePath,
