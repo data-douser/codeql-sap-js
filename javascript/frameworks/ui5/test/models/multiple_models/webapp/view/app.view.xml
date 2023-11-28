@@ -1,0 +1,42 @@
+<mvc:View controllerName="codeql-sap-js.controller.app"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc">
+    <!-- 
+        1. value gains from oModelDefault2
+        2. description gains from model1
+        2. selectedKey gains from model2
+
+        TODO: Does this control's default model override that of the view?
+
+        EXPECTED for UI5BoundNode:
+        - /input should resolve to oModelDefault3
+        - controlModelRef1>/description should resolve to oModel31
+        - controlModelRef2>/selectedKey should resolve to oModel32
+        - viewModel1>/showSuggestion should resolve to oModel11
+     -->
+    <Input 
+        id="unit-test-target1"
+        value="{/input}"
+        description="{controlRefModel1>/description}"
+        selectedKey="{controlRefModel2>/selectedKey}"
+        showSuggestion="{viewModel1>/showSuggestion}" />
+    <!-- 
+        1. value gains from oModelDefault1
+        2. description gains from model1
+        2. selectedKey gains from model2
+
+        TODO: Does this control's showSuggestion override that of the view?
+
+        EXPECTED for UI5BoundNode:
+        - /input should resolve to oModelDefault1
+        - controlRefModel1>/description should resolve to oModel41
+        - controlRefModel2>/selectedKey should resolve to oModel42
+        - viewModel2>/showSuggestion should resolve to oModel43
+     -->
+    <Input 
+        id="unit-test-target2"
+        value="{/input}"
+        description="{controlRefModel1>/description}"
+        selectedKey="{controlRefModel2>/selectedKey}"
+        showSuggestion="{viewModel2>/showSuggestion}" />
+</mvc:View>
