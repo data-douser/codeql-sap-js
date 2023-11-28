@@ -85,7 +85,7 @@ class FrameOptions extends TFrameOptions {
 }
 
 /**
- * Holds if the specified frame options do not prevent click jacking.
+ * Holds if there are no frame options specified to prevent click jacking.
  */
 predicate isMissingFrameOptionsToPreventClickjacking(UI5::WebApp webapp) {
   not exists(FrameOptions frameOptions | webapp.getFrameOptions() = frameOptions |
