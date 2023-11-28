@@ -12,26 +12,37 @@ sap.ui.define([
             var oModel11 = new JSONModel();
             var oModel12 = new JSONModel();
             this.getView().setModel(oModelDefault1);
-            this.getView().setModel(oModel11, "model1");
-            this.getView().setModel(oModel12, "model2");
+            this.getView().setModel(oModel11, "viewModel1");
+            this.getView().setModel(oModel12, "viewModel2");
             
             /* 2. Setting an ODataModel as a default model and two JSON models as helpers on A NEW CONTROL */
-            var oControl = new Input();
+            var oControl1 = new Input();
             var oModelDefault2 = new ODataModel();
             var oModel21 = new JSONModel();
             var oModel22 = new JSONModel();
-            oControl.setModel(oModelDefault);
-            oControl.setModel(oModel21, "model1");
-            oControl.setModel(oModel22, "model2");
+            oControl1.setModel(oModelDefault2);
+            oControl1.setModel(oModel21, "controlModel1");
+            oControl1.setModel(oModel22, "controlModel2");
 
             /* 3. Setting an ODataModel as a default model and two JSON models as helpers on A CONTROL REFERENCE */
-            var oControl = this.getView().byId("unit-test-target");
-            var oModelDefault2 = new ODataModel();
+            var oControl2 = this.getView().byId("unit-test-target1");
+            var oModelDefault3 = new ODataModel();
             var oModel31 = new JSONModel();
             var oModel32 = new JSONModel();
-            oControl.setModel(oModelDefault);
-            oControl.setModel(oModel31, "model1");
-            oControl.setModel(oModel32, "model2");
+            oControl2.setModel(oModelDefault3);
+            oControl2.setModel(oModel31, "controlRefModel1");
+            oControl2.setModel(oModel32, "controlRefModel2");
+
+            var oControl3 = this.getView().byId("unit-test-target2");
+            var oModel41 = new JSONModel();
+            var oModel42 = new JSONModel();
+            oControl3.setModel(oModel41, "controlRef2Model1");
+            oControl3.setModel(oModel42, "controlRef2Model2");
+
+            var oModel43 = new JSONModel();
+            oControl3.setModel(oModel43, "viewModel2");
+
+            /* The controller's viewModel2 collides with unit-test-target2's viewModel2 */
         }
     });
 })
