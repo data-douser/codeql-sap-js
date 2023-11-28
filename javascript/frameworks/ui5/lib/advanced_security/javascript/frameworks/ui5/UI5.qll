@@ -7,7 +7,7 @@ private import advanced_security.javascript.frameworks.ui5.UI5HTML
 
 module UI5 {
   private class ResourceRootPathString extends PathString {
-    SapUiCoreScript coreScript;
+    SapUiCoreScriptElement coreScript;
 
     ResourceRootPathString() { this = coreScript.getAResourceRoot().getRoot() }
 
@@ -18,7 +18,7 @@ module UI5 {
     MkResourceRoot(string name, string root, string source) {
       exists(
         JsonParser<getAResourceRootConfig/0>::JsonObject config,
-        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry, SapUiCoreScript coreScript
+        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry, SapUiCoreScriptElement coreScript
       |
         source = coreScript.getAttributeByName("data-sap-ui-resourceroots").getValue() and
         source = config.getSource() and
@@ -60,11 +60,11 @@ module UI5 {
   }
 
   private string getAResourceRootConfig() {
-    result = any(SapUiCoreScript script).getAttributeByName("data-sap-ui-resourceroots").getValue()
+    result = any(SapUiCoreScriptElement script).getAttributeByName("data-sap-ui-resourceroots").getValue()
   }
 
-  class SapUiCoreScript extends HTML::ScriptElement {
-    SapUiCoreScript() {
+  class SapUiCoreScriptElement extends HTML::ScriptElement {
+    SapUiCoreScriptElement() {
       this.getSourcePath().matches(["%sap-ui-core.js", "%sap-ui-core-nojQuery.js"])
     }
 
@@ -91,7 +91,7 @@ module UI5 {
 
   /** A UI5 bootstrapped web application. */
   class WebApp extends HTML::HtmlFile {
-    SapUiCoreScript coreScript;
+    SapUiCoreScriptElement coreScript;
 
     WebApp() { coreScript.getFile() = this }
 
