@@ -1,9 +1,9 @@
-private import javascript
-private import DataFlow
-private import advanced_security.javascript.frameworks.ui5.JsonParser
-private import semmle.javascript.security.dataflow.DomBasedXssCustomizations
-private import advanced_security.javascript.frameworks.ui5.UI5View
-private import advanced_security.javascript.frameworks.ui5.UI5HTML
+import javascript
+import DataFlow
+import advanced_security.javascript.frameworks.ui5.JsonParser
+import semmle.javascript.security.dataflow.DomBasedXssCustomizations
+import advanced_security.javascript.frameworks.ui5.UI5View
+import advanced_security.javascript.frameworks.ui5.UI5HTML
 
 module UI5 {
   private class ResourceRootPathString extends PathString {

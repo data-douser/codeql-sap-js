@@ -1,6 +1,6 @@
-private import javascript
-private import DataFlow
-private import advanced_security.javascript.frameworks.ui5.UI5
+import javascript
+import DataFlow
+import advanced_security.javascript.frameworks.ui5.UI5
 
 newtype TFrameOptions =
   /*
