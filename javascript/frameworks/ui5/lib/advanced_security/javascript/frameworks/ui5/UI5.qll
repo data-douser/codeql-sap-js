@@ -943,6 +943,14 @@ module UI5 {
       result = this.asDefinition().toString() or
       result = this.asReference().toString()
     }
+
+    predicate hasLocationInfo(
+      string filepath, int startline, int startcolumn, int endline, int endcolumn
+    ) {
+      this.asDefinition().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+      or
+      this.asReference().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+    }
   }
 
   /**
