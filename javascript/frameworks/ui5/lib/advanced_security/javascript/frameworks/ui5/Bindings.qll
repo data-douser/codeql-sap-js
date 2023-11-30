@@ -5,6 +5,7 @@ private class ContextBindingAttribute extends XmlAttribute {
   ContextBindingAttribute() { this.getName() = "binding" }
 }
 
+// TODO: add support for binding strings in strings such as `description: "Some {/description}"`
 private string getBindingString() {
   result.matches("{%}") and
   (
