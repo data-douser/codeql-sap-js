@@ -348,6 +348,7 @@ module UI5 {
   /**
    * Represents models that are loaded from an internal source, i.e. XML Models or JSON models
    * whose contents are hardcoded in a JS file or loaded from a JSON file.
+   * It is always the constructor call that creates the model.
    */
   abstract class UI5InternalModel extends UI5Model {
     abstract string getPathString();
@@ -355,7 +356,10 @@ module UI5 {
     abstract string getPathString(Property property);
   }
 
-  /** Represents models that are loaded from an external source, e.g. OData service. */
+  /**
+   * Represents models that are loaded from an external source, e.g. OData service.
+   * It is the value flowing to a `setModel` call in a method of a `CustomController`, since it is the closest we can get to the actual model itself.
+   */
   abstract class UI5ExternalModel extends UI5Model {
     abstract string getName();
   }
@@ -418,7 +422,9 @@ module UI5 {
 
   import ManifestJson
 
-  /** A UI5 Component that may contain other controllers or controls. */
+  /** 
+   * A UI5 Component that may contain other controllers or controls.
+   */
   class Component extends Extension {
     Component() { this.getReceiver().getALocalSource() = sapComponent() }
 
@@ -698,6 +704,9 @@ module UI5 {
       )
     }
 
+    /**
+     *  Gets all possible path strings that can be constructed of this JSON model.
+     */
     override string getPathString() {
       /* 1. new JSONModel("controller/model.json") */
       if this.getAnArgument().asExpr() instanceof StringLiteral
