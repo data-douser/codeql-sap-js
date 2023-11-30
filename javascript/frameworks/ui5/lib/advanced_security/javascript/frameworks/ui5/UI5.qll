@@ -18,7 +18,8 @@ module UI5 {
     MkResourceRoot(string name, string root, string source) {
       exists(
         JsonParser<getAResourceRootConfig/0>::JsonObject config,
-        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry, SapUiCoreScriptElement coreScript
+        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry,
+        SapUiCoreScriptElement coreScript
       |
         source = coreScript.getAttributeByName("data-sap-ui-resourceroots").getValue() and
         source = config.getSource() and
@@ -41,26 +42,26 @@ module UI5 {
 
   class ResolvedResourceRoot extends Container {
     ResourceRoot unresolvedRoot;
+
     ResolvedResourceRoot() {
-      exists(ResourceRootPathString resourceRootPathString | unresolvedRoot.getRoot() = resourceRootPathString |
-      this = resourceRootPathString.resolve(resourceRootPathString.getARootFolder()).getContainer())
+      exists(ResourceRootPathString resourceRootPathString |
+        unresolvedRoot.getRoot() = resourceRootPathString
+      |
+        this =
+          resourceRootPathString.resolve(resourceRootPathString.getARootFolder()).getContainer()
+      )
     }
 
-    string getName() {
-      result = unresolvedRoot.getName()
-    }
+    string getName() { result = unresolvedRoot.getName() }
 
-    string getSource() {
-      result = unresolvedRoot.getSource()
-    }
+    string getSource() { result = unresolvedRoot.getSource() }
 
-    predicate contains(File file) {
-      file.getParentContainer+() = this
-    }
+    predicate contains(File file) { file.getParentContainer+() = this }
   }
 
   private string getAResourceRootConfig() {
-    result = any(SapUiCoreScriptElement script).getAttributeByName("data-sap-ui-resourceroots").getValue()
+    result =
+      any(SapUiCoreScriptElement script).getAttributeByName("data-sap-ui-resourceroots").getValue()
   }
 
   class SapUiCoreScriptElement extends HTML::ScriptElement {
@@ -131,9 +132,7 @@ module UI5 {
       result.asJsFrameOptions().getFile() = this
     }
 
-    HTML::DocumentElement getDocument() {
-      result.getFile() = this
-    }
+    HTML::DocumentElement getDocument() { result.getFile() = this }
   }
 
   /**
