@@ -269,27 +269,7 @@ class BindingPath extends TBindingPath {
   }
 
   Binding getBinding() {
-    exists(StaticBindingValue bindingValue|
-      result = TXmlPropertyBinding(_, bindingValue) and
-      this = TStaticBindingPath(bindingValue, _)
-      or
-      result = TXmlContextBinding(_, bindingValue) and
-      this = TStaticBindingPath(bindingValue, _)
-      or
-      result = TJsonPropertyBinding(_, _, bindingValue) and
-      this = TStaticBindingPath(bindingValue, _)
-    )
-    or
-    exists(DataFlow::Node bindingValue|
-      result = TEarlyJavaScriptPropertyBinding(_, bindingValue) and
-      this = TDynamicBindingPath(bindingValue, _)
-      or
-      result = TLateJavaScriptPropertyBinding(_, bindingValue) and
-      this = TDynamicBindingPath(bindingValue, _)
-      or
-      result = TLateJavaScriptContextBinding(_, bindingValue) and
-      this = TDynamicBindingPath(bindingValue, _)
-    )
+    result.getBindingPath() = this
   }
 }
 
@@ -376,6 +356,26 @@ class Binding extends TBinding {
   }
 
   BindingPath getBindingPath() {
-    result.getBinding() = this
+    exists(StaticBindingValue bindingValue|
+      this = TXmlPropertyBinding(_, bindingValue) and
+      result = TStaticBindingPath(bindingValue, _)
+      or
+      this = TXmlContextBinding(_, bindingValue) and
+      result = TStaticBindingPath(bindingValue, _)
+      or
+      this = TJsonPropertyBinding(_, _, bindingValue) and
+      result = TStaticBindingPath(bindingValue, _)
+    )
+    or
+    exists(DataFlow::Node bindingValue|
+      this = TEarlyJavaScriptPropertyBinding(_, bindingValue) and
+      result = TDynamicBindingPath(bindingValue, _)
+      or
+      this = TLateJavaScriptPropertyBinding(_, bindingValue) and
+      result = TDynamicBindingPath(bindingValue, _)
+      or
+      this = TLateJavaScriptContextBinding(_, bindingValue) and
+      result = TDynamicBindingPath(bindingValue, _)
+    )
   }
 }
