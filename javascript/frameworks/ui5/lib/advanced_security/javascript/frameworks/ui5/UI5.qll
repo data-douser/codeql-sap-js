@@ -259,6 +259,57 @@ module UI5 {
         result.getMethodName() = "getOwnerComponent"
       )
     }
+
+    CustomController getController() { this = result.getAControlReference().getDefinition() }
+  }
+
+  abstract class Reference extends MethodCallNode { }
+
+  /**
+   * A JS reference to a `UI5Control`, commonly obtained via `View.byId(controlId)`.
+   */
+  class ControlReference extends Reference {
+    string controlId;
+
+    ControlReference() {
+      exists(CustomController controller |
+        controller.getAViewReference().flowsTo(this.getReceiver()) and
+        this.getMethodName() = "byId" and
+        this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = controlId
+      )
+    }
+
+    CustomControl getDefinition() {
+      exists(UI5Control controlDeclaration |
+        this = controlDeclaration.getAReference() and
+        result = controlDeclaration.getDefinition()
+      )
+    }
+  }
+
+  /**
+   * A reference to a `UI5View`, commonly obtained via `Controller.getView()`.
+   */
+  class ViewReference extends Reference {
+    CustomController controller;
+
+    ViewReference() {
+      this.getMethodName() = "getView" and
+      controller.getAThisNode().flowsTo(this.getReceiver())
+    }
+
+    UI5View getDefinition() { result = controller.getView() }
+  }
+
+  /**
+   * A reference to a CustomController, commonly obtained via `View.getController()`.
+   */
+  class ControllerReference extends Reference {
+    ViewReference viewReference;
+
+    ControllerReference() { viewReference.flowsTo(this.getReceiver()) }
+
+    CustomController getDefinition() { result = viewReference.getDefinition().getController() }
   }
 
   class CustomController extends Extension {
@@ -314,7 +365,7 @@ module UI5 {
 
     UI5View getView() { this = result.getController() }
 
-    MethodCallNode getAnElementReference() {
+    ControlReference getAControlReference() {
       exists(MethodCallNode viewRef |
         viewRef = this.getAViewReference() and
         /* There is a view */
@@ -334,9 +385,13 @@ module UI5 {
       )
     }
 
-    MethodCallNode getAModelReference() {
-      result.getMethodName() = "getModel" and
-      this.getAViewReference().flowsTo(result.getReceiver())
+    ModelReference getAModelReference() { this.getAViewReference().flowsTo(result.getReceiver()) }
+  }
+
+  class ModelReference extends MethodCallNode {
+    ModelReference() {
+      this.getMethodName() = "getModel" and
+      exists(ViewReference view | view.flowsTo(this.getReceiver()))
     }
   }
 
@@ -349,7 +404,7 @@ module UI5 {
    * whose contents are hardcoded in a JS file or loaded from a JSON file.
    * It is always the constructor call that creates the model.
    */
-  abstract class UI5InternalModel extends UI5Model {
+  abstract class UI5InternalModel extends UI5Model, NewNode {
     abstract string getPathString();
 
     abstract string getPathString(Property property);
@@ -394,8 +449,23 @@ module UI5 {
         setModelCall.getReceiver() = controller.getAViewReference() and
         /* 2. The component's manifest.json declares the DataSource as being of OData type */
         controller.getOwnerComponent().getExternalModelDef(modelName).getDataSource() instanceof
-          ODataDataSourceDefinition
+          ODataDataSourceManifest
       )
+      or
+      /*
+       * A constructor call to sap.ui.model.odata.v2.ODataModel.
+       */
+
+      this instanceof NewNode and
+      (
+        exists(RequiredObject oDataModel |
+          oDataModel.flowsTo(this.getCalleeNode()) and
+          oDataModel.getDependencyType() = "sap/ui/model/odata/v2/ODataModel"
+        )
+        or
+        this.getCalleeName() = "ODataModel"
+      ) and
+      modelName = "<no name>"
     }
 
     override string getName() { result = modelName }
@@ -442,10 +512,10 @@ module UI5 {
     }
 
     /** Get a definition of this component's model whose data source is remote. */
-    DataSourceDefinition getADataSource() { result = this.getADataSource(_) }
+    DataSourceManifest getADataSource() { result = this.getADataSource(_) }
 
     /** Get a definition of this component's model whose data source is remote and is called modelName. */
-    DataSourceDefinition getADataSource(string modelName) { result.getName() = modelName }
+    DataSourceManifest getADataSource(string modelName) { result.getName() = modelName }
 
     /** Get a reference to this component's external model. */
     MethodCallNode getAnExternalModelRef() { result = this.getAnExternalModelRef(_) }
@@ -454,22 +524,22 @@ module UI5 {
     MethodCallNode getAnExternalModelRef(string modelName) {
       result.getMethodName() = "getModel" and
       result.getArgument(0).asExpr().(StringLiteral).getValue() = modelName and
-      exists(ExternalModelDefinition externModelDef | externModelDef.getName() = modelName)
+      exists(ExternalModelManifest externModelDef | externModelDef.getName() = modelName)
     }
 
-    ExternalModelDefinition getExternalModelDef(string modelName) {
+    ExternalModelManifest getExternalModelDef(string modelName) {
       result.getFile() = this.getManifestJson() and result.getName() = modelName
     }
 
-    ExternalModelDefinition getAnExternalModelDef() { result = this.getExternalModelDef(_) }
+    ExternalModelManifest getAnExternalModelDef() { result = this.getExternalModelDef(_) }
   }
 
   module ManifestJson {
-    class DataSourceDefinition extends JsonObject {
+    class DataSourceManifest extends JsonObject {
       string dataSourceName;
       ManifestJson manifestJson;
 
-      DataSourceDefinition() {
+      DataSourceManifest() {
         /*
          * SKETCH
          * this is a DataSource if:
@@ -497,20 +567,20 @@ module UI5 {
       string getType() { result = this.getPropValue("type").(JsonString).getValue() }
     }
 
-    class ODataDataSourceDefinition extends DataSourceDefinition {
-      ODataDataSourceDefinition() { this.getType() = "OData" }
+    class ODataDataSourceManifest extends DataSourceManifest {
+      ODataDataSourceManifest() { this.getType() = "OData" }
     }
 
-    class JsonDataSourceDefinition extends DataSourceDefinition {
+    class JsonDataSourceDefinition extends DataSourceManifest {
       JsonDataSourceDefinition() { this.getType() = "JSON" }
     }
 
-    abstract class ModelDefinition extends JsonObject { }
+    abstract class ModelManifest extends JsonObject { }
 
-    class InternalModelDefinition extends ModelDefinition {
+    class InternalModelManifest extends ModelManifest {
       string modelName;
 
-      InternalModelDefinition() {
+      InternalModelManifest() {
         exists(JsonObject models, JsonObject modelsParent |
           models = modelsParent.getPropValue("models") and
           this = models.getPropValue(modelName) and
@@ -527,16 +597,16 @@ module UI5 {
     /**
      * The definition of an external model in the `manifest.json`, in the `"models"` property.
      */
-    class ExternalModelDefinition extends ModelDefinition {
+    class ExternalModelManifest extends ModelManifest {
       string modelName;
       string dataSourceName;
 
-      ExternalModelDefinition() {
+      ExternalModelManifest() {
         exists(JsonObject models |
           this = models.getPropValue(modelName) and
           dataSourceName = this.getPropStringValue("dataSource") and
           /* This data source can be found in the "dataSources" property */
-          exists(DataSourceDefinition dataSource | dataSource.getName() = dataSourceName)
+          exists(DataSourceManifest dataSource | dataSource.getName() = dataSourceName)
         )
       }
 
@@ -544,7 +614,7 @@ module UI5 {
 
       string getDataSourceName() { result = dataSourceName }
 
-      DataSourceDefinition getDataSource() { result.getName() = dataSourceName }
+      DataSourceManifest getDataSource() { result.getName() = dataSourceName }
     }
 
     class ManifestJson extends File {
@@ -590,7 +660,7 @@ module UI5 {
         this.getBaseName() = "manifest.json"
       }
 
-      DataSourceDefinition getDataSource() { this = result.getManifestJson() }
+      DataSourceManifest getDataSource() { this = result.getManifestJson() }
     }
   }
 
@@ -690,16 +760,21 @@ module UI5 {
    *  Currently only supports `sap.ui.require.toUrl`.
    */
   bindingset[path]
-  JsonObject resolveIndirectPath(string path) {
+  private JsonObject resolveIndirectPath(string path) {
     result = any(JsonObject tODO | tODO.getFile().getAbsolutePath() = path)
   }
 
   class JsonModel extends UI5InternalModel {
     JsonModel() {
       this instanceof NewNode and
-      exists(RequiredObject jsonModel |
-        jsonModel.flowsTo(this.getCalleeNode()) and
-        jsonModel.getDependencyType() = "sap/ui/model/json/JSONModel"
+      (
+        exists(RequiredObject jsonModel |
+          jsonModel.flowsTo(this.getCalleeNode()) and
+          jsonModel.getDependencyType() = "sap/ui/model/json/JSONModel"
+        )
+        or
+        /* Fallback */
+        this.getCalleeName() = "JSONModel"
       )
     }
 
@@ -798,29 +873,18 @@ module UI5 {
 
   class RequiredObject extends SourceNode {
     RequiredObject() {
-      exists(string dependencyType, int i |
-        any(SapDefineModule sapModule).getDependencyType(i) = dependencyType and
-        this =
-          any(SapDefineModule sapModule)
-              .getArgument(1)
-              .getALocalSource()
-              .(FunctionNode)
-              .getParameter(i)
-      )
-      or
-      exists(string dependencyType |
-        this.toString() = dependencyType and
-        any(JQueryDefineModule jQueryModule).getADependencyType() = dependencyType
-      )
+      this =
+        any(SapDefineModule sapModule)
+            .getArgument(1)
+            .getALocalSource()
+            .(FunctionNode)
+            .getParameter(_)
     }
 
     UserModule getDefiningModule() { result.getArgument(1).(FunctionNode).getParameter(_) = this }
 
     string getDependencyType() {
-      exists(string dependencyType |
-        this.getDefiningModule().getRequiredObject(dependencyType) = this and
-        result = this.getDefiningModule().getADependencyType()
-      )
+      exists(SapDefineModule module_ | this = module_.getRequiredObject(result))
     }
   }
 
@@ -854,6 +918,31 @@ module UI5 {
 
     /** Gets the `sap.ui.define` call that wraps this extension. */
     SapDefineModule getDefine() { this.getEnclosingFunction() = result.getArgument(1).asExpr() }
+  }
+
+  newtype TSapElement =
+    DefinitionOfElement(Extension extension) or
+    ReferenceOfElement(Reference reference)
+
+  class SapElement extends TSapElement {
+    Extension asDefinition() { this = DefinitionOfElement(result) }
+
+    Reference asReference() { this = ReferenceOfElement(result) }
+
+    SapElement getParentElement() {
+      result.asReference() = this.asDefinition().(CustomControl).getController().getAViewReference() or
+      result.asReference() =
+        this.asReference().(ControlReference).getDefinition().getController().getAViewReference() or
+      result.asDefinition() = this.asReference().(ViewReference).getDefinition().getController() or
+      result.asDefinition() = this.asDefinition().(CustomController).getOwnerComponent() or
+      result.asDefinition() =
+        this.asReference().(ControllerReference).getDefinition().getOwnerComponent()
+    }
+
+    string toString() {
+      result = this.asDefinition().toString() or
+      result = this.asReference().toString()
+    }
   }
 
   /**

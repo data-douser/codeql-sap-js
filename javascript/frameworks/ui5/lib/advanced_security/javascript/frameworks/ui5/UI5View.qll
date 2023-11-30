@@ -57,7 +57,7 @@ string bindingPathCapture(string property) {
 }
 
 /**
- * Holds if the given string contains a binding path. Also gets the  model name before the `>`
+ * Holds if the given string contains a binding path. Also gets the model name before the `>`
  * separator, if the given string has it.
  * ```javascript
  * "{model>property}"                                 // Gets `model`
@@ -475,12 +475,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
 class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   string path;
 
-  XmlBindingPath() {
-    path = bindingPathCapture(this.getValue()) and
-    XmlAttribute.super.getElement().getParent+() instanceof XmlView
-  }
-
-  override string toString() { result = XmlAttribute.super.toString() }
+  XmlBindingPath() { path = bindingPathCapture(this.getValue()) }
 
   override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
 
@@ -493,7 +488,8 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
     then result = path
     else
       exists(XmlBindingPath pathPrefix |
-        pathPrefix = this.(XmlAttribute).getElement().getParent+().(XmlElement).getAttribute("items") and
+        pathPrefix =
+          this.(XmlAttribute).getElement().getParent+().(XmlElement).getAttribute("items") and
         result = pathPrefix.getAbsolutePath() + "/" + path
       )
   }
@@ -683,7 +679,7 @@ class XmlControl extends UI5Control instanceof XmlElement {
 
   override XmlFile getFile() { result = XmlElement.super.getFile() }
 
-  override UI5ControlProperty getAProperty(string name) {
+  override UI5ControlProperty getProperty(string name) {
     result = this.(XmlElement).getAttribute(name)
   }
 
@@ -752,7 +748,7 @@ private string handlerNotationCaptureName(string notation) {
 
 /**
  * A function mentioned in a property of a UI5Control, usually an event handler.
- * 
+ *
  * e.g. The function referred to by `doSomething()` as in `<Button press=".doSomething"/>`.
  */
 class UI5Handler extends FunctionNode {
@@ -760,14 +756,14 @@ class UI5Handler extends FunctionNode {
 
   UI5Handler() {
     this = control.getController().getAMethod() and
-    handlerNotationCaptureName(control.getAProperty(_).getValue()) = this.getName()
+    handlerNotationCaptureName(control.getProperty(_).getValue()) = this.getName()
   }
 
   UI5BindingPath getBindingPath() {
     exists(string propName |
-      handlerNotationCaptureName(control.getAProperty(propName).getValue()) = this.getName() and
+      handlerNotationCaptureName(control.getProperty(propName).getValue()) = this.getName() and
       //result.control
-      result = control.getAProperty(result.getPropertyName())
+      result = control.getProperty(result.getPropertyName())
     )
   }
 
@@ -779,18 +775,18 @@ class UI5Handler extends FunctionNode {
  */
 class ControlTypeInHandlerModel extends ModelInput::TypeModel {
   // TODO (see https://github.com/github/codeql/pull/14120)
-  // override predicate isTypeUsed(string type) { type = any(UI5Control c).getTypeName() }
+  // override predicate isTypeUsed(string type) { type = any(UI5Control c).getImportPath() }
   override DataFlow::CallNode getASource(string type) {
     // oEvent.getSource() is of the type of the Control calling the handler
     exists(UI5Handler h |
-      type = h.getControl().getTypeName() and
+      type = h.getControl().getImportPath() and
       result.getCalleeName() = "getSource" and
       result.getReceiver().getALocalSource() = h.getParameter(0)
     )
     or
     // this.getView().byId("id") is of the type of the Control with id="id"
     exists(UI5Control c |
-      type = c.getTypeName() and
+      type = c.getImportPath() and
       result = c.getAReference()
     )
   }
@@ -802,6 +798,6 @@ class ControlTypeInHandlerModel extends ModelInput::TypeModel {
  */
 class DisablePruning extends ModelInput::TypeModelCsv {
   override predicate row(string row) {
-    row = any(UI5Control c).getTypeName() + ";global;DummyAccessPathForPruning"
+    row = any(UI5Control c).getImportPath() + ";global;DummyAccessPathForPruning"
   }
 }

@@ -142,31 +142,32 @@ module UI5DataFlow {
         webApp.getAResource() = this.getFile() and
         webApp.getAResource() = bindingPath.getFile()
       |
-      /* ========== Case 1: The contents of the model are statically observable ========== */
-      /* The relevant portion of the content of a JSONModel */
-      exists(Property modelProperty, UI5InternalModel internalModel |
-        // The property bound to an UI5View source
-        this.(DataFlow::PropRef).getPropertyNameExpr() = modelProperty.getNameExpr() and
-        // The binding path refers to this model
-        bindingPath.getAbsolutePath() = internalModel.getPathString(modelProperty)
+        /* ========== Case 1: The contents of the model are statically observable ========== */
+        /* The relevant portion of the content of a JSONModel */
+        exists(Property modelProperty, JsonModel internalModel |
+          // The property bound to an UI5View source
+          this.(DataFlow::PropRef).getPropertyNameExpr() = modelProperty.getNameExpr() and
+          // The binding path refers to this model
+          bindingPath.getAbsolutePath() = internalModel.getPathString(modelProperty)
+        )
+        or
+        /* The URI string to the JSONModel / XMLModel constructor call */
+        exists(UI5InternalModel internalModel |
+          // TODO: include the import path so that it only includes `sap.ui.model.ClientModel`
+          this = internalModel.getArgument(0) and
+          this.asExpr() instanceof StringLiteral and
+          bindingPath.getAbsolutePath() = internalModel.getPathString()
+        )
+        or
+        /* ========== Case 2: The contents of the model are not statically observable ========== */
+        exists(MethodCallNode setModelCall |
+          setModelCall.getMethodName() = "setModel" and
+          this.(SourceNode).flowsTo(setModelCall.getArgument(0)) and
+          not this instanceof UI5ExternalModel
+          // bindingpath condition!!!!!!!!!!!!!!!!!!!!!!!11
+        )
       )
-      or
-      /* The URI string to the JSONModel constructor call */
-      exists(UI5InternalModel internalModel |
-        this = internalModel.getArgument(0) and
-        this.asExpr() instanceof StringLiteral and
-        bindingPath.getAbsolutePath() = internalModel.getPathString()
-      )
-      or
-      /* ========== Case 2: The contents of the model are not statically observable ========== */
-      exists(MethodCallNode setModelCall |
-        setModelCall.getMethodName() = "setModel" and
-        this.(SourceNode).flowsTo(setModelCall.getArgument(0)) and
-        not this instanceof UI5ExternalBoundNode
-        // bindingpath condition!!!!!!!!!!!!!!!!!!!!!!!11
-      )
-      )
-  }
+    }
   }
 
   /**
@@ -176,39 +177,25 @@ module UI5DataFlow {
    */
   class UI5ExternalBoundNode extends UI5BoundNode {
     UI5ExternalBoundNode() {
-      this = bindingPath.getView().getController().getModel().(UI5ExternalModel) and
-      (
-        this instanceof NewNode
-        implies
-        (
-          forall(string internalNodeQualifier |
-            internalNodeQualifier =
-              [
-                "sap.ui.model.json.JSONModel", // A JSON Model
-                "sap.ui.model.xml.XMLModel", // An XML Model
-                "sap.ui.model.resource.ResourceModel" // A Resource Model, typically for i18n
-              ]
-          |
-            this.(NewNode).getCalleeName() != internalNodeQualifier
-          ) and
-          forall(RequiredObject callee, string dependencyPath |
-            dependencyPath =
-              [
-                "sap/ui/model/json/JSONModel", // A JSON Model
-                "sap/ui/model/xml/XMLModel", // An XML Model
-                "sap/ui/model/resource/ResourceModel" // A Resource Model, typically for i18n
-              ]
-          |
-            callee.flowsTo(this.(NewNode).getCalleeNode()) and
-            callee.getDependencyType() = dependencyPath
-          )
-        )
-      )
-    }
-  class UI5ModelSource extends UI5DataFlow::UI5BoundNode, RemoteFlowSource {
-    UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
+      /* TODO: remove spurious rows! */
+      this = bindingPath.getView().getController().getModel().(UI5ExternalModel)
+      // and not bindingPath = any(UI5InternalBoundNode b).getBindingPath()
+      /*
+       *      bindingpath <--many_to_one--> model <--many_to_many-->
+       *     controller
+       *
+       *      --> crazy cross product!
+       *
+       *
+       *      - name of the model
+       *        - as extracted from the path itself (before >)
+       *        - setModel(..., "name_of_the_model")
+       *      - type of the model
+       *        - sap.ui.model.JSONModel
+       *        - sap.ui.model.ResourceModel
+       */
 
-    override string getSourceType() { result = "UI5 model remote flow source" }
+      }
   }
 
   /**
@@ -312,6 +299,9 @@ module UI5PathGraph {
           .hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
     }
 
+    /**
+     * ???
+     */
     UI5PathNode getAPrimarySource() {
       not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5InternalBoundNode and
       this.asDataFlowPathNode() = result.asDataFlowPathNode()
@@ -321,6 +311,9 @@ module UI5PathGraph {
       result.asUI5BindingPathNode() = any(UI5View view).getASource()
     }
 
+    /**
+     * ???
+     */
     UI5PathNode getAPrimaryHtmlISink() {
       not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5InternalBoundNode and
       this.asDataFlowPathNode() = result.asDataFlowPathNode()
