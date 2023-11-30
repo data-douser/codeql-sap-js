@@ -234,6 +234,8 @@ private BindingStringParser::BindingPath getABindingPath(BindingStringParser::Me
   result = member.getBindingPath()
   or
   result = getABindingPath(member.getValue().(BindingStringParser::Object).getAMember())
+  or
+  result = getABindingPath(member.getValue().(BindingStringParser::Array).getAValue().(BindingStringParser::Object).getAMember())
 
 }
 
