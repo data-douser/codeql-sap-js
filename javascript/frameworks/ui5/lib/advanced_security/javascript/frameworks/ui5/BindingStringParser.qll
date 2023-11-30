@@ -429,6 +429,8 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
 
   private class DoubleQuoteToken extends Token, MkDoubleQuoteToken { }
 
+  private class DotToken extends Token, MkDot { }
+
   private Token getNextSkippingWhitespace(Token t) {
     result = t.getNext() and
     not result instanceof WhiteSpaceToken
@@ -824,7 +826,7 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
   predicate mkBindingPathComponentList(Token first, BindingPathComponentList list, Token last) {
     exists(NameToken name, Token nextToken | nextToken = getNextSkippingWhitespace(name) |
       name = first and
-      if nextToken instanceof ForwardSlashToken
+      if nextToken instanceof ForwardSlashToken or nextToken instanceof DotToken
       then
         exists(BindingPathComponentList tail |
           mkBindingPathComponentList(getNextSkippingWhitespace(nextToken), tail, last) and
@@ -841,7 +843,7 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
     MkEmptyBindingPathComponentList() or
     MkConstBindingPathComponentList(NameToken headToken, BindingPathComponentList tail, Token source) {
       exists(Token nextToken | nextToken = getNextSkippingWhitespace(headToken) |
-        if nextToken instanceof ForwardSlashToken
+        if nextToken instanceof ForwardSlashToken or nextToken instanceof DotToken
         then mkBindingPathComponentList(getNextSkippingWhitespace(nextToken), tail, _)
         else tail = MkEmptyBindingPathComponentList()
       )
