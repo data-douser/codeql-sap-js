@@ -143,32 +143,55 @@ abstract class UI5BindingPath extends Locatable {
   /**
    * Gets the model, attached to a SapElement (either a control/view/controller), referred to by this binding path.
    */
-  UI5Model getModel(SapElement sapElement) {
-    exists(MethodCallNode setModelCall |
-      setModelCall.getMethodName() = "setModel" and
+  UI5Model getModel() {
+    exists(MethodCallNode controlSetModelCall, MethodCallNode viewSetModelCall |
+      controlSetModelCall.getMethodName() = "setModel" and
+      this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
+      viewSetModelCall.getMethodName() = "setModel" and
+      this.getView().getController().getAViewReference().flowsTo(viewSetModelCall.getReceiver()) and
       (
-        sapElement.asDefinition().flowsTo(setModelCall.getReceiver()) or
-        sapElement.asReference().flowsTo(setModelCall.getReceiver())
+        /* 1. The result is a named model and the names in the controlSetModel call and in the binding path match up, but the viewSetModelCall isn't the case. */
+        controlSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
+          this.getModelName() and
+        result.flowsTo(controlSetModelCall.getArgument(0)) and
+        /* TODO: switch not to not exists */
+        not (
+          viewSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
+            this.getModelName() and
+          result.flowsTo(viewSetModelCall.getArgument(0))
+        )
+        or
+        /* 2. The result is a default (nameless) model and both the setModel call and the binding path lack a model name. */
+        not exists(controlSetModelCall.getArgument(1)) and
+        not exists(this.getModelName()) and
+        result.flowsTo(controlSetModelCall.getArgument(0)) and
+        not (
+          not exists(viewSetModelCall.getArgument(1)) and
+          not exists(this.getModelName()) and
+          result.flowsTo(viewSetModelCall.getArgument(0))
+        )
+        or
+        /* 3. First case with overlap */
+        viewSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
+          this.getModelName() and
+        result.flowsTo(viewSetModelCall.getArgument(0)) and
+        not (
+          controlSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
+            this.getModelName() and
+          result.flowsTo(controlSetModelCall.getArgument(0))
+        )
+        or
+        /* 4. Second case with overlap */
+        not exists(viewSetModelCall.getArgument(1)) and
+        not exists(this.getModelName()) and
+        result.flowsTo(viewSetModelCall.getArgument(0)) and
+        not (
+          not exists(controlSetModelCall.getArgument(1)) and
+          not exists(this.getModelName()) and
+          result.flowsTo(controlSetModelCall.getArgument(0))
+        )
       )
-    |
-      /* Base case 1: the result is a named model and the names in the setModel call and in the binding path match up. */
-      setModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
-        this.getModelName()
-      or
-      /* Base case 1: the result is a default (nameless) model and both the setModel call and the binding path lack a model name. */
-      (
-        not exists(setModelCall.getArgument(1)) and
-        not exists(this.getModelName())
-      ) and
-      result = setModelCall.getArgument(0)
     )
-    or
-    /*
-     * Recursive case: check the above two cases on the element's parent according to the hierarchy:
-     *       control < view < controller < component.
-     */
-
-    result = this.getModel(sapElement.getParentElement())
   }
 
   /**
@@ -185,7 +208,7 @@ abstract class UI5BindingPath extends Locatable {
       )
     )
     or
-    result = this.getModel(_).(UI5ExternalModel)
+    result = this.getModel().(UI5ExternalModel)
   }
 
   /**
