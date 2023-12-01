@@ -1,91 +1,84 @@
+import javascript as stdlib
+
 signature string getBindingStringSig();
+signature class BindingStringReaderSig {
+  string getBindingString();
+  stdlib::Location getLocation();
+}
 
 /**
  * A  UI5 binding path parser.
  */
-module BindingStringParser<getBindingStringSig/0 getBindingString> {
+module BindingStringParser<BindingStringReaderSig BindingStringReader> {
   private newtype TToken =
-    MkLeftBracketToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("{") and
+    MkLeftBracketToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("{") and
       begin = end and
       value = "{"
     } or
-    MkRightBracketToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("}") and
+    MkRightBracketToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("}") and
       begin = end and
       value = "}"
     } or
-    MkLeftSquareBracketToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("[") and
+    MkLeftSquareBracketToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("[") and
       begin = end and
       value = "["
     } or
-    MkRightSquareBracketToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("]") and
+    MkRightSquareBracketToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("]") and
       begin = end and
       value = "]"
     } or
-    MkWhiteSpaceToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      value = source.regexpFind("[\\s\\v\\h]", _, begin) and
+    MkWhiteSpaceToken(int begin, int end, string value, BindingStringReader reader) {
+      value = reader.getBindingString().regexpFind("[\\s\\v\\h]", _, begin) and
       begin + value.length() - 1 = end
     } or
-    MkCommaToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf(",") and
+    MkCommaToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf(",") and
       begin = end and
       value = ","
     } or
-    MkColonToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf(":") and
+    MkColonToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf(":") and
       begin = end and
       value = ":"
     } or
-    MkNumberToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      value = source.regexpFind("-?[1-9]\\d*(\\.\\d+)?((e|E)?(\\+|-)?\\d+)?", _, begin) and
+    MkNumberToken(int begin, int end, string value, BindingStringReader reader) {
+      value = reader.getBindingString().regexpFind("-?[1-9]\\d*(\\.\\d+)?((e|E)?(\\+|-)?\\d+)?", _, begin) and
       begin + value.length() - 1 = end
     } or
-    MkStringToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
+    MkStringToken(int begin, int end, string value, BindingStringReader reader) {
       exists(string str |
         (
           // double quoted string
-          str = source.regexpFind("(?s)\".*?(?<!\\\\)\"", _, begin)
+          str = reader.getBindingString().regexpFind("(?s)\".*?(?<!\\\\)\"", _, begin)
           or
           // single quoted string
-          str = source.regexpFind("(?s)'.*?(?<!\\\\)'", _, begin)
+          str = reader.getBindingString().regexpFind("(?s)'.*?(?<!\\\\)'", _, begin)
         ) and
         // The string without surrounding quotes.
         value = str.substring(1, str.length() - 1) and
         begin + str.length() - 1 = end
       )
     } or
-    MkTrueToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("true") and
+    MkTrueToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("true") and
       value = "true" and
       begin + value.length() - 1 = end
     } or
-    MkFalseToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("false") and
+    MkFalseToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("false") and
       value = "false" and
       begin + value.length() - 1 = end
     } or
-    MkNullToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("null") and
+    MkNullToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("null") and
       value = "null" and
       begin + value.length() - 1 = end
     } or
-    MkNameToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
+    MkNameToken(int begin, int end, string value, BindingStringReader reader) {
       // combine syntax from json binding paths, property bindings paths, xml binding paths and OData binding paths
       // Examples from https://sapui5.hana.ondemand.com/sdk/#/topic/f5aa4bb75c20445194494b264d3b3cd2
       // "{/#Company/CompanyName/@sap:label}"
@@ -93,43 +86,35 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       // https://sapui5.hana.ondemand.com/sdk/#/topic/54e0ddf695af4a6c978472cecb01c64d.html
       // /SalesOrderList('0500000000')
       value =
-        source
-            .regexpFind("(?:#|#@)?(?:[a-zA-Z0-9][a-zA-Z0-9_]*|[a-zA-Z0-9][a-zA-Z0-9_]:[a-zA-Z0-9_]+)(?:\\([^\\)]*\\))?",
-              _, begin) and
+       reader.getBindingString().regexpFind("(?:#|#@)?(?:[a-zA-Z0-9][a-zA-Z0-9_]*|[a-zA-Z0-9][a-zA-Z0-9_]:[a-zA-Z0-9_]+)(?:\\([^\\)]*\\))?", _, begin) and
       begin + value.length() - 1 = end
     } or
-    MkGreaterThanToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf(">") and
+    MkGreaterThanToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf(">") and
       value = ">" and
       begin + value.length() - 1 = end
     } or
-    MkDot(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf(".") and
+    MkDot(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf(".") and
       value = "." and
       begin + value.length() - 1 = end
     } or
-    MkForwardSlash(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("/") and
+    MkForwardSlash(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("/") and
       value = "/" and
       begin + value.length() - 1 = end
     } or
-    MkIdentToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      value = source.regexpFind("[a-zA-Z0-9_]+", _, begin) and
+    MkIdentToken(int begin, int end, string value, BindingStringReader reader) {
+      value = reader.getBindingString().regexpFind("[a-zA-Z0-9_]+", _, begin) and
       begin + value.length() - 1 = end
     } or
-    MkSingleQuoteToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("'") and
+    MkSingleQuoteToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("'") and
       value = "'" and
       begin + value.length() - 1 = end
     } or
-    MkDoubleQuoteToken(int begin, int end, string value, string source) {
-      source = getBindingString() and
-      begin = source.indexOf("\"") and
+    MkDoubleQuoteToken(int begin, int end, string value, BindingStringReader reader) {
+      begin = reader.getBindingString().indexOf("\"") and
       value = "\"" and
       begin + value.length() - 1 = end
     }
@@ -335,7 +320,7 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       this = MkDoubleQuoteToken(_, _, _, _) and result = "\""
     }
 
-    string getSource() {
+    BindingStringReader getReader() {
       this = MkLeftBracketToken(_, _, _, result)
       or
       this = MkRightBracketToken(_, _, _, result)
@@ -377,17 +362,17 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
 
     Token getNext() {
       result.getBegin() = this.getEnd() + 1 and
-      result.getSource() = this.getSource()
+      result.getReader() = this.getReader()
     }
 
     predicate isFirst() {
       not exists(Token other |
-        other.getBegin() < this.getBegin() and other.getSource() = this.getSource()
+        other.getBegin() < this.getBegin() and other.getReader() = this.getReader()
       )
     }
 
     predicate contains(Token t) {
-      this.getSource() = t.getSource() and
+      this.getReader() = t.getReader() and
       this.getBegin() < t.getBegin() and
       this.getEnd() > t.getEnd()
     }
@@ -778,7 +763,7 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       )
     }
 
-    string getSource() { result = getSourceToken().getSource() }
+    BindingStringReader getReader() { result = getSourceToken().getReader() }
 
     string getType() {
       this = MkString(_, _) and result = "string"
@@ -1011,6 +996,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
         result = t
       )
     }
+
+    stdlib::Location getLocation() {
+      result = getSourceToken().getReader().getLocation()
+    }
   }
 
   predicate mkBindingPath(Token first, BindingPath bindingPath, Token last) {
@@ -1069,7 +1058,9 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
       this = MkBindingObject(result, _, _)
     }
 
-    string getSource() { result = getSourceToken().getSource() }
+    BindingStringReader getReader() { result = getSourceToken().getReader() }
+
+    stdlib::Location getLocation() { result = getReader().getLocation() }
   }
 
   private predicate mkBinding(Token first, Binding binding, Token last) {
@@ -1101,10 +1092,10 @@ module BindingStringParser<getBindingStringSig/0 getBindingString> {
     )
   }
 
-  Binding parseBinding(string source) {
+  Binding parseBinding(BindingStringReader reader) {
     exists(LeftBracketToken firstToken, RightBracketToken lastToken |
       firstToken.isFirst() and
-      firstToken.getSource() = source
+      firstToken.getReader() = reader
     |
       mkBinding(firstToken, result, lastToken)
     )

@@ -6,39 +6,96 @@ private class ContextBindingAttribute extends XmlAttribute {
 }
 
 // TODO: add support for binding strings in strings such as `description: "Some {/description}"`
-private string getBindingString() {
-  result.matches("{%}") and
-  (
-    exists(StringLiteral stringLit | result = stringLit.getValue())
-    or
-    exists(XmlAttribute attribute | result = attribute.getValue())
-    or
-    exists(JsonObject object | result = object.getPropStringValue(_))
-  )
+private newtype TBindingString =
+  TBindingStringFromLiteral(StringLiteral stringLiteral) {
+    stringLiteral.getValue().matches("{%}") 
+  }
   or
-  any(BindPropertyMethodCallNode call)
-      .getArgument(1)
-      .getALocalSource()
-      .asExpr()
-      .(StringLiteral)
-      .getValue() = result
+  TBindingStringFromXmlAttribute(XmlAttribute attribute) {
+    attribute.getValue().matches("{%}")
+  }
   or
-  any(BindElementMethodCallNode call)
-      .getArgument(0)
-      .getALocalSource()
-      .asExpr()
-      .(StringLiteral)
-      .getValue() = result
+  TBindingStringFromJsonProperty(JsonObject object, string propertyName) {
+    object.getPropStringValue(propertyName).matches("{%}")
+  }
+  or
+  TBindingStringFromBindElementMethodCall(BindElementMethodCallNode bindElement) {
+    bindElement.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue().matches("{%}")
+  }
+  or
+  TBindingStringFromBindPropertyMethodCall(BindPropertyMethodCallNode bindProperty) {
+    bindProperty.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue().matches("{%}")
+  }
+
+private class BindingStringReader extends TBindingString {
+  string toString() {
+    result = this.getBindingString()
+  }
+
+  string getBindingString() {
+    exists(StringLiteral stringLiteral |
+      this = TBindingStringFromLiteral(stringLiteral) and
+      result = stringLiteral.getValue()
+    )
+    or
+    exists(XmlAttribute attribute |
+      this = TBindingStringFromXmlAttribute(attribute) and
+      result = attribute.getValue()
+    )
+    or
+    exists(JsonObject object, string propertyName |
+      this = TBindingStringFromJsonProperty(object, propertyName) and
+      result = object.getPropStringValue(propertyName)
+    )
+    or
+    exists(BindElementMethodCallNode bindElement |
+      this = TBindingStringFromBindElementMethodCall(bindElement) and
+      result = bindElement.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    )
+    or
+    exists(BindPropertyMethodCallNode bindProperty |
+      this = TBindingStringFromBindPropertyMethodCall(bindProperty) and
+      result = bindProperty.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue()
+    )
+
+  }
+
+  Location getLocation() {
+    exists(StringLiteral stringLiteral |
+      this = TBindingStringFromLiteral(stringLiteral) and
+      result = stringLiteral.getLocation()
+    )
+    or
+    exists(XmlAttribute attribute |
+      this = TBindingStringFromXmlAttribute(attribute) and
+      result = attribute.getLocation()
+    )
+    or
+    exists(JsonObject object, string propertyName |
+      this = TBindingStringFromJsonProperty(object, propertyName) and
+      result = object.getPropValue(propertyName).getLocation()
+    )
+    or
+    exists(BindElementMethodCallNode bindElement |
+      this = TBindingStringFromBindElementMethodCall(bindElement) and
+      result = bindElement.getArgument(0).getALocalSource().asExpr().(StringLiteral).getLocation()
+    )
+    or
+    exists(BindPropertyMethodCallNode bindProperty |
+      this = TBindingStringFromBindPropertyMethodCall(bindProperty) and
+      result = bindProperty.getArgument(1).getALocalSource().asExpr().(StringLiteral).getLocation()
+    )
+  }
 }
 
 private module BindingStringParser =
-  MakeBindingStringParser::BindingStringParser<getBindingString/0>;
+  MakeBindingStringParser::BindingStringParser<BindingStringReader>;
 
 private class StaticBindingValue = BindingStringParser::Binding;
 
 class BindingString extends string {
   bindingset[this]
-  BindingString() { this = getBindingString() }
+  BindingString() { this = any(BindingStringReader reader).getBindingString() }
 }
 
 private class BindPropertyMethodCallNode extends DataFlow::MethodCallNode {
@@ -185,9 +242,10 @@ private newtype TBinding =
    * That is a string enclosed by curly braces.
    */
   TXmlPropertyBinding(XmlAttribute attribute, StaticBindingValue binding) {
-    exists(BindingString bindingString |
-      attribute.getValue() = bindingString and
-      binding = BindingStringParser::parseBinding(bindingString)
+    exists(BindingStringReader reader |
+      attribute.getValue() = reader.getBindingString() and
+      attribute.getLocation() = reader.getLocation() and
+      binding = BindingStringParser::parseBinding(reader)
     ) and
     not attribute instanceof ContextBindingAttribute
   } or
@@ -196,9 +254,10 @@ private newtype TBinding =
    * That is a string enclosed by curly braces.
    */
   TXmlContextBinding(ContextBindingAttribute attribute, StaticBindingValue binding) {
-    exists(BindingString bindingString |
-      attribute.getValue() = bindingString and
-      binding = BindingStringParser::parseBinding(bindingString)
+    exists(BindingStringReader reader|
+      attribute.getValue() = reader.getBindingString() and
+      attribute.getLocation() = reader.getLocation() and
+      binding = BindingStringParser::parseBinding(reader)
     )
   } or
   /**
@@ -224,10 +283,11 @@ private newtype TBinding =
   } or
   // Json binding
   TJsonPropertyBinding(JsonValue value, string key, StaticBindingValue binding) {
-    exists(JsonObject object, BindingString bindingString |
+    exists(JsonObject object, BindingStringReader reader|
       value = object.getPropValue(key) and
-      value.getStringValue() = bindingString and
-      binding = BindingStringParser::parseBinding(bindingString)
+      value.getStringValue() = reader.getBindingString() and
+      value.getLocation() = reader.getLocation() and
+      binding = BindingStringParser::parseBinding(reader)
     )
   }
 

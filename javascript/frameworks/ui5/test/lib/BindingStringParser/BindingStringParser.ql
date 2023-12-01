@@ -2,11 +2,17 @@ import javascript
 import advanced_security.javascript.frameworks.ui5.Bindings
 import advanced_security.javascript.frameworks.ui5.BindingStringParser as Make
 
-string getBindingString() {
-    exists(StringLiteral stringLit | stringLit.getValue().matches("{%}") | result = stringLit.getValue())
+class BindingStringReader extends StringLiteral {
+    BindingStringReader() {
+        this.getValue().matches("{%}")
+    }
+
+    string getBindingString() {
+        result = this.getValue()
+    }
 }
 
-module BindingStringParser = Make::BindingStringParser<getBindingString/0>;
+module BindingStringParser = Make::BindingStringParser<BindingStringReader>;
 
 from BindingStringParser::Binding binding
 select binding
