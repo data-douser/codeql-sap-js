@@ -136,6 +136,11 @@ abstract class UI5BindingPath extends Locatable {
   UI5View getView() { this.getFile() = result }
 
   /**
+   * Gets the UI5Control using this UI5BindingPath.
+   */
+  abstract UI5Control getControlDeclaration();
+
+  /**
    * Gets the model, attached to a SapElement (either a control/view/controller), referred to by this binding path.
    */
   UI5Model getModel(SapElement sapElement) {
@@ -209,11 +214,13 @@ abstract class UI5ControlProperty extends Locatable {
 class XmlControlProperty extends UI5ControlProperty instanceof XmlAttribute {
   XmlControlProperty() { this.getElement() = any(XmlControl control) }
 
+  override string toString() { result = this.getValue() }
+
   override string getName() { result = XmlAttribute.super.getName() }
 
   override string getValue() { result = XmlAttribute.super.getValue() }
 
-  override UI5Control getControl() { result = XmlAttribute.super.getElement() }
+  override XmlControl getControl() { result = XmlAttribute.super.getElement() }
 }
 
 /**
@@ -278,6 +285,11 @@ class JsonBindingPath extends UI5BindingPath, JsonValue {
   }
 
   override string getModelName() { result = modelNameCapture(this.getStringValue()) }
+
+  override UI5Control getControlDeclaration() {
+    /* TODO */
+    none()
+  }
 }
 
 class JsView extends UI5View {
@@ -398,6 +410,11 @@ class JsBindingPath extends UI5BindingPath, Property {
   override string getPropertyName() { result = this.getName() }
 
   override string getModelName() { result = modelNameCapture(this.getInit().getStringValue()) }
+
+  override UI5Control getControlDeclaration() {
+    /* TODO */
+    none()
+  }
 }
 
 /**
@@ -433,6 +450,11 @@ class HtmlBindingPath extends UI5BindingPath, HTML::Attribute {
   }
 
   override string getModelName() { result = modelNameCapture(this.getValue()) }
+
+  override UI5Control getControlDeclaration() {
+    /* TODO */
+    none()
+  }
 }
 
 class HtmlView extends UI5View, HTML::HtmlFile {
@@ -472,14 +494,14 @@ class HtmlView extends UI5View, HTML::HtmlFile {
 /**
  * A UI5BindingPath found in an XML View.
  */
-class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
+class XmlBindingPath extends UI5BindingPath, XmlControlProperty {
   string path;
 
   XmlBindingPath() { path = bindingPathCapture(this.getValue()) }
 
   override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
 
-  override Location getLocation() { result = XmlAttribute.super.getLocation() }
+  override Location getLocation() { result = this.(XmlAttribute).getLocation() }
 
   override string getPath() { result = path }
 
@@ -504,12 +526,14 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
     )
   }
 
-  UI5Control getControl() {
+  override XmlControl getControlDeclaration() {
     this = result.(XmlElement).getAttribute(this.getPropertyName()) and
-    result = XmlAttribute.super.getElement()
+    result = this.(XmlAttribute).getElement()
   }
 
   override string getModelName() { result = modelNameCapture(this.(XmlAttribute).getValue()) }
+
+  override string toString() { result = this.(XmlAttribute).toString() }
 }
 
 class XmlRootElement extends XmlElement {
@@ -734,7 +758,7 @@ class XmlControl extends UI5Control instanceof XmlElement {
 
   override UI5View getView() { result = XmlElement.super.getParent+() }
 
-  override string toString() { result = XmlElement.super.toString() }
+  override string toString() { result = this.(XmlElement).toString() }
 }
 
 /**
