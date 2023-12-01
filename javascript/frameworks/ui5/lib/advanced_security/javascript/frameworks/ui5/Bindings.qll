@@ -331,9 +331,19 @@ class BindingPath extends TBindingPath {
     )
   }
 
-  Binding getBinding() {
-    result.getBindingPath() = this
+  Location getLocation() {
+    exists(BindingStringParser::BindingPath path |
+      this = TStaticBindingPath(_, path) and
+      result = path.getLocation()
+    )
+    or
+    exists(DataFlow::Node pathValue |
+      this = TDynamicBindingPath(_, pathValue) and
+      result = pathValue.asExpr().getLocation()
+    )
   }
+
+  Binding getBinding() { result.getBindingPath() = this }
 }
 
 /**
