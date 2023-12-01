@@ -160,80 +160,82 @@ private class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPro
   }
 }
 
-private predicate earlyPathPropertyBinding(DataFlow::NewNode newNode, DataFlow::SourceNode binding, DataFlow::Node bindingPath) {
-    // Property binding via an object literal binding with property `path`.
-    exists(Property path, DataFlow::Node pathValue |
-      newNode.getAnArgument().getALocalSource() = binding and
-      binding.asExpr().(ObjectExpr).getPropertyByName("path") = path and
-      pathValue = path.getInit().flow()
-    |
-      if exists(pathValue.getALocalSource())
-      then pathValue.getALocalSource() = bindingPath
-      else pathValue = bindingPath // e.g., path: "/" + someVar
-    )
-    or
-    exists(
-      DataFlow::ObjectLiteralNode valueBinding,
-      Property valueProperty,
-      Property partsProperty,
-      DataFlow::ArrayLiteralNode partsArray,
-      DataFlow::ObjectLiteralNode partElement,
-      DataFlow::Node pathValue
-    |
-      valueProperty = binding.asExpr().(ObjectExpr).getPropertyByName("value") and
-      valueProperty.getInit().flow().getALocalSource() = valueBinding and
-      partsProperty = valueBinding.asExpr().(ObjectExpr).getPropertyByName("parts") and
-      partsArray = partsProperty.getInit().flow().getALocalSource() and
-      partElement = partsArray.getAnElement() and
-      pathValue = partElement.asExpr().(ObjectExpr).getPropertyByName("path").getInit().flow() and
-      if exists(pathValue.getALocalSource())
-      then pathValue.getALocalSource() = bindingPath
-      else pathValue = bindingPath
-    |
-      newNode.getAnArgument().getALocalSource() = binding
-    )
+private predicate earlyPathPropertyBinding(
+  DataFlow::NewNode newNode, DataFlow::SourceNode binding, DataFlow::Node bindingPath
+) {
+  // Property binding via an object literal binding with property `path`.
+  exists(Property path, DataFlow::Node pathValue |
+    newNode.getAnArgument().getALocalSource() = binding and
+    binding.asExpr().(ObjectExpr).getPropertyByName("path") = path and
+    pathValue = path.getInit().flow()
+  |
+    if exists(pathValue.getALocalSource())
+    then pathValue.getALocalSource() = bindingPath
+    else pathValue = bindingPath // e.g., path: "/" + someVar
+  )
+  or
+  // Propery binding where the binding is the binding path.
+  exists(Property prop |
+    newNode.getAnArgument().getALocalSource().asExpr().(ObjectExpr).getAProperty() = prop and
+    prop.getInit().flow().getALocalSource() = binding and
+    binding = bindingPath and
+    binding.getStringValue() instanceof BindingString
+  )
+  or
+  exists(
+    DataFlow::ObjectLiteralNode valueBinding, Property valueProperty, Property partsProperty,
+    DataFlow::ArrayLiteralNode partsArray, DataFlow::ObjectLiteralNode partElement,
+    DataFlow::Node pathValue
+  |
+    valueProperty = binding.asExpr().(ObjectExpr).getPropertyByName("value") and
+    valueProperty.getInit().flow().getALocalSource() = valueBinding and
+    partsProperty = valueBinding.asExpr().(ObjectExpr).getPropertyByName("parts") and
+    partsArray = partsProperty.getInit().flow().getALocalSource() and
+    partElement = partsArray.getAnElement() and
+    pathValue = partElement.asExpr().(ObjectExpr).getPropertyByName("path").getInit().flow() and
+    if exists(pathValue.getALocalSource())
+    then pathValue.getALocalSource() = bindingPath
+    else pathValue = bindingPath
+  |
+    newNode.getAnArgument().getALocalSource() = binding
+  )
 }
 
-private predicate latePathBinding(DataFlow::MethodCallNode bindingCall, DataFlow::SourceNode binding, DataFlow::Node bindingPath) {
+private predicate latePathBinding(
+  DataFlow::MethodCallNode bindingCall, DataFlow::SourceNode binding, DataFlow::Node bindingPath
+) {
   (
-    exists(LateJavaScriptPropertyBindingMethodCall lateJavaScriptPropertyBindingMethodCall|
-    bindingCall = lateJavaScriptPropertyBindingMethodCall.asMethodCallNode() and
-    binding = lateJavaScriptPropertyBindingMethodCall.getBinding())
+    exists(LateJavaScriptPropertyBindingMethodCall lateJavaScriptPropertyBindingMethodCall |
+      bindingCall = lateJavaScriptPropertyBindingMethodCall.asMethodCallNode() and
+      binding = lateJavaScriptPropertyBindingMethodCall.getBinding()
+    )
     or
     exists(BindElementMethodCallNode bindElementMethodCall |
-    bindingCall = bindElementMethodCall and
-    binding = bindElementMethodCall.getArgument(0).getALocalSource())
-  )
-  and
-  (
-    exists(Property path, DataFlow::Node pathValue |
-      binding.asExpr().(ObjectExpr).getPropertyByName("path") = path and
-      pathValue = path.getInit().flow()
-    |
-      if exists(pathValue.getALocalSource())
-      then pathValue.getALocalSource() = bindingPath
-      else pathValue = bindingPath // e.g., path: "/" + someVar
+      bindingCall = bindElementMethodCall and
+      binding = bindElementMethodCall.getArgument(0).getALocalSource()
     )
-    or
-    exists(
-      DataFlow::ObjectLiteralNode valueBinding,
-      Property valueProperty,
-      Property partsProperty,
-      DataFlow::ArrayLiteralNode partsArray,
-      DataFlow::ObjectLiteralNode partElement,
-      DataFlow::Node pathValue
-    |
-      valueProperty = binding.asExpr().(ObjectExpr).getPropertyByName("value") and
-      valueProperty.getInit().flow().getALocalSource() = valueBinding and
-      partsProperty = valueBinding.asExpr().(ObjectExpr).getPropertyByName("parts") and
-      partsArray = partsProperty.getInit().flow().getALocalSource() and
-      partElement = partsArray.getAnElement() and
-      pathValue = partElement.asExpr().(ObjectExpr).getPropertyByName("path").getInit().flow() and
-      if exists(pathValue.getALocalSource())
-      then pathValue.getALocalSource() = bindingPath
-      else pathValue = bindingPath
+  ) and
+  if exists(binding.getStringValue())
+  then bindingPath = binding
+  else
+    exists(DataFlow::ObjectLiteralNode bindingAsObject | binding = bindingAsObject |
+      if exists(bindingAsObject.getAPropertyWrite("path"))
+      then bindingPath = bindingAsObject.getAPropertyWrite("path").getRhs()
+      else
+        // Assume composite binding with parts property
+        exists(
+          DataFlow::PropWrite partsPropertyWrite, DataFlow::ArrayLiteralNode partsArray,
+          DataFlow::ObjectLiteralNode partElement, DataFlow::Node pathValue
+        |
+          partsPropertyWrite = bindingAsObject.getAPropertyWrite("parts") and
+          partsArray = partsPropertyWrite.getRhs().getALocalSource() and
+          partElement = partsArray.getAnElement() and
+          pathValue = partElement.getAPropertyWrite("path").getRhs() and
+          if exists(pathValue.getALocalSource())
+          then pathValue.getALocalSource() = bindingPath
+          else pathValue = bindingPath
+        )
     )
-  )
 }
 
 private newtype TBinding =
