@@ -36,7 +36,7 @@
     <Input 
         id="unit-test-target2"
         value="{/input}"
-        description="{controlRefModel1>/description}"
-        selectedKey="{controlRefModel2>/selectedKey}"
+        description="{controlRef2Model1>/description}"
+        selectedKey="{controlRef2Model2>/selectedKey}"
         showSuggestion="{viewModel2>/showSuggestion}" />
 </mvc:View>
