@@ -7,30 +7,20 @@ private class ContextBindingAttribute extends XmlAttribute {
 
 // TODO: add support for binding strings in strings such as `description: "Some {/description}"`
 private newtype TBindingString =
-  TBindingStringFromLiteral(StringLiteral stringLiteral) {
-    stringLiteral.getValue().matches("{%}") 
-  }
-  or
-  TBindingStringFromXmlAttribute(XmlAttribute attribute) {
-    attribute.getValue().matches("{%}")
-  }
-  or
+  TBindingStringFromLiteral(StringLiteral stringLiteral) { stringLiteral.getValue().matches("{%}") } or
+  TBindingStringFromXmlAttribute(XmlAttribute attribute) { attribute.getValue().matches("{%}") } or
   TBindingStringFromJsonProperty(JsonObject object, string propertyName) {
     object.getPropStringValue(propertyName).matches("{%}")
-  }
-  or
+  } or
   TBindingStringFromBindElementMethodCall(BindElementMethodCallNode bindElement) {
     bindElement.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue().matches("{%}")
-  }
-  or
+  } or
   TBindingStringFromBindPropertyMethodCall(BindPropertyMethodCallNode bindProperty) {
     bindProperty.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue().matches("{%}")
   }
 
 private class BindingStringReader extends TBindingString {
-  string toString() {
-    result = this.getBindingString()
-  }
+  string toString() { result = this.getBindingString() }
 
   string getBindingString() {
     exists(StringLiteral stringLiteral |
@@ -57,7 +47,6 @@ private class BindingStringReader extends TBindingString {
       this = TBindingStringFromBindPropertyMethodCall(bindProperty) and
       result = bindProperty.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue()
     )
-
   }
 
   Location getLocation() {
@@ -114,7 +103,8 @@ private newtype TLateJavaScriptPropertyBindingMethodCall =
   TBindProperty(BindPropertyMethodCallNode bindProperty) or
   TBindValue(BindValueMethodCallNode bindValue)
 
-private class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBindingMethodCall {
+private class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBindingMethodCall
+{
   string toString() {
     exists(BindPropertyMethodCallNode bindProperty |
       this = TBindProperty(bindProperty) and
@@ -256,7 +246,7 @@ private newtype TBinding =
    * That is a string enclosed by curly braces.
    */
   TXmlContextBinding(ContextBindingAttribute attribute, StaticBindingValue binding) {
-    exists(BindingStringReader reader|
+    exists(BindingStringReader reader |
       attribute.getValue() = reader.getBindingString() and
       attribute.getLocation() = reader.getLocation() and
       binding = BindingStringParser::parseBinding(reader)
@@ -278,14 +268,12 @@ private newtype TBinding =
     latePathBinding(bindProperty.asMethodCallNode(), binding, _)
   } or
   // Element binding via a call to `bindElement`.
-  TLateJavaScriptContextBinding(
-    BindElementMethodCallNode bindElementCall, DataFlow::Node binding
-  ) {
+  TLateJavaScriptContextBinding(BindElementMethodCallNode bindElementCall, DataFlow::Node binding) {
     latePathBinding(bindElementCall, binding, _)
   } or
   // Json binding
   TJsonPropertyBinding(JsonValue value, string key, StaticBindingValue binding) {
-    exists(JsonObject object, BindingStringReader reader|
+    exists(JsonObject object, BindingStringReader reader |
       value = object.getPropValue(key) and
       value.getStringValue() = reader.getBindingString() and
       value.getLocation() = reader.getLocation() and
@@ -298,8 +286,13 @@ private BindingStringParser::BindingPath getABindingPath(BindingStringParser::Me
   or
   result = getABindingPath(member.getValue().(BindingStringParser::Object).getAMember())
   or
-  result = getABindingPath(member.getValue().(BindingStringParser::Array).getAValue().(BindingStringParser::Object).getAMember())
-
+  result =
+    getABindingPath(member
+          .getValue()
+          .(BindingStringParser::Array)
+          .getAValue()
+          .(BindingStringParser::Object)
+          .getAMember())
 }
 
 private newtype TBindingPath =
@@ -307,23 +300,24 @@ private newtype TBindingPath =
     binding.asBindingPath() = path
     or
     path = getABindingPath(binding.asObject().getAMember())
-  }
-  or
+  } or
   TDynamicBindingPath(DataFlow::SourceNode binding, DataFlow::Node bindingPath) {
-    (earlyPathPropertyBinding(_, binding, bindingPath)
-    or
-    latePathBinding(_, binding, bindingPath)) and
+    (
+      earlyPathPropertyBinding(_, binding, bindingPath)
+      or
+      latePathBinding(_, binding, bindingPath)
+    ) and
     not bindingPath.mayHaveStringValue(_)
   }
 
 class BindingPath extends TBindingPath {
   string toString() {
-    exists (BindingStringParser::BindingPath path |
+    exists(BindingStringParser::BindingPath path |
       this = TStaticBindingPath(_, path) and
       result = path.toString()
     )
     or
-    exists (DataFlow::Node pathValue |
+    exists(DataFlow::Node pathValue |
       this = TDynamicBindingPath(_, pathValue) and
       if pathValue.mayHaveStringValue(_)
       then pathValue.mayHaveStringValue(result)
@@ -429,7 +423,7 @@ class Binding extends TBinding {
   }
 
   BindingPath getBindingPath() {
-    exists(StaticBindingValue bindingValue|
+    exists(StaticBindingValue bindingValue |
       this = TXmlPropertyBinding(_, bindingValue) and
       result = TStaticBindingPath(bindingValue, _)
       or
@@ -440,7 +434,7 @@ class Binding extends TBinding {
       result = TStaticBindingPath(bindingValue, _)
     )
     or
-    exists(DataFlow::Node bindingValue|
+    exists(DataFlow::Node bindingValue |
       this = TEarlyJavaScriptPropertyBinding(_, bindingValue) and
       result = TDynamicBindingPath(bindingValue, _)
       or
