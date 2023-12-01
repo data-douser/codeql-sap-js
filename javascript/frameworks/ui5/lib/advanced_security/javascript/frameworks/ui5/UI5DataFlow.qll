@@ -231,7 +231,8 @@ module UI5DataFlow {
       boundNode.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
       exists(DataFlow::SourceNode receiver, UI5Model model |
         receiver = this.getReceiver().getALocalSource() and
-        model = boundNode.getBindingPath().getModel()
+        /* TODO: is getModel(_) the correct one? */
+        model = boundNode.getBindingPath().getModel(_)
       |
         model = receiver
         or
@@ -257,7 +258,8 @@ module UI5DataFlow {
         exists(DataFlow::SourceNode receiver, UI5Model model |
           receiver = setProp.getReceiver().getALocalSource()
         |
-          model = boundNode.getBindingPath().getModel() and
+          /* TODO: is getModel(_) the correct one? */
+          model = boundNode.getBindingPath().getModel(_) and
           (
             model = receiver
             or

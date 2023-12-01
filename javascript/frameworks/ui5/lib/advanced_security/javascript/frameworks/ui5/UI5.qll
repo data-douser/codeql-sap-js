@@ -491,7 +491,7 @@ module UI5 {
 
   import ManifestJson
 
-  /** 
+  /**
    * A UI5 Component that may contain other controllers or controls.
    */
   class Component extends Extension {
@@ -854,9 +854,12 @@ module UI5 {
       )
     }
 
-    override string getPathString(Property property) { result = "WIP" }
+    override string getPathString(Property property) {
+      /* TODO */
+      result = property.toString()
+    }
 
-    override string getPathString() { result = "WIP" }
+    override string getPathString() { result = "TODO" }
   }
 
   class BindingMode extends RequiredObject {
