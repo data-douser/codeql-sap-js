@@ -86,8 +86,13 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
       // https://sapui5.hana.ondemand.com/sdk/#/topic/54e0ddf695af4a6c978472cecb01c64d.html
       // /SalesOrderList('0500000000')
       value =
-       reader.getBindingString().regexpFind("(?:#|#@)?(?:[a-zA-Z0-9][a-zA-Z0-9_]*|[a-zA-Z0-9][a-zA-Z0-9_]:[a-zA-Z0-9_]+)(?:\\([^\\)]*\\))?", _, begin) and
+        reader
+            .getBindingString()
+            .regexpFind("(?:#|#@)?(?:[a-zA-Z0-9][a-zA-Z0-9_]*|[a-zA-Z0-9][a-zA-Z0-9_]:[a-zA-Z0-9_]+)(?:\\([^\\)]*\\))?",
+              _, begin) and
       begin + value.length() - 1 = end
+      // exclude keyword
+      and not value in ["true", "false", "null"]
     } or
     MkGreaterThanToken(int begin, int end, string value, BindingStringReader reader) {
       begin = reader.getBindingString().indexOf(">") and
