@@ -910,7 +910,9 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
       exists(Token next |
         next = getNextSkippingWhitespace(source) and
         not source instanceof ForwardSlashToken and
-        not next instanceof GreaterThanToken
+        not next instanceof GreaterThanToken and
+        // exclude cases like {path: } where path looks like a relative binding, but is a key
+        not next instanceof ColonToken
       |
         mkBindingPathComponentList(source, pathComponents, _)
       )
