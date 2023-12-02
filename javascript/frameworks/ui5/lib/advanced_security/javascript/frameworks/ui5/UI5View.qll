@@ -144,52 +144,58 @@ abstract class UI5BindingPath extends Locatable {
    * Gets the model, attached to a SapElement (either a control/view/controller), referred to by this binding path.
    */
   UI5Model getModel() {
-    /* 1. The result is a named model and the names in the controlSetModel call and in the binding path match up, but the viewSetModelCall isn't the case. */
-    exists(MethodCallNode controlSetModelCall |
-      controlSetModelCall.getMethodName() = "setModel" and
-      this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
-      controlSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
-        this.getModelName() and
-      result.flowsTo(controlSetModelCall.getArgument(0))
-    )
-    or
-    /* 2. The result is a default (nameless) model and both the controlSetModel call and the binding path lack a model name, but the viewSetModeCall isn't the case. */
-    exists(MethodCallNode controlSetModelCall |
-      controlSetModelCall.getMethodName() = "setModel" and
-      this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
-      not exists(controlSetModelCall.getArgument(1)) and
-      not exists(this.getModelName()) and
-      result.flowsTo(controlSetModelCall.getArgument(0))
-    )
-    or
-    /* 3. There is no call to `setModel` on a control reference that sets a named model, so we look if the view reference has one. */
-    exists(MethodCallNode viewSetModelCall |
-      viewSetModelCall.getMethodName() = "setModel" and
-      this.getView().getController().getAViewReference().flowsTo(viewSetModelCall.getReceiver()) and
-      viewSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
-        this.getModelName() and
-      result.flowsTo(viewSetModelCall.getArgument(0))
+    (
+      /* 1. The result is a named model and the names in the controlSetModel call and in the binding path match up, but the viewSetModelCall isn't the case. */
+      exists(MethodCallNode controlSetModelCall |
+        controlSetModelCall.getMethodName() = "setModel" and
+        this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
+        controlSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
+          this.getModelName() and
+        result.flowsTo(controlSetModelCall.getArgument(0))
+      )
+      or
+      /* 2. The result is a default (nameless) model and both the controlSetModel call and the binding path lack a model name, but the viewSetModeCall isn't the case. */
+      exists(MethodCallNode controlSetModelCall |
+        controlSetModelCall.getMethodName() = "setModel" and
+        this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
+        not exists(controlSetModelCall.getArgument(1)) and
+        not exists(this.getModelName()) and
+        result.flowsTo(controlSetModelCall.getArgument(0))
+      )
+      or
+      /* 3. There is no call to `setModel` on a control reference that sets a named model, so we look if the view reference has one. */
+      exists(MethodCallNode viewSetModelCall |
+        viewSetModelCall.getMethodName() = "setModel" and
+        this.getView().getController().getAViewReference().flowsTo(viewSetModelCall.getReceiver()) and
+        viewSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
+          this.getModelName() and
+        result.flowsTo(viewSetModelCall.getArgument(0))
+      ) and
+      not exists(MethodCallNode controlSetModelCall |
+        controlSetModelCall.getMethodName() = "setModel" and
+        this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
+        controlSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
+          this.getModelName()
+      )
+      or
+      /* 4. There is no call to `setModel` on a control reference that set an unnamed mode, so we look if the view reference has one. */
+      exists(MethodCallNode viewSetModelCall |
+        viewSetModelCall.getMethodName() = "setModel" and
+        this.getView().getController().getAViewReference().flowsTo(viewSetModelCall.getReceiver()) and
+        not exists(viewSetModelCall.getArgument(1)) and
+        not exists(this.getModelName()) and
+        result.flowsTo(viewSetModelCall.getArgument(0))
+      ) and
+      not exists(MethodCallNode controlSetModelCall |
+        controlSetModelCall.getMethodName() = "setModel" and
+        this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
+        not exists(controlSetModelCall.getArgument(1)) and
+        not exists(this.getModelName())
+      )
     ) and
-    not exists(MethodCallNode controlSetModelCall |
-      controlSetModelCall.getMethodName() = "setModel" and
-      this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
-      controlSetModelCall.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue() =
-        this.getModelName()
-    )
-    or
-    /* 4. There is no call to `setModel` on a control reference that set an unnamed mode, so we look if the view reference has one. */
-    exists(MethodCallNode viewSetModelCall |
-      viewSetModelCall.getMethodName() = "setModel" and
-      this.getView().getController().getAViewReference().flowsTo(viewSetModelCall.getReceiver()) and
-      not exists(viewSetModelCall.getArgument(1)) and
-      not exists(this.getModelName()) and
-      result.flowsTo(viewSetModelCall.getArgument(0))
-    ) and
-    not exists(MethodCallNode controlSetModelCall |
-      controlSetModelCall.getMethodName() = "setModel" and
-      this.getControlDeclaration().getAReference().flowsTo(controlSetModelCall.getReceiver()) and
-      not exists(controlSetModelCall.getArgument(1)) and
-      not exists(this.getModelName())
+    /* This binding path and the resulting model should live inside the same webapp */
+    exists(WebApp webApp |
+      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
     )
   }
 

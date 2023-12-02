@@ -232,7 +232,7 @@ module UI5DataFlow {
       exists(DataFlow::SourceNode receiver, UI5Model model |
         receiver = this.getReceiver().getALocalSource() and
         /* TODO: is getModel(_) the correct one? */
-        model = boundNode.getBindingPath().getModel(_)
+        model = boundNode.getBindingPath().getModel()
       |
         model = receiver
         or
@@ -259,7 +259,7 @@ module UI5DataFlow {
           receiver = setProp.getReceiver().getALocalSource()
         |
           /* TODO: is getModel(_) the correct one? */
-          model = boundNode.getBindingPath().getModel(_) and
+          model = boundNode.getBindingPath().getModel() and
           (
             model = receiver
             or
