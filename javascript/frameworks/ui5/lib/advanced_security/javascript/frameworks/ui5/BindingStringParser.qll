@@ -381,6 +381,8 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
       this.getBegin() < t.getBegin() and
       this.getEnd() > t.getEnd()
     }
+
+    stdlib::Location getLocation() { result = getReader().getLocation() }
   }
 
   private class WhiteSpaceToken extends Token, MkWhiteSpaceToken { }
@@ -463,6 +465,8 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
     Member getMember(int index) { result = nthMember(this, index) }
 
     Member getAMember() { result = getMember(_) }
+
+    stdlib::Location getLocation() { result = getAMember().getLocation() }
   }
 
   private newtype TMember =
@@ -512,6 +516,12 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
     predicate isValue() { this = MkValueMember(_, _) }
 
     predicate isBindingPath() { this = MkBindingPathMember(_) }
+
+    stdlib::Location getLocation() {
+      result = this.getValue().getLocation()
+      or
+      result = this.getBindingPath().getLocation()
+    }
   }
 
   private predicate mkMember(IdentToken first, Member member, Token last) {
@@ -789,6 +799,8 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
     }
 
     string asString() { this = MkString(result, _) }
+
+    stdlib::Location getLocation() { result = getReader().getLocation() }
   }
 
   class Object extends Value, MkObject {
