@@ -141,7 +141,7 @@ abstract class UI5BindingPath extends Locatable {
   abstract UI5Control getControlDeclaration();
 
   /**
-   * Gets the model, attached to a SapElement (either a control/view/controller), referred to by this binding path.
+   * Gets the model, attached to either a control or a view, that this binding path refers to.
    */
   UI5Model getModel() {
     (
