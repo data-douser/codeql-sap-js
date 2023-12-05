@@ -571,8 +571,8 @@ class XmlRootElement extends XmlElement {
    * Returns a XML namespace declaration scoped to the element.
    *
    * The predicate relies on location information to determine the scope of the namespace declaration.
-   * A XML element with the same starting line and column, but a larger ending line and column is considered the
-   * scope of the namespace declaration.
+   * A XML element with the same starting line and column, but a larger ending line and column is 
+   * considered the scope of the namespace declaration.
    */
   XmlNamespace getANamespaceDeclaration() {
     exists(Location elemLoc, Location nsLoc |
