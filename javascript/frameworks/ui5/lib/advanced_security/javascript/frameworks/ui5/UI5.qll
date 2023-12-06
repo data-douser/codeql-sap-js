@@ -15,13 +15,12 @@ module UI5 {
   }
 
   private newtype TResourceRoot =
-    MkResourceRoot(string name, string root, string source) {
+    MkResourceRoot(string name, string root, SapUiCoreScriptElement coreScript) {
       exists(
         JsonParser<getAResourceRootConfig/0>::JsonObject config,
-        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry, SapUiCoreScriptElement coreScript
+        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry
       |
-        source = coreScript.getAttributeByName("data-sap-ui-resourceroots").getValue() and
-        source = config.getSource() and
+        config.getSource() = coreScript.getAttributeByName("data-sap-ui-resourceroots").getValue() and
         config.getAMember() = configEntry
       |
         name = configEntry.getKey() and
@@ -34,7 +33,7 @@ module UI5 {
 
     string getRoot() { this = MkResourceRoot(_, result, _) }
 
-    string getSource() { this = MkResourceRoot(_, _, result) }
+    SapUiCoreScriptElement getCoreScript() { this = MkResourceRoot(_, _, result) }
 
     string toString() { result = this.getName() + ": " + this.getRoot() }
   }
@@ -50,8 +49,8 @@ module UI5 {
       result = unresolvedRoot.getName()
     }
 
-    string getSource() {
-      result = unresolvedRoot.getSource()
+    SapUiCoreScriptElement getCoreScript() {
+      result = unresolvedRoot.getCoreScript()
     }
 
     predicate contains(File file) {
@@ -69,11 +68,11 @@ module UI5 {
     }
 
     ResourceRoot getAResourceRoot() {
-      result.getSource() = this.getAttributeByName("data-sap-ui-resourceroots").getValue()
+      result.getCoreScript() = this
     }
 
     ResolvedResourceRoot getAResolvedResourceRoot() {
-      result.getSource() = this.getAttributeByName("data-sap-ui-resourceroots").getValue()
+      result.getCoreScript() = this
     }
   }
 
