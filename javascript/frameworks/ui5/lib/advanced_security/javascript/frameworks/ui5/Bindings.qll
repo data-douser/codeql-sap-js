@@ -316,6 +316,16 @@ class BindingPath extends TBindingPath {
     )
   }
 
+  /**
+   * Get the string representation of a binding path if it can be statically determined.
+   */
+  string asString() {
+    exists(BindingStringParser::BindingPath path |
+      this = TStaticBindingPath(_, path) and
+      result = path.toString()
+    )
+  }
+
   Location getLocation() {
     exists(BindingStringParser::BindingPath path |
       this = TStaticBindingPath(_, path) and
