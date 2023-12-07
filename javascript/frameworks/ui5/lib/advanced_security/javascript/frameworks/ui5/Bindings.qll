@@ -352,6 +352,27 @@ class BindingPath extends TBindingPath {
     )
   }
 
+  string getModelName() {
+    exists(BindingStringParser::BindingPath path |
+      this = TStaticBindingPath(_, path) and
+      result = path.getModel()
+    )
+  }
+
+  predicate isRelative() {
+    exists(BindingStringParser::BindingPath path |
+      this = TStaticBindingPath(_, path) and
+      path.isRelative()
+    )
+  }
+
+  predicate isAbsolute() {
+    exists(BindingStringParser::BindingPath path |
+      this = TStaticBindingPath(_, path) and
+      path.isAbsolute()
+    )
+  }
+
   Binding getBinding() { result.getBindingPath() = this }
 }
 
