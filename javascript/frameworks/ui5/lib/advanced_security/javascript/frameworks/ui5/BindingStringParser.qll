@@ -6,7 +6,7 @@ signature class BindingStringReaderSig {
 }
 
 /**
- * A  UI5 binding path parser.
+ * A UI5 binding path parser.
  */
 module BindingStringParser<BindingStringReaderSig BindingStringReader> {
   private newtype TToken =
