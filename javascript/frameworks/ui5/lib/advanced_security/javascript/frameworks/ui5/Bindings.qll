@@ -352,6 +352,106 @@ class BindingPath extends TBindingPath {
   Binding getBinding() { result.getBindingPath() = this }
 }
 
+private newtype TBindingTarget =
+  TXmlPropertyBindingTarget(XmlAttribute target, Binding binding) {
+    binding = TXmlPropertyBinding(target, _)
+  } or
+  TXmlContextBindingTarget(ContextBindingAttribute target, Binding binding) {
+    binding = TXmlContextBinding(target, _)
+  } or
+  TLateJavaScriptBindingTarget(DataFlow::Node target, Binding binding) {
+    exists(DataFlow::MethodCallNode call |
+      binding = TLateJavaScriptContextBinding(call, _) and
+      call.getReceiver() = target
+    )
+    or
+    exists(LateJavaScriptPropertyBinding propertyBinding |
+      binding = TLateJavaScriptPropertyBinding(propertyBinding, _) and
+      target = propertyBinding.getTarget()
+    )
+  } or
+  TJsonPropertyBindingTarget(JsonObject target, string key, Binding binding) {
+    binding = TJsonPropertyBinding(target, key, _)
+  }
+
+class BindingTarget extends TBindingTarget {
+  string toString() {
+    exists(XmlAttribute attribute |
+      this = TXmlPropertyBindingTarget(attribute, _) and
+      result = attribute.getName()
+    )
+    or
+    exists(ContextBindingAttribute attribute |
+      this = TXmlContextBindingTarget(attribute, _) and
+      result = attribute.getName()
+    )
+    or
+    exists(DataFlow::Node target |
+      this = TLateJavaScriptBindingTarget(target, _) and
+      result = target.toString()
+    )
+    or
+    exists(JsonObject target, string key |
+      this = TJsonPropertyBindingTarget(target, key, _) and
+      result = target.toString() + "." + key
+    )
+  }
+
+  XmlAttribute asXmlAttribute() {
+    exists(XmlAttribute target |
+      (
+        this = TXmlPropertyBindingTarget(target, _)
+        or
+        this = TXmlContextBindingTarget(target, _)
+      ) and
+      result = target
+    )
+  }
+
+  JsonObject asJsonObject() {
+    exists(JsonObject target |
+      this = TJsonPropertyBindingTarget(target, _, _) and
+      result = target
+    )
+  }
+
+  DataFlow::Node asDataFlowNode() {
+    exists(DataFlow::Node target |
+      this = TLateJavaScriptBindingTarget(target, _) and
+      result = target
+    )
+  }
+
+  Location getLocation() {
+    exists(XmlAttribute attribute |
+      this = TXmlPropertyBindingTarget(attribute, _) and
+      result = attribute.getLocation()
+    )
+    or
+    exists(ContextBindingAttribute attribute |
+      this = TXmlContextBindingTarget(attribute, _) and
+      result = attribute.getLocation()
+    )
+    or
+    exists(DataFlow::Node target |
+      this = TLateJavaScriptBindingTarget(target, _) and
+      result = target.asExpr().getLocation()
+    )
+    or
+    exists(JsonObject target, string key |
+      this = TJsonPropertyBindingTarget(target, key, _) and
+      result = target.getLocation()
+    )
+  }
+
+  Binding getBinding() {
+    this = TXmlPropertyBindingTarget(_, result) or
+    this = TXmlContextBindingTarget(_, result) or
+    this = TLateJavaScriptBindingTarget(_, result) or
+    this = TJsonPropertyBindingTarget(_, _, result)
+  }
+}
+
 /**
  * A class to reason about UI5 bindings.
  * This is currently limited to:
@@ -463,4 +563,6 @@ class Binding extends TBinding {
       result = TDynamicBindingPath(bindingValue, _)
     )
   }
+
+  BindingTarget getBindingTarget() { result.getBinding() = this }
 }
