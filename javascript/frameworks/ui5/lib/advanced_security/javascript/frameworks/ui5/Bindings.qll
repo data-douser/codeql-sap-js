@@ -263,8 +263,8 @@ private newtype TBinding =
     latePathBinding(bindElementCall, binding, _)
   } or
   // Json binding
-  TJsonPropertyBinding(JsonValue value, string key, StaticBindingValue binding) {
-    exists(JsonObject object, BindingStringReader reader |
+  TJsonPropertyBinding(JsonObject object, string key, StaticBindingValue binding) {
+    exists(JsonValue value, BindingStringReader reader |
       value = object.getPropValue(key) and
       value.getStringValue() = reader.getBindingString() and
       value.getLocation() = reader.getLocation() and
