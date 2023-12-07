@@ -51,7 +51,7 @@ module UI5DataFlow {
       start =
         bindingPath
             .(XmlBindingPath)
-            .getControl()
+            .getControlDeclaration()
             .getDefinition()
             .getMetadata()
             .getProperty(propName) and
@@ -60,7 +60,7 @@ module UI5DataFlow {
       end =
         bindingPath
             .(XmlBindingPath)
-            .getControl()
+            .getControlDeclaration()
             .getDefinition()
             .getMetadata()
             .getProperty(propName) and
