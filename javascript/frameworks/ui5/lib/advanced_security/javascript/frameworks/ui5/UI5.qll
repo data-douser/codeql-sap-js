@@ -6,60 +6,59 @@ private import advanced_security.javascript.frameworks.ui5.UI5View
 private import advanced_security.javascript.frameworks.ui5.UI5HTML
 
 module UI5 {
-  private class ResourceRootPathString extends PathString {
-    SapUiCoreScriptElement coreScript;
-
-    ResourceRootPathString() { this = coreScript.getAResourceRoot().getRoot() }
-
-    override Folder getARootFolder() { result = coreScript.getFile().getParentContainer() }
+  private module WebAppResourceRootJsonReader implements JsonParser::MakeJsonReaderSig<WebApp> {
+    class JsonReader extends WebApp{
+      string getJson() {
+        // We match on the lowercase to cover all the possible variants of wrtiting the attribute name.
+        exists(string resourceRootAttributeName | resourceRootAttributeName.toLowerCase() = "data-sap-ui-resourceroots" |
+          result = this.getCoreScript().getAttributeByName(resourceRootAttributeName).getValue()
+        )
+      }
+    }
   }
 
-  private newtype TResourceRoot =
-    MkResourceRoot(string name, string root, SapUiCoreScriptElement coreScript) {
-      exists(
-        JsonParser<getAResourceRootConfig/0>::JsonObject config,
-        JsonParser<getAResourceRootConfig/0>::JsonMember configEntry
-      |
-        config.getSource() = coreScript.getAttributeByName("data-sap-ui-resourceroots").getValue() and
-        config.getAMember() = configEntry
-      |
-        name = configEntry.getKey() and
-        root = configEntry.getValue().asString()
-      )
-    }
+  private module WebAppResourceRootJsonParser = JsonParser::Make<WebApp, WebAppResourceRootJsonReader>;
 
-  class ResourceRoot extends TResourceRoot, MkResourceRoot {
-    string getName() { this = MkResourceRoot(result, _, _) }
-
-    string getRoot() { this = MkResourceRoot(_, result, _) }
-
-    SapUiCoreScriptElement getCoreScript() { this = MkResourceRoot(_, _, result) }
-
-    string toString() { result = this.getName() + ": " + this.getRoot() }
+  private predicate isAnUnResolvedResourceRoot(WebApp webApp, string name, string path) {
+    exists(
+      WebAppResourceRootJsonParser::JsonObject config,
+      WebAppResourceRootJsonParser::JsonMember configEntry
+    |
+      config.getReader() = webApp and
+      config.getAMember() = configEntry and
+      name = configEntry.getKey() and
+      path = configEntry.getValue().asString()
+    )
   }
 
-  class ResolvedResourceRoot extends Container {
-    ResourceRoot unresolvedRoot;
-    ResolvedResourceRoot() {
-      exists(ResourceRootPathString resourceRootPathString | unresolvedRoot.getRoot() = resourceRootPathString |
-      this = resourceRootPathString.resolve(resourceRootPathString.getARootFolder()).getContainer())
+  class ResourceRootPathString extends PathString {
+    WebApp webApp;
+    ResourceRootPathString() {
+      isAnUnResolvedResourceRoot(webApp, _, this)
     }
 
-    string getName() {
-      result = unresolvedRoot.getName()
+    override Folder getARootFolder() {
+      result = webApp.getWebAppFolder()
+    }
+  }
+
+  class ResourceRoot extends Container {
+    string name;
+    string path;
+    WebApp webApp;
+    ResourceRoot() {
+      isAnUnResolvedResourceRoot(webApp, name, path)
+      and
+      path.(PathString).resolve(webApp.getWebAppFolder()).getContainer() = this
     }
 
-    SapUiCoreScriptElement getCoreScript() {
-      result = unresolvedRoot.getCoreScript()
-    }
+    string getName() { result = name }
+
+    WebApp getWebApp() { result = webApp}
 
     predicate contains(File file) {
-      file.getParentContainer+() = this
+      this.getAChildContainer+().getAFile() = file
     }
-  }
-
-  private string getAResourceRootConfig() {
-    result = any(SapUiCoreScriptElement script).getAttributeByName("data-sap-ui-resourceroots").getValue()
   }
 
   class SapUiCoreScriptElement extends HTML::ScriptElement {
@@ -67,13 +66,7 @@ module UI5 {
       this.getSourcePath().matches(["%sap-ui-core.js", "%sap-ui-core-nojQuery.js"])
     }
 
-    ResourceRoot getAResourceRoot() {
-      result.getCoreScript() = this
-    }
-
-    ResolvedResourceRoot getAResolvedResourceRoot() {
-      result.getCoreScript() = this
-    }
+    WebApp getWebApp() { result = this.getFile() }
   }
 
   /** A UI5 web application manifest associated with a bootstrapped UI5 web application. */
@@ -94,10 +87,16 @@ module UI5 {
 
     WebApp() { coreScript.getFile() = this }
 
-    File getAResource() { coreScript.getAResolvedResourceRoot().contains(result) }
+    SapUiCoreScriptElement getCoreScript() { result = coreScript }
 
-    File getResource(string path) {
-      getWebAppFolder().getAbsolutePath() + "/" + path = result.getAbsolutePath()
+    ResourceRoot getAResourceRoot() {
+      result.getWebApp() = this
+    }
+
+    File getAResource() { getAResourceRoot().contains(result)}
+
+    File getResource(string relativePath) {
+      result.getAbsolutePath() = getAResourceRoot().getAbsolutePath() + "/" + relativePath
     }
 
     Folder getWebAppFolder() { result = this.getParentContainer() }
@@ -110,10 +109,10 @@ module UI5 {
     File getInitialModule() {
       exists(
         string initialModuleResourcePath, string resolvedModulePath,
-        ResolvedResourceRoot resourceRoot
+        ResourceRoot resourceRoot
       |
         initialModuleResourcePath = coreScript.getAttributeByName("data-sap-ui-onInit").getValue() and
-        coreScript.getAResolvedResourceRoot() = resourceRoot and
+        resourceRoot.getWebApp() = this and
         resolvedModulePath =
           initialModuleResourcePath
               .regexpReplaceAll("^module\\s*:\\s*", "")
