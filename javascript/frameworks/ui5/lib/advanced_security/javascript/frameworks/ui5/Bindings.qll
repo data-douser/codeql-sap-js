@@ -87,66 +87,59 @@ class BindingString extends string {
   BindingString() { this = any(BindingStringReader reader).getBindingString() }
 }
 
-private class BindPropertyMethodCallNode extends DataFlow::MethodCallNode {
+private class BindPropertyMethodCallNode extends LateJavaScriptPropertyBinding,
+  DataFlow::MethodCallNode
+{
   BindPropertyMethodCallNode() { this.getMethodName() = "bindProperty" }
+
+  override DataFlow::Node getBinding() { result = this.getArgument(1) }
+
+  override DataFlow::Node getPropertyNameNode() { result = this.getArgument(0) }
+
+  override string getPropertyName() {
+    result = this.getPropertyNameNode().getALocalSource().getStringValue()
+  }
+
+  override DataFlow::Node getTarget() { result = this.getReceiver() }
 }
 
 private class BindElementMethodCallNode extends DataFlow::MethodCallNode {
   BindElementMethodCallNode() { this.getMethodName() = "bindElement" }
 }
 
-private class BindValueMethodCallNode extends DataFlow::MethodCallNode {
+private class BindValueMethodCallNode extends LateJavaScriptPropertyBinding,
+  DataFlow::MethodCallNode
+{
   BindValueMethodCallNode() { this.getMethodName() = "bindValue" }
+
+  override DataFlow::Node getBinding() { result = this.getArgument(1) }
+
+  override DataFlow::Node getPropertyNameNode() { none() }
+
+  override string getPropertyName() { result = "value" }
+
+  override DataFlow::Node getTarget() { result = this.getReceiver() }
 }
 
-private newtype TLateJavaScriptPropertyBindingMethodCall =
-  TBindProperty(BindPropertyMethodCallNode bindProperty) or
-  TBindValue(BindValueMethodCallNode bindValue)
+abstract private class LateJavaScriptPropertyBinding extends DataFlow::Node {
+  abstract DataFlow::Node getBinding();
 
-private class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBindingMethodCall
-{
-  string toString() {
-    exists(BindPropertyMethodCallNode bindProperty |
-      this = TBindProperty(bindProperty) and
+  abstract DataFlow::Node getPropertyNameNode();
+
+  abstract string getPropertyName();
+
+  abstract DataFlow::Node getTarget();
+
+  override string toString() {
+    if exists(getPropertyName())
+    then
       result =
-        "bindProperty(" + bindProperty.getArgument(0).toString() + ", " +
-          bindProperty.getArgument(1).toString() + ")"
-    )
-    or
-    exists(BindValueMethodCallNode bindValue |
-      this = TBindValue(bindValue) and
-      result = "bindValue(" + bindValue.getArgument(0).toString() + ", " + ")"
-    )
-  }
-
-  DataFlow::MethodCallNode asMethodCallNode() {
-    this = TBindProperty(result)
-    or
-    this = TBindValue(result)
-  }
-
-  string getPropertyName() {
-    exists(BindPropertyMethodCallNode bindProperty |
-      this = TBindProperty(bindProperty) and
-      result = bindProperty.getArgument(0).getStringValue()
-    )
-    or
-    exists(BindValueMethodCallNode bindValue |
-      this = TBindValue(bindValue) and
-      result = "value"
-    )
-  }
-
-  DataFlow::Node getBinding() {
-    exists(BindPropertyMethodCallNode bindProperty |
-      this = TBindProperty(bindProperty) and
-      result = bindProperty.getArgument(1).getALocalSource()
-    )
-    or
-    exists(BindValueMethodCallNode bindValue |
-      this = TBindValue(bindValue) and
-      result = bindValue.getArgument(0).getALocalSource()
-    )
+        "Binding property " + getPropertyName() + " of " + getTarget().toString() + " to " +
+          getBinding().toString()
+    else
+      result =
+        "Binding property " + getPropertyNameNode().toString() + "of " + getTarget().toString() +
+          " to " + getBinding().toString()
   }
 }
 
@@ -195,9 +188,9 @@ private predicate latePathBinding(
   DataFlow::MethodCallNode bindingCall, DataFlow::SourceNode binding, DataFlow::Node bindingPath
 ) {
   (
-    exists(LateJavaScriptPropertyBindingMethodCall lateJavaScriptPropertyBindingMethodCall |
-      bindingCall = lateJavaScriptPropertyBindingMethodCall.asMethodCallNode() and
-      binding = lateJavaScriptPropertyBindingMethodCall.getBinding()
+    exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding |
+      bindingCall = lateJavaScriptPropertyBinding and
+      binding = lateJavaScriptPropertyBinding.getBinding()
     )
     or
     exists(BindElementMethodCallNode bindElementMethodCall |
@@ -262,10 +255,8 @@ private newtype TBinding =
     earlyPathPropertyBinding(newNode, binding, _)
   } or
   // Property binding via a call to `bindProperty` or `bindValue`.
-  TLateJavaScriptPropertyBinding(
-    LateJavaScriptPropertyBindingMethodCall bindProperty, DataFlow::Node binding
-  ) {
-    latePathBinding(bindProperty.asMethodCallNode(), binding, _)
+  TLateJavaScriptPropertyBinding(LateJavaScriptPropertyBinding bindProperty, DataFlow::Node binding) {
+    latePathBinding(bindProperty, binding, _)
   } or
   // Element binding via a call to `bindElement`.
   TLateJavaScriptContextBinding(BindElementMethodCallNode bindElementCall, DataFlow::Node binding) {
@@ -393,10 +384,16 @@ class Binding extends TBinding {
         "Early JavaScript property binding: " + newNode.getArgument(0).toString() + " to " + binding
     )
     or
-    exists(LateJavaScriptPropertyBindingMethodCall bindProperty, DataFlow::Node binding |
+    exists(LateJavaScriptPropertyBinding bindProperty, DataFlow::Node binding |
       this = TLateJavaScriptPropertyBinding(bindProperty, binding) and
-      result =
-        "Late JavaScript property binding: " + bindProperty.getPropertyName() + " to " + binding
+      if exists(bindProperty.getPropertyName())
+      then
+        result =
+          "Late JavaScript property binding: " + bindProperty.getPropertyName() + " to " + binding
+      else
+        result =
+          "Late JavaScript property binding: " + bindProperty.getPropertyNameNode().toString() +
+            " to " + binding
     )
     or
     exists(BindElementMethodCallNode bindElementCall, DataFlow::Node binding |
