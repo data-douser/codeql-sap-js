@@ -1,13 +1,12 @@
 import javascript as stdlib
 
-signature string getBindingStringSig();
 signature class BindingStringReaderSig {
   string getBindingString();
   stdlib::Location getLocation();
 }
 
 /**
- * A  UI5 binding path parser.
+ * A UI5 binding path parser.
  */
 module BindingStringParser<BindingStringReaderSig BindingStringReader> {
   private newtype TToken =

@@ -87,66 +87,59 @@ class BindingString extends string {
   BindingString() { this = any(BindingStringReader reader).getBindingString() }
 }
 
-private class BindPropertyMethodCallNode extends DataFlow::MethodCallNode {
+private class BindPropertyMethodCallNode extends LateJavaScriptPropertyBinding,
+  DataFlow::MethodCallNode
+{
   BindPropertyMethodCallNode() { this.getMethodName() = "bindProperty" }
+
+  override DataFlow::Node getBinding() { result = this.getArgument(1) }
+
+  override DataFlow::Node getPropertyNameNode() { result = this.getArgument(0) }
+
+  override string getPropertyName() {
+    result = this.getPropertyNameNode().getALocalSource().getStringValue()
+  }
+
+  override DataFlow::Node getTarget() { result = this.getReceiver() }
 }
 
 private class BindElementMethodCallNode extends DataFlow::MethodCallNode {
   BindElementMethodCallNode() { this.getMethodName() = "bindElement" }
 }
 
-private class BindValueMethodCallNode extends DataFlow::MethodCallNode {
+private class BindValueMethodCallNode extends LateJavaScriptPropertyBinding,
+  DataFlow::MethodCallNode
+{
   BindValueMethodCallNode() { this.getMethodName() = "bindValue" }
+
+  override DataFlow::Node getBinding() { result = this.getArgument(1) }
+
+  override DataFlow::Node getPropertyNameNode() { none() }
+
+  override string getPropertyName() { result = "value" }
+
+  override DataFlow::Node getTarget() { result = this.getReceiver() }
 }
 
-private newtype TLateJavaScriptPropertyBindingMethodCall =
-  TBindProperty(BindPropertyMethodCallNode bindProperty) or
-  TBindValue(BindValueMethodCallNode bindValue)
+abstract private class LateJavaScriptPropertyBinding extends DataFlow::Node {
+  abstract DataFlow::Node getBinding();
 
-private class LateJavaScriptPropertyBindingMethodCall extends TLateJavaScriptPropertyBindingMethodCall
-{
-  string toString() {
-    exists(BindPropertyMethodCallNode bindProperty |
-      this = TBindProperty(bindProperty) and
+  abstract DataFlow::Node getPropertyNameNode();
+
+  abstract string getPropertyName();
+
+  abstract DataFlow::Node getTarget();
+
+  override string toString() {
+    if exists(getPropertyName())
+    then
       result =
-        "bindProperty(" + bindProperty.getArgument(0).toString() + ", " +
-          bindProperty.getArgument(1).toString() + ")"
-    )
-    or
-    exists(BindValueMethodCallNode bindValue |
-      this = TBindValue(bindValue) and
-      result = "bindValue(" + bindValue.getArgument(0).toString() + ", " + ")"
-    )
-  }
-
-  DataFlow::MethodCallNode asMethodCallNode() {
-    this = TBindProperty(result)
-    or
-    this = TBindValue(result)
-  }
-
-  string getPropertyName() {
-    exists(BindPropertyMethodCallNode bindProperty |
-      this = TBindProperty(bindProperty) and
-      result = bindProperty.getArgument(0).getStringValue()
-    )
-    or
-    exists(BindValueMethodCallNode bindValue |
-      this = TBindValue(bindValue) and
-      result = "value"
-    )
-  }
-
-  DataFlow::Node getBinding() {
-    exists(BindPropertyMethodCallNode bindProperty |
-      this = TBindProperty(bindProperty) and
-      result = bindProperty.getArgument(1).getALocalSource()
-    )
-    or
-    exists(BindValueMethodCallNode bindValue |
-      this = TBindValue(bindValue) and
-      result = bindValue.getArgument(0).getALocalSource()
-    )
+        "Binding property " + getPropertyName() + " of " + getTarget().toString() + " to " +
+          getBinding().toString()
+    else
+      result =
+        "Binding property " + getPropertyNameNode().toString() + "of " + getTarget().toString() +
+          " to " + getBinding().toString()
   }
 }
 
@@ -195,9 +188,9 @@ private predicate latePathBinding(
   DataFlow::MethodCallNode bindingCall, DataFlow::SourceNode binding, DataFlow::Node bindingPath
 ) {
   (
-    exists(LateJavaScriptPropertyBindingMethodCall lateJavaScriptPropertyBindingMethodCall |
-      bindingCall = lateJavaScriptPropertyBindingMethodCall.asMethodCallNode() and
-      binding = lateJavaScriptPropertyBindingMethodCall.getBinding()
+    exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding |
+      bindingCall = lateJavaScriptPropertyBinding and
+      binding = lateJavaScriptPropertyBinding.getBinding()
     )
     or
     exists(BindElementMethodCallNode bindElementMethodCall |
@@ -262,18 +255,16 @@ private newtype TBinding =
     earlyPathPropertyBinding(newNode, binding, _)
   } or
   // Property binding via a call to `bindProperty` or `bindValue`.
-  TLateJavaScriptPropertyBinding(
-    LateJavaScriptPropertyBindingMethodCall bindProperty, DataFlow::Node binding
-  ) {
-    latePathBinding(bindProperty.asMethodCallNode(), binding, _)
+  TLateJavaScriptPropertyBinding(LateJavaScriptPropertyBinding bindProperty, DataFlow::Node binding) {
+    latePathBinding(bindProperty, binding, _)
   } or
   // Element binding via a call to `bindElement`.
   TLateJavaScriptContextBinding(BindElementMethodCallNode bindElementCall, DataFlow::Node binding) {
     latePathBinding(bindElementCall, binding, _)
   } or
   // Json binding
-  TJsonPropertyBinding(JsonValue value, string key, StaticBindingValue binding) {
-    exists(JsonObject object, BindingStringReader reader |
+  TJsonPropertyBinding(JsonObject object, string key, StaticBindingValue binding) {
+    exists(JsonValue value, BindingStringReader reader |
       value = object.getPropValue(key) and
       value.getStringValue() = reader.getBindingString() and
       value.getLocation() = reader.getLocation() and
@@ -329,9 +320,7 @@ class BindingPath extends TBindingPath {
   }
 
   /**
-   * Literal representation of the Binding path as string, if it can be deduced.
-   * It only computes for static ones since the value of dynamic binding paths are not statically
-   * determinable.
+   * Get the string representation of a binding path if it can be statically determined.
    */
   string asString() {
     exists(BindingStringParser::BindingPath path |
@@ -376,6 +365,106 @@ class BindingPath extends TBindingPath {
   Binding getBinding() { result.getBindingPath() = this }
 }
 
+private newtype TBindingTarget =
+  TXmlPropertyBindingTarget(XmlAttribute target, Binding binding) {
+    binding = TXmlPropertyBinding(target, _)
+  } or
+  TXmlContextBindingTarget(ContextBindingAttribute target, Binding binding) {
+    binding = TXmlContextBinding(target, _)
+  } or
+  TLateJavaScriptBindingTarget(DataFlow::Node target, Binding binding) {
+    exists(DataFlow::MethodCallNode call |
+      binding = TLateJavaScriptContextBinding(call, _) and
+      call.getReceiver() = target
+    )
+    or
+    exists(LateJavaScriptPropertyBinding propertyBinding |
+      binding = TLateJavaScriptPropertyBinding(propertyBinding, _) and
+      target = propertyBinding.getTarget()
+    )
+  } or
+  TJsonPropertyBindingTarget(JsonObject target, string key, Binding binding) {
+    binding = TJsonPropertyBinding(target, key, _)
+  }
+
+class BindingTarget extends TBindingTarget {
+  string toString() {
+    exists(XmlAttribute attribute |
+      this = TXmlPropertyBindingTarget(attribute, _) and
+      result = attribute.getName()
+    )
+    or
+    exists(ContextBindingAttribute attribute |
+      this = TXmlContextBindingTarget(attribute, _) and
+      result = attribute.getName()
+    )
+    or
+    exists(DataFlow::Node target |
+      this = TLateJavaScriptBindingTarget(target, _) and
+      result = target.toString()
+    )
+    or
+    exists(JsonObject target, string key |
+      this = TJsonPropertyBindingTarget(target, key, _) and
+      result = target.toString() + "." + key
+    )
+  }
+
+  XmlAttribute asXmlAttribute() {
+    exists(XmlAttribute target |
+      (
+        this = TXmlPropertyBindingTarget(target, _)
+        or
+        this = TXmlContextBindingTarget(target, _)
+      ) and
+      result = target
+    )
+  }
+
+  JsonObject asJsonObject() {
+    exists(JsonObject target |
+      this = TJsonPropertyBindingTarget(target, _, _) and
+      result = target
+    )
+  }
+
+  DataFlow::Node asDataFlowNode() {
+    exists(DataFlow::Node target |
+      this = TLateJavaScriptBindingTarget(target, _) and
+      result = target
+    )
+  }
+
+  Location getLocation() {
+    exists(XmlAttribute attribute |
+      this = TXmlPropertyBindingTarget(attribute, _) and
+      result = attribute.getLocation()
+    )
+    or
+    exists(ContextBindingAttribute attribute |
+      this = TXmlContextBindingTarget(attribute, _) and
+      result = attribute.getLocation()
+    )
+    or
+    exists(DataFlow::Node target |
+      this = TLateJavaScriptBindingTarget(target, _) and
+      result = target.asExpr().getLocation()
+    )
+    or
+    exists(JsonObject target, string key |
+      this = TJsonPropertyBindingTarget(target, key, _) and
+      result = target.getLocation()
+    )
+  }
+
+  Binding getBinding() {
+    this = TXmlPropertyBindingTarget(_, result) or
+    this = TXmlContextBindingTarget(_, result) or
+    this = TLateJavaScriptBindingTarget(_, result) or
+    this = TJsonPropertyBindingTarget(_, _, result)
+  }
+}
+
 /**
  * A class to reason about UI5 bindings.
  * This is currently limited to:
@@ -408,10 +497,16 @@ class Binding extends TBinding {
         "Early JavaScript property binding: " + newNode.getArgument(0).toString() + " to " + binding
     )
     or
-    exists(LateJavaScriptPropertyBindingMethodCall bindProperty, DataFlow::Node binding |
+    exists(LateJavaScriptPropertyBinding bindProperty, DataFlow::Node binding |
       this = TLateJavaScriptPropertyBinding(bindProperty, binding) and
-      result =
-        "Late JavaScript property binding: " + bindProperty.getPropertyName() + " to " + binding
+      if exists(bindProperty.getPropertyName())
+      then
+        result =
+          "Late JavaScript property binding: " + bindProperty.getPropertyName() + " to " + binding
+      else
+        result =
+          "Late JavaScript property binding: " + bindProperty.getPropertyNameNode().toString() +
+            " to " + binding
     )
     or
     exists(BindElementMethodCallNode bindElementCall, DataFlow::Node binding |
@@ -513,4 +608,6 @@ class Binding extends TBinding {
       result = TDynamicBindingPath(bindingValue, _)
     )
   }
+
+  BindingTarget getBindingTarget() { result.getBinding() = this }
 }
