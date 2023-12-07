@@ -2,6 +2,7 @@ import javascript
 import DataFlow
 import advanced_security.javascript.frameworks.ui5.UI5::UI5
 import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
+import advanced_security.javascript.frameworks.ui5.Bindings
 
 /**
  * Gets the immediate supertype of a given type from the extensible predicate `typeModel` provided by
@@ -347,7 +348,7 @@ class JsView extends UI5View {
     )
   }
 
-  override JsBindingPath getASource() {
+  override JsViewBindingPath getASource() {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
@@ -357,7 +358,7 @@ class JsView extends UI5View {
     )
   }
 
-  override JsBindingPath getAnHtmlISink() {
+  override JsViewBindingPath getAnHtmlISink() {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
@@ -402,10 +403,10 @@ class JsonView extends UI5View {
 /**
  * A UI5BindingPath found in a JavaScript View.
  */
-class JsBindingPath extends UI5BindingPath, Property {
+class JsViewBindingPath extends UI5BindingPath, Property {
   string path;
 
-  JsBindingPath() {
+  JsViewBindingPath() {
     path = bindingPathCapture(this.getInit().getStringValue()) and
     this.(Property).getFile() instanceof JsView
   }
@@ -525,11 +526,15 @@ class HtmlView extends UI5View, HTML::HtmlFile {
 class XmlBindingPath extends UI5BindingPath, XmlControlProperty {
   string path;
 
-  XmlBindingPath() { path = bindingPathCapture(this.getValue()) }
+  // XmlBindingPath() { path = bindingPathCapture(this.getValue()) }
+  XmlBindingPath() {
+    exists(Binding binding |
+      this.(XmlAttribute).getLocation() = binding.getLocation() and
+      binding.getBindingPath().asString() = path
+    )
+  }
 
   override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
-
-  override Location getLocation() { result = this.(XmlAttribute).getLocation() }
 
   override string getPath() { result = path }
 
@@ -571,7 +576,7 @@ class XmlRootElement extends XmlElement {
    * Returns a XML namespace declaration scoped to the element.
    *
    * The predicate relies on location information to determine the scope of the namespace declaration.
-   * A XML element with the same starting line and column, but a larger ending line and column is 
+   * A XML element with the same starting line and column, but a larger ending line and column is
    * considered the scope of the namespace declaration.
    */
   XmlNamespace getANamespaceDeclaration() {
