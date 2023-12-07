@@ -1,6 +1,5 @@
 import javascript as stdlib
 
-signature string getBindingStringSig();
 signature class BindingStringReaderSig {
   string getBindingString();
   stdlib::Location getLocation();
