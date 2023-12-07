@@ -246,24 +246,14 @@ abstract class UI5BindingPath extends Locatable {
   predicate isRelative() { not this.isAbsolute() }
 }
 
-abstract class UI5ControlProperty extends Locatable {
-  abstract UI5Control getControl();
-
-  abstract string getName();
-
-  abstract string getValue();
-}
-
-class XmlControlProperty extends UI5ControlProperty instanceof XmlAttribute {
-  XmlControlProperty() { this.getElement() = any(XmlControl control) }
+class XmlControlProperty extends XmlAttribute {
+  XmlControlProperty() { exists(UI5Control control | this.getElement() = control.asXmlControl()) }
 
   override string toString() { result = this.getValue() }
 
   override string getName() { result = XmlAttribute.super.getName() }
 
   override string getValue() { result = XmlAttribute.super.getValue() }
-
-  override XmlControl getControl() { result = XmlAttribute.super.getElement() }
 }
 
 /**
@@ -551,11 +541,9 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
 
   // override Location getLocation() { result = this.(XmlAttribute).getLocation() }
-
   override string getPath() { result = path }
 
   // override File getFile() { result = this.(XmlAttribute).getElement().getFile() }
-
   /*
    * TODO: take into consideration bindElement() method call
    * e.g.
@@ -582,7 +570,9 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
     )
   }
 
-  override XmlControl getControlDeclaration() { result = this.(XmlAttribute).getElement() }
+  override UI5Control getControlDeclaration() {
+    result.asXmlControl() = this.(XmlAttribute).getElement()
+  }
 
   override string getModelName() { result = binding.getBindingPath().getModelName() }
 
@@ -671,8 +661,8 @@ class XmlView extends UI5View, XmlFile {
   /**
    * Get the XML tags associated with UI5 Controls declared in this XML view.
    */
-  XmlControl getXmlControl() {
-    result =
+  UI5Control getXmlControl() {
+    result.asXmlControl() =
       any(XmlElement element |
         // getAChild+ because "container controls" nest other controls inside them
         element = root.getAChild+() and
@@ -693,11 +683,21 @@ class XmlView extends UI5View, XmlFile {
   }
 }
 
-abstract class UI5Control extends Locatable {
+newtype TUI5Control = TXmlControl(XmlElement element)
+
+class UI5Control extends TUI5Control {
+  XmlElement asXmlControl() { this = TXmlControl(result) }
+
+  string toString() { result = this.asXmlControl().toString() }
+
   /**
    * Gets the qualified type string, e.g. `sap.m.SearchField`.
    */
-  abstract string getQualifiedType();
+  string getQualifiedType() {
+    exists(XmlElement element | element = this.asXmlControl() |
+      result = element.getNamespace().getUri() + "." + element.getName()
+    )
+  }
 
   /**
    * Gets the `id` property of this control.
@@ -712,7 +712,13 @@ abstract class UI5Control extends Locatable {
   /**
    * Gets the definition of this control if this is a custom one.
    */
-  abstract Extension getDefinition();
+  CustomControl getDefinition() {
+    result.getName() = this.getQualifiedType() and
+    exists(WebApp webApp |
+      webApp.getAResource() = this.asXmlControl().getFile() and
+      webApp.getAResource() = result.getFile()
+    )
+  }
 
   /**
    * Gets a reference to this control in the controller code. Currently supports only such references made through `byId`.
@@ -723,95 +729,75 @@ abstract class UI5Control extends Locatable {
   }
 
   /** Gets a property of this control having the name. */
-  abstract UI5ControlProperty getProperty(string propName);
-
-  bindingset[propName]
-  abstract MethodCallNode getARead(string propName);
-
-  bindingset[propName]
-  abstract MethodCallNode getAWrite(string propName);
-
-  /** Holds if this control reads from or writes to a model. */
-  abstract predicate accessesModel(UI5Model model);
-
-  /** Holds if this control reads from or writes to a model with regards to a binding path. */
-  abstract predicate accessesModel(UI5Model model, UI5BindingPath bindingPath);
-
-  /** Get the view that this control is part of. */
-  abstract UI5View getView();
-
-  /** Get the controller that manages this control. */
-  CustomController getController() { result = this.getView().getController() }
-}
-
-class XmlControl extends UI5Control instanceof XmlElement {
-  XmlControl() { this.getParent+() = any(XmlView view) }
-
-  override UI5View getView() { result = this.getFile() }
-
-  /** Get the qualified type string, e.g. `sap.m.SearchField` */
-  override string getQualifiedType() {
-    result = XmlElement.super.getNamespace().getUri() + "." + XmlElement.super.getName()
-  }
-
-  override Location getLocation() { result = this.(XmlElement).getLocation() }
-
-  override XmlFile getFile() { result = XmlElement.super.getFile() }
-
-  override UI5ControlProperty getProperty(string name) {
-    result = this.(XmlElement).getAttribute(name)
-  }
-
-  override CustomControl getDefinition() {
-    result.getName() = this.getQualifiedType() and
-    exists(WebApp webApp |
-      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
-    )
+  UI5ControlProperty getProperty(string propName) {
+    result.asXmlControlProperty() = this.asXmlControl().getAttribute(propName)
   }
 
   bindingset[propName]
-  override MethodCallNode getARead(string propName) {
+  MethodCallNode getARead(string propName) {
     // TODO: in same view
     exists(WebApp webApp |
-      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+      webApp.getAResource() = this.asXmlControl().getFile() and
+      webApp.getAResource() = result.getFile()
     ) and
     result.getMethodName() = "get" + capitalize(propName)
   }
 
   bindingset[propName]
-  override MethodCallNode getAWrite(string propName) {
+  MethodCallNode getAWrite(string propName) {
     // TODO: in same view
     exists(WebApp webApp |
-      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+      webApp.getAResource() = this.asXmlControl().getFile() and
+      webApp.getAResource() = result.getFile()
     ) and
     result.getMethodName() = "set" + capitalize(propName)
   }
 
-  override predicate accessesModel(UI5Model model) {
+  /** Holds if this control reads from or writes to a model. */
+  predicate accessesModel(UI5Model model) {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view
       this = view.getXmlControl() and
       model = view.getController().getModel() and
       model.(UI5InternalModel).getPathString() =
-        XmlElement.super.getAnAttribute().(XmlBindingPath).getPath()
+        this.asXmlControl().getAnAttribute().(XmlBindingPath).getPath()
     )
     // TODO: Add case where modelName is present
   }
 
-  override predicate accessesModel(UI5Model model, UI5BindingPath bindingPath) {
+  /** Holds if this control reads from or writes to a model with regards to a binding path. */
+  predicate accessesModel(UI5Model model, UI5BindingPath bindingPath) {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view
       this = view.getXmlControl() and
       model = view.getController().getModel() and
       model.(UI5InternalModel).getPathString() = bindingPath.getPath() and
-      bindingPath.getPath() = XmlElement.super.getAnAttribute().(XmlBindingPath).getPath()
+      bindingPath.getPath() = this.asXmlControl().getAnAttribute().(XmlBindingPath).getPath()
     )
     // TODO: Add case where modelName is present
   }
 
-  override string toString() { result = this.(XmlElement).toString() }
+  /** Get the view that this control is part of. */
+  UI5View getView() { result = this.asXmlControl().getFile() }
+
+  /** Get the controller that manages this control. */
+  CustomController getController() { result = this.getView().getController() }
+}
+
+newtype TUI5ControlProperty = TXmlControlProperty(XmlAttribute property)
+
+class UI5ControlProperty extends TUI5ControlProperty {
+  XmlAttribute asXmlControlProperty() { this = TXmlControlProperty(result) }
+
+  string toString() { result = this.asXmlControlProperty().toString() }
+
+  UI5Control getControl() { result.asXmlControl() = this.asXmlControlProperty().getElement() }
+
+  string getName() { result = this.asXmlControlProperty().getName() }
+
+  string getValue() { result = this.asXmlControlProperty().getValue() }
 }
 
 /**
@@ -839,8 +825,7 @@ class UI5Handler extends FunctionNode {
   UI5BindingPath getBindingPath() {
     exists(string propName |
       handlerNotationCaptureName(control.getProperty(propName).getValue()) = this.getName() and
-      //result.control
-      result = control.getProperty(result.getPropertyName())
+      result.asXmlControlProperty() = control.getProperty(result.getPropertyName())
     )
   }
 
