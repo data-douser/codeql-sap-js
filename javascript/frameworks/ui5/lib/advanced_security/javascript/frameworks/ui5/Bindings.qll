@@ -311,6 +311,9 @@ private newtype TBindingPath =
   }
 
 class BindingPath extends TBindingPath {
+  /**
+   * For debugging purposes (pretty-printing in result table)
+   */
   string toString() {
     exists(BindingStringParser::BindingPath path |
       this = TStaticBindingPath(_, path) and
@@ -322,6 +325,18 @@ class BindingPath extends TBindingPath {
       if pathValue.mayHaveStringValue(_)
       then pathValue.mayHaveStringValue(result)
       else result = pathValue.toString()
+    )
+  }
+
+  /**
+   * Literal representation of the Binding path as string, if it can be deduced.
+   * It only computes for static ones since the value of dynamic binding paths are not statically
+   * determinable.
+   */
+  string asString() {
+    exists(BindingStringParser::BindingPath path |
+      this = TStaticBindingPath(_, path) and
+      result = path.toString()
     )
   }
 
