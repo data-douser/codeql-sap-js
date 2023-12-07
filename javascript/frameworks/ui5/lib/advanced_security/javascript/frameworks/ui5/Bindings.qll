@@ -458,6 +458,38 @@ class Binding extends TBinding {
     )
   }
 
+  Locatable getTarget() {
+    exists(XmlAttribute attribute |
+      this = TXmlPropertyBinding(attribute, _) and
+      result = attribute
+    )
+    or
+    exists(ContextBindingAttribute attribute |
+      this = TXmlContextBinding(attribute, _) and
+      result = attribute
+    )
+    or
+    exists(DataFlow::Node binding |
+      this = TEarlyJavaScriptPropertyBinding(_, binding) and
+      result = binding.asExpr()
+    )
+    or
+    exists(DataFlow::Node binding |
+      this = TLateJavaScriptPropertyBinding(_, binding) and
+      result = binding.asExpr()
+    )
+    or
+    exists(DataFlow::Node binding |
+      this = TLateJavaScriptContextBinding(_, binding) and
+      result = binding.asExpr()
+    )
+    or
+    exists(JsonValue value, string key |
+      this = TJsonPropertyBinding(value, key, _) and
+      result = value
+    )
+  }
+
   BindingPath getBindingPath() {
     exists(StaticBindingValue bindingValue |
       this = TXmlPropertyBinding(_, bindingValue) and

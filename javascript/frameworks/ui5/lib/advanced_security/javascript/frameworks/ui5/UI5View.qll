@@ -134,7 +134,21 @@ abstract class UI5BindingPath extends Locatable {
    */
   string getControlTypeName() { result = this.getControlQualifiedType().replaceAll(".", "/") }
 
-  UI5View getView() { this.getFile() = result }
+  /**
+   * NOTE:
+   * - [[Declarative (inside data format): path --getFile--> view]] --getController--> controller --getModel--> model.
+   * - Procedural (inside JS source code): [[path --(getting the handler it's inside and getting the owner controller of the handler )--> controller --getView--> view]].
+   */
+  UI5View getView() {
+    /* 1. Declarative, inside a certain data format. */
+    this.getFile() = result
+    or
+    /* 2. Procedural, inside a body of a controller handler. */
+    exists(CustomController controller |
+      controller.getFile() = this.getFile() and
+      controller.getView() = result
+    )
+  }
 
   /**
    * Gets the UI5Control using this UI5BindingPath.
@@ -179,7 +193,7 @@ abstract class UI5BindingPath extends Locatable {
           this.getModelName()
       )
       or
-      /* 4. There is no call to `setModel` on a control reference that set an unnamed mode, so we look if the view reference has one. */
+      /* 4. There is no call to `setModel` on a control reference that set an unnamed model, so we look if the view reference has one. */
       exists(MethodCallNode viewSetModelCall |
         viewSetModelCall.getMethodName() = "setModel" and
         this.getView().getController().getAViewReference().flowsTo(viewSetModelCall.getReceiver()) and
@@ -523,20 +537,29 @@ class HtmlView extends UI5View, HTML::HtmlFile {
 /**
  * A UI5BindingPath found in an XML View.
  */
-class XmlBindingPath extends UI5BindingPath, XmlControlProperty {
+class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   string path;
+  Binding binding;
 
-  // XmlBindingPath() { path = bindingPathCapture(this.getValue()) }
   XmlBindingPath() {
-    exists(Binding binding |
-      this.(XmlAttribute).getLocation() = binding.getLocation() and
-      binding.getBindingPath().asString() = path
-    )
+    this.(XmlAttribute) = binding.getTarget() and
+    binding.getBindingPath().asString() = path and
+    exists(binding.getBindingPath())
   }
 
+  /* corresponds to BindingPath.asString() */
   override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
 
+  // override Location getLocation() { result = this.(XmlAttribute).getLocation() }
+
   override string getPath() { result = path }
+
+  // override File getFile() { result = this.(XmlAttribute).getElement().getFile() }
+
+  /*
+   * TODO: take into consideration bindElement() method call
+   * e.g.
+   */
 
   override string getAbsolutePath() {
     if path.matches("/%")
@@ -559,12 +582,9 @@ class XmlBindingPath extends UI5BindingPath, XmlControlProperty {
     )
   }
 
-  override XmlControl getControlDeclaration() {
-    this = result.(XmlElement).getAttribute(this.getPropertyName()) and
-    result = this.(XmlAttribute).getElement()
-  }
+  override XmlControl getControlDeclaration() { result = this.(XmlAttribute).getElement() }
 
-  override string getModelName() { result = modelNameCapture(this.(XmlAttribute).getValue()) }
+  override string getModelName() { result = binding.getBindingPath().getModelName() }
 
   override string toString() { result = this.(XmlAttribute).toString() }
 }
@@ -727,6 +747,8 @@ abstract class UI5Control extends Locatable {
 class XmlControl extends UI5Control instanceof XmlElement {
   XmlControl() { this.getParent+() = any(XmlView view) }
 
+  override UI5View getView() { result = this.getFile() }
+
   /** Get the qualified type string, e.g. `sap.m.SearchField` */
   override string getQualifiedType() {
     result = XmlElement.super.getNamespace().getUri() + "." + XmlElement.super.getName()
@@ -788,8 +810,6 @@ class XmlControl extends UI5Control instanceof XmlElement {
     )
     // TODO: Add case where modelName is present
   }
-
-  override UI5View getView() { result = XmlElement.super.getParent+() }
 
   override string toString() { result = this.(XmlElement).toString() }
 }
