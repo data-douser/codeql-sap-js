@@ -135,7 +135,7 @@ private class BindValueMethodCallNode extends LateJavaScriptPropertyBinding,
 {
   BindValueMethodCallNode() { this.getMethodName() = "bindValue" }
 
-  override DataFlow::Node getBinding() { result = this.getArgument(1) }
+  override DataFlow::Node getBinding() { result = this.getArgument(0) }
 
   override DataFlow::Node getPropertyNameNode() { none() }
 
