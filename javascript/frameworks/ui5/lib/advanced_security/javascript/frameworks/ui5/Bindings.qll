@@ -220,16 +220,16 @@ private predicate earlyPathPropertyBinding(
  * that receives a binding `binding` with a binding path `bindingPath`.
  */
 private predicate latePathBinding(
-  DataFlow::MethodCallNode bindingCall, DataFlow::SourceNode binding, DataFlow::Node bindingPath
+  DataFlow::Node bindingExpr, DataFlow::SourceNode binding, DataFlow::Node bindingPath
 ) {
   (
     exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding |
-      bindingCall = lateJavaScriptPropertyBinding and
+      bindingExpr = lateJavaScriptPropertyBinding and
       binding = lateJavaScriptPropertyBinding.getBinding()
     )
     or
     exists(BindElementMethodCallNode bindElementMethodCall |
-      bindingCall = bindElementMethodCall and
+      bindingExpr = bindElementMethodCall and
       binding = bindElementMethodCall.getArgument(0).getALocalSource()
     )
   ) and
