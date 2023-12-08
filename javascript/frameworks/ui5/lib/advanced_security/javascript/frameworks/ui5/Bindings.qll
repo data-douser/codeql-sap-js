@@ -1,6 +1,7 @@
 /**
  * A module to reason about UI5 bindings.
  */
+
 import javascript
 import advanced_security.javascript.frameworks.ui5.BindingStringParser as MakeBindingStringParser
 
@@ -347,7 +348,7 @@ private newtype TBindingPath =
 
 /**
  * A class representing a binding path.
-**/
+ */
 class BindingPath extends TBindingPath {
   string toString() {
     exists(BindingStringParser::BindingPath path |
