@@ -532,7 +532,7 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   Binding binding;
 
   XmlBindingPath() {
-    this.(XmlAttribute) = binding.getTarget() and
+    this.(XmlAttribute) = binding.getBindingTarget().asXmlAttribute() and
     binding.getBindingPath().asString() = path and
     exists(binding.getBindingPath())
   }
@@ -825,7 +825,7 @@ class UI5Handler extends FunctionNode {
   UI5BindingPath getBindingPath() {
     exists(string propName |
       handlerNotationCaptureName(control.getProperty(propName).getValue()) = this.getName() and
-      result.asXmlControlProperty() = control.getProperty(result.getPropertyName())
+      result.getLiteralRepr() = control.getProperty(result.getPropertyName()).getValue()
     )
   }
 
