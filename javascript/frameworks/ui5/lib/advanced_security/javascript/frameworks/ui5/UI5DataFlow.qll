@@ -210,7 +210,7 @@ module UI5DataFlow {
   /**
    * An HTML injection sink associated with a `UI5InternalBoundNode`.
    */
-  class UI5ModelHtmlISink extends UI5DataFlow::UI5InternalBoundNode {
+  class UI5ModelHtmlISink extends UI5DataFlow::UI5BoundNode {
     UI5View view;
 
     UI5ModelHtmlISink() {
@@ -305,10 +305,10 @@ module UI5PathGraph {
      * ???
      */
     UI5PathNode getAPrimarySource() {
-      not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5InternalBoundNode and
+      not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5BoundNode and
       this.asDataFlowPathNode() = result.asDataFlowPathNode()
       or
-      this.asDataFlowPathNode().getNode().(UI5DataFlow::UI5InternalBoundNode).getBindingPath() =
+      this.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
         result.asUI5BindingPathNode() and
       result.asUI5BindingPathNode() = any(UI5View view).getASource()
     }
@@ -317,10 +317,10 @@ module UI5PathGraph {
      * ???
      */
     UI5PathNode getAPrimaryHtmlISink() {
-      not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5InternalBoundNode and
+      not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5BoundNode and
       this.asDataFlowPathNode() = result.asDataFlowPathNode()
       or
-      this.asDataFlowPathNode().getNode().(UI5DataFlow::UI5InternalBoundNode).getBindingPath() =
+      this.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
         result.asUI5BindingPathNode() and
       result.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
     }
@@ -342,11 +342,11 @@ module UI5PathGraph {
     )
     or
     pred.asUI5BindingPathNode() =
-      succ.asDataFlowPathNode().getNode().(UI5DataFlow::UI5InternalBoundNode).getBindingPath() and
+      succ.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
     pred.asUI5BindingPathNode() = any(UI5View view).getASource()
     or
     succ.asUI5BindingPathNode() =
-      pred.asDataFlowPathNode().getNode().(UI5DataFlow::UI5InternalBoundNode).getBindingPath() and
+      pred.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
     succ.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
     or
     // flow to event handler parameter through the binding argument
