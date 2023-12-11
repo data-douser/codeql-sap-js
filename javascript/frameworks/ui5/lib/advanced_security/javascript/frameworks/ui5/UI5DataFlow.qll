@@ -140,7 +140,7 @@ module UI5DataFlow {
     UI5InternalBoundNode() {
       exists(WebApp webApp |
         webApp.getAResource() = this.getFile() and
-        webApp.getAResource() = bindingPath.getFile()
+        webApp.getAResource() = bindingPath.getLocation().getFile()
       |
         /* ========== Case 1: The contents of the model are statically observable ========== */
         /* The relevant portion of the content of a JSONModel */
@@ -201,7 +201,7 @@ module UI5DataFlow {
   /**
    * A remote source associated with a `UI5InternalBoundNode`.
    */
-  class UI5ModelSource extends UI5DataFlow::UI5InternalBoundNode, RemoteFlowSource {
+  class UI5ModelSource extends UI5DataFlow::UI5BoundNode, RemoteFlowSource {
     UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
 
     override string getSourceType() { result = "UI5 model remote flow source" }
