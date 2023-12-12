@@ -12,12 +12,13 @@ class Configuration extends DomBasedXss::Configuration {
   }
 
   override predicate isSanitizer(DataFlow::Node node) {
+    /* 1. Already a sanitizer defined in `DomBasedXssQuery::Configuration` */
     super.isSanitizer(node)
     or
-    // value read from a non-string property
+    /* 2. Value read from a non-string control property */
     node = any(PropertyMetadata m | not m.isUnrestrictedStringType())
     or
-    // UI5 sanitizers
+    /* 3-1. Sanitizers provided by `sap.base.security` */
     exists(SapAmdModuleDefinition d, DataFlow::ParameterNode par |
       node = par.getACall() and
       par.getParameter() =
@@ -25,7 +26,7 @@ class Configuration extends DomBasedXss::Configuration {
             ["encodeCSS", "encodeJS", "encodeURL", "encodeURLParameters", "encodeXML"])
     )
     or
-    // UI5 jQuery sanitizers
+    /* 3-2. Santizers provided by `jQuery.sap` */
     node.(DataFlow::CallNode).getReceiver().asExpr().(PropAccess).getQualifiedName() = "jQuery.sap" and
     node.(DataFlow::CallNode).getCalleeName() =
       ["encodeCSS", "encodeJS", "encodeURL", "encodeURLParameters", "encodeXML", "encodeHTML"]
