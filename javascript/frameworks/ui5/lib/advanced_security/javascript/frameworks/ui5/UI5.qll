@@ -291,6 +291,11 @@ module UI5 {
     }
 
     UI5View getDefinition() { result = controller.getView() }
+
+    MethodCallNode getABindElementCall() {
+      result.getMethodName() = "bindElement" and
+      this.flowsTo(result.getReceiver())
+    }
   }
 
   /**
@@ -386,6 +391,12 @@ module UI5 {
         controllerThis.getBinder() = this.getAMethod()
       )
     }
+
+    ControllerHandler getHandler(string handlerName) {
+      result = this.getContent().getAPropertySource(handlerName)
+    }
+
+    ControllerHandler getAHandler() { result = this.getHandler(_) }
   }
 
   class RouteReference extends MethodCallNode {
