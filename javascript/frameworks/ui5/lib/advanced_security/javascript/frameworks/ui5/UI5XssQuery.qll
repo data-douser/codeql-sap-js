@@ -22,9 +22,8 @@ class Configuration extends DomBasedXss::Configuration {
     or
     /* 3. External model to a relevant control property */
     exists(
-      CustomController controller, ControllerHandler handler, CustomControl control,
-      PropertyMetadata controlMetadata, RouteManifest routeManifest, PropRead parameterAccess,
-      UI5BindingPath bindingPath
+      CustomController controller, ControllerHandler handler, PropertyMetadata controlMetadata,
+      RouteManifest routeManifest, PropRead parameterAccess, UI5BindingPath bindingPath
     |
       /* 1. Validate that the controller has a handler attached to a route */
       start = controller.getModel().(UI5ExternalModel) and
