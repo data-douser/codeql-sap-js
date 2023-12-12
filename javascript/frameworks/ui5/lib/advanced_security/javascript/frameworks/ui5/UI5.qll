@@ -7,17 +7,20 @@ import advanced_security.javascript.frameworks.ui5.UI5HTML
 
 module UI5 {
   private module WebAppResourceRootJsonReader implements JsonParser::MakeJsonReaderSig<WebApp> {
-    class JsonReader extends WebApp{
+    class JsonReader extends WebApp {
       string getJson() {
         // We match on the lowercase to cover all the possible variants of wrtiting the attribute name.
-        exists(string resourceRootAttributeName | resourceRootAttributeName.toLowerCase() = "data-sap-ui-resourceroots" |
+        exists(string resourceRootAttributeName |
+          resourceRootAttributeName.toLowerCase() = "data-sap-ui-resourceroots"
+        |
           result = this.getCoreScript().getAttributeByName(resourceRootAttributeName).getValue()
         )
       }
     }
   }
 
-  private module WebAppResourceRootJsonParser = JsonParser::Make<WebApp, WebAppResourceRootJsonReader>;
+  private module WebAppResourceRootJsonParser =
+    JsonParser::Make<WebApp, WebAppResourceRootJsonReader>;
 
   private predicate isAnUnResolvedResourceRoot(WebApp webApp, string name, string path) {
     exists(
@@ -33,32 +36,27 @@ module UI5 {
 
   class ResourceRootPathString extends PathString {
     WebApp webApp;
-    ResourceRootPathString() {
-      isAnUnResolvedResourceRoot(webApp, _, this)
-    }
 
-    override Folder getARootFolder() {
-      result = webApp.getWebAppFolder()
-    }
+    ResourceRootPathString() { isAnUnResolvedResourceRoot(webApp, _, this) }
+
+    override Folder getARootFolder() { result = webApp.getWebAppFolder() }
   }
 
   class ResourceRoot extends Container {
     string name;
     string path;
     WebApp webApp;
+
     ResourceRoot() {
-      isAnUnResolvedResourceRoot(webApp, name, path)
-      and
+      isAnUnResolvedResourceRoot(webApp, name, path) and
       path.(PathString).resolve(webApp.getWebAppFolder()).getContainer() = this
     }
 
     string getName() { result = name }
 
-    WebApp getWebApp() { result = webApp}
+    WebApp getWebApp() { result = webApp }
 
-    predicate contains(File file) {
-      this.getAChildContainer+().getAFile() = file
-    }
+    predicate contains(File file) { this.getAChildContainer+().getAFile() = file }
   }
 
   class SapUiCoreScriptElement extends HTML::ScriptElement {
@@ -89,11 +87,9 @@ module UI5 {
 
     SapUiCoreScriptElement getCoreScript() { result = coreScript }
 
-    ResourceRoot getAResourceRoot() {
-      result.getWebApp() = this
-    }
+    ResourceRoot getAResourceRoot() { result.getWebApp() = this }
 
-    File getAResource() { getAResourceRoot().contains(result)}
+    File getAResource() { getAResourceRoot().contains(result) }
 
     File getResource(string relativePath) {
       result.getAbsolutePath() = getAResourceRoot().getAbsolutePath() + "/" + relativePath
@@ -108,8 +104,7 @@ module UI5 {
      */
     File getInitialModule() {
       exists(
-        string initialModuleResourcePath, string resolvedModulePath,
-        ResourceRoot resourceRoot
+        string initialModuleResourcePath, string resolvedModulePath, ResourceRoot resourceRoot
       |
         initialModuleResourcePath = coreScript.getAttributeByName("data-sap-ui-onInit").getValue() and
         resourceRoot.getWebApp() = this and
