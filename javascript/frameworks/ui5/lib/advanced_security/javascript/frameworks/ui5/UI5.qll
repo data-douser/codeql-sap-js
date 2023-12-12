@@ -648,7 +648,7 @@ module UI5 {
        *  Holds if, e.g., `this.getPattern() = "somePath/{someSuffix}"` and `path = "someSuffix"`
        */
       predicate matchesPathString(string path) {
-        path = this.getPattern().regexpCapture("[a-zA-Z]+/\\{(.*)\\}", 1)
+        path = this.getPattern().regexpCapture("([a-zA-Z]+/)\\{(.*)\\}.*", 2)
       }
 
       string getName() { result = this.getPropStringValue("name") }

@@ -739,6 +739,8 @@ class UI5Control extends TUI5Control {
     result.asXmlControlProperty() = this.asXmlControl().getAttribute(propName)
   }
 
+  UI5ControlProperty getAProperty() { result = this.getProperty(_) }
+
   bindingset[propName]
   MethodCallNode getARead(string propName) {
     // TODO: in same view
