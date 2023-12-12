@@ -347,7 +347,7 @@ module UI5 {
     /**
      * Gets a reference to a view object that can be accessed from one of the methods of this controller.
      */
-    MethodCallNode getAViewReference() {
+    ViewReference getAViewReference() {
       result.getCalleeName() = "getView" and
       exists(ThisNode controllerThis |
         result.(MethodCallNode).getReceiver() = controllerThis.getALocalUse() and
@@ -378,6 +378,51 @@ module UI5 {
     }
 
     ModelReference getAModelReference() { this.getAViewReference().flowsTo(result.getReceiver()) }
+
+    RouterReference getARouterReference() {
+      result.getMethodName() = "getRouter" and
+      exists(ThisNode controllerThis |
+        result.(MethodCallNode).getReceiver() = controllerThis.getALocalUse() and
+        controllerThis.getBinder() = this.getAMethod()
+      )
+    }
+  }
+
+  class RouteReference extends MethodCallNode {
+    string name;
+
+    RouteReference() {
+      this.getMethodName() = "getRoute" and
+      this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = name and
+      exists(RouterReference routerReference | routerReference.flowsTo(this.getReceiver()))
+    }
+
+    string getName() { result = name }
+  }
+
+  class ControllerHandler extends FunctionNode {
+    string name;
+    CustomController controller;
+
+    ControllerHandler() { this = controller.getContent().getAPropertySource(name).(FunctionNode) }
+
+    override string getName() { result = name }
+
+    predicate isAttachedToRoute(string routeName) {
+      exists(MethodCallNode attachMatchedCall, RouteReference routeReference |
+        routeReference.getName() = routeName and
+        routeReference.flowsTo(attachMatchedCall.getReceiver()) and
+        attachMatchedCall.getMethodName() = "attachMatched" and
+        attachMatchedCall.getArgument(0).(PropRead).getPropertyName() = name
+      )
+    }
+  }
+
+  class RouterReference extends MethodCallNode {
+    RouterReference() {
+      this.getMethodName() = "getRouter" and
+      exists(CustomController controller | controller.getAThisNode().flowsTo(this.getReceiver()))
+    }
   }
 
   class ModelReference extends MethodCallNode {
@@ -565,6 +610,39 @@ module UI5 {
 
     class JsonDataSourceDefinition extends DataSourceManifest {
       JsonDataSourceDefinition() { this.getType() = "JSON" }
+    }
+
+    class RouterManifest extends JsonObject {
+      ManifestJson manifestJson;
+
+      RouterManifest() {
+        exists(JsonObject rootObj |
+          this.getJsonFile() = manifestJson and
+          rootObj.getJsonFile() = manifestJson and
+          this = rootObj.getPropValue("sap.ui5").(JsonObject).getPropValue("routing")
+        )
+      }
+
+      RouteManifest getRoute() { result = this.getPropValue("routes").getElementValue(_) }
+    }
+
+    class RouteManifest extends JsonObject {
+      RouterManifest parentRouterManifest;
+
+      RouteManifest() { this = parentRouterManifest.getPropValue("routes").getElementValue(_) }
+
+      string getPattern() { result = this.getPropStringValue("pattern") }
+
+      /**
+       *  Holds if, e.g., `this.getPattern() = "somePath/{someSuffix}"` and `path = "someSuffix"`
+       */
+      predicate matchesPathString(string path) {
+        path = this.getPattern().regexpCapture("[a-zA-Z]+/\\{(.*)\\}", 1)
+      }
+
+      string getName() { result = this.getPropStringValue("name") }
+
+      string getTarget() { result = this.getPropStringValue("target") }
     }
 
     abstract class ModelManifest extends JsonObject { }
