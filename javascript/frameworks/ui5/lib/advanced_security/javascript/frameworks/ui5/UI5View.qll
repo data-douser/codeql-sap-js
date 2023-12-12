@@ -143,6 +143,8 @@ abstract class UI5BindingPath extends Locatable {
     /* 1. Declarative, inside a certain data format. */
     this.getFile() = result
     or
+    this.(XmlAttribute).getElement().getFile() = result
+    or
     /* 2. Procedural, inside a body of a controller handler. */
     exists(CustomController controller |
       controller.getFile() = this.getFile() and
@@ -207,12 +209,18 @@ abstract class UI5BindingPath extends Locatable {
         not exists(controlSetModelCall.getArgument(1)) and
         not exists(this.getModelName())
       )
-    ) and
-    /* This binding path and the resulting model should live inside the same webapp */
-    exists(WebApp webApp |
-      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
     )
-  }
+    /*
+     * TODO: Why is uncommenting below resulting in excluding XML?
+     * --> Maybe it's because of `Location` not being associated with XML Elements
+     */
+
+    // and
+    // /* This binding path and the resulting model should live inside the same webapp */
+    // exists(WebApp webApp |
+    //   webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+    // )
+    }
 
   /**
    * Gets the UI5BoundNode that represents this binding path.
@@ -540,10 +548,8 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   /* corresponds to BindingPath.asString() */
   override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
 
-  // override Location getLocation() { result = this.(XmlAttribute).getLocation() }
   override string getPath() { result = path }
 
-  // override File getFile() { result = this.(XmlAttribute).getElement().getFile() }
   /*
    * TODO: take into consideration bindElement() method call
    * e.g.
