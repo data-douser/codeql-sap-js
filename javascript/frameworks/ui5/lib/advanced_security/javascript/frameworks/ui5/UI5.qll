@@ -462,7 +462,7 @@ module UI5 {
     MethodCallNode getAMatchingSetModelCall() {
       exists(MethodCallNode setModelCall |
         setModelCall.getMethodName() = "setModel" and
-        result = setModelCall.getArgument(0) and
+        result = setModelCall and
         (
           if this.isDefaultModelReference()
           then (
