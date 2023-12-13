@@ -441,6 +441,13 @@ module UI5 {
       this.getMethodName() = "getModel" and
       exists(ViewReference view | view.flowsTo(this.getReceiver()))
     }
+
+    /**
+     * Gets the models' name being referred to, given that it can be statically determined.
+     */
+    string getModelName() {
+      result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    }
   }
 
   abstract class UI5Model extends InvokeNode {
@@ -462,13 +469,15 @@ module UI5 {
    * Represents models that are loaded from an external source, e.g. OData service.
    * It is the value flowing to a `setModel` call in a method of a `CustomController`, since it is the closest we can get to the actual model itself.
    */
-  abstract class UI5ExternalModel extends UI5Model {
+  abstract class UI5ExternalModel extends UI5Model, RemoteFlowSource {
     abstract string getName();
   }
 
   /** Model which gains content from an SAP OData service. */
   class ODataServiceModel extends UI5ExternalModel {
     string modelName;
+
+    override string getSourceType() { result = "ODataServiceModel" }
 
     ODataServiceModel() {
       /*
@@ -660,11 +669,13 @@ module UI5 {
 
     class InternalModelManifest extends ModelManifest {
       string modelName;
+      string type;
 
       InternalModelManifest() {
         exists(JsonObject models, JsonObject modelsParent |
           models = modelsParent.getPropValue("models") and
           this = models.getPropValue(modelName) and
+          type = this.getPropStringValue("type") and
           this.getPropStringValue("type") =
             [
               "sap.ui.model.json.JSONModel", // A JSON Model
@@ -673,6 +684,10 @@ module UI5 {
             ]
         )
       }
+
+      string getName() { result = modelName }
+
+      string getType() { result = type }
     }
 
     /**

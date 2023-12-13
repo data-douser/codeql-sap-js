@@ -5,6 +5,18 @@ import advanced_security.javascript.frameworks.ui5.UI5AMDModule
 private import DataFlow::PathGraph as DataFlowPathGraph
 
 module UI5DataFlow {
+  class LocalBindingPathLabel extends DataFlow::FlowLabel {
+    LocalBindingPathLabel() {
+      exists(ModelReference modelRef, MethodCallNode setPropertyCall |
+        setPropertyCall.getMethodName() = "setProperty" and
+        setPropertyCall.getReceiver().getALocalSource() = modelRef and
+        this =
+          modelRef.getModelName() + ">" +
+            setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue()
+      )
+    }
+  }
+
   /**
    * Holds if there is a bi-directional data flow between
    * a model and a control. What might be referred to as "model" depends:
@@ -85,42 +97,89 @@ module UI5DataFlow {
     )
   }
 
+  /** TODO */
+  predicate externalModelToCustomMetadataPropertyStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
+    DataFlow::FlowLabel outLabel
+  ) {
+    exists(UI5BindingPath bindingPath |
+      bindingPath.getModel() = start and
+      end =
+        bindingPath
+            .getControlDeclaration()
+            .getDefinition()
+            .getMetadata()
+            .getProperty(bindingPath.getPropertyName()) and
+      inLabel = outLabel
+    )
+  }
+
+  /** Control metadata property being the intermediate flow node */
+  predicate customMetadataPropertyReadStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
+    DataFlow::FlowLabel outLabel
+  ) {
+    exists(PropertyMetadata property |
+      // writing site -> control property
+      start = property.getAWrite().getArgument(1) and
+      end = property
+      or
+      // control property -> reading site
+      start = property and
+      end = property.getARead()
+    ) and
+    inLabel = outLabel
+  }
+
+  predicate localModelSetPropertyStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
+    DataFlow::FlowLabel outLabel
+  ) {
+    exists(
+      MethodCallNode setPropertyCall, ModelReference modelRef, CustomController controller,
+      InternalModelManifest internalModelManifest
+    |
+      setPropertyCall.getMethodName() = "setProperty" and
+      setPropertyCall.getReceiver().getALocalSource() = modelRef and
+      /* We're applying TC + since the modelRef can be inside a callback argument. */
+      modelRef.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and
+      controller.getAModelReference() = modelRef and
+      // modelRef.getModelName() can be found in manifest.js
+      internalModelManifest.getName() = modelRef.getModelName() and
+      setPropertyCall.getArgument(1) = start and
+      modelRef = end and
+      /* Any inLabel */
+      inLabel = inLabel and
+      outLabel =
+        modelRef.getModelName() + ">" +
+          setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue()
+    )
+  }
+
   predicate isAdditionalFlowStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
   ) {
-    inLabel = "taint" and
-    outLabel = "taint" and
-    (
-      bidiModelControl(start, end)
-      or
-      // handler argument node to handler parameter
-      exists(UI5Handler h |
-        start = h.getBindingPath().getNode() and
-        // ideally we would like to show an intermediate node where
-        // the handler is bound to a control, but there is no sourceNode there
-        // `end = h.getBindingPath() or start = h.getBindingPath()`
-        end = h.getParameter(0)
-      )
-      or
-      /* 1. Control metadata property being the intermediate flow node */
-      exists(PropertyMetadata property |
-        // writing site -> control property
-        start = property.getAWrite().getArgument(1) and
-        end = property
-        or
-        // control property -> reading site
-        start = property and
-        end = property.getARead()
-      )
-      or
-      /* 2. Model property being the intermediate flow node */
-      // JS object property (corresponding to binding path) -> getProperty('/path')
-      start = end.(GetBoundValue).getBoundNode()
-      or
-      // setProperty('/path') -> JS object property (corresponding to binding path)
-      end = start.(SetBoundValue).getBoundNode()
-    )
+    // bidiModelControl(start, end)
+    // or
+    // // handler argument node to handler parameter
+    // exists(UI5Handler h |
+    //   start = h.getBindingPath().getNode() and
+    //   // ideally we would like to show an intermediate node where
+    //   // the handler is bound to a control, but there is no sourceNode there
+    //   // `end = h.getBindingPath() or start = h.getBindingPath()`
+    //   end = h.getParameter(0)
+    // )
+    // or
+    customMetadataPropertyReadStep(start, end, inLabel, outLabel)
+    or
+    externalModelToCustomMetadataPropertyStep(start, end, inLabel, outLabel)
+    // /* 2. Model property being the intermediate flow node */
+    // // JS object property (corresponding to binding path) -> getProperty('/path')
+    // start = end.(GetBoundValue).getBoundNode()
+    // or
+    // // setProperty('/path') -> JS object property (corresponding to binding path)
+    // end = start.(SetBoundValue).getBoundNode()
   }
 
   /**
@@ -198,15 +257,32 @@ module UI5DataFlow {
       }
   }
 
-  /**
-   * A remote source associated with a `UI5InternalBoundNode`.
-   */
-  class UI5ModelSource extends UI5DataFlow::UI5BoundNode, RemoteFlowSource {
-    UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
+  class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
+    override string getSourceType() { result = "RouteParameterAccess" }
 
-    override string getSourceType() { result = "UI5 model remote flow source" }
+    RouteParameterAccess() {
+      exists(
+        ControllerHandler handler, RouteManifest routeManifest, ParameterNode handlerParameter,
+        MethodCallNode getParameterCall
+      |
+        handler.isAttachedToRoute(routeManifest.getName()) and
+        routeManifest.matchesPathString(this.getPropertyName()) and
+        this.asExpr().getEnclosingFunction() = handler.getFunction() and
+        handlerParameter = handler.getParameter(0) and
+        getParameterCall.getMethodName() = "getParameter" and
+        getParameterCall.getReceiver().getALocalSource() = handlerParameter and
+        this.getBase().getALocalSource() = getParameterCall
+      )
+    }
   }
 
+  // /**
+  //  * A remote source associated with a `UI5InternalBoundNode`.
+  //  */
+  // class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
+  //   UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
+  //   // override string getSourceType() { result = "UI5 model remote flow source" }
+  // }
   /**
    * An HTML injection sink associated with a `UI5InternalBoundNode`.
    */

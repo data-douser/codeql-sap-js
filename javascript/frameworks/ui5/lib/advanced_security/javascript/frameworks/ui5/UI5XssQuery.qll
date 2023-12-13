@@ -3,7 +3,7 @@ import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
 
 class Configuration extends DomBasedXss::Configuration {
   /** WARNING: VALID FOR THIS BRANCH (`jeongsoolee09/remote-model-1`) ONLY */
-  override predicate isSource(DataFlow::Node start) { start instanceof UI5ExternalModel }
+  override predicate isSource(DataFlow::Node start) { start instanceof RemoteFlowSource }
 
   override predicate isAdditionalFlowStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
@@ -26,22 +26,7 @@ class Configuration extends DomBasedXss::Configuration {
       RouteManifest routeManifest, PropRead parameterAccess, UI5BindingPath bindingPath
     |
       /* 1. Validate that the controller has a handler attached to a route */
-      start = controller.getModel().(UI5ExternalModel) and
-      handler = controller.getAHandler() and
-      handler.isAttachedToRoute(routeManifest.getName()) and
-      routeManifest.matchesPathString(parameterAccess.getPropertyName()) and
-      parameterAccess
-          .flowsToExpr(controller
-                .getAViewReference()
-                .getABindElementCall()
-                .getArgument(0)
-                .asExpr()
-                .(ObjectExpr)
-                .getPropertyByName("path")
-                .getInit()
-                // TODO: `BinaryExpr.getAnOperand` is too narrow
-                .(BinaryExpr)
-                .getAnOperand()) and
+      // start = controller.getModel().(UI5ExternalModel) and
       /* 2. Get the control associated with it */
       bindingPath.getModel() = start and
       controlMetadata =
@@ -54,6 +39,21 @@ class Configuration extends DomBasedXss::Configuration {
       end = controlMetadata
     )
   }
+
+
+  /*
+   * binding path with (1) same model (2) same property name,
+   *
+   *
+   *
+   *  <CommentTextArea commentText="{user/Firstname}" />
+   *
+   *  <CommentTextArea commentText="{user/Lastname}" />
+   *
+   *  bindingPath is either user/Firstname or user/Lastname
+   *  bindingPath.getModel are same for both
+   *  bindingPath.getPropertyName are same for both.
+   */
 
   override predicate isSanitizer(DataFlow::Node node) {
     /* 1. Already a sanitizer defined in `DomBasedXssQuery::Configuration` */
