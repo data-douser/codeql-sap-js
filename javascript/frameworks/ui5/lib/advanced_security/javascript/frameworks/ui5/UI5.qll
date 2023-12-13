@@ -277,6 +277,8 @@ module UI5 {
         result = controlDeclaration.getDefinition()
       )
     }
+
+    string getId() { result = controlId }
   }
 
   /**
@@ -436,11 +438,16 @@ module UI5 {
     }
   }
 
+  /**
+   * A reference to a model obtained by a method call to `getModel`.
+   */
   class ModelReference extends MethodCallNode {
     ModelReference() {
       this.getMethodName() = "getModel" and
       exists(ViewReference view | view.flowsTo(this.getReceiver()))
     }
+
+    predicate isDefaultModelReference() { this.getNumArgument() = 0 }
 
     /**
      * Gets the models' name being referred to, given that it can be statically determined.
@@ -448,10 +455,95 @@ module UI5 {
     string getModelName() {
       result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
     }
+
+    /**
+     * Gets the matching `setModel` method call of this `ModelReference`.
+     */
+    MethodCallNode getAMatchingSetModelCall() {
+      exists(MethodCallNode setModelCall |
+        setModelCall.getMethodName() = "setModel" and
+        result = setModelCall.getArgument(0) and
+        (
+          if this.isDefaultModelReference()
+          then (
+            /* ========== A nameless default model ========== */
+            setModelCall.getNumArgument() = 1 and
+            /* 1. A matching `setModel` call is on a `ViewReference` */
+            exists(ViewReference getModelCallViewRef, ViewReference setModelCallViewRef |
+              /* Find the `setModelCall` that matches this */
+              setModelCall.getReceiver().getALocalSource() = setModelCallViewRef and
+              this.getReceiver().getALocalSource() = getModelCallViewRef and
+              setModelCallViewRef.getDefinition() = getModelCallViewRef.getDefinition()
+            )
+            or
+            /* 2. A matching `setModel` call is on a `ControlReference` */
+            exists(
+              ControlReference getModelCallControlRef, ControlReference setModelCallControlRef
+            |
+              /* Find the `setModelCall` that matches this */
+              setModelCall.getReceiver().getALocalSource() = setModelCallControlRef and
+              this.getReceiver().getALocalSource() = getModelCallControlRef and
+              (
+                setModelCallControlRef.getDefinition() = getModelCallControlRef.getDefinition() or
+                setModelCallControlRef.getId() = getModelCallControlRef.getId()
+              )
+            )
+          ) else (
+            /* ========== A named non-default model ========== */
+            setModelCall.getNumArgument() = 2 and
+            setModelCall.getArgument(1).getALocalSource().getStringValue() = this.getModelName() and
+            /* 1. A matching `setModel` call is on a `ViewReference` */
+            exists(ViewReference getModelCallViewRef, ViewReference setModelCallViewRef |
+              /* Find the `setModelCall` that matches this */
+              setModelCall.getReceiver().getALocalSource() = setModelCallViewRef and
+              this.getReceiver().getALocalSource() = getModelCallViewRef and
+              setModelCallViewRef.getDefinition() = getModelCallViewRef.getDefinition()
+            )
+            or
+            /* 2. A matching `setModel` call is on a `ControlReference` */
+            exists(
+              ControlReference getModelCallControlRef, ControlReference setModelCallControlRef
+            |
+              /* Find the `setModelCall` that matches this */
+              setModelCall.getReceiver().getALocalSource() = setModelCallControlRef and
+              this.getReceiver().getALocalSource() = getModelCallControlRef and
+              (
+                setModelCallControlRef.getDefinition() = getModelCallControlRef.getDefinition() or
+                setModelCallControlRef.getId() = getModelCallControlRef.getId()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    /**
+     * Gets a `getProperty` or `getObject` method call on this `ModelReference`. These methods read from a single property of the model this refers to.
+     */
+    MethodCallNode getARead() {
+      result.getMethodName() = ["getProperty", "getObject"] and
+      result.getReceiver().getALocalSource() = this
+    }
+
+    /**
+     * Gets the resolved model of this `ModelReference` by looking for a matching `setModel` call.
+     */
+    UI5Model getResolvedModel() {
+      /* TODO: If the argument of the setModelCall is another ModelReference, then we should recursively resolve that */
+      result = this.getAMatchingSetModelCall().getArgument(0)
+    }
   }
 
   abstract class UI5Model extends InvokeNode {
     CustomController getController() { result.asExpr() = this.asExpr().getParent+() }
+
+    /**
+     * A `getProperty` or `getObject` method call on this `UI5Model`. These methods read from a single property of this model.
+     */
+    MethodCallNode getARead() {
+      result.getMethodName() = ["getProperty", "getObject"] and
+      result.getReceiver().getALocalSource() = this
+    }
   }
 
   /**
@@ -467,7 +559,7 @@ module UI5 {
 
   /**
    * Represents models that are loaded from an external source, e.g. OData service.
-   * It is the value flowing to a `setModel` call in a method of a `CustomController`, since it is the closest we can get to the actual model itself.
+   * It is the value flowing to a `setModel` call in a handler of a `CustomController` (which is represented by `ControllerHandler`), since it is the closest we can get to the actual model itself.
    */
   abstract class UI5ExternalModel extends UI5Model, RemoteFlowSource {
     abstract string getName();
