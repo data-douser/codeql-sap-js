@@ -156,6 +156,60 @@ module UI5DataFlow {
     )
   }
 
+  predicate localModelGetPropertyStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
+    DataFlow::FlowLabel outLabel
+  ) {
+    exists(
+      MethodCallNode getPropertyCall, ModelReference modelRefTo, ModelReference modelRefFrom,
+      MethodCallNode setPropertyCall
+    |
+      setPropertyCall.getMethodName() = "setProperty" and
+      setPropertyCall.getReceiver().getALocalSource() = modelRefFrom and
+      start = modelRefFrom and
+      getPropertyCall.getMethodName() = "getProperty" and
+      getPropertyCall.getReceiver().getALocalSource() = modelRefTo and
+      inLabel =
+        modelRefTo.getModelName() + ">" +
+          getPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() and
+      outLabel = "taint" and
+      end = getPropertyCall and
+      /* Ensure that getPropertyCall and setPropertyCall are both reading/writing from/to the (1) same property of the (2) same model. */
+      getPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() =
+        setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() and
+      modelRefFrom.getModelName() = modelRefTo.getModelName()
+    )
+  }
+
+  predicate localModelControlMetadataStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
+    DataFlow::FlowLabel outLabel
+  ) {
+    exists(
+      ModelReference modelRef, BindingPath bindingPath, Binding binding, CustomControl control,
+      MethodCallNode setPropertyCall
+    |
+      setPropertyCall.getMethodName() = "setProperty" and
+      setPropertyCall.getReceiver().getALocalSource() = modelRef and
+      bindingPath = binding.getBindingPath() and
+      bindingPath.asString() =
+        modelRef.getModelName() + ">" +
+          setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() and
+      start = modelRef and
+      // modelRef.getModelName() = binding.getBindingPath().getModelName() and
+      binding.getBindingPath().asString() = inLabel and
+      control.getMetadata().getProperty(binding.getBindingTarget().asXmlAttribute().getName()) = end and
+      outLabel = "taint"
+    )
+  }
+
+  /*
+   * 1. the start is modelRef
+   * 2. modelRef has getProperty on bindingPath
+   * 3. a control property is using bindingPath
+   * 4. model
+   */
+
   predicate isAdditionalFlowStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
@@ -174,6 +228,12 @@ module UI5DataFlow {
     customMetadataPropertyReadStep(start, end, inLabel, outLabel)
     or
     externalModelToCustomMetadataPropertyStep(start, end, inLabel, outLabel)
+    or
+    localModelSetPropertyStep(start, end, inLabel, outLabel)
+    or
+    localModelGetPropertyStep(start, end, inLabel, outLabel)
+    or
+    localModelControlMetadataStep(start, end, inLabel, outLabel)
     // /* 2. Model property being the intermediate flow node */
     // // JS object property (corresponding to binding path) -> getProperty('/path')
     // start = end.(GetBoundValue).getBoundNode()
@@ -307,7 +367,6 @@ module UI5DataFlow {
       boundNode.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
       exists(DataFlow::SourceNode receiver, UI5Model model |
         receiver = this.getReceiver().getALocalSource() and
-        /* TODO: is getModel(_) the correct one? */
         model = boundNode.getBindingPath().getModel()
       |
         model = receiver
@@ -334,7 +393,6 @@ module UI5DataFlow {
         exists(DataFlow::SourceNode receiver, UI5Model model |
           receiver = setProp.getReceiver().getALocalSource()
         |
-          /* TODO: is getModel(_) the correct one? */
           model = boundNode.getBindingPath().getModel() and
           (
             model = receiver
