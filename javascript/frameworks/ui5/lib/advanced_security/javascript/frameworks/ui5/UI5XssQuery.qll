@@ -64,14 +64,15 @@ class Configuration extends DomBasedXss::Configuration {
 
   override predicate isSink(DataFlow::Node node) {
     node instanceof UI5ExtHtmlISink or
-    node instanceof UrlRedirect::LocationSink
+    node instanceof UrlRedirect::LocationSink or
+    node instanceof UI5ModelHtmlISink
   }
 }
 
 /**
  * An HTML injection sink associated with a `UI5BoundNode`, typically for library controls acting as sinks.
  */
-private class UI5ModelHtmlISink extends UI5DataFlow::UI5ModelHtmlISink, DomBasedXss::Sink { }
+private class UI5ModelHtmlISink extends UI5DataFlow::UI5ModelHtmlISink { }
 
 /**
  * An HTML injection sink typically for custom controls whose RenderManager calls acting as sinks.
@@ -81,6 +82,6 @@ private class UI5ExtHtmlISink extends DomBasedXss::Sink {
 }
 
 predicate isUI5Sink(UI5PathGraph::UI5PathNode sink) {
-  sink.asDataFlowPathNode().getNode() instanceof UI5ModelHtmlISink or
-  sink.asDataFlowPathNode().getNode() instanceof UI5ExtHtmlISink
+  sink.asDataFlowNode() instanceof UI5ModelHtmlISink or
+  sink.asDataFlowNode() instanceof UI5ExtHtmlISink
 }

@@ -550,6 +550,10 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
 
   override string getPath() { result = path }
 
+  predicate hasLocationInfo(string filepath, int sl, int sc, int el, int ec) {
+    this.(XmlAttribute).hasLocationInfo(filepath, sl, sc, el, ec)
+  }
+
   /*
    * TODO: take into consideration bindElement() method call
    * e.g.

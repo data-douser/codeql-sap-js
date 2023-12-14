@@ -266,8 +266,8 @@ module UI5DataFlow {
   }
 
   /**
-   * A DataFlow node which some binding path refers to. This class is needed because an XML Element / JSON Objects of a view cannot themselves be a DataFlow node, so an UI5BoundNode instead represents the binding paths those declarations carry.
-   * If the binding path lives in a JS code, then it is itself a UI5BoundNode.
+   * A `DataFlow::Node` which some binding path refers to. This class is needed because an XML Element / JSON Objects of a view cannot themselves be a DataFlow node, so an UI5BoundNode instead represents the binding paths those declarations carry.
+   * If the binding path lives in a JS code, then it is itself a `UI5BoundNode`.
    */
   abstract class UI5BoundNode extends DataFlow::Node {
     UI5BindingPath bindingPath;
@@ -276,11 +276,12 @@ module UI5DataFlow {
   }
 
   /**
-   * DataFlow nodes that correspond to an **internal** model and are bound to a `UI5View` via some `UI5BindingPath`.
+   * A `DataFlow::Node` that correspond to an **internal** model and are bound to a `UI5View` via some `UI5BindingPath`.
    */
   class UI5InternalBoundNode extends UI5BoundNode {
     UI5InternalBoundNode() {
       exists(WebApp webApp |
+        /* The "same webapp" condition */
         webApp.getAResource() = this.getFile() and
         webApp.getAResource() = bindingPath.getLocation().getFile()
       |
@@ -313,31 +314,12 @@ module UI5DataFlow {
   }
 
   /**
-   * DataFlow nodes that correspond to some **external** model and are bound to a `UI5View` via some `UI5BindingPath`.
+   * A `DataFlow::Node` that correspond to some **external** model and are bound to a `UI5View` via some `UI5BindingPath`.
    * Since `UI5ExternalModel` is an argument to a `setModel` call, `UI5ExternalBoundNode` is also a value that flows to the `setModel` call.
    * `UI5ExternalBoundNode` = `bindingPath` + `UI5ExternalModel`.
    */
   class UI5ExternalBoundNode extends UI5BoundNode {
-    UI5ExternalBoundNode() {
-      /* TODO: remove spurious rows! */
-      this = bindingPath.getView().getController().getModel().(UI5ExternalModel)
-      // and not bindingPath = any(UI5InternalBoundNode b).getBindingPath()
-      /*
-       *      bindingpath <--many_to_one--> model <--many_to_many-->
-       *     controller
-       *
-       *      --> crazy cross product!
-       *
-       *
-       *      - name of the model
-       *        - as extracted from the path itself (before >)
-       *        - setModel(..., "name_of_the_model")
-       *      - type of the model
-       *        - sap.ui.model.JSONModel
-       *        - sap.ui.model.ResourceModel
-       */
-
-      }
+    UI5ExternalBoundNode() { this = bindingPath.getModel().(UI5ExternalModel) }
   }
 
   class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
@@ -364,22 +346,22 @@ module UI5DataFlow {
     }
   }
 
-  // /**
-  //  * A remote source associated with a `UI5InternalBoundNode`.
-  //  */
-  // class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
-  //   UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
-  //   // override string getSourceType() { result = "UI5 model remote flow source" }
-  // }
+  /**
+   * A remote source associated with a `UI5InternalBoundNode`.
+   */
+  class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
+    UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
+    // override string getSourceType() { result = "UI5 model remote flow source" }
+  }
+
   /**
    * An HTML injection sink associated with a `UI5InternalBoundNode`.
    */
   class UI5ModelHtmlISink extends UI5DataFlow::UI5BoundNode {
-    UI5View view;
-
     UI5ModelHtmlISink() {
-      not view.getController().getModel().(JsonModel).isOneWayBinding() and
-      bindingPath = view.getAnHtmlISink()
+      this = bindingPath.getModel()
+      // not view.getController().getModel().(JsonModel).isOneWayBinding() and
+      // bindingPath = view.getAnHtmlISink()
     }
   }
 
@@ -434,15 +416,15 @@ module UI5DataFlow {
 module UI5PathGraph {
   newtype TNode =
     TUI5BindingPathNode(UI5BindingPath path) or
-    TDataFlowPathNode(DataFlow::Node node)
+    TDataFlowNode(DataFlow::Node node)
 
   class UI5PathNode extends TNode {
-    DataFlow::PathNode asDataFlowPathNode() { this = TDataFlowPathNode(result.getNode()) }
+    DataFlow::Node asDataFlowNode() { this = TDataFlowNode(result) }
 
     UI5BindingPath asUI5BindingPathNode() { this = TUI5BindingPathNode(result) }
 
     string toString() {
-      result = this.asDataFlowPathNode().toString()
+      result = this.asDataFlowNode().toString()
       or
       result = this.asUI5BindingPathNode().toString()
     }
@@ -450,23 +432,24 @@ module UI5PathGraph {
     predicate hasLocationInfo(
       string filepath, int startline, int startcolumn, int endline, int endcolumn
     ) {
-      this.asDataFlowPathNode()
-          .getNode()
-          .hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+      this.asDataFlowNode().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
       or
       this.asUI5BindingPathNode()
-          .getLocation()
+          // TODO: generalize from XML
+          .(XmlBindingPath)
           .hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
     }
+
+    DataFlow::PathNode getPathNode() { result.getNode() = this.asDataFlowNode() }
 
     /**
      * ???
      */
     UI5PathNode getAPrimarySource() {
-      not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5BoundNode and
-      this.asDataFlowPathNode() = result.asDataFlowPathNode()
+      not this.asDataFlowNode() instanceof UI5DataFlow::UI5BoundNode and
+      this.asDataFlowNode() = result.asDataFlowNode()
       or
-      this.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
+      this.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
         result.asUI5BindingPathNode() and
       result.asUI5BindingPathNode() = any(UI5View view).getASource()
     }
@@ -475,44 +458,55 @@ module UI5PathGraph {
      * ???
      */
     UI5PathNode getAPrimaryHtmlISink() {
-      not this.asDataFlowPathNode().getNode() instanceof UI5DataFlow::UI5BoundNode and
-      this.asDataFlowPathNode() = result.asDataFlowPathNode()
+      not this.asDataFlowNode() instanceof UI5DataFlow::UI5BoundNode and
+      this.asDataFlowNode() = result.asDataFlowNode()
       or
-      this.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
+      this.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
         result.asUI5BindingPathNode() and
+      result.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
+      or
+      this.asDataFlowNode() instanceof UI5ExternalModel and
+      result.asUI5BindingPathNode().getModel() = this.asDataFlowNode() and
       result.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
     }
   }
 
-  query predicate nodes(UI5PathNode nd) {
-    exists(nd.asUI5BindingPathNode())
+  query predicate nodes(UI5PathNode ui5PathNode) {
+    exists(ui5PathNode.asUI5BindingPathNode())
     or
-    DataFlowPathGraph::nodes(nd.asDataFlowPathNode())
+    exists(DataFlow::PathNode pathNode |
+      pathNode.getNode() = ui5PathNode.asDataFlowNode() and
+      DataFlowPathGraph::nodes(pathNode)
+    )
   }
 
-  query predicate edges(UI5PathNode pred, UI5PathNode succ) {
+  query predicate edges(UI5PathNode ui5PathNodePred, UI5PathNode ui5PathNodeSucc) {
     // all dataflow edges
-    DataFlowPathGraph::edges(pred.asDataFlowPathNode(), succ.asDataFlowPathNode()) and
+    exists(DataFlow::PathNode pathNodeFrom, DataFlow::PathNode pathNodeTo |
+      pathNodeFrom.getNode() = ui5PathNodePred.asDataFlowNode() and
+      pathNodeTo.getNode() = ui5PathNodeSucc.asDataFlowNode() and
+      DataFlowPathGraph::edges(pathNodeFrom, pathNodeTo)
+    ) and
     // exclude duplicate edge from model to handler parameter
     not exists(UI5Handler h |
-      pred.asDataFlowPathNode().getNode() = h.getBindingPath().getNode() and
-      succ.asDataFlowPathNode().getNode() = h.getParameter(0)
+      ui5PathNodePred.asDataFlowNode() = h.getBindingPath().getNode() and
+      ui5PathNodeSucc.asDataFlowNode() = h.getParameter(0)
     )
     or
-    pred.asUI5BindingPathNode() =
-      succ.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
-    pred.asUI5BindingPathNode() = any(UI5View view).getASource()
+    ui5PathNodePred.asUI5BindingPathNode() =
+      ui5PathNodeSucc.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
+    ui5PathNodePred.asUI5BindingPathNode() = any(UI5View view).getASource()
     or
-    succ.asUI5BindingPathNode() =
-      pred.asDataFlowPathNode().getNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
-    succ.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
+    ui5PathNodeSucc.asUI5BindingPathNode() =
+      ui5PathNodePred.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
+    ui5PathNodeSucc.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
     or
     // flow to event handler parameter through the binding argument
-    pred.asDataFlowPathNode().getNode() = succ.asUI5BindingPathNode().getNode()
+    ui5PathNodePred.asDataFlowNode() = ui5PathNodeSucc.asUI5BindingPathNode().getNode()
     or
     exists(UI5Handler h |
-      pred.asUI5BindingPathNode() = h.getBindingPath() and
-      succ.asDataFlowPathNode().getNode() = h.getParameter(0)
+      ui5PathNodePred.asUI5BindingPathNode() = h.getBindingPath() and
+      ui5PathNodeSucc.asDataFlowNode() = h.getParameter(0)
     )
   }
 }
