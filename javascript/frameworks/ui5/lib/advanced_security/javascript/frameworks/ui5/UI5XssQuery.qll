@@ -1,5 +1,6 @@
 import advanced_security.javascript.frameworks.ui5.UI5DataFlow
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
+import semmle.javascript.security.dataflow.ClientSideUrlRedirectCustomizations::ClientSideUrlRedirect as UrlRedirect
 
 class Configuration extends DomBasedXss::Configuration {
   /** WARNING: VALID FOR THIS BRANCH (`jeongsoolee09/remote-model-1`) ONLY */
@@ -40,21 +41,6 @@ class Configuration extends DomBasedXss::Configuration {
     )
   }
 
-
-  /*
-   * binding path with (1) same model (2) same property name,
-   *
-   *
-   *
-   *  <CommentTextArea commentText="{user/Firstname}" />
-   *
-   *  <CommentTextArea commentText="{user/Lastname}" />
-   *
-   *  bindingPath is either user/Firstname or user/Lastname
-   *  bindingPath.getModel are same for both
-   *  bindingPath.getPropertyName are same for both.
-   */
-
   override predicate isSanitizer(DataFlow::Node node) {
     /* 1. Already a sanitizer defined in `DomBasedXssQuery::Configuration` */
     super.isSanitizer(node)
@@ -77,8 +63,8 @@ class Configuration extends DomBasedXss::Configuration {
   }
 
   override predicate isSink(DataFlow::Node node) {
-    // node instanceof UI5ModelHtmlISink or
-    node instanceof UI5ExtHtmlISink
+    node instanceof UI5ExtHtmlISink or
+    node instanceof UrlRedirect::LocationSink
   }
 }
 

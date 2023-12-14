@@ -203,12 +203,31 @@ module UI5DataFlow {
     )
   }
 
-  /*
-   * 1. the start is modelRef
-   * 2. modelRef has getProperty on bindingPath
-   * 3. a control property is using bindingPath
-   * 4. model
-   */
+  predicate modelDefinitionToReferenceStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
+    DataFlow::FlowLabel outLabel
+  ) {
+    exists(UI5Model modelDefinition, ModelReference modelReference |
+      modelReference.getResolvedModel() = modelDefinition and
+      start = modelDefinition and
+      end = modelReference and
+      inLabel = inLabel and // any inLabel
+      outLabel = outLabel // any outLabel
+    )
+  }
+
+  predicate modelReferenceToReadStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
+    DataFlow::FlowLabel outLabel
+  ) {
+    exists(ModelReference modelReference, MethodCallNode readingMethodCall |
+      readingMethodCall = modelReference.getARead() and
+      start = modelReference and
+      end = readingMethodCall and
+      inLabel = inLabel and // any inLabel
+      outLabel = outLabel // any outLabel
+    )
+  }
 
   predicate isAdditionalFlowStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
@@ -234,6 +253,10 @@ module UI5DataFlow {
     localModelGetPropertyStep(start, end, inLabel, outLabel)
     or
     localModelControlMetadataStep(start, end, inLabel, outLabel)
+    or
+    modelDefinitionToReferenceStep(start, end, inLabel, outLabel)
+    or
+    modelReferenceToReadStep(start, end, inLabel, outLabel)
     // /* 2. Model property being the intermediate flow node */
     // // JS object property (corresponding to binding path) -> getProperty('/path')
     // start = end.(GetBoundValue).getBoundNode()
@@ -355,29 +378,25 @@ module UI5DataFlow {
     }
   }
 
-  /**
-   * A `getProperty` or `getObject` method call on a model.
-   * This is a node which reads from a property of a model.
-   */
-  class GetBoundValue extends DataFlow::MethodCallNode {
-    UI5BoundNode boundNode;
-
-    GetBoundValue() {
-      this.getCalleeName() = ["getProperty", "getObject"] and
-      boundNode.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
-      exists(DataFlow::SourceNode receiver, UI5Model model |
-        receiver = this.getReceiver().getALocalSource() and
-        model = boundNode.getBindingPath().getModel()
-      |
-        model = receiver
-        or
-        model.getController().getAModelReference() = receiver
-      )
-    }
-
-    UI5BoundNode getBoundNode() { result = boundNode }
-  }
-
+  // /**
+  //  * A `getProperty` or `getObject` method call on a `UI5Model` or a reference to one, i.e. `ModelReference`. These methods read from a single property of a model.
+  //  */
+  // class GetBoundValue extends DataFlow::MethodCallNode {
+  //   UI5BoundNode boundNode;
+  //   GetBoundValue() {
+  //     this.getCalleeName() = ["getProperty", "getObject"] and
+  //     boundNode.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
+  //     exists(DataFlow::SourceNode receiver, UI5Model model |
+  //       receiver = this.getReceiver().getALocalSource() and
+  //       model = boundNode.getBindingPath().getModel()
+  //     |
+  //       model = receiver
+  //       or
+  //       model.getController().getAModelReference() = receiver
+  //     )
+  //   }
+  //   UI5BoundNode getBoundNode() { result = boundNode }
+  // }
   /**
    * An argument to `setProperty` or `setObject` method call on a model.
    * This is a node which writes to a property of a model.
