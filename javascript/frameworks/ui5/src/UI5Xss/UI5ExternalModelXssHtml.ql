@@ -27,6 +27,5 @@ from Configuration config, UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5Pa
 where
   config.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   config.isSource(source.asDataFlowNode()) and
-  config.isSink(sink.asDataFlowNode()) and
-  isUI5Sink(sink)
+  config.isSink(sink.asDataFlowNode())
 select sink.getAPrimaryHtmlISink(), source, sink, "nooooo"
