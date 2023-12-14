@@ -20,7 +20,7 @@ from
   Configuration cfg, UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink,
   UI5PathGraph::UI5PathNode primarySource, UI5PathGraph::UI5PathNode primarySink
 where
-  cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
+  cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   primarySource = source.getAPrimarySource() and
   primarySink = sink.getAPrimaryHtmlISink() and
   isUI5Sink(sink)
