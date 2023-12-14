@@ -656,7 +656,10 @@ class XmlView extends UI5View, XmlFile {
       (
         getASuperType(type) = "HTMLControl"
         implies
-        not exists(control.getAttribute("sanitizeContent"))
+        (
+          not exists(control.getAttribute("sanitizeContent")) or
+          control.getAttribute("sanitizeContent").getValue() = "false"
+        )
       )
     )
   }

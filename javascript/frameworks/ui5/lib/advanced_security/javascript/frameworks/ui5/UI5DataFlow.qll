@@ -97,7 +97,7 @@ module UI5DataFlow {
     )
   }
 
-  /** TODO */
+  /** External model to a relevant control property */
   predicate externalModelToCustomMetadataPropertyStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
@@ -120,11 +120,11 @@ module UI5DataFlow {
     DataFlow::FlowLabel outLabel
   ) {
     exists(PropertyMetadata property |
-      // writing site -> control property
+      /* Writing site -> Control property */
       start = property.getAWrite().getArgument(1) and
       end = property
       or
-      // control property -> reading site
+      /* Control property -> Reading site */
       start = property and
       end = property.getARead()
     ) and
@@ -141,10 +141,10 @@ module UI5DataFlow {
     |
       setPropertyCall.getMethodName() = "setProperty" and
       setPropertyCall.getReceiver().getALocalSource() = modelRef and
-      /* We're applying TC + since the modelRef can be inside a callback argument. */
+      /* We're applying TC + since the `modelRef` can be inside a callback argument. */
       modelRef.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and
       controller.getAModelReference() = modelRef and
-      // modelRef.getModelName() can be found in manifest.js
+      /* `modelRef.getModelName()` can be found in manifest.js */
       internalModelManifest.getName() = modelRef.getModelName() and
       setPropertyCall.getArgument(1) = start and
       modelRef = end and
@@ -365,25 +365,6 @@ module UI5DataFlow {
     }
   }
 
-  // /**
-  //  * A `getProperty` or `getObject` method call on a `UI5Model` or a reference to one, i.e. `ModelReference`. These methods read from a single property of a model.
-  //  */
-  // class GetBoundValue extends DataFlow::MethodCallNode {
-  //   UI5BoundNode boundNode;
-  //   GetBoundValue() {
-  //     this.getCalleeName() = ["getProperty", "getObject"] and
-  //     boundNode.getBindingPath().getAbsolutePath() = this.getArgument(0).getStringValue() and
-  //     exists(DataFlow::SourceNode receiver, UI5Model model |
-  //       receiver = this.getReceiver().getALocalSource() and
-  //       model = boundNode.getBindingPath().getModel()
-  //     |
-  //       model = receiver
-  //       or
-  //       model.getController().getAModelReference() = receiver
-  //     )
-  //   }
-  //   UI5BoundNode getBoundNode() { result = boundNode }
-  // }
   /**
    * An argument to `setProperty` or `setObject` method call on a model.
    * This is a node which writes to a property of a model.
@@ -481,13 +462,13 @@ module UI5PathGraph {
   }
 
   query predicate edges(UI5PathNode ui5PathNodePred, UI5PathNode ui5PathNodeSucc) {
-    // all dataflow edges
+    /* Include all existing dataflow edges */
     exists(DataFlow::PathNode pathNodeFrom, DataFlow::PathNode pathNodeTo |
       pathNodeFrom.getNode() = ui5PathNodePred.asDataFlowNode() and
       pathNodeTo.getNode() = ui5PathNodeSucc.asDataFlowNode() and
       DataFlowPathGraph::edges(pathNodeFrom, pathNodeTo)
     ) and
-    // exclude duplicate edge from model to handler parameter
+    /* Exclude duplicate edge from model to handler parameter */
     not exists(UI5Handler h |
       ui5PathNodePred.asDataFlowNode() = h.getBindingPath().getNode() and
       ui5PathNodeSucc.asDataFlowNode() = h.getParameter(0)
@@ -501,7 +482,7 @@ module UI5PathGraph {
       ui5PathNodePred.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
     ui5PathNodeSucc.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
     or
-    // flow to event handler parameter through the binding argument
+    /* Flow to event handler parameter through the binding argument */
     ui5PathNodePred.asDataFlowNode() = ui5PathNodeSucc.asUI5BindingPathNode().getNode()
     or
     exists(UI5Handler h |

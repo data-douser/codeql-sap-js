@@ -13,32 +13,8 @@ class Configuration extends DomBasedXss::Configuration {
     /* 1. Already an additional flow step defined in `DomBasedXssQuery::Configuration` */
     super.isAdditionalFlowStep(start, end, inLabel, outLabel)
     or
-    /* 2. Already an additional flow step defined in `UI5DataFlow` */
-    /*
-     * TODO: de-deduplicate one of `isAdditionalFlowStep` by integrating
-     * UI5DataFlow's one to this
-     */
-
+    /* 2. An additional flow step defined in `UI5DataFlow` */
     UI5DataFlow::isAdditionalFlowStep(start, end, inLabel, outLabel)
-    or
-    /* 3. External model to a relevant control property */
-    exists(
-      CustomController controller, ControllerHandler handler, PropertyMetadata controlMetadata,
-      RouteManifest routeManifest, PropRead parameterAccess, UI5BindingPath bindingPath
-    |
-      /* 1. Validate that the controller has a handler attached to a route */
-      // start = controller.getModel().(UI5ExternalModel) and
-      /* 2. Get the control associated with it */
-      bindingPath.getModel() = start and
-      controlMetadata =
-        bindingPath
-            .getControlDeclaration()
-            .getDefinition()
-            .getMetadata()
-            .getProperty(bindingPath.getPropertyName()) and
-      /* Grand finale. We're done! */
-      end = controlMetadata
-    )
   }
 
   override predicate isSanitizer(DataFlow::Node node) {

@@ -16,9 +16,15 @@ import javascript
 import advanced_security.javascript.frameworks.ui5.UI5DataFlow::UI5PathGraph
 import advanced_security.javascript.frameworks.ui5.UI5XssQuery
 
+/*
+ * Goal: Find all taint flows that start either from:
+ * - a server-side model, or
+ * - an event handler parameter.
+ */
+
 from Configuration config, UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink
 where
-  config.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
-  config.isSource(source.asDataFlowPathNode().getNode()) and
-  config.isSink(sink.asDataFlowPathNode().getNode())
+  config.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
+  config.isSource(source.asDataFlowNode()) and
+  config.isSink(sink.asDataFlowNode())
 select sink, source, sink, "nooooo"
