@@ -233,17 +233,17 @@ module UI5DataFlow {
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
   ) {
-    // bidiModelControl(start, end)
-    // or
-    // // handler argument node to handler parameter
-    // exists(UI5Handler h |
-    //   start = h.getBindingPath().getNode() and
-    //   // ideally we would like to show an intermediate node where
-    //   // the handler is bound to a control, but there is no sourceNode there
-    //   // `end = h.getBindingPath() or start = h.getBindingPath()`
-    //   end = h.getParameter(0)
-    // )
-    // or
+    bidiModelControl(start, end)
+    or
+    // handler argument node to handler parameter
+    exists(UI5Handler h |
+      start = h.getBindingPath().getNode() and
+      // ideally we would like to show an intermediate node where
+      // the handler is bound to a control, but there is no sourceNode there
+      // `end = h.getBindingPath() or start = h.getBindingPath()`
+      end = h.getParameter(0)
+    )
+    or
     customMetadataPropertyReadStep(start, end, inLabel, outLabel)
     or
     externalModelToCustomMetadataPropertyStep(start, end, inLabel, outLabel)
