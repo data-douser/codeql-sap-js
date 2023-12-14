@@ -203,7 +203,7 @@ module UI5DataFlow {
     )
   }
 
-  predicate modelDefinitionToReferenceStep(
+  predicate setModelToGetModelStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
   ) {
@@ -216,7 +216,7 @@ module UI5DataFlow {
     )
   }
 
-  predicate modelReferenceToReadStep(
+  predicate getModelToGetPropertyStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
   ) {
@@ -225,7 +225,7 @@ module UI5DataFlow {
       start = modelReference and
       end = readingMethodCall and
       inLabel = inLabel and // any inLabel
-      outLabel = outLabel // any outLabel
+      outLabel = "taint"
     )
   }
 
@@ -254,9 +254,9 @@ module UI5DataFlow {
     or
     localModelControlMetadataStep(start, end, inLabel, outLabel)
     or
-    modelDefinitionToReferenceStep(start, end, inLabel, outLabel)
+    setModelToGetModelStep(start, end, inLabel, outLabel)
     or
-    modelReferenceToReadStep(start, end, inLabel, outLabel)
+    getModelToGetPropertyStep(start, end, inLabel, outLabel)
     // /* 2. Model property being the intermediate flow node */
     // // JS object property (corresponding to binding path) -> getProperty('/path')
     // start = end.(GetBoundValue).getBoundNode()
@@ -349,12 +349,17 @@ module UI5DataFlow {
         MethodCallNode getParameterCall
       |
         handler.isAttachedToRoute(routeManifest.getName()) and
-        routeManifest.matchesPathString(this.getPropertyName()) and
         this.asExpr().getEnclosingFunction() = handler.getFunction() and
         handlerParameter = handler.getParameter(0) and
         getParameterCall.getMethodName() = "getParameter" and
         getParameterCall.getReceiver().getALocalSource() = handlerParameter and
-        this.getBase().getALocalSource() = getParameterCall
+        (
+          routeManifest.matchesPathString(this.getPropertyName()) and
+          this.getBase().getALocalSource() = getParameterCall
+          or
+          /* TODO: Why does `routeManifest.matchesPathString` not work for propertyName?? */
+          this.getBase().(PropRead).getBase().getALocalSource() = getParameterCall
+        )
       )
     }
   }
