@@ -257,12 +257,6 @@ module UI5DataFlow {
     setModelToGetModelStep(start, end, inLabel, outLabel)
     or
     getModelToGetPropertyStep(start, end, inLabel, outLabel)
-    // /* 2. Model property being the intermediate flow node */
-    // // JS object property (corresponding to binding path) -> getProperty('/path')
-    // start = end.(GetBoundValue).getBoundNode()
-    // or
-    // // setProperty('/path') -> JS object property (corresponding to binding path)
-    // end = start.(SetBoundValue).getBoundNode()
   }
 
   /**
@@ -307,7 +301,7 @@ module UI5DataFlow {
           setModelCall.getMethodName() = "setModel" and
           this.(SourceNode).flowsTo(setModelCall.getArgument(0)) and
           not this instanceof UI5ExternalModel
-          // bindingpath condition!!!!!!!!!!!!!!!!!!!!!!!11
+          // TODO: include a bindingpath condition
         )
       )
     }
