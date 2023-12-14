@@ -345,18 +345,13 @@ module UI5DataFlow {
    */
   class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
     UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
-    // override string getSourceType() { result = "UI5 model remote flow source" }
   }
 
   /**
    * An HTML injection sink associated with a `UI5InternalBoundNode`.
    */
   class UI5ModelHtmlISink extends UI5DataFlow::UI5BoundNode {
-    UI5ModelHtmlISink() {
-      this = bindingPath.getModel()
-      // not view.getController().getModel().(JsonModel).isOneWayBinding() and
-      // bindingPath = view.getAnHtmlISink()
-    }
+    UI5ModelHtmlISink() { this = bindingPath.getModel() }
   }
 
   /**

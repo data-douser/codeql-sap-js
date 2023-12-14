@@ -43,17 +43,17 @@ class UI5ExtLogISink extends LogInjection::Sink {
 
 // log-injections source or sinks that are ui5-specific
 private predicate isUI5Specific(UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink) {
-  source.asDataFlowPathNode().getNode() instanceof UI5ExtSource or
-  source.asDataFlowPathNode().getNode() instanceof UI5ModelSource or
-  sink.asDataFlowPathNode().getNode() instanceof UI5ExtLogISink
+  source.asDataFlowNode() instanceof UI5ExtSource or
+  source.asDataFlowNode() instanceof UI5ModelSource or
+  sink.asDataFlowNode() instanceof UI5ExtLogISink
 }
 
 from
   UI5LogInjectionConfiguration cfg, UI5PathGraph::UI5PathNode source,
   UI5PathGraph::UI5PathNode sink, UI5PathGraph::UI5PathNode primarySource
 where
-  cfg.hasFlowPath(source.asDataFlowPathNode(), sink.asDataFlowPathNode()) and
+  cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   primarySource = source.getAPrimarySource() and
-  // source or sink are ui5-specific
+  /* Source or sink are UI5-specific */
   isUI5Specific(source, sink)
 select sink, primarySource, sink, "Log entry depends on a $@.", primarySource, "user-provided value"
