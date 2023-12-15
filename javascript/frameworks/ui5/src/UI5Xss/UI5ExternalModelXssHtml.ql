@@ -23,9 +23,14 @@ import advanced_security.javascript.frameworks.ui5.UI5XssQuery
  * 3. Maintain zero-step path (hence one path showing up from source to itself)
  */
 
-from Configuration config, UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink
+from
+  Configuration config, UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink,
+  UI5PathGraph::UI5PathNode primarySink
 where
   config.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   config.isSource(source.asDataFlowNode()) and
-  config.isSink(sink.asDataFlowNode())
-select sink.getAPrimaryHtmlISink(), source, sink, "nooooo"
+  config.isSink(sink.asDataFlowNode()) and
+  if sink.asDataFlowNode() instanceof UI5ExternalModel
+  then primarySink = sink.getAPrimaryHtmlISink()
+  else primarySink = sink
+select primarySink, source, sink, "nooooo" // + sink.getPathNode().getFlowLabel()

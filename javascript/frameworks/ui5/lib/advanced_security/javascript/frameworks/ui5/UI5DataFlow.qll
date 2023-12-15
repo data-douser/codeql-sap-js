@@ -17,69 +17,68 @@ module UI5DataFlow {
     }
   }
 
-  /**
-   * Holds if there is a bi-directional data flow between
-   * a model and a control. What might be referred to as "model" depends:
-   *
-   * For an internal model,
-   * it might be the constructor call or the relevant part of the argument to the call.
-   * For an external model,
-   * it is the argument to the `setModel` call of a controller.
-   */
-  private predicate bidiModelControl(DataFlow::Node start, DataFlow::Node end) {
-    /* ========== Internal Model ========== */
-    exists(Metadata metadata, UI5BoundNode node |
-      // same project
-      exists(WebApp webApp |
-        webApp.getAResource() = metadata.getFile() and webApp.getAResource() = node.getFile()
-      ) and
-      (
-        // same control
-        metadata.getExtension().(CustomControl).getName() =
-          node.getBindingPath().getControlQualifiedType()
-        or
-        // extended control
-        exists(Extension subclass |
-          metadata.getExtension().(CustomControl).getDefine().getExtendingDefine() =
-            subclass.getDefine() and
-          node.getBindingPath().getControlQualifiedType() = subclass.getName()
-        )
-      ) and
-      exists(PropertyMetadata property |
-        property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
-        (
-          start = property and end = node
-          or
-          start = node and end = property
-        )
-      )
-    )
-    or
-    /* ========== External Model ========== */
-    exists(UI5Model externalModel, UI5BindingPath bindingPath, string propName |
-      externalModel = getModelOfRelativePath(bindingPath) and
-      propName = bindingPath.getPropertyName()
-    |
-      start =
-        bindingPath
-            .(XmlBindingPath)
-            .getControlDeclaration()
-            .getDefinition()
-            .getMetadata()
-            .getProperty(propName) and
-      end = externalModel
-      or
-      end =
-        bindingPath
-            .(XmlBindingPath)
-            .getControlDeclaration()
-            .getDefinition()
-            .getMetadata()
-            .getProperty(propName) and
-      start = externalModel
-    )
-  }
-
+  // /**
+  //  * Holds if there is a bi-directional data flow between
+  //  * a model and a control. What might be referred to as "model" depends:
+  //  *
+  //  * For an internal model,
+  //  * it might be the constructor call or the relevant part of the argument to the call.
+  //  * For an external model,
+  //  * it is the argument to the `setModel` call of a controller.
+  //  */
+  // private predicate bidiModelControl(DataFlow::Node start, DataFlow::Node end) {
+  //   /* ========== Internal Model ========== */
+  //   exists(Metadata metadata, UI5BoundNode node |
+  //     // same project
+  //     exists(WebApp webApp |
+  //       webApp.getAResource() = metadata.getFile() and webApp.getAResource() = node.getFile()
+  //     ) and
+  //     (
+  //       // same control
+  //       metadata.getExtension().(CustomControl).getName() =
+  //         node.getBindingPath().getControlQualifiedType()
+  //       or
+  //       // extended control
+  //       exists(Extension subclass |
+  //         metadata.getExtension().(CustomControl).getDefine().getExtendingDefine() =
+  //           subclass.getDefine() and
+  //         node.getBindingPath().getControlQualifiedType() = subclass.getName()
+  //       )
+  //     ) and
+  //     exists(PropertyMetadata property |
+  //       property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
+  //       (
+  //         start = property and end = node
+  //         or
+  //         start = node and end = property
+  //       )
+  //     )
+  //   )
+  //   or
+  //   /* ========== External Model ========== */
+  //   exists(UI5Model externalModel, UI5BindingPath bindingPath, string propName |
+  //     externalModel = getModelOfRelativePath(bindingPath) and
+  //     propName = bindingPath.getPropertyName()
+  //   |
+  //     start =
+  //       bindingPath
+  //           .(XmlBindingPath)
+  //           .getControlDeclaration()
+  //           .getDefinition()
+  //           .getMetadata()
+  //           .getProperty(propName) and
+  //     end = externalModel
+  //     or
+  //     end =
+  //       bindingPath
+  //           .(XmlBindingPath)
+  //           .getControlDeclaration()
+  //           .getDefinition()
+  //           .getMetadata()
+  //           .getProperty(propName) and
+  //     start = externalModel
+  //   )
+  // }
   /**
    * Gets the reference to the model to which a given relative binding path resolves to.
    */
@@ -233,8 +232,8 @@ module UI5DataFlow {
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
   ) {
-    bidiModelControl(start, end)
-    or
+    // bidiModelControl(start, end)
+    // or
     // handler argument node to handler parameter
     exists(UI5Handler h |
       start = h.getBindingPath().getNode() and
@@ -259,63 +258,59 @@ module UI5DataFlow {
     getModelToGetPropertyStep(start, end, inLabel, outLabel)
   }
 
-  /**
-   * A `DataFlow::Node` which some binding path refers to. This class is needed because an XML Element / JSON Objects of a view cannot themselves be a DataFlow node, so an UI5BoundNode instead represents the binding paths those declarations carry.
-   * If the binding path lives in a JS code, then it is itself a `UI5BoundNode`.
-   */
-  abstract class UI5BoundNode extends DataFlow::Node {
-    UI5BindingPath bindingPath;
-
-    UI5BindingPath getBindingPath() { result = bindingPath }
-  }
-
-  /**
-   * A `DataFlow::Node` that correspond to an **internal** model and are bound to a `UI5View` via some `UI5BindingPath`.
-   */
-  class UI5InternalBoundNode extends UI5BoundNode {
-    UI5InternalBoundNode() {
-      exists(WebApp webApp |
-        /* The "same webapp" condition */
-        webApp.getAResource() = this.getFile() and
-        webApp.getAResource() = bindingPath.getLocation().getFile()
-      |
-        /* ========== Case 1: The contents of the model are statically observable ========== */
-        /* The relevant portion of the content of a JSONModel */
-        exists(Property modelProperty, JsonModel internalModel |
-          // The property bound to an UI5View source
-          this.(DataFlow::PropRef).getPropertyNameExpr() = modelProperty.getNameExpr() and
-          // The binding path refers to this model
-          bindingPath.getAbsolutePath() = internalModel.getPathString(modelProperty)
-        )
-        or
-        /* The URI string to the JSONModel / XMLModel constructor call */
-        exists(UI5InternalModel internalModel |
-          // TODO: include the import path so that it only includes `sap.ui.model.ClientModel`
-          this = internalModel.getArgument(0) and
-          this.asExpr() instanceof StringLiteral and
-          bindingPath.getAbsolutePath() = internalModel.getPathString()
-        )
-        or
-        /* ========== Case 2: The contents of the model are not statically observable ========== */
-        exists(MethodCallNode setModelCall |
-          setModelCall.getMethodName() = "setModel" and
-          this.(SourceNode).flowsTo(setModelCall.getArgument(0)) and
-          not this instanceof UI5ExternalModel
-          // TODO: include a bindingpath condition
-        )
-      )
-    }
-  }
-
-  /**
-   * A `DataFlow::Node` that correspond to some **external** model and are bound to a `UI5View` via some `UI5BindingPath`.
-   * Since `UI5ExternalModel` is an argument to a `setModel` call, `UI5ExternalBoundNode` is also a value that flows to the `setModel` call.
-   * `UI5ExternalBoundNode` = `bindingPath` + `UI5ExternalModel`.
-   */
-  class UI5ExternalBoundNode extends UI5BoundNode {
-    UI5ExternalBoundNode() { this = bindingPath.getModel().(UI5ExternalModel) }
-  }
-
+  // /**
+  //  * A `DataFlow::Node` which some binding path refers to. This class is needed because an XML Element / JSON Objects of a view cannot themselves be a DataFlow node, so an UI5BoundNode instead represents the binding paths those declarations carry.
+  //  * If the binding path lives in a JS code, then it is itself a `UI5BoundNode`.
+  //  */
+  // abstract class UI5BoundNode extends DataFlow::Node {
+  //   UI5BindingPath bindingPath;
+  //   UI5BindingPath getBindingPath() { result = bindingPath }
+  // }
+  // /**
+  //  * A `DataFlow::Node` that correspond to an **internal** model and are bound to a `UI5View` via some `UI5BindingPath`.
+  //  */
+  // class UI5InternalBoundNode extends UI5BoundNode {
+  //   UI5InternalBoundNode() {
+  //     exists(WebApp webApp |
+  //       /* The "same webapp" condition */
+  //       webApp.getAResource() = this.getFile() and
+  //       webApp.getAResource() = bindingPath.getLocation().getFile()
+  //     |
+  //       /* ========== Case 1: The contents of the model are statically observable ========== */
+  //       /* The relevant portion of the content of a JSONModel */
+  //       exists(Property modelProperty, JsonModel internalModel |
+  //         // The property bound to an UI5View source
+  //         this.(DataFlow::PropRef).getPropertyNameExpr() = modelProperty.getNameExpr() and
+  //         // The binding path refers to this model
+  //         bindingPath.getAbsolutePath() = internalModel.getPathString(modelProperty)
+  //       )
+  //       or
+  //       /* The URI string to the JSONModel / XMLModel constructor call */
+  //       exists(UI5InternalModel internalModel |
+  //         // TODO: include the import path so that it only includes `sap.ui.model.ClientModel`
+  //         this = internalModel.getArgument(0) and
+  //         this.asExpr() instanceof StringLiteral and
+  //         bindingPath.getAbsolutePath() = internalModel.getPathString()
+  //       )
+  //       or
+  //       /* ========== Case 2: The contents of the model are not statically observable ========== */
+  //       exists(MethodCallNode setModelCall |
+  //         setModelCall.getMethodName() = "setModel" and
+  //         this.(SourceNode).flowsTo(setModelCall.getArgument(0)) and
+  //         not this instanceof UI5ExternalModel
+  //         // TODO: include a bindingpath condition
+  //       )
+  //     )
+  //   }
+  // }
+  // /**
+  //  * A `DataFlow::Node` that correspond to some **external** model and are bound to a `UI5View` via some `UI5BindingPath`.
+  //  * Since `UI5ExternalModel` is an argument to a `setModel` call, `UI5ExternalBoundNode` is also a value that flows to the `setModel` call.
+  //  * `UI5ExternalBoundNode` = `bindingPath` + `UI5ExternalModel`.
+  //  */
+  // class UI5ExternalBoundNode extends UI5BoundNode {
+  //   UI5ExternalBoundNode() { this = bindingPath.getModel().(UI5ExternalModel) }
+  // }
   class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
     override string getSourceType() { result = "RouteParameterAccess" }
 
@@ -339,48 +334,43 @@ module UI5DataFlow {
       )
     }
   }
-
-  /**
-   * A remote source associated with a `UI5InternalBoundNode`.
-   */
-  class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
-    UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
-  }
-
-  /**
-   * An HTML injection sink associated with a `UI5InternalBoundNode`.
-   */
-  class UI5ModelHtmlISink extends UI5DataFlow::UI5BoundNode {
-    UI5ModelHtmlISink() { this = bindingPath.getModel() }
-  }
-
-  /**
-   * An argument to `setProperty` or `setObject` method call on a model.
-   * This is a node which writes to a property of a model.
-   */
-  class SetBoundValue extends DataFlow::Node {
-    UI5BoundNode boundNode;
-
-    SetBoundValue() {
-      exists(DataFlow::MethodCallNode setProp |
-        this = setProp.getArgument(1) and
-        setProp.getCalleeName() = ["setProperty", "setObject"] and
-        boundNode.getBindingPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
-        exists(DataFlow::SourceNode receiver, UI5Model model |
-          receiver = setProp.getReceiver().getALocalSource()
-        |
-          model = boundNode.getBindingPath().getModel() and
-          (
-            model = receiver
-            or
-            model.getController().getAModelReference() = receiver
-          )
-        )
-      )
-    }
-
-    UI5BoundNode getBoundNode() { result = boundNode }
-  }
+  //   /**
+  //    * A remote source associated with a `UI5InternalBoundNode`.
+  //    */
+  //   class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
+  //     UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
+  //   }
+  //   /**
+  //    * An HTML injection sink associated with a `UI5InternalBoundNode`.
+  //    */
+  //   class UI5ModelHtmlISink extends UI5DataFlow::UI5BoundNode {
+  //     UI5ModelHtmlISink() { this = bindingPath.getModel() }
+  //   }
+  //   /**
+  //    * An argument to `setProperty` or `setObject` method call on a model.
+  //    * This is a node which writes to a property of a model.
+  //    */
+  //   class SetBoundValue extends DataFlow::Node {
+  //     UI5BoundNode boundNode;
+  //     SetBoundValue() {
+  //       exists(DataFlow::MethodCallNode setProp |
+  //         this = setProp.getArgument(1) and
+  //         setProp.getCalleeName() = ["setProperty", "setObject"] and
+  //         boundNode.getBindingPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
+  //         exists(DataFlow::SourceNode receiver, UI5Model model |
+  //           receiver = setProp.getReceiver().getALocalSource()
+  //         |
+  //           model = boundNode.getBindingPath().getModel() and
+  //           (
+  //             model = receiver
+  //             or
+  //             model.getController().getAModelReference() = receiver
+  //           )
+  //         )
+  //       )
+  //     }
+  //     UI5BoundNode getBoundNode() { result = boundNode }
+  //   }
 }
 
 module UI5PathGraph {
@@ -416,11 +406,10 @@ module UI5PathGraph {
      * ???
      */
     UI5PathNode getAPrimarySource() {
-      not this.asDataFlowNode() instanceof UI5DataFlow::UI5BoundNode and
+      not this.asDataFlowNode() instanceof UI5ExternalModel and
       this.asDataFlowNode() = result.asDataFlowNode()
       or
-      this.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
-        result.asUI5BindingPathNode() and
+      this.asDataFlowNode() = result.asUI5BindingPathNode().getModel() and
       result.asUI5BindingPathNode() = any(UI5View view).getASource()
     }
 
@@ -428,19 +417,16 @@ module UI5PathGraph {
      * ???
      */
     UI5PathNode getAPrimaryHtmlISink() {
-      not this.asDataFlowNode() instanceof UI5DataFlow::UI5BoundNode and
-      this.asDataFlowNode() = result.asDataFlowNode()
-      or
-      this.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() =
-        result.asUI5BindingPathNode() and
-      result.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
-      or
-      this.asDataFlowNode() instanceof UI5ExternalModel and
+      this.asDataFlowNode() instanceof RemoteFlowSource and
+      // this.getPathNode().getFlowLabel() = result.asUI5BindingPathNode().getLiteralRepr() and
       result.asUI5BindingPathNode().getModel() = this.asDataFlowNode() and
       result.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
     }
   }
 
+  /* bindingpath  <-- flowlabel:  --> model */
+  /* model --bindingpath--> customcontrol --> encodeXML ->   */
+  /* model --content="bindingpath"--> HTMLcontrol attribute (content) (check if sanitizeContent) */
   query predicate nodes(UI5PathNode ui5PathNode) {
     exists(ui5PathNode.asUI5BindingPathNode())
     or
@@ -463,12 +449,10 @@ module UI5PathGraph {
       ui5PathNodeSucc.asDataFlowNode() = h.getParameter(0)
     )
     or
-    ui5PathNodePred.asUI5BindingPathNode() =
-      ui5PathNodeSucc.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
+    ui5PathNodePred.asUI5BindingPathNode().getModel() = ui5PathNodeSucc.asDataFlowNode() and
     ui5PathNodePred.asUI5BindingPathNode() = any(UI5View view).getASource()
     or
-    ui5PathNodeSucc.asUI5BindingPathNode() =
-      ui5PathNodePred.asDataFlowNode().(UI5DataFlow::UI5BoundNode).getBindingPath() and
+    ui5PathNodeSucc.asUI5BindingPathNode().getModel() = ui5PathNodePred.asDataFlowNode() and
     ui5PathNodeSucc.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
     or
     /* Flow to event handler parameter through the binding argument */

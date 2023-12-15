@@ -17,6 +17,11 @@ class Configuration extends DomBasedXss::Configuration {
     UI5DataFlow::isAdditionalFlowStep(start, end, inLabel, outLabel)
   }
 
+  predicate isSanitizer(DataFlow::Node node, DataFlow::FlowLabel label) {
+    node instanceof RemoteFlowSource and
+    label = "TravelAgencyInfoPage/PageContent"
+  }
+
   override predicate isSanitizer(DataFlow::Node node) {
     /* 1. Already a sanitizer defined in `DomBasedXssQuery::Configuration` */
     super.isSanitizer(node)
@@ -48,7 +53,7 @@ class Configuration extends DomBasedXss::Configuration {
 /**
  * An HTML injection sink associated with a `UI5BoundNode`, typically for library controls acting as sinks.
  */
-private class UI5ModelHtmlISink extends UI5DataFlow::UI5ModelHtmlISink { }
+private class UI5ModelHtmlISink = UI5ExternalModel;
 
 /**
  * An HTML injection sink typically for custom controls whose RenderManager calls acting as sinks.
