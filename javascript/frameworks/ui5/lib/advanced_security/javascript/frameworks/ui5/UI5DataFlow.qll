@@ -261,59 +261,6 @@ module UI5DataFlow {
     getModelToGetPropertyStep(start, end, inLabel, outLabel)
   }
 
-  // /**
-  //  * A `DataFlow::Node` which some binding path refers to. This class is needed because an XML Element / JSON Objects of a view cannot themselves be a DataFlow node, so an UI5BoundNode instead represents the binding paths those declarations carry.
-  //  * If the binding path lives in a JS code, then it is itself a `UI5BoundNode`.
-  //  */
-  // abstract class UI5BoundNode extends DataFlow::Node {
-  //   UI5BindingPath bindingPath;
-  //   UI5BindingPath getBindingPath() { result = bindingPath }
-  // }
-  // /**
-  //  * A `DataFlow::Node` that correspond to an **internal** model and are bound to a `UI5View` via some `UI5BindingPath`.
-  //  */
-  // class UI5InternalBoundNode extends UI5BoundNode {
-  //   UI5InternalBoundNode() {
-  //     exists(WebApp webApp |
-  //       /* The "same webapp" condition */
-  //       webApp.getAResource() = this.getFile() and
-  //       webApp.getAResource() = bindingPath.getLocation().getFile()
-  //     |
-  //       /* ========== Case 1: The contents of the model are statically observable ========== */
-  //       /* The relevant portion of the content of a JSONModel */
-  //       exists(Property modelProperty, JsonModel internalModel |
-  //         // The property bound to an UI5View source
-  //         this.(DataFlow::PropRef).getPropertyNameExpr() = modelProperty.getNameExpr() and
-  //         // The binding path refers to this model
-  //         bindingPath.getAbsolutePath() = internalModel.getPathString(modelProperty)
-  //       )
-  //       or
-  //       /* The URI string to the JSONModel / XMLModel constructor call */
-  //       exists(UI5InternalModel internalModel |
-  //         // TODO: include the import path so that it only includes `sap.ui.model.ClientModel`
-  //         this = internalModel.getArgument(0) and
-  //         this.asExpr() instanceof StringLiteral and
-  //         bindingPath.getAbsolutePath() = internalModel.getPathString()
-  //       )
-  //       or
-  //       /* ========== Case 2: The contents of the model are not statically observable ========== */
-  //       exists(MethodCallNode setModelCall |
-  //         setModelCall.getMethodName() = "setModel" and
-  //         this.(SourceNode).flowsTo(setModelCall.getArgument(0)) and
-  //         not this instanceof UI5ExternalModel
-  //         // TODO: include a bindingpath condition
-  //       )
-  //     )
-  //   }
-  // }
-  // /**
-  //  * A `DataFlow::Node` that correspond to some **external** model and are bound to a `UI5View` via some `UI5BindingPath`.
-  //  * Since `UI5ExternalModel` is an argument to a `setModel` call, `UI5ExternalBoundNode` is also a value that flows to the `setModel` call.
-  //  * `UI5ExternalBoundNode` = `bindingPath` + `UI5ExternalModel`.
-  //  */
-  // class UI5ExternalBoundNode extends UI5BoundNode {
-  //   UI5ExternalBoundNode() { this = bindingPath.getModel().(UI5ExternalModel) }
-  // }
   class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
     override string getSourceType() { result = "RouteParameterAccess" }
 
@@ -405,9 +352,6 @@ module UI5PathGraph {
 
     DataFlow::PathNode getPathNode() { result.getNode() = this.asDataFlowNode() }
 
-    /**
-     * ???
-     */
     UI5PathNode getAPrimarySource() {
       not this.asDataFlowNode() instanceof UI5ExternalModel and
       this.asDataFlowNode() = result.asDataFlowNode()
@@ -416,9 +360,6 @@ module UI5PathGraph {
       result.asUI5BindingPathNode() = any(UI5View view).getASource()
     }
 
-    /**
-     * ???
-     */
     UI5PathNode getAPrimaryHtmlISink() {
       this.asDataFlowNode() instanceof RemoteFlowSource and
       // this.getPathNode().getFlowLabel() = result.asUI5BindingPathNode().getLiteralRepr() and
@@ -427,9 +368,6 @@ module UI5PathGraph {
     }
   }
 
-  /* bindingpath  <-- flowlabel:  --> model */
-  /* model --bindingpath--> customcontrol --> encodeXML ->   */
-  /* model --content="bindingpath"--> HTMLcontrol attribute (content) (check if sanitizeContent) */
   query predicate nodes(UI5PathNode ui5PathNode) {
     exists(ui5PathNode.asUI5BindingPathNode())
     or
