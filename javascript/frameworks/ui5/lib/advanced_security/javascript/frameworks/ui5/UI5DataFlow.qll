@@ -284,43 +284,19 @@ module UI5DataFlow {
       )
     }
   }
-  //   /**
-  //    * A remote source associated with a `UI5InternalBoundNode`.
-  //    */
-  //   class UI5ModelSource extends UI5DataFlow::UI5BoundNode {
-  //     UI5ModelSource() { bindingPath = any(UI5View view).getASource() }
-  //   }
-  //   /**
-  //    * An HTML injection sink associated with a `UI5InternalBoundNode`.
-  //    */
-  //   class UI5ModelHtmlISink extends UI5DataFlow::UI5BoundNode {
-  //     UI5ModelHtmlISink() { this = bindingPath.getModel() }
-  //   }
-  //   /**
-  //    * An argument to `setProperty` or `setObject` method call on a model.
-  //    * This is a node which writes to a property of a model.
-  //    */
-  //   class SetBoundValue extends DataFlow::Node {
-  //     UI5BoundNode boundNode;
-  //     SetBoundValue() {
-  //       exists(DataFlow::MethodCallNode setProp |
-  //         this = setProp.getArgument(1) and
-  //         setProp.getCalleeName() = ["setProperty", "setObject"] and
-  //         boundNode.getBindingPath().getAbsolutePath() = setProp.getArgument(0).getStringValue() and
-  //         exists(DataFlow::SourceNode receiver, UI5Model model |
-  //           receiver = setProp.getReceiver().getALocalSource()
-  //         |
-  //           model = boundNode.getBindingPath().getModel() and
-  //           (
-  //             model = receiver
-  //             or
-  //             model.getController().getAModelReference() = receiver
-  //           )
-  //         )
-  //       )
-  //     }
-  //     UI5BoundNode getBoundNode() { result = boundNode }
-  //   }
+
+  /**
+   * Method calls that fetch a piece of data from a URI parameter. The rows of the resulting relation is supplied from a `sourceModel` of the model-as-data extension, whose kinds are `"uri-parameter"`.
+   */
+  class UriParameterGetMethodCall extends RemoteFlowSource {
+    UriParameterGetMethodCall() {
+      this = ModelOutput::getASourceNode("remote").asSource() and
+      /* TODO: add more constraints to only find URIParameter-related methods/properties */
+      any()
+    }
+
+    override string getSourceType() { result = "URI Parameter Data" }
+  }
 }
 
 module UI5PathGraph {

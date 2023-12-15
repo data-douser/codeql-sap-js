@@ -18,7 +18,7 @@ import advanced_security.javascript.frameworks.ui5.Bindings
  * This predicate is good for modeling the object-oriented class hierarchy in UI5.
  */
 bindingset[type]
-private string getASuperType(string type) {
+string getASuperType(string type) {
   result = type or ApiGraphModelsExtensions::typeModel(result, type, "")
 }
 
@@ -359,7 +359,7 @@ class JsView extends UI5View {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "control-input") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropertyByName(property)
     )
@@ -390,7 +390,7 @@ class JsonView extends UI5View {
     exists(JsonObject control, string type, string path, string property |
       root = control.getParent+() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "control-input") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropValue(property)
     )
@@ -510,7 +510,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
     exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "control-input") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttributeByName("data-" + property)
     )
@@ -634,7 +634,7 @@ class XmlView extends UI5View, XmlFile {
     exists(XmlElement control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "control-input") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
     )

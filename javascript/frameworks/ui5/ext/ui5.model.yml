@@ -62,13 +62,13 @@ extensions:
       pack: codeql/javascript-all
       extensible: "sourceModel"
     data:
-      - ["UI5Control", "Member[value]", "control-input"]
-      - ["UI5Control", "Member[getValue].ReturnValue", "control-input"]
-      - ["UI5CodeEditor", "Member[value]", "control-input"]
-      - ["UI5CodeEditor", "Member[getCurrentValue].ReturnValue", "control-input"]
-      - ["global", "Member[jQuery].Member[sap].Member[syncHead,syncGet,syncGetText,syncPost,syncPostText].ReturnValue", "http-get"]
-      - ["UI5URIParameters", "Member[get].ReturnValue", "uri-parameter"]
-      - ["UI5URIParameters", "Member[getAll].ReturnValue", "uri-parameter"]
+      - ["UI5Control", "Member[value]", "remote"]
+      - ["UI5Control", "Member[getValue].ReturnValue", "remote"]
+      - ["UI5CodeEditor", "Member[value]", "remote"]
+      - ["UI5CodeEditor", "Member[getCurrentValue].ReturnValue", "remote"]
+      - ["global", "Member[jQuery].Member[sap].Member[syncHead,syncGet,syncGetText,syncPost,syncPostText].ReturnValue", "remote"]
+      - ["UI5URIParameters", "Member[get].ReturnValue", "remote"]
+      - ["UI5URIParameters", "Member[getAll].ReturnValue", "remote"]
 
   - addsTo:
       pack: codeql/javascript-all
