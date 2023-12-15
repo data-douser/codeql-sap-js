@@ -364,7 +364,7 @@ class JsView extends UI5View {
     exists(ObjectExpr control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "control-input") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropertyByName(property)
     )
@@ -395,7 +395,7 @@ class JsonView extends UI5View {
     exists(JsonObject control, string type, string path, string property |
       root = control.getParent+() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "control-input") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getPropValue(property)
     )
@@ -515,7 +515,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
     exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "control-input") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttributeByName("data-" + property)
     )
@@ -639,7 +639,7 @@ class XmlView extends UI5View, XmlFile {
     exists(XmlElement control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "control-input") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result = control.getAttribute(property)
     )
