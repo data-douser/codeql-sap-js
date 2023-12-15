@@ -210,27 +210,22 @@ abstract class UI5BindingPath extends Locatable {
         not exists(this.getModelName())
       )
     )
-    /*
-     * TODO: Why is uncommenting below resulting in excluding XML?
-     * --> Maybe it's because of `Location` not being associated with XML Elements
-     */
-
     // and
     // /* This binding path and the resulting model should live inside the same webapp */
     // exists(WebApp webApp |
     //   webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
     // )
-    }
+  }
 
   /**
    * Gets the UI5BoundNode that represents this binding path.
    */
   Node getNode() {
     exists(Property p, JsonModel model |
-      // The property bound to an UI5View source
+      /* Get the property bound to this binding path. */
       result.(DataFlow::PropWrite).getPropertyNameExpr() = p.getNameExpr() and
       this.getAbsolutePath() = model.getPathString(p) and
-      // Restrict search inside the same webapp
+      /* Restrict search inside the same webapp. */
       exists(WebApp webApp |
         webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
       )
@@ -275,9 +270,9 @@ abstract class UI5View extends File {
    * Get the `Controller.extends(...)` definition associated with this View.
    */
   CustomController getController() {
-    // The controller name should match
+    /* The controller name should match between the view and the controller definition. */
     result.getName() = this.getControllerName() and
-    // The View and the Controller are in a same webapp
+    /* The View and the Controller are in a same webapp. */
     exists(WebApp webApp |
       webApp.getAResource() = this and webApp.getAResource() = result.getFile()
     )
