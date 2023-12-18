@@ -366,7 +366,7 @@ class BindingPath extends TBindingPath {
 }
 
 /**
- * The places whose values are determined by a binding. For example, 
+ * The places whose values are determined by a binding. For example,
  * If an XML property holds a binding path, its concrete value would
  * be the one pointed to by the path.
  */

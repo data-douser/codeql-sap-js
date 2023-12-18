@@ -34,7 +34,7 @@ string getASuperType(string type) {
  * ```
  */
 bindingset[property]
-string bindingPathCapture(string property) {
+deprecated string bindingPathCapture(string property) {
   exists(string pattern |
     // matches "model>property"
     pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
@@ -66,7 +66,7 @@ string bindingPathCapture(string property) {
  * ```
  */
 bindingset[property]
-string modelNameCapture(string property) {
+deprecated string modelNameCapture(string property) {
   exists(string pattern |
     // matches "model>property"
     pattern = "([^'\"\\}]+)>([^'\"\\}]*)"
@@ -288,8 +288,13 @@ abstract class UI5View extends File {
  */
 class JsonBindingPath extends UI5BindingPath, JsonValue {
   string path;
+  Binding binding;
 
-  JsonBindingPath() { path = bindingPathCapture(this.getStringValue()) }
+  JsonBindingPath() {
+    this = binding.getBindingTarget().asJsonObject() and
+    binding.getBindingPath().asString() = path and
+    exists(binding.getBindingPath())
+  }
 
   override string toString() {
     result = "\"" + this.getPropertyName() + "\": \"" + this.getStringValue() + "\""
@@ -420,23 +425,10 @@ class JsViewBindingPath extends UI5BindingPath, Property {
 
   override string getLiteralRepr() { result = this.getInit().getStringValue() }
 
-  private string dotExprToStringInner(Expr expr) {
-    if not expr instanceof DotExpr
-    then result = expr.toString()
-    else
-      exists(Expr subexpr, string propName |
-        expr.(DotExpr).accesses(subexpr, propName) and
-        result = dotExprToStringInner(subexpr) + "." + propName
-      )
-  }
-
-  /** `a.b.c.d.e.f.g(...)` => `"a.b.c.d.e.f.g"` */
-  private string dotExprToString(DotExpr dot) { result = dotExprToStringInner(dot) }
-
   /* `new sap.m.Input({...})` => `"sap.m.Input"` */
   override string getControlQualifiedType() {
     result =
-      dotExprToString(this.getInit().(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr))
+      this.getInit().(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr).getQualifiedName()
   }
 
   override string getAbsolutePath() { result = path /* ??? */ }
@@ -458,8 +450,13 @@ class JsViewBindingPath extends UI5BindingPath, Property {
  */
 class HtmlBindingPath extends UI5BindingPath, HTML::Attribute {
   string path;
+  Binding binding;
 
-  HtmlBindingPath() { path = bindingPathCapture(this.getValue()) }
+  HtmlBindingPath() {
+    this = binding.getBindingTarget().asXmlAttribute() and
+    binding.getBindingPath().asString() = path and
+    exists(binding.getBindingPath())
+  }
 
   override string getPath() { result = path }
 
@@ -535,7 +532,7 @@ class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
   Binding binding;
 
   XmlBindingPath() {
-    this.(XmlAttribute) = binding.getBindingTarget().asXmlAttribute() and
+    this = binding.getBindingTarget().asXmlAttribute() and
     binding.getBindingPath().asString() = path and
     exists(binding.getBindingPath())
   }
