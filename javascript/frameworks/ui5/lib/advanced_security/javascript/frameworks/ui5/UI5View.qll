@@ -1,6 +1,7 @@
 import javascript
 import DataFlow
-import advanced_security.javascript.frameworks.ui5.UI5::UI5
+import advanced_security.javascript.frameworks.ui5.UI5
+import advanced_security.javascript.frameworks.ui5.UI5DataFlow
 import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
 import advanced_security.javascript.frameworks.ui5.Bindings
 

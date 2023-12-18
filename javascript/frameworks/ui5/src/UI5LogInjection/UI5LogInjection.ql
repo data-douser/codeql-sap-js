@@ -12,7 +12,7 @@
  */
 
 import javascript
-import advanced_security.javascript.frameworks.ui5.UI5DataFlow
+import advanced_security.javascript.frameworks.ui5.UI5DataFlow as UI5DataFlow
 import advanced_security.javascript.frameworks.ui5.UI5DataFlow::UI5PathGraph
 import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjection
 
@@ -30,7 +30,7 @@ class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfigurati
 /**
  * An remote source associated with a `UI5BoundNode`
  */
-class UI5ModelSource extends UI5DataFlow::UI5ModelSource, LogInjection::Source { }
+class UI5ModelSource extends UI5ModelSource, LogInjection::Source { }
 
 // Sources and Sinks from data-extensions
 class UI5ExtSource extends LogInjection::Source {

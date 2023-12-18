@@ -25,5 +25,5 @@ where
   config.isSink(sink.asDataFlowNode()) and
   primarySource = source.getAPrimarySource() and
   primarySink = sink.getAPrimaryHtmlISink()
-select primarySink, primarySource, primarySink, "XSS vulnerability due to $@.", primarySource,
+select primarySink, source, primarySink, "XSS vulnerability due to $@.", source,
   "user-provided value"

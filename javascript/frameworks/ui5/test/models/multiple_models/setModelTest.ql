@@ -1,5 +1,5 @@
 import javascript
-import advanced_security.javascript.frameworks.ui5.UI5::UI5
+import advanced_security.javascript.frameworks.ui5.UI5
 import advanced_security.javascript.frameworks.ui5.UI5View
 import advanced_security.javascript.frameworks.ui5.UI5DataFlow
 

@@ -1,4 +1,6 @@
-import advanced_security.javascript.frameworks.ui5.UI5DataFlow
+import javascript
+import advanced_security.javascript.frameworks.ui5.UI5DataFlow as UI5DataFlow
+import advanced_security.javascript.frameworks.ui5.UI5View
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
 import semmle.javascript.security.dataflow.ClientSideUrlRedirectCustomizations::ClientSideUrlRedirect as UrlRedirect
 

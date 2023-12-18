@@ -16,6 +16,6 @@
    sink = ModelOutput::getASinkNode(kind).asSink() and
    kind = "ui5-html-injection"
    or
-   sink instanceof UI5DataFlow::UI5ModelHtmlISink and
+   sink instanceof UI5ModelHtmlISink and
    kind = "ui5-model-sink"
 select sink, "SAP UI5 Html injection sink with kind: " + kind
