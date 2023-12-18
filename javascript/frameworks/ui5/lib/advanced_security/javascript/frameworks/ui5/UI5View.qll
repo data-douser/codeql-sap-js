@@ -419,6 +419,9 @@ class JsViewBindingPath extends UI5BindingPath, Property {
   string path;
 
   JsViewBindingPath() {
+    // this = binding.getBindingTarget().asXmlAttribute() and
+    // binding.getBindingPath().asString() = path and
+    // exists(binding.getBindingPath())
     path = bindingPathCapture(this.getInit().getStringValue()) and
     this.(Property).getFile() instanceof JsView
   }

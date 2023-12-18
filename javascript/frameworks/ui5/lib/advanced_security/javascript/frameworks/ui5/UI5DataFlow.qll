@@ -17,84 +17,11 @@ module UI5DataFlow {
     }
   }
 
-  // /**
-  //  * Holds if there is a bi-directional data flow between
-  //  * a model and a control. What might be referred to as "model" depends:
-  //  *
-  //  * For an internal model,
-  //  * it might be the constructor call or the relevant part of the argument to the call.
-  //  * For an external model,
-  //  * it is the argument to the `setModel` call of a controller.
-  //  */
-  // private predicate bidiModelControl(DataFlow::Node start, DataFlow::Node end) {
-  //   /* ========== Internal Model ========== */
-  //   exists(Metadata metadata, UI5BoundNode node |
-  //     // same project
-  //     exists(WebApp webApp |
-  //       webApp.getAResource() = metadata.getFile() and webApp.getAResource() = node.getFile()
-  //     ) and
-  //     (
-  //       // same control
-  //       metadata.getExtension().(CustomControl).getName() =
-  //         node.getBindingPath().getControlQualifiedType()
-  //       or
-  //       // extended control
-  //       exists(Extension subclass |
-  //         metadata.getExtension().(CustomControl).getDefine().getExtendingDefine() =
-  //           subclass.getDefine() and
-  //         node.getBindingPath().getControlQualifiedType() = subclass.getName()
-  //       )
-  //     ) and
-  //     exists(PropertyMetadata property |
-  //       property = metadata.getProperty(node.getBindingPath().getPropertyName()) and
-  //       (
-  //         start = property and end = node
-  //         or
-  //         start = node and end = property
-  //       )
-  //     )
-  //   )
-  //   or
-  //   /* ========== External Model ========== */
-  //   exists(UI5Model externalModel, UI5BindingPath bindingPath, string propName |
-  //     externalModel = getModelOfRelativePath(bindingPath) and
-  //     propName = bindingPath.getPropertyName()
-  //   |
-  //     start =
-  //       bindingPath
-  //           .(XmlBindingPath)
-  //           .getControlDeclaration()
-  //           .getDefinition()
-  //           .getMetadata()
-  //           .getProperty(propName) and
-  //     end = externalModel
-  //     or
-  //     end =
-  //       bindingPath
-  //           .(XmlBindingPath)
-  //           .getControlDeclaration()
-  //           .getDefinition()
-  //           .getMetadata()
-  //           .getProperty(propName) and
-  //     start = externalModel
-  //   )
-  // }
-  /**
-   * Gets the reference to the model to which a given relative binding path resolves to.
+  /*
+   * Important: flag should be "taint" when getting out of a remote model, otherwise it won't be picked up by DataFlow
+   * i.e. Remote model --flag=taint--> ...
+   * e.g. Remote model --flag=taint--> XML attribute (in a sink)
    */
-  MethodCallNode getModelOfRelativePath(UI5BindingPath relativePath) {
-    relativePath.isRelative() and
-    exists(MethodCallNode bindElementCall, MethodCallNode setModelCall |
-      bindElementCall.getMethodName() = "bindElement" and
-      setModelCall.getMethodName() = "setModel" and
-      bindElementCall.asExpr().getParent+() =
-        relativePath.getView().getController().getAMethod().asExpr() and
-      setModelCall.asExpr().getParent+() =
-        relativePath.getView().getController().getAMethod().asExpr() and
-      result.flowsTo(setModelCall.getArgument(0)) and
-      result.getMethodName() = "getModel"
-    )
-  }
 
   /** External model to a relevant control property */
   class ExternalModelToCustomMetadataPropertyStep extends DataFlow::SharedFlowStep {
@@ -110,8 +37,9 @@ module UI5DataFlow {
               .getDefinition()
               .getMetadata()
               .getProperty(bindingPath.getPropertyName()) and
-        inLabel = outLabel and
-        inLabel = bindingPath.getLiteralRepr()
+        inLabel = outLabel
+        // inLabel = outLabel and
+        // inLabel = bindingPath.getLiteralRepr()
       )
     }
   }
@@ -248,8 +176,6 @@ module UI5DataFlow {
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
   ) {
-    // bidiModelControl(start, end)
-    // or
     /* Handler argument node to handler parameter */
     exists(UI5Handler h |
       start = h.getBindingPath().getNode() and
@@ -261,20 +187,6 @@ module UI5DataFlow {
 
       end = h.getParameter(0)
     )
-    or
-    customMetadataPropertyReadStep(start, end, inLabel, outLabel)
-    or
-    externalModelToCustomMetadataPropertyStep(start, end, inLabel, outLabel)
-    or
-    localModelSetPropertyStep(start, end, inLabel, outLabel)
-    or
-    localModelGetPropertyStep(start, end, inLabel, outLabel)
-    or
-    localModelControlMetadataStep(start, end, inLabel, outLabel)
-    or
-    setModelToGetModelStep(start, end, inLabel, outLabel)
-    or
-    getModelToGetPropertyStep(start, end, inLabel, outLabel)
   }
 
   class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
@@ -315,6 +227,11 @@ module UI5DataFlow {
   }
 }
 
+/*
+ * TODO:
+ * view -label1-> model -label2-> view, label1 = label2 is required
+ */
+
 module UI5PathGraph {
   newtype TNode =
     TUI5BindingPathNode(UI5BindingPath path) or
@@ -345,18 +262,24 @@ module UI5PathGraph {
     DataFlow::PathNode getPathNode() { result.getNode() = this.asDataFlowNode() }
 
     UI5PathNode getAPrimarySource() {
-      not this.asDataFlowNode() instanceof UI5ExternalModel and
-      this.asDataFlowNode() = result.asDataFlowNode()
-      or
-      this.asDataFlowNode() = result.asUI5BindingPathNode().getModel() and
-      result.asUI5BindingPathNode() = any(UI5View view).getASource()
+      if this.asDataFlowNode() instanceof UI5ExternalModel
+      then
+        /* Look for the control with the binding path associated with the model */
+        exists(UI5Model model, UI5BindingPath bindingPath |
+          bindingPath = result.asUI5BindingPathNode() and
+          this.asDataFlowNode() = model and
+          model = bindingPath.getModel()
+        )
+      else this = result
     }
 
     UI5PathNode getAPrimaryHtmlISink() {
-      this.asDataFlowNode() instanceof RemoteFlowSource and
-      // this.getPathNode().getFlowLabel() = result.asUI5BindingPathNode().getLiteralRepr() and
-      result.asUI5BindingPathNode().getModel() = this.asDataFlowNode() and
-      result.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
+      if this.asDataFlowNode() instanceof UI5ExternalModel
+      then
+        /* Look for the control with the binding path associated with the model */
+        result.asUI5BindingPathNode().getModel() = this.asDataFlowNode() and
+        result.asUI5BindingPathNode() = any(UI5View view).getAnHtmlISink()
+      else result = this
     }
   }
 
