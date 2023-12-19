@@ -42,15 +42,14 @@ class UI5ExtLogISink extends LogInjection::Sink {
 }
 
 // log-injections source or sinks that are ui5-specific
-private predicate isUI5Specific(UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink) {
+private predicate isUI5Specific(UI5PathNode source, UI5PathNode sink) {
   source.asDataFlowNode() instanceof UI5ExtSource or
   source.asDataFlowNode() instanceof UI5ModelSource or
   sink.asDataFlowNode() instanceof UI5ExtLogISink
 }
 
 from
-  UI5LogInjectionConfiguration cfg, UI5PathGraph::UI5PathNode source,
-  UI5PathGraph::UI5PathNode sink, UI5PathGraph::UI5PathNode primarySource
+  UI5LogInjectionConfiguration cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
 where
   cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   primarySource = source.getAPrimarySource() and
