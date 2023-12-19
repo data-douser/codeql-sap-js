@@ -1141,9 +1141,12 @@ class PropertyMetadata extends ObjectLiteralNode {
   }
 
   MethodCallNode getAWrite() {
-    result.getMethodName() = "setProperty" and
-    result.getArgument(0).asExpr().(StringLiteral).getValue() = name and
-    // TODO: in same controller
+    (
+      result.getMethodName() = "set" + capitalize(name)
+      or
+      result.getMethodName() = "setProperty" and
+      result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = name
+    ) and
     exists(WebApp webApp |
       webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
     )
@@ -1154,9 +1157,8 @@ class PropertyMetadata extends ObjectLiteralNode {
       result.getMethodName() = "get" + capitalize(name)
       or
       result.getMethodName() = "getProperty" and
-      result.getArgument(0).asExpr().(StringLiteral).getValue() = name
+      result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = name
     ) and
-    // TODO: in same controller
     exists(WebApp webApp |
       webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
     )
