@@ -6,29 +6,26 @@ import semmle.javascript.security.dataflow.ClientSideUrlRedirectCustomizations::
 
 class Configuration extends DomBasedXss::Configuration {
   /** WARNING: VALID FOR THIS BRANCH (`jeongsoolee09/remote-model-1`) ONLY */
-  // override predicate isSource(DataFlow::Node start, DataFlow::FlowLabel label) {
-  //   super.isSource(start, label)
-  //   or
-  //   exists(UI5BindingPath bindingPath |
-  //     start instanceof UI5ExternalModel and
-  //     bindingPath.getModel() = start and
-  //     label = "taint"
-  //   )
-  //   or
-  //   start instanceof RemoteFlowSource and
-  //   label = "taint"
-  // }
-  override predicate isSource(DataFlow::Node start) {
-    super.isSource(start)
+  override predicate isSource(DataFlow::Node start, DataFlow::FlowLabel label) {
+    super.isSource(start, label)
     or
     exists(UI5BindingPath bindingPath |
       start instanceof UI5ExternalModel and
-      bindingPath.getModel() = start
+      bindingPath.getModel() = start and
+      (label = "taint" or label = bindingPath.getPath())
     )
-    or
-    start instanceof RemoteFlowSource
   }
 
+  // override predicate isSource(DataFlow::Node start) {
+  //   super.isSource(start)
+  //   or
+  //   exists(UI5BindingPath bindingPath |
+  //     start instanceof UI5ExternalModel and
+  //     bindingPath.getModel() = start
+  //   )
+  //   or
+  //   start instanceof RemoteFlowSource
+  // }
   override predicate isAdditionalFlowStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel

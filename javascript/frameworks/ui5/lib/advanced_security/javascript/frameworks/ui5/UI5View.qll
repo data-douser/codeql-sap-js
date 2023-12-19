@@ -532,38 +532,39 @@ class HtmlView extends UI5View, HTML::HtmlFile {
  * A UI5BindingPath found in an XML View.
  */
 class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
-  string path;
+  BindingPath bindingPath;
   Binding binding;
 
   XmlBindingPath() {
     this = binding.getBindingTarget().asXmlAttribute() and
-    binding.getBindingPath().asString() = path and
-    exists(binding.getBindingPath())
+    binding.getBindingPath() = bindingPath
   }
 
   /* corresponds to BindingPath.asString() */
   override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
 
-  override string getPath() { result = path }
+  override string getPath() { result = bindingPath.asString() }
 
   predicate hasLocationInfo(string filepath, int sl, int sc, int el, int ec) {
     this.(XmlAttribute).hasLocationInfo(filepath, sl, sc, el, ec)
   }
 
-  /*
+  /**
    * TODO: take into consideration bindElement() method call
    * e.g.
    */
-
   override string getAbsolutePath() {
-    if path.matches("/%")
-    then result = path
+    if bindingPath.isAbsolute()
+    then result = bindingPath.asString()
     else
-      exists(XmlBindingPath pathPrefix |
-        pathPrefix =
-          this.(XmlAttribute).getElement().getParent+().(XmlElement).getAttribute("items") and
-        result = pathPrefix.getAbsolutePath() + "/" + path
-      )
+      if not exists(bindingPath.getModelName())
+      then
+        exists(XmlBindingPath pathPrefix |
+          pathPrefix =
+            this.(XmlAttribute).getElement().getParent+().(XmlElement).getAttribute("items") and
+          result = pathPrefix.getAbsolutePath() + "/" + bindingPath.asString()
+        )
+      else result = bindingPath.asString()
   }
 
   override string getPropertyName() { result = this.(XmlAttribute).getName() }

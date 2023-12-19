@@ -56,22 +56,23 @@ class ODataServiceModel extends UI5ExternalModel {
   override string getName() { result = modelName }
 }
 
-class LocalBindingPathLabel extends DataFlow::FlowLabel {
-  LocalBindingPathLabel() {
-    exists(ModelReference modelRef, MethodCallNode setPropertyCall |
-      setPropertyCall.getMethodName() = "setProperty" and
-      setPropertyCall.getReceiver().getALocalSource() = modelRef and
-      this =
-        modelRef.getModelName() + ">" +
-          setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue()
-    )
-  }
+// class LocalBindingPathLabel extends DataFlow::FlowLabel {
+//   LocalBindingPathLabel() {
+//     exists(ModelReference modelRef, MethodCallNode setPropertyCall |
+//       setPropertyCall.getMethodName() = "setProperty" and
+//       setPropertyCall.getReceiver().getALocalSource() = modelRef and
+//       this =
+//         // modelRef.getModelName() + ">" +
+//           setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue()
+//     )
+//   }
+// }
+class BindingPathAsLabel extends DataFlow::FlowLabel {
+  BindingPathAsLabel() { this = any(UI5BindingPath path).getPath() }
 }
 
 /*
- * Important: flag should be "taint" when getting out of a remote model, otherwise it won't be picked up by DataFlow
- * i.e. Remote model --flag=taint--> ...
- * e.g. Remote model --flag=taint--> XML attribute (in a sink)
+ * Two-way binding implies the control can accept user input (if it has the capability .e.g aggregations) and submit it to the model of the controller whose view is declaring the use of this control.
  */
 
 /** External model to a relevant control property */
@@ -88,12 +89,22 @@ class ExternalModelToCustomMetadataPropertyStep extends DataFlow::SharedFlowStep
             .getDefinition()
             .getMetadata()
             .getProperty(bindingPath.getPropertyName()) and
-      inLabel = outLabel
-      // inLabel = outLabel and
-      // inLabel = bindingPath.getLiteralRepr()
+      // (
+      //   inLabel = "taint" and outLabel = "taint"
+      //   or
+      //   inLabel = bindingPath.getPath() and outLabel = bindingPath.getPath()
+      // )
+      if any(UI5BindingPath path/* | path.getModel() = start*/ ).getPath() = inLabel
+      then inLabel = bindingPath.getPath() and inLabel = outLabel
+      else inLabel = outLabel
     )
   }
 }
+
+/*
+ * <A a="path1"> a.control.js: {path1: {type:string}}
+ * <B b="path1"> b.control.js: {path1: {type:string}}
+ */
 
 /** Control metadata property being the intermediate flow node */
 class CustomMetadataPropertyReadStep extends DataFlow::SharedFlowStep {
@@ -234,9 +245,9 @@ predicate isAdditionalFlowStep(
   exists(UI5Handler h |
     start = h.getBindingPath().getNode() and
     /*
-     * ideally we would like to show an intermediate node where
-     *       the handler is bound to a control, but there is no sourceNode there
-     *       `end = h.getBindingPath() or start = h.getBindingPath()`
+     * Ideally we would like to show an intermediate node where
+     * the handler is bound to a control, but there is no sourceNode there
+     * `end = h.getBindingPath() or start = h.getBindingPath()`
      */
 
     end = h.getParameter(0)
@@ -280,11 +291,6 @@ class UriParameterGetMethodCall extends RemoteFlowSource {
 
   override string getSourceType() { result = "URI Parameter Data" }
 }
-
-/*
- * TODO:
- * view -label1-> model -label2-> view, label1 = label2 is required
- */
 
 module UI5PathGraph {
   newtype TNode =

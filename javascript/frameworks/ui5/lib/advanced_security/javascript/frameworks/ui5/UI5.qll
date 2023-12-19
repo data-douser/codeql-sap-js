@@ -249,6 +249,8 @@ class CustomControl extends Extension {
   }
 
   CustomController getController() { this = result.getAControlReference().getDefinition() }
+
+  UI5Control getAViewUsage() { result.getDefinition() = this }
 }
 
 abstract class Reference extends MethodCallNode { }
@@ -841,6 +843,9 @@ private JsonObject resolveIndirectPath(string path) {
 }
 
 class JsonModel extends UI5InternalModel {
+  // BindingMode defaultMode;
+  // BindingMode currentMode;
+
   JsonModel() {
     this instanceof NewNode and
     (
@@ -852,6 +857,8 @@ class JsonModel extends UI5InternalModel {
       /* Fallback */
       this.getCalleeName() = "JSONModel"
     )
+    // and
+    // defaultMode = "twoway"
   }
 
   /**
