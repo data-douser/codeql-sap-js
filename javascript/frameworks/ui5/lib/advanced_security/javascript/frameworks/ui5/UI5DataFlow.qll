@@ -16,13 +16,6 @@ class ODataServiceModel extends UI5ExternalModel {
 
   ODataServiceModel() {
     /*
-     * SKETCH
-     * This is an argument to a `this.setModel` call if:
-     * - this flows from a DF node corresponding to the parent component's model
-     * - and the the component's manifest.json declares the DataSource as being of OData type
-     */
-
-    /*
      * e.g. this.getView().setModel(this.getOwnerComponent().getModel("booking_nobatch"))
      */
 
@@ -167,7 +160,11 @@ class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
           getPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() and
       outLabel = "taint" and
       end = getPropertyCall and
-      /* Ensure that getPropertyCall and setPropertyCall are both reading/writing from/to the (1) same property of the (2) same model. */
+      /*
+       * Ensure that getPropertyCall and setPropertyCall are both reading/writing from/to
+       * the (1) same property of the (2) same model.
+       */
+
       getPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() =
         setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() and
       modelRefFrom.getModelName() = modelRefTo.getModelName()
@@ -271,7 +268,8 @@ class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
 }
 
 /**
- * Method calls that fetch a piece of data from a URI parameter. The rows of the resulting relation is supplied from a `sourceModel` of the model-as-data extension, whose kinds are `"uri-parameter"`.
+ * Method calls that fetch a piece of data from a URI parameter. The rows of the resulting relation is supplied
+ * from a `sourceModel` of the model-as-data extension, whose kinds are `"uri-parameter"`.
  */
 class UriParameterGetMethodCall extends RemoteFlowSource {
   UriParameterGetMethodCall() {

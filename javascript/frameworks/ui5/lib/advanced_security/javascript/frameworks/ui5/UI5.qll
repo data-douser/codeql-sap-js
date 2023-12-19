@@ -316,13 +316,6 @@ class CustomController extends Extension {
   }
 
   Component getOwnerComponent() {
-    /*
-     * SKETCH
-     * The result is the owner component of this controller if:
-     * - The controller's name sans the ID prefix can be found in the manifest.json's routing target
-     * - where the manifest.json is the result's ManifestJson
-     */
-
     exists(ManifestJson manifestJson, JsonObject rootObj | manifestJson = result.getManifestJson() |
       rootObj
           .getPropValue("targets")
@@ -580,13 +573,6 @@ class Component extends Extension {
   string getId() { result = this.getName().regexpCapture("([a-zA-Z0-9.]+).Component", 1) }
 
   ManifestJson getManifestJson() {
-    /*
-     * SKETCH
-     * the result is a manifest.json file of this component if:
-     * - this component states its manifest as string "json"
-     * - this component's ID equals to that of the manifest.json's ID.
-     */
-
     this.getMetadata().getAPropertySource("manifest").asExpr().(StringLiteral).getValue() = "json" and
     result.getId() = this.getId()
   }
@@ -620,13 +606,6 @@ module ManifestJson {
     ManifestJson manifestJson;
 
     DataSourceManifest() {
-      /*
-       * SKETCH
-       * this is a DataSource if:
-       * - its file is a ManifestJson,
-       * - and it's one of the keys that the `dataSources` object has.
-       */
-
       exists(JsonObject rootObj |
         this.getJsonFile() = manifestJson and
         rootObj.getJsonFile() = manifestJson and
@@ -742,22 +721,6 @@ module ManifestJson {
     string getId() { result = id }
 
     ManifestJson() {
-      /*
-       * SKETCH
-       * This is a manifest.json file if:
-       * - it has at least one of the following keys:
-       *  - "sap.app"
-       *  - "sap.ui"
-       *  - "sap.ui5"
-       *  - "sap.platform.abap"
-       *  - "sap.platform.hcp"
-       *  - "sap.fiori"
-       *  - "sap.card"
-       *  - "_version"
-       * - and it is a json file,
-       * - and its ID is at sap.app/id.
-       */
-
       exists(JsonObject rootObj |
         rootObj.getJsonFile() = this and
         exists(string propertyName | exists(rootObj.getPropValue(propertyName)) |
