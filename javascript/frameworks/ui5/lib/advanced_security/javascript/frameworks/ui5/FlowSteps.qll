@@ -3,10 +3,7 @@ import advanced_security.javascript.frameworks.ui5.UI5
 
 /** External model to a relevant control property */
 class ExternalModelToCustomMetadataPropertyStep extends DataFlow::SharedFlowStep {
-  override predicate step(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-    DataFlow::FlowLabel outLabel
-  ) {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(UI5BindingPath bindingPath |
       bindingPath.getModel() = start and
       end =
@@ -14,15 +11,7 @@ class ExternalModelToCustomMetadataPropertyStep extends DataFlow::SharedFlowStep
             .getControlDeclaration()
             .getDefinition()
             .getMetadata()
-            .getProperty(bindingPath.getPropertyName()) and
-      // (
-      //   inLabel = "taint" and outLabel = "taint"
-      //   or
-      //   inLabel = bindingPath.getPath() and outLabel = bindingPath.getPath()
-      // )
-      if any(UI5BindingPath path/* | path.getModel() = start*/ ).getPath() = inLabel
-      then inLabel = bindingPath.getPath() and inLabel = outLabel
-      else inLabel = outLabel
+            .getProperty(bindingPath.getPropertyName())
     )
   }
 }
@@ -34,10 +23,7 @@ class ExternalModelToCustomMetadataPropertyStep extends DataFlow::SharedFlowStep
 
 /** Control metadata property being the intermediate flow node */
 class CustomMetadataPropertyReadStep extends DataFlow::SharedFlowStep {
-  override predicate step(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-    DataFlow::FlowLabel outLabel
-  ) {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(PropertyMetadata property |
       /* Writing site -> Control property */
       start = property.getAWrite().getArgument(1) and
@@ -46,16 +32,12 @@ class CustomMetadataPropertyReadStep extends DataFlow::SharedFlowStep {
       /* Control property -> Reading site */
       start = property and
       end = property.getARead()
-    ) and
-    inLabel = outLabel
+    )
   }
 }
 
 class LocalModelSetPropertyStep extends DataFlow::SharedFlowStep {
-  override predicate step(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-    DataFlow::FlowLabel outLabel
-  ) {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(
       MethodCallNode setPropertyCall, ModelReference modelRef, CustomController controller,
       InternalModelManifest internalModelManifest
@@ -68,21 +50,13 @@ class LocalModelSetPropertyStep extends DataFlow::SharedFlowStep {
       /* `modelRef.getModelName()` can be found in manifest.js */
       internalModelManifest.getName() = modelRef.getModelName() and
       setPropertyCall.getArgument(1) = start and
-      modelRef = end and
-      /* Any inLabel */
-      inLabel = inLabel and
-      outLabel =
-        modelRef.getModelName() + ">" +
-          setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue()
+      modelRef = end
     )
   }
 }
 
 class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
-  override predicate step(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-    DataFlow::FlowLabel outLabel
-  ) {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(
       MethodCallNode getPropertyCall, ModelReference modelRefTo, ModelReference modelRefFrom,
       MethodCallNode setPropertyCall
@@ -92,10 +66,6 @@ class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
       start = modelRefFrom and
       getPropertyCall.getMethodName() = "getProperty" and
       getPropertyCall.getReceiver().getALocalSource() = modelRefTo and
-      inLabel =
-        modelRefTo.getModelName() + ">" +
-          getPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() and
-      outLabel = "taint" and
       end = getPropertyCall and
       /*
        * Ensure that getPropertyCall and setPropertyCall are both reading/writing from/to
@@ -110,10 +80,7 @@ class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
 }
 
 class LocalModelControlMetadataStep extends DataFlow::SharedFlowStep {
-  override predicate step(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-    DataFlow::FlowLabel outLabel
-  ) {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(
       ModelReference modelRef, BindingPath bindingPath, Binding binding, CustomControl control,
       MethodCallNode setPropertyCall
@@ -125,40 +92,27 @@ class LocalModelControlMetadataStep extends DataFlow::SharedFlowStep {
         modelRef.getModelName() + ">" +
           setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue() and
       start = modelRef and
-      // modelRef.getModelName() = binding.getBindingPath().getModelName() and
-      binding.getBindingPath().asString() = inLabel and
-      control.getMetadata().getProperty(binding.getBindingTarget().asXmlAttribute().getName()) = end and
-      outLabel = "taint"
+      control.getMetadata().getProperty(binding.getBindingTarget().asXmlAttribute().getName()) = end
     )
   }
 }
 
 class SetModelToGetModelStep extends DataFlow::SharedFlowStep {
-  override predicate step(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-    DataFlow::FlowLabel outLabel
-  ) {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(UI5Model modelDefinition, ModelReference modelReference |
       modelReference.getResolvedModel() = modelDefinition and
       start = modelDefinition and
-      end = modelReference and
-      inLabel = inLabel and // any inLabel
-      outLabel = outLabel // any outLabel
+      end = modelReference
     )
   }
 }
 
 class GetModelToGetPropertyStep extends DataFlow::SharedFlowStep {
-  override predicate step(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-    DataFlow::FlowLabel outLabel
-  ) {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(ModelReference modelReference, MethodCallNode readingMethodCall |
       readingMethodCall = modelReference.getARead() and
       start = modelReference and
-      end = readingMethodCall and
-      inLabel = inLabel and // any inLabel
-      outLabel = "taint"
+      end = readingMethodCall
     )
   }
 }
