@@ -30,7 +30,7 @@ class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfigurati
 /**
  * An remote source associated with a `UI5BoundNode`
  */
-class UI5ModelSource extends UI5ModelSource, LogInjection::Source { }
+class UI5ModelSource extends LogInjection::Source instanceof UI5DataFlow::UI5ExternalModel { }
 
 // Sources and Sinks from data-extensions
 class UI5ExtSource extends LogInjection::Source {
