@@ -23,7 +23,7 @@ class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfigurati
   ) {
     super.isAdditionalFlowStep(start, end, inLabel, outLabel)
     or
-    UI5DataFlow::isAdditionalFlowStep(start, end, inLabel, outLabel)
+    UI5DataFlow::isAdditionalFlowStep(start, end)
   }
 }
 
