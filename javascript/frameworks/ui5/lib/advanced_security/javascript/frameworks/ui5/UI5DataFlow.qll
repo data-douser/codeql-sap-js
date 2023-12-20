@@ -5,21 +5,6 @@ import advanced_security.javascript.frameworks.ui5.UI5AMDModule
 import advanced_security.javascript.frameworks.ui5.RemoteFlowSources
 private import DataFlow::PathGraph as DataFlowPathGraph
 
-// class LocalBindingPathLabel extends DataFlow::FlowLabel {
-//   LocalBindingPathLabel() {
-//     exists(ModelReference modelRef, MethodCallNode setPropertyCall |
-//       setPropertyCall.getMethodName() = "setProperty" and
-//       setPropertyCall.getReceiver().getALocalSource() = modelRef and
-//       this =
-//         // modelRef.getModelName() + ">" +
-//           setPropertyCall.getArgument(0).getALocalSource().asExpr().getStringValue()
-//     )
-//   }
-// }
-class BindingPathAsLabel extends DataFlow::FlowLabel {
-  BindingPathAsLabel() { this = any(UI5BindingPath path).getPath() }
-}
-
 /*
  * Two-way binding implies the control can accept user input (if it has the capability .e.g aggregations) and submit it to the model of the controller whose view is declaring the use of this control.
  */
