@@ -11,13 +11,14 @@
  */
 
 import javascript
+import advanced_security.javascript.frameworks.ui5.UI5
 import advanced_security.javascript.frameworks.ui5.UI5HTML
 import semmle.javascript.RestrictedLocations
 private import advanced_security.javascript.frameworks.ui5.UI5
 
 class FirstLineOfDocumentElementWebApp extends HTML::DocumentElement, FirstLineOf {
   FirstLineOfDocumentElementWebApp() {
-    exists(UI5::WebApp app | app.getDocument() = this)
+    exists(WebApp app | app.getDocument() = this)
   }
 }
 
@@ -44,7 +45,7 @@ class AlertLocation extends TAlertLocation {
 
 from AlertLocation alertLocation, string message
 where
-  exists(UI5::WebApp app |
+  exists(WebApp app |
     exists(FrameOptions frameOptions | app.getFrameOptions() = frameOptions |
     frameOptions.allowsAllOriginEmbedding() and
       alertLocation.asFrameOptions() = frameOptions and
