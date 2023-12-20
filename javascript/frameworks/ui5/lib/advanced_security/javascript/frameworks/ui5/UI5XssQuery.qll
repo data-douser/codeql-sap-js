@@ -6,14 +6,10 @@ import semmle.javascript.security.dataflow.ClientSideUrlRedirectCustomizations::
 
 class Configuration extends DomBasedXss::Configuration {
   /** WARNING: VALID FOR THIS BRANCH (`jeongsoolee09/remote-model-1`) ONLY */
-  override predicate isSource(DataFlow::Node start, DataFlow::FlowLabel label) {
-    super.isSource(start, label)
+  override predicate isSource(DataFlow::Node start) {
+    super.isSource(start)
     or
-    exists(UI5BindingPath bindingPath |
-      start instanceof UI5ExternalModel and
-      bindingPath.getModel() = start and
-      (label = "taint" or label = bindingPath.getPath())
-    )
+    start instanceof RemoteFlowSource
   }
 
   // override predicate isSource(DataFlow::Node start) {
@@ -37,10 +33,10 @@ class Configuration extends DomBasedXss::Configuration {
     UI5DataFlow::isAdditionalFlowStep(start, end, inLabel, outLabel)
   }
 
-  predicate isSanitizer(DataFlow::Node node, DataFlow::FlowLabel label) {
-    node instanceof RemoteFlowSource and
-    label = "TravelAgencyInfoPage/PageContent"
-  }
+  // predicate isSanitizer(DataFlow::Node node, DataFlow::FlowLabel label) {
+  //   node instanceof RemoteFlowSource and
+  //   label = "TravelAgencyInfoPage/PageContent"
+  // }
 
   override predicate isSanitizer(DataFlow::Node node) {
     /* 1. Already a sanitizer defined in `DomBasedXssQuery::Configuration` */
