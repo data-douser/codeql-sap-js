@@ -1,11 +1,12 @@
-private import javascript
-private import DataFlow
+import javascript
+import DataFlow
 
+module CDS {
 abstract class Service extends ValueNode { }
 
 class ApplicationService extends Service {
   ApplicationService() {
-    /* 1. Awaiting or directly getting return value of `cds.serve` */
+    // 1. Awaiting or directly getting return value of `cds.serve`
     // either CallExpr or AwaitExpr surrounding it
     exists(MethodCallNode cdsServeCall |
       any(CdsFacade cds).flowsTo(cdsServeCall.getReceiver()) and
@@ -17,14 +18,14 @@ class ApplicationService extends Service {
       )
     )
     or
-    /* 2. From directly using the constructor: `new cds.ApplicationService` or `new cds.Service` */
+    // 2. From directly using the constructor: `new cds.ApplicationService` or `new cds.Service`
     exists(MethodCallNode cdsDotService, CdsFacade cds |
       this = cdsDotService and
       cdsDotService.getReceiver() = cds and
       cdsDotService.getMethodName() = ["Service", "ApplicationService"]
     )
     or
-    /* 3. Awaiting or directly getting return value of `cds.connect.to` */
+    // 3. Awaiting or directly getting return value of `cds.connect.to`
     // TODO: Can be AwaitExpr surrounding it
     exists(CdsFacade cds, PropRef cdsConnect |
       this.(CallNode).getCalleeName() = "to" and
@@ -125,4 +126,5 @@ class Request extends ValueNode, ParameterNode {
  */
 class CdsFacade extends ModuleImportNode {
   CdsFacade() { this = moduleImport("@sap/cds") }
+}
 }

@@ -1,17 +1,18 @@
-private import javascript
-private import DataFlow
-private import CDS
+import javascript
+import DataFlow
+import CDS::CDS
 
+module CQL {
 class CqlQueryBase extends VarRef {
   CqlQueryBase() {
-    /* Made available as a global variable */
+    // Made available as a global variable
     exists(GlobalVariable queryBase |
       queryBase.getName() = ["SELECT", "INSERT", "DELETE", "UPDATE", "UPSERT"]
     |
       this = queryBase.getAReference()
     )
     or
-    /* Imported from `cds.ql` */
+    // Imported from `cds.ql` */
     exists(CdsFacade cds, PropRef cdsDotQl |
       this.flow().getALocalSource() = cdsDotQl and
       cdsDotQl.getBase() = cds
@@ -100,10 +101,7 @@ class CqlExpr extends TCqlExpr {
 
   /**
    * Convert this `CqlExpr` into a `DotExpr`, i.e.
-   * Get SELECT.from`Table` when given SELECT.from`Table`.where`cond`,
-   * Get SELECT.from(table) when given SELECT.from(table).where`cond`,
-   * Get SELECT.from`Table` when given SELECT.from`Table`.where(cond),
-   * Get SELECT.from(table) when given SELECT.from(table).where(cond).
+   * `Get SELECT.from'Table' when given SELECT.from'Table'.wherecond`,
    */
   DotExpr asDotExpr() {
     result = this.asTaggedTemplate().getTag().(DotExpr)
@@ -139,7 +137,7 @@ class CqlExpr extends TCqlExpr {
     result = this.asTaggedTemplate().getTag().(DotExpr).getBase()
   }
 
-  /* ========== Parent relationships ========== */
+  /** ========== Parent relationships ========== */
   Expr getParentExpr() {
     result = this.asMethodCall().getParentExpr() or
     result = this.asTaggedTemplate().getParentExpr() or
@@ -164,7 +162,7 @@ class CqlExpr extends TCqlExpr {
     result.asShortcutCall() = this.getAnAncestorExpr()
   }
 
-  /* ========== Children relationships ========== */
+  /** ========== Children relationships ========== */
   Expr getAChildExpr() {
     result = this.asMethodCall().getAChildExpr() or
     result = this.asTaggedTemplate().getAChildExpr() or
@@ -190,7 +188,7 @@ class CqlExpr extends TCqlExpr {
   }
 
   /**
-   * Matches the given CqlExpr to its method/property name, nested at arbitrary depth.
+   * Matches the given `CqlExpr` to its method/property name, nested at arbitrary depth.
    */
   string getAnAPIName() {
     result = this.asDotExpr().getPropertyName() or
@@ -219,7 +217,7 @@ class CqlSelectExpr extends CqlExpr {
   predicate selectColumns() {
     this.getAnAPIName() = "columns"
     or
-    /* SELECT itself is a shortcut of SELECT.columns */
+    // SELECT itself is a shortcut of SELECT.columns
     this.getCqlBaseCall() instanceof CqlSelectBaseCall
   }
 }
@@ -241,7 +239,7 @@ class CqlInsertExpr extends CqlExpr {
   predicate insertEntries() {
     this.getAnAPIName() = "entries"
     or
-    /* INSERT itself is a shortcut of INSERT.entries */
+    // INSERT itself is a shortcut of INSERT.entries
     this.getCqlBaseCall() instanceof CqlInsertBaseCall
   }
 }
@@ -276,7 +274,7 @@ class CqlUpdateExpr extends CqlExpr {
   predicate updateEntity() {
     this.getAnAPIName() = "entity"
     or
-    /* UPDATE itself is a shortcut of UPDATE.entity */
+    // UPDATE itself is a shortcut of UPDATE.entity
     this.getCqlBaseCall() instanceof CqlUpdateBaseCall
   }
 }
@@ -298,7 +296,8 @@ class CqlUpsertExpr extends CqlExpr {
   predicate upsertEntries() {
     this.getAnAPIName() = "entries"
     or
-    /* UPSERT itself is a shortcut of UPSERT.entries */
+    // UPSERT itself is a shortcut of UPSERT.entries
     this.getCqlBaseCall() instanceof CqlUpsertBaseCall
   }
+}
 }
