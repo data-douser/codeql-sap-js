@@ -35,7 +35,7 @@ string getASuperType(string type) {
  * ```
  */
 bindingset[property]
-deprecated string bindingPathCapture(string property) {
+string bindingPathCapture(string property) {
   exists(string pattern |
     // matches "model>property"
     pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
@@ -67,7 +67,7 @@ deprecated string bindingPathCapture(string property) {
  * ```
  */
 bindingset[property]
-deprecated string modelNameCapture(string property) {
+string modelNameCapture(string property) {
   exists(string pattern |
     // matches "model>property"
     pattern = "([^'\"\\}]+)>([^'\"\\}]*)"
