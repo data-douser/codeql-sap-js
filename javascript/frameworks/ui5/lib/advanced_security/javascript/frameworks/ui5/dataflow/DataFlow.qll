@@ -1,13 +1,11 @@
 import javascript
+import semmle.javascript.dataflow.DataFlow as StdLibDataFlow
 import advanced_security.javascript.frameworks.ui5.UI5
 import advanced_security.javascript.frameworks.ui5.UI5View
 import advanced_security.javascript.frameworks.ui5.UI5AMDModule
 import advanced_security.javascript.frameworks.ui5.RemoteFlowSources
-private import DataFlow::PathGraph as DataFlowPathGraph
-
-/*
- * Two-way binding implies the control can accept user input (if it has the capability .e.g aggregations) and submit it to the model of the controller whose view is declaring the use of this control.
- */
+import advanced_security.javascript.frameworks.ui5.dataflow.FlowSteps
+private import StdLibDataFlow::DataFlow::PathGraph as DataFlowPathGraph
 
 
 predicate isAdditionalFlowStep(

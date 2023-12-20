@@ -13,7 +13,8 @@
  */
 
 import javascript
-import advanced_security.javascript.frameworks.ui5.UI5DataFlow::UI5PathGraph
+import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow as UI5DataFlow
+import UI5DataFlow::UI5PathGraph
 import advanced_security.javascript.frameworks.ui5.UI5XssQuery
 
 from

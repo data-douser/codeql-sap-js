@@ -6,7 +6,6 @@
  */
 
 import javascript
-import advanced_security.javascript.frameworks.ui5.UI5DataFlow
 import semmle.javascript.security.dataflow.TaintedPathQuery as TaintedPathQuery
 
 class UI5ExtPathISink extends TaintedPathQuery::Sink {
