@@ -27,44 +27,6 @@ predicate isAdditionalFlowStep(
   )
 }
 
-class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
-  override string getSourceType() { result = "RouteParameterAccess" }
-
-  RouteParameterAccess() {
-    exists(
-      ControllerHandler handler, RouteManifest routeManifest, ParameterNode handlerParameter,
-      MethodCallNode getParameterCall
-    |
-      handler.isAttachedToRoute(routeManifest.getName()) and
-      this.asExpr().getEnclosingFunction() = handler.getFunction() and
-      handlerParameter = handler.getParameter(0) and
-      getParameterCall.getMethodName() = "getParameter" and
-      getParameterCall.getReceiver().getALocalSource() = handlerParameter and
-      (
-        routeManifest.matchesPathString(this.getPropertyName()) and
-        this.getBase().getALocalSource() = getParameterCall
-        or
-        /* TODO: Why does `routeManifest.matchesPathString` not work for propertyName?? */
-        this.getBase().(PropRead).getBase().getALocalSource() = getParameterCall
-      )
-    )
-  }
-}
-
-/**
- * Method calls that fetch a piece of data from a URI parameter. The rows of the resulting relation is supplied
- * from a `sourceModel` of the model-as-data extension, whose kinds are `"uri-parameter"`.
- */
-class UriParameterGetMethodCall extends RemoteFlowSource {
-  UriParameterGetMethodCall() {
-    this = ModelOutput::getASourceNode("remote").asSource() and
-    /* TODO: add more constraints to only find URIParameter-related methods/properties */
-    any()
-  }
-
-  override string getSourceType() { result = "URI Parameter Data" }
-}
-
 module UI5PathGraph {
   newtype TNode =
     TUI5BindingPathNode(UI5BindingPath path) or
