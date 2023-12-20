@@ -9,7 +9,7 @@
  */
 
  import javascript
- import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow 
+ import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow
 
  from DataFlow::Node sink, string kind
  where
