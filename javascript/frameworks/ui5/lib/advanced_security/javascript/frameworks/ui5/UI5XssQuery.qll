@@ -30,7 +30,7 @@ class Configuration extends DomBasedXss::Configuration {
     super.isAdditionalFlowStep(start, end, inLabel, outLabel)
     or
     /* 2. An additional flow step defined in `UI5DataFlow` */
-    UI5DataFlow::isAdditionalFlowStep(start, end, inLabel, outLabel)
+    UI5DataFlow::isAdditionalFlowStep(start, end)
   }
 
   // predicate isSanitizer(DataFlow::Node node, DataFlow::FlowLabel label) {

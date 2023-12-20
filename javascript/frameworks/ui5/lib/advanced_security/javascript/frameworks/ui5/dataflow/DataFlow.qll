@@ -9,9 +9,7 @@ private import StdLibDataFlow::DataFlow::PathGraph as DataFlowPathGraph
 
 
 predicate isAdditionalFlowStep(
-  DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-  DataFlow::FlowLabel outLabel
-) {
+  DataFlow::Node start, DataFlow::Node end) {
   /* Handler argument node to handler parameter */
   exists(UI5Handler h |
     start = h.getBindingPath().getNode() and
