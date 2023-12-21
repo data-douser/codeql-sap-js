@@ -426,9 +426,9 @@ class BindingTarget extends TBindingTarget {
     )
   }
 
-  JsonObject asJsonObject() {
+  JsonObject asJsonObject(string propertyName) {
     exists(JsonObject target |
-      this = TJsonPropertyBindingTarget(target, _, _) and
+      this = TJsonPropertyBindingTarget(target, propertyName, _) and
       result = target
     )
   }
