@@ -7,9 +7,7 @@ import advanced_security.javascript.frameworks.ui5.RemoteFlowSources
 import advanced_security.javascript.frameworks.ui5.dataflow.FlowSteps
 private import StdLibDataFlow::DataFlow::PathGraph as DataFlowPathGraph
 
-
-predicate isAdditionalFlowStep(
-  DataFlow::Node start, DataFlow::Node end) {
+predicate isAdditionalFlowStep(DataFlow::Node start, DataFlow::Node end) {
   /* Handler argument node to handler parameter */
   exists(UI5Handler h |
     start = h.getBindingPath().getNode() and
