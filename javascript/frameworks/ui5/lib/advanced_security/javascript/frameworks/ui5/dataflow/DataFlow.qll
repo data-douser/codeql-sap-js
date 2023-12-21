@@ -47,6 +47,7 @@ module UI5PathGraph {
       this.asUI5BindingPathNode()
           // TODO: generalize from XML
           .(XmlBindingPath)
+          .getLocation()
           .hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
     }
 

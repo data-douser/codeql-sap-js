@@ -99,7 +99,7 @@ string modelNameCapture(string property) {
  * Since these data cannot be recognized as `DataFlow::Node`s (with an exception of JS objects), a `UI5BindingPath`
  * is always represented by a `UI5BoundNode` to which this `UI5BindingPath` refers to.
  */
-abstract class UI5BindingPath extends Locatable {
+abstract class UI5BindingPath extends BindingPath {
   /**
    * Gets the string value of this path, without the surrounding curly braces.
    */
@@ -126,11 +126,6 @@ abstract class UI5BindingPath extends Locatable {
   abstract string getControlQualifiedType();
 
   /**
-   * Gets the name of the model if this binding path has one (before the ">" sign).
-   */
-  abstract string getModelName();
-
-  /**
    * Gets the full import path of the associated control.
    */
   string getControlTypeName() { result = this.getControlQualifiedType().replaceAll(".", "/") }
@@ -142,13 +137,11 @@ abstract class UI5BindingPath extends Locatable {
    */
   UI5View getView() {
     /* 1. Declarative, inside a certain data format. */
-    this.getFile() = result
-    or
-    this.(XmlAttribute).getElement().getFile() = result
+    this.getLocation().getFile() = result
     or
     /* 2. Procedural, inside a body of a controller handler. */
     exists(CustomController controller |
-      controller.getFile() = this.getFile() and
+      controller.getFile() = this.getLocation().getFile() and
       controller.getView() = result
     )
   }
@@ -156,7 +149,7 @@ abstract class UI5BindingPath extends Locatable {
   /**
    * Gets the UI5Control using this UI5BindingPath.
    */
-  abstract UI5Control getControlDeclaration();
+  UI5Control getControlDeclaration() { none() }
 
   /**
    * Gets the model, attached to either a control or a view, that this binding path refers to.
@@ -228,32 +221,17 @@ abstract class UI5BindingPath extends Locatable {
       this.getAbsolutePath() = model.getPathString(p) and
       /* Restrict search inside the same webapp. */
       exists(WebApp webApp |
-        webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+        webApp.getAResource() = this.getLocation().getFile() and
+        webApp.getAResource() = result.getFile()
       )
     )
     or
     result = this.getModel().(UI5ExternalModel)
   }
-
-  /**
-   * Holds if this binding path is absolute.
-   * Reference: https://sapui5.hana.ondemand.com/sdk/#/topic/2888af49635949eca14fa326d04833b9
-   */
-  predicate isAbsolute() {
-    exists(modelNameCapture(this.getLiteralRepr())) or this.getPath().charAt(0) = "/"
-  }
-
-  /**
-   * Holds if this binding path is relative.
-   * Reference: https://sapui5.hana.ondemand.com/sdk/#/topic/2888af49635949eca14fa326d04833b9
-   */
-  predicate isRelative() { not this.isAbsolute() }
 }
 
 class XmlControlProperty extends XmlAttribute {
   XmlControlProperty() { exists(UI5Control control | this.getElement() = control.asXmlControl()) }
-
-  override string toString() { result = this.getValue() }
 
   override string getName() { result = XmlAttribute.super.getName() }
 
@@ -284,104 +262,98 @@ abstract class UI5View extends File {
   abstract UI5BindingPath getAnHtmlISink();
 }
 
+JsonBindingPath getJsonItemsBinding(JsonBindingPath bindingPath) {
+  exists(Binding itemsBinding |
+    itemsBinding.getBindingTarget().asJsonObject("items") =
+      bindingPath.getBindingTarget().getParent+() and
+    result = itemsBinding.getBindingPath() and
+    result != bindingPath // exclude ourselves
+  ) and
+  not exists(bindingPath.getModelName())
+}
+
 /**
  * A UI5BindingPath found in a JSON View.
  */
-class JsonBindingPath extends UI5BindingPath, JsonValue {
-  string path;
+class JsonBindingPath extends UI5BindingPath {
+  string boundPropertyName;
   Binding binding;
+  JsonObject bindingTarget;
 
   JsonBindingPath() {
-    this = binding.getBindingTarget().asJsonObject() and
-    binding.getBindingPath().asString() = path and
-    exists(binding.getBindingPath())
+    bindingTarget = binding.getBindingTarget().asJsonObject(boundPropertyName) and
+    binding.getBindingPath() = this
   }
 
   override string toString() {
-    result = "\"" + this.getPropertyName() + "\": \"" + this.getStringValue() + "\""
+    result =
+      "\"" + boundPropertyName + "\": \"" + bindingTarget.getPropStringValue(boundPropertyName) +
+        "\""
   }
 
-  override string getLiteralRepr() { result = this.getStringValue() }
+  override string getLiteralRepr() { result = bindingTarget.getPropStringValue(boundPropertyName) }
 
-  override string getPath() { result = path }
+  override string getPath() { result = this.asString() }
 
   override string getAbsolutePath() {
-    if path.matches("/%")
-    then result = path
+    if this.isAbsolute()
+    then result = this.asString()
     else
-      exists(JsonBindingPath pathPrefix |
-        pathPrefix = this.getParent+().(JsonObject).getPropValue("items") and
-        pathPrefix != this
-      |
-        result = pathPrefix.getAbsolutePath() + "/" + path
-      )
+      if exists(getJsonItemsBinding(this))
+      then result = getJsonItemsBinding(this).getAbsolutePath() + "/" + this.asString()
+      else result = this.asString()
   }
 
-  override string getPropertyName() { this = any(JsonValue v).getPropValue(result) }
+  override string getPropertyName() { result = boundPropertyName }
 
-  override string getControlQualifiedType() {
-    exists(JsonObject control |
-      this = control.getPropValue(this.getPropertyName()) and
-      result = control.getPropStringValue("Type")
-    )
-  }
+  override string getControlQualifiedType() { result = bindingTarget.getPropStringValue("Type") }
 
-  override string getModelName() { result = modelNameCapture(this.getStringValue()) }
-
-  override UI5Control getControlDeclaration() {
-    /* TODO */
-    none()
-  }
+  JsonObject getBindingTarget() { result = bindingTarget }
 }
 
-class JsView extends UI5View {
-  /* sap.ui.jsview("...", ) { ... } */
-  MethodCallNode rootJsViewCall;
-
-  JsView() {
-    exists(TopLevel toplevel, Stmt stmt |
-      toplevel = unique(TopLevel t | t = this.getATopLevel()) and
-      stmt = unique(Stmt s | s = toplevel.getAChildStmt())
-    |
-      rootJsViewCall.asExpr() = stmt.getAChildExpr() and
-      rootJsViewCall.getReceiver() = DataFlow::globalVarRef("sap").getAPropertyReference("ui") and
-      rootJsViewCall.getMethodName() = "jsview"
-    )
-  }
-
-  override string getControllerName() {
-    exists(FunctionNode function |
-      function =
-        rootJsViewCall
-            .getArgument(1)
-            .(ObjectLiteralNode)
-            .getAPropertySource("getControllerName")
-            .(FunctionNode) and
-      result = function.getReturnNode().getALocalSource().asExpr().(StringLiteral).getValue()
-    )
-  }
-
-  override JsViewBindingPath getASource() {
-    exists(ObjectExpr control, string type, string path, string property |
-      this = control.getFile() and
-      type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
-      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
-      result = control.getPropertyByName(property)
-    )
-  }
-
-  override JsViewBindingPath getAnHtmlISink() {
-    exists(ObjectExpr control, string type, string path, string property |
-      this = control.getFile() and
-      type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
-      property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
-      result = control.getPropertyByName(property)
-    )
-  }
-}
-
+// class JsView extends UI5View {
+//   /* sap.ui.jsview("...", ) { ... } */
+//   MethodCallNode rootJsViewCall;
+//   JsView() {
+//     exists(TopLevel toplevel, Stmt stmt |
+//       toplevel = unique(TopLevel t | t = this.getATopLevel()) and
+//       stmt = unique(Stmt s | s = toplevel.getAChildStmt())
+//     |
+//       rootJsViewCall.asExpr() = stmt.getAChildExpr() and
+//       rootJsViewCall.getReceiver() = DataFlow::globalVarRef("sap").getAPropertyReference("ui") and
+//       rootJsViewCall.getMethodName() = "jsview"
+//     )
+//   }
+//   override string getControllerName() {
+//     exists(FunctionNode function |
+//       function =
+//         rootJsViewCall
+//             .getArgument(1)
+//             .(ObjectLiteralNode)
+//             .getAPropertySource("getControllerName")
+//             .(FunctionNode) and
+//       result = function.getReturnNode().getALocalSource().asExpr().(StringLiteral).getValue()
+//     )
+//   }
+//   override JsViewBindingPath getASource() {
+//     exists(ObjectExpr control, string type, string path, string property |
+//       this = control.getFile() and
+//       type = result.getControlTypeName() and
+//       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+//       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+//       result = control.getPropertyByName(property)
+//     )
+//   }
+//   override JsViewBindingPath getAnHtmlISink() {
+//     exists(ObjectExpr control, string type, string path, string property |
+//       this = control.getFile() and
+//       type = result.getControlTypeName() and
+//       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
+//       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
+//       result = control.getPropertyByName(property)
+//     )
+//   }
+// }
 class JsonView extends UI5View {
   JsonObject root;
 
@@ -398,7 +370,7 @@ class JsonView extends UI5View {
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
-      result = control.getPropValue(property)
+      result.getBindingTarget() = control
     )
   }
 
@@ -408,90 +380,83 @@ class JsonView extends UI5View {
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
-      result = control.getPropValue(property)
+      result.getBindingTarget() = control
     )
   }
 }
 
-/**
- * A UI5BindingPath found in a JavaScript View.
- */
-class JsViewBindingPath extends UI5BindingPath, Property {
-  string path;
-
-  JsViewBindingPath() {
-    // this = binding.getBindingTarget().asXmlAttribute() and
-    // binding.getBindingPath().asString() = path and
-    // exists(binding.getBindingPath())
-    path = bindingPathCapture(this.getInit().getStringValue()) and
-    this.(Property).getFile() instanceof JsView
-  }
-
-  override string getLiteralRepr() { result = this.getInit().getStringValue() }
-
-  /* `new sap.m.Input({...})` => `"sap.m.Input"` */
-  override string getControlQualifiedType() {
-    result =
-      this.getInit().(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr).getQualifiedName()
-  }
-
-  override string getAbsolutePath() { result = path /* ??? */ }
-
-  override string getPath() { result = path }
-
-  override string getPropertyName() { result = this.getName() }
-
-  override string getModelName() { result = modelNameCapture(this.getInit().getStringValue()) }
-
-  override UI5Control getControlDeclaration() {
-    /* TODO */
-    none()
-  }
+// class JsViewBindingPath extends UI5BindingPath {
+//   DataFlow::PropRef bindingTarget;
+//   JsViewBindingPath() {
+//     // this = binding.getBindingTarget().asXmlAttribute() and
+//     // binding.getBindingPath().asString() = path and
+//     // exists(binding.getBindingPath())
+//     this.getBinding().getBindingTarget().asDataFlowNode() = bindingTarget and
+//     bindingTarget.getFile() instanceof JsView
+//   }
+//   override string getLiteralRepr() { result = .getInit().getStringValue() }
+//   /* `new sap.m.Input({...})` => `"sap.m.Input"` */
+//   override string getControlQualifiedType() {
+//     result =
+//       this.getInit().(StringLiteral).getParent+().(NewExpr).getCallee().(DotExpr).getQualifiedName()
+//   }
+//   override string getAbsolutePath() { result = path /* ??? */ }
+//   override string getPath() { result = path }
+//   override string getPropertyName() { result = this.getName() }
+//   override string getModelName() { result = modelNameCapture(this.getInit().getStringValue()) }
+//   override UI5Control getControlDeclaration() {
+//     /* TODO */
+//     none()
+//   }
+// }
+HtmlBindingPath getHtmlItemsBinding(HtmlBindingPath bindingPath) {
+  exists(Binding itemsBinding |
+    result != bindingPath and
+    itemsBinding.getBindingTarget().asXmlAttribute().getName() = "items" and
+    bindingPath.getBindingTarget().getElement().getParent+().(HTML::Element).getAnAttribute() =
+      itemsBinding.getBindingTarget().asXmlAttribute() and
+    result = itemsBinding.getBindingPath()
+  ) and
+  not exists(bindingPath.getModelName())
 }
 
 /**
  * A UI5BindingPath found in an HTML View.
  */
-class HtmlBindingPath extends UI5BindingPath, HTML::Attribute {
-  string path;
+class HtmlBindingPath extends UI5BindingPath {
+  HTML::Attribute bindingTarget;
   Binding binding;
 
   HtmlBindingPath() {
-    this = binding.getBindingTarget().asXmlAttribute() and
-    binding.getBindingPath().asString() = path and
-    exists(binding.getBindingPath())
+    bindingTarget = binding.getBindingTarget().asXmlAttribute() and
+    binding.getBindingPath() = this
   }
 
-  override string getPath() { result = path }
+  override string getPath() { result = this.asString() }
 
-  override string getLiteralRepr() { result = this.getValue() }
+  override string getLiteralRepr() { result = bindingTarget.getValue() }
 
   override string getAbsolutePath() {
-    if path.matches("/%")
-    then result = path
+    if this.isAbsolute()
+    then result = this.asString()
     else
-      exists(HtmlBindingPath pathPrefix |
-        pathPrefix != this and
-        pathPrefix = this.getElement().getParent+().(HTML::Element).getAttributeByName("items") and
-        result = pathPrefix.getAbsolutePath() + "/" + path
-      )
+      if exists(getHtmlItemsBinding(this))
+      then result = getHtmlItemsBinding(this).getPath() + "/" + this.getPath()
+      else result = this.asString()
   }
 
-  override string getPropertyName() { this = any(HTML::Element v).getAttributeByName(result) }
+  override string getPropertyName() { result = bindingTarget.getName() }
 
   override string getControlQualifiedType() {
     exists(HTML::Element control |
-      this = control.getAttributeByName(this.getPropertyName()) and
+      bindingTarget = control.getAttributeByName(this.getPropertyName()) and
       result = control.getAttributeByName("data-sap-ui-type").getValue()
     )
   }
 
-  override string getModelName() { result = modelNameCapture(this.getValue()) }
+  HTML::Attribute getBindingTarget() { result = bindingTarget }
 
-  override UI5Control getControlDeclaration() {
-    /* TODO */
-    none()
-  }
+  override string toString() { result = bindingTarget.toString() }
 }
 
 class HtmlView extends UI5View, HTML::HtmlFile {
@@ -513,7 +478,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
-      result = control.getAttributeByName("data-" + property)
+      result.getBindingTarget() = control.getAttributeByName("data-" + property)
     )
   }
 
@@ -523,67 +488,68 @@ class HtmlView extends UI5View, HTML::HtmlFile {
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
-      result = control.getAttributeByName("data-" + property)
+      result.getBindingTarget() = control.getAttributeByName("data-" + property)
     )
   }
+}
+
+XmlBindingPath getXmlItemsBinding(XmlBindingPath bindingPath) {
+  exists(Binding itemsBinding |
+    result != bindingPath and
+    itemsBinding.getBindingTarget().asXmlAttribute().getName() = "items" and
+    bindingPath.getBindingTarget().getElement().getParent+().(XmlElement).getAnAttribute() =
+      itemsBinding.getBindingTarget().asXmlAttribute() and
+    result = itemsBinding.getBindingPath()
+  ) and
+  not exists(bindingPath.getModelName())
 }
 
 /**
  * A UI5BindingPath found in an XML View.
  */
-class XmlBindingPath extends UI5BindingPath instanceof XmlAttribute {
-  BindingPath bindingPath;
+class XmlBindingPath extends UI5BindingPath {
   Binding binding;
+  XmlAttribute bindingTarget;
 
   XmlBindingPath() {
-    this = binding.getBindingTarget().asXmlAttribute() and
-    binding.getBindingPath() = bindingPath
+    bindingTarget = binding.getBindingTarget().asXmlAttribute() and
+    binding.getBindingPath() = this
   }
 
   /* corresponds to BindingPath.asString() */
-  override string getLiteralRepr() { result = this.(XmlAttribute).getValue() }
+  override string getLiteralRepr() { result = bindingTarget.getValue() }
 
-  override string getPath() { result = bindingPath.asString() }
-
-  predicate hasLocationInfo(string filepath, int sl, int sc, int el, int ec) {
-    this.(XmlAttribute).hasLocationInfo(filepath, sl, sc, el, ec)
-  }
+  override string getPath() { result = this.asString() }
 
   /**
    * TODO: take into consideration bindElement() method call
    * e.g.
    */
   override string getAbsolutePath() {
-    if bindingPath.isAbsolute()
-    then result = bindingPath.asString()
+    if this.isAbsolute()
+    then result = this.asString()
     else
-      if not exists(bindingPath.getModelName())
-      then
-        exists(XmlBindingPath pathPrefix |
-          pathPrefix =
-            this.(XmlAttribute).getElement().getParent+().(XmlElement).getAttribute("items") and
-          result = pathPrefix.getAbsolutePath() + "/" + bindingPath.asString()
-        )
-      else result = bindingPath.asString()
+      if exists(getXmlItemsBinding(this))
+      then result = getXmlItemsBinding(this).getPath() + "/" + this.getPath()
+      else result = this.asString()
   }
 
-  override string getPropertyName() { result = this.(XmlAttribute).getName() }
+  override string getPropertyName() { result = bindingTarget.getName() }
 
   override string getControlQualifiedType() {
     exists(XmlElement control |
-      control = this.(XmlAttribute).getElement() and
-      this = control.getAttribute(this.getPropertyName()) and
+      control = bindingTarget.getElement() and
       result = control.getNamespace().getUri() + "." + control.getName()
     )
   }
 
-  override UI5Control getControlDeclaration() {
-    result.asXmlControl() = this.(XmlAttribute).getElement()
-  }
+  override UI5Control getControlDeclaration() { result.asXmlControl() = bindingTarget.getElement() }
 
   override string getModelName() { result = binding.getBindingPath().getModelName() }
 
-  override string toString() { result = this.(XmlAttribute).toString() }
+  override string toString() { result = bindingTarget.toString() }
+
+  XmlAttribute getBindingTarget() { result = bindingTarget }
 }
 
 class XmlRootElement extends XmlElement {
@@ -638,7 +604,7 @@ class XmlView extends UI5View, XmlFile {
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
-      result = control.getAttribute(property)
+      result.getBindingTarget() = control.getAttribute(property)
     )
   }
 
@@ -648,7 +614,7 @@ class XmlView extends UI5View, XmlFile {
       type = result.getControlTypeName() and
       ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
-      result = control.getAttribute(property) and
+      result.getBindingTarget() = control.getAttribute(property) and
       /* If the control is an `sap.ui.core.HTML` then the control should be missing the `sanitizeContent` attribute */
       (
         getASuperType(type) = "HTMLControl"
@@ -772,27 +738,17 @@ class UI5Control extends TUI5Control {
   }
 
   /** Holds if this control reads from or writes to a model. */
-  predicate accessesModel(UI5Model model) {
-    // Verify that the controller's model has the referenced property
-    exists(XmlView view |
-      // Both this control and the model belong to the same view
-      this = view.getXmlControl() and
-      model = view.getController().getModel() and
-      model.(UI5InternalModel).getPathString() =
-        this.asXmlControl().getAnAttribute().(XmlBindingPath).getPath()
-    )
-    // TODO: Add case where modelName is present
-  }
+  predicate accessesModel(UI5Model model) { accessesModel(model, _) }
 
   /** Holds if this control reads from or writes to a model with regards to a binding path. */
-  predicate accessesModel(UI5Model model, UI5BindingPath bindingPath) {
+  predicate accessesModel(UI5Model model, XmlBindingPath bindingPath) {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view
       this = view.getXmlControl() and
       model = view.getController().getModel() and
       model.(UI5InternalModel).getPathString() = bindingPath.getPath() and
-      bindingPath.getPath() = this.asXmlControl().getAnAttribute().(XmlBindingPath).getPath()
+      bindingPath.getBindingTarget() = this.asXmlControl().getAnAttribute()
     )
     // TODO: Add case where modelName is present
   }
