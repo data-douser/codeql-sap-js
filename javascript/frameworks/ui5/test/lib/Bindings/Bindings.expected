@@ -1,11 +1,11 @@
 | test.html:5:11:5:31 | XML property binding: data-value to {/input} |
 | test.html:8:11:8:33 | XML property binding: data-content to {/input} |
-| test.js:10:20:10:33 | Early JavaScript property binding: {\\n      ...       } to "{/root/name}" |
+| test.js:10:20:10:33 | Early JavaScript property binding: value to "{/root/name}" |
 | test.js:21:28:21:34 | JavaScript context binding: oInput to "/root" |
 | test.js:23:38:23:43 | Late JavaScript property binding: value to "name" |
-| test.js:26:60:34:9 | Early JavaScript property binding: {\\n      ...       } to {\\n      ...       } |
+| test.js:27:19:33:12 | Early JavaScript property binding: value to {\\n      ...       } |
 | test.js:38:48:44:9 | Late JavaScript property binding: value to {\\n      ...       } |
-| test.js:48:19:48:42 | Early JavaScript property binding: {\\n      ...       } to "{/#foo ... label}" |
+| test.js:48:19:48:42 | Early JavaScript property binding: text to "{/#foo ... label}" |
 | test.json:5:9:22:9 | JSON property binding: items to {/Base} |
 | test.json:11:17:16:17 | JSON property binding: value to {input} |
 | test.json:17:17:20:17 | JSON property binding: content to {path : /input, formatter : ".valueFormatter"} |
