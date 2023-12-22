@@ -545,8 +545,6 @@ class XmlBindingPath extends UI5BindingPath {
 
   override UI5Control getControlDeclaration() { result.asXmlControl() = bindingTarget.getElement() }
 
-  override string getModelName() { result = binding.getBindingPath().getModelName() }
-
   override string toString() { result = bindingTarget.toString() }
 
   XmlAttribute getBindingTarget() { result = bindingTarget }
