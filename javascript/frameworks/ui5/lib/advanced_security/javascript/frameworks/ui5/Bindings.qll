@@ -176,46 +176,40 @@ abstract private class LateJavaScriptPropertyBinding extends DataFlow::Node {
  * that receives a binding `binding` with a binding path `bindingPath`.
  */
 private predicate earlyPropertyBinding(
-  DataFlow::NewNode newNode, DataFlow::Node bindingTarget, DataFlow::Node binding,
-  DataFlow::Node bindingPath, Expr propertyName
-) {
+  DataFlow::NewNode newNode, DataFlow::PropWrite bindingTarget, DataFlow::Node binding,
+  DataFlow::Node bindingPath) {
   // Property binding via an object literal binding with property `path`.
   // This assumes the value assigned to `path` is a binding, even if we cannot
   // statically determine it is a binding.
-  exists(DataFlow::SourceNode objectLiteral, DataFlow::PropWrite propWrite |
+  exists(DataFlow::SourceNode objectLiteral |
     newNode.getAnArgument().getALocalSource() = objectLiteral and
-    objectLiteral.getAPropertyWrite() = propWrite and
+    objectLiteral.getAPropertyWrite() = bindingTarget and
     // Here we can use `writes`, because we known the key is a literal.
-    propWrite.writes(bindingTarget, "path", binding) and
-    propWrite.getPropertyNameExpr() = propertyName
-  |
+    bindingTarget.writes(_, "path", binding) and
     if exists(binding.getALocalSource())
     then binding.getALocalSource() = bindingPath
     else binding = bindingPath // e.g., path: "/" + someVar
-  )
+  ) and not bindingPath.getStringValue() instanceof BindingString
   or
   // Propery binding of an arbitrary property for which we can statically determined
   // the value written to the property is a binding path.
-  exists(DataFlow::SourceNode objectLiteral, DataFlow::PropWrite propWrite |
+  exists(DataFlow::SourceNode objectLiteral |
     newNode.getAnArgument().getALocalSource() = objectLiteral and
-    objectLiteral.getAPropertyWrite() = propWrite and
-    propWrite.getRhs() = binding and
-    bindingTarget = propWrite.getBase() and
-    propWrite.getPropertyNameExpr() = propertyName and
+    objectLiteral.getAPropertyWrite() = bindingTarget and
+    bindingTarget.getRhs() = binding and
     binding.getALocalSource() = bindingPath and
     bindingPath.getStringValue() instanceof BindingString
   )
   or
   // Composite binding https://ui5.sap.com/#/topic/a2fe8e763014477e87990ff50657a0d0
   exists(
-    DataFlow::ObjectLiteralNode objectLiteral, DataFlow::PropWrite valueWrite,
+    DataFlow::ObjectLiteralNode objectLiteral, 
     DataFlow::ObjectLiteralNode valueLiteral, DataFlow::PropWrite partWrite,
     DataFlow::ArrayLiteralNode partsArray, DataFlow::ObjectLiteralNode partsElement,
     DataFlow::PropWrite pathWrite, DataFlow::ValueNode pathValue
   |
-    objectLiteral.getAPropertyWrite() = valueWrite and
-    propertyName = valueWrite.getPropertyNameExpr() and
-    valueWrite.writes(bindingTarget, "value", binding) and
+    objectLiteral.getAPropertyWrite() = bindingTarget and
+    bindingTarget.writes(_, "value", binding) and
     binding.getALocalSource() = valueLiteral and
     valueLiteral.getAPropertyWrite("parts") = partWrite and
     partWrite.getRhs().getALocalSource() = partsArray and
@@ -330,9 +324,9 @@ private newtype TBinding =
    * an object literal that is assigned a string value that is a binding path.
    */
   TEarlyJavaScriptPropertyBinding(
-    DataFlow::Node bindingTarget, DataFlow::ValueNode binding, Expr propertyName
+    DataFlow::PropWrite bindingTarget, DataFlow::ValueNode binding
   ) {
-    earlyPropertyBinding(_, bindingTarget, binding, _, propertyName)
+    earlyPropertyBinding(_, bindingTarget, binding, _)
   } or
   // Property binding via a call to `bindProperty` or `bindValue`.
   TLateJavaScriptPropertyBinding(
@@ -387,7 +381,7 @@ private newtype TBindingPath =
       or
       exists(DataFlow::Node possibleStaticBinding |
         (
-          binding = TEarlyJavaScriptPropertyBinding(_, possibleStaticBinding, _)
+          binding = TEarlyJavaScriptPropertyBinding(_, possibleStaticBinding)
           or
           binding = TLateJavaScriptPropertyBinding(_, possibleStaticBinding)
           or
@@ -405,9 +399,9 @@ private newtype TBindingPath =
     )
   } or
   TDynamicBindingPath(Binding binding, DataFlow::Node dynamicBinding, DataFlow::Node bindingPath) {
-    (exists(DataFlow::Node bindingTarget, Expr propertyName |
-      binding = TEarlyJavaScriptPropertyBinding(bindingTarget, dynamicBinding, propertyName) and
-      earlyPropertyBinding(_, bindingTarget, dynamicBinding, bindingPath, propertyName)
+    (exists(DataFlow::PropWrite bindingTarget |
+      binding = TEarlyJavaScriptPropertyBinding(bindingTarget, dynamicBinding) and
+      earlyPropertyBinding(_, bindingTarget, dynamicBinding, bindingPath)
     )
     or
     exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding |
@@ -503,7 +497,7 @@ private newtype TBindingTarget =
     binding = TXmlContextBinding(target, _)
   } or
   TEarlyJavaScriptPropertyBindingTarget(DataFlow::Node target, Binding binding) {
-    binding = TEarlyJavaScriptPropertyBinding(target, _, _)
+    binding = TEarlyJavaScriptPropertyBinding(target, _)
   } or
   TLateJavaScriptBindingTarget(DataFlow::Node target, Binding binding) {
     exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding |
@@ -638,9 +632,9 @@ class Binding extends TBinding {
       result = "XML context binding: " + attribute.getName() + " to " + binding
     )
     or
-    exists(Expr propertyName, DataFlow::Node binding |
-      this = TEarlyJavaScriptPropertyBinding(_, binding, propertyName) and
-      result = "Early JavaScript property binding: " + propertyName + " to " + binding
+    exists(DataFlow::PropWrite bindingTarget, DataFlow::Node binding |
+      this = TEarlyJavaScriptPropertyBinding(bindingTarget, binding) and
+      result = "Early JavaScript property binding: " + bindingTarget.getPropertyNameExpr() + " to " + binding
     )
     or
     exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding, DataFlow::Node binding |
@@ -680,7 +674,7 @@ class Binding extends TBinding {
     )
     or
     exists(DataFlow::Node binding |
-      this = TEarlyJavaScriptPropertyBinding(_, binding, _) and
+      this = TEarlyJavaScriptPropertyBinding(_, binding) and
       result = binding.asExpr().getLocation()
     )
     or
