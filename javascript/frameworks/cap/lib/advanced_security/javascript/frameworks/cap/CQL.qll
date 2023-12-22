@@ -15,7 +15,7 @@ class CqlQueryBase extends VarRef {
     // Imported from `cds.ql` */
     exists(CdsFacade cds, PropRef cdsDotQl |
       this.flow().getALocalSource() = cdsDotQl and
-      cdsDotQl.getBase() = cds
+      cdsDotQl.getBase() = cds.getInducingNode()
     )
   }
 }

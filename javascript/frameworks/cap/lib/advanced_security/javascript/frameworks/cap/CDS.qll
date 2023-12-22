@@ -2,37 +2,34 @@ import javascript
 import DataFlow
 
 module CDS {
-abstract class Service extends ValueNode { }
+  // TODO: should this base type be more specific?
+abstract class ServiceInstance extends DataFlow::Node { }
 
-class ApplicationService extends Service {
-  ApplicationService() {
-    // 1. Awaiting or directly getting return value of `cds.serve`
-    // either CallExpr or AwaitExpr surrounding it
-    exists(MethodCallNode cdsServeCall |
-      any(CdsFacade cds).flowsTo(cdsServeCall.getReceiver()) and
-      cdsServeCall.getMethodName() = "serve" and
-      (
-        this = cdsServeCall
-        or
-        this = any(AwaitExpr await).getOperand().flow()
-      )
-    )
-    or
-    // 2. From directly using the constructor: `new cds.ApplicationService` or `new cds.Service`
-    exists(MethodCallNode cdsDotService, CdsFacade cds |
-      this = cdsDotService and
-      cdsDotService.getReceiver() = cds and
-      cdsDotService.getMethodName() = ["Service", "ApplicationService"]
-    )
-    or
-    // 3. Awaiting or directly getting return value of `cds.connect.to`
-    // TODO: Can be AwaitExpr surrounding it
-    exists(CdsFacade cds, PropRef cdsConnect |
-      this.(CallNode).getCalleeName() = "to" and
-      this.(CallNode).getReceiver() = cdsConnect and
-      cdsConnect.getPropertyName() = "connect" and
-      cdsConnect.getBase() = cds
-    )
+/**
+ * Call to`cds.serve`
+ */
+class CdsServeCall extends ServiceInstance {
+  CdsServeCall(){
+    this = any(CdsFacade cds).getMember("serve").getACall()
+  }
+}
+
+/**
+ * call to:
+ *  `new cds.ApplicationService` or `new cds.Service`
+ */
+class ServiceConstructor extends ServiceInstance {
+  ServiceConstructor(){
+    this = any(ApplicationService cds).getAnInstantiation()
+  }
+}
+
+/**
+ * return value of `cds.connect.to`
+ */
+class ConnectTo extends ServiceInstance {
+  ConnectTo(){
+    this = any(CdsFacade cds).getMember("connect").getMember("to").getACall()
   }
 }
 
@@ -47,12 +44,10 @@ private class ErrorHandler extends RequestHandler { }
  * class SomeService extends cds.ApplicationService
  * ```
  */
-class UserDefinedApplicationService extends ApplicationService, ClassNode {
+class UserDefinedApplicationService extends ClassNode {
   UserDefinedApplicationService() {
-    exists(CdsFacade cdsFacade, PropRef cdsApplicationService |
-      this.getADirectSuperClass() = cdsApplicationService and
-      cdsApplicationService.getBase() = cdsFacade and
-      cdsApplicationService.getPropertyName() = "ApplicationService"
+    exists( ApplicationService cdsApplicationService |
+      this.getASuperClassNode() = cdsApplicationService.asSource()
     )
   }
 }
@@ -64,13 +59,10 @@ class UserDefinedApplicationService extends ApplicationService, ClassNode {
  * module.exports = cds.service.impl (function() { ... })
  * ```
  */
-class OldStyleApplicationService extends UserDefinedApplicationService, MethodCallNode {
-  OldStyleApplicationService() {
-    exists(PropRef cdsService, CdsFacade cds |
-      this.getMethodName() = "impl" and
-      this.getReceiver() = cdsService and
-      cdsService.getPropertyName() = "service" and
-      cdsService.getBase() = cds
+class OldStyleUserDefinedApplicationService extends MethodCallNode {
+  OldStyleUserDefinedApplicationService() {
+    exists(CdsFacade cds |
+      this = cds.getMember("service").getMember("impl").getACall()
     )
   }
 }
@@ -81,41 +73,51 @@ class OldStyleApplicationService extends UserDefinedApplicationService, MethodCa
  * cds.serve('./srv/cat-service') .with ((srv) => {
  *     srv.on ('READ','Books', (req) => req.reply([...]))
  * })
+ * ```
+ * 
+ * TODO expand this to capture request handlers registered inside the function
  */
-class WithCallParameter extends Service, ParameterNode {
+class WithCallParameter extends Node {
   WithCallParameter() {
-    exists(MethodCallNode withCall, MethodCallNode serveCall, CdsFacade cds |
+    exists(MethodCallNode withCall, ServiceInstance svc |
       withCall.getArgument(0) = this and
       withCall.getMethodName() = "with" and
-      withCall.getReceiver() = serveCall and
-      serveCall.getMethodName() = "serve" and
-      serveCall.getReceiver() = cds
+      withCall.getReceiver() = svc
     )
   }
 }
 
-class RemoteService extends Service, ClassNode { }
-
-class MessagingService extends Service, ClassNode { }
-
-class DatabaseService extends Service, ClassNode { }
-
-class SqlService extends Service, ClassNode { }
-
 /**
  * Parameter of request handler of `srv.on`:
  * ```js
- * srv.on ('READ','Books', (req) => req.reply([...]))
+ * this.on ('READ','Books', (req) => req.reply([...]))
  * ```
+ * **this currently only describes event handlers registered in custom service definitions**
+ * not sure how else to know which service is registering the handler
  */
-class Request extends ValueNode, ParameterNode {
-  Request() {
-    exists(MethodCallNode srvOn, Service srv, FunctionNode handler |
-      srvOn.getMethodName() = "on" and
-      srvOn.getReceiver() = srv and
-      srvOn.getLastArgument() = handler and
-      handler.getLastParameter() = this
+class RequestSource extends ValueNode, ParameterNode {
+  UserDefinedApplicationService svc;
+  RequestSource() {
+    // TODO : consider  - do we need to actually ever know which service the handler is associated to?
+    exists(MethodCallNode on, FunctionNode init, FunctionNode handler |
+      svc.getAnInstanceMember() = init and
+      init.getName() =  "init"
+      and on.getMethodName() = "on"
+      and on.getEnclosingFunction() = init.getAstNode()
+      and on.getLastArgument() = handler
+      and handler.getLastParameter() = this
     )
+  }
+  UserDefinedApplicationService getDefiningService(){
+    result = svc
+  }
+
+}
+
+
+class ApplicationService extends API::Node {
+  ApplicationService(){
+    exists(CdsFacade c | this = c.getMember("ApplicationService"))
   }
 }
 
@@ -124,7 +126,7 @@ class Request extends ValueNode, ParameterNode {
  * const cds = require('@sap/cds')
  * ```
  */
-class CdsFacade extends ModuleImportNode {
-  CdsFacade() { this = moduleImport("@sap/cds") }
+class CdsFacade extends API::Node {
+  CdsFacade() { this = API::moduleImport("@sap/cds") }
 }
 }
