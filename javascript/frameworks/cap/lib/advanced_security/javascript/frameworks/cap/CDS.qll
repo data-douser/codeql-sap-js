@@ -77,7 +77,7 @@ class OldStyleUserDefinedApplicationService extends MethodCallNode {
  * 
  * TODO expand this to capture request handlers registered inside the function
  */
-class WithCallParameter extends Node {
+class WithCallParameter extends RequestHandler {
   WithCallParameter() {
     exists(MethodCallNode withCall, ServiceInstance svc |
       withCall.getArgument(0) = this and
@@ -88,32 +88,46 @@ class WithCallParameter extends Node {
 }
 
 /**
- * Parameter of request handler of `srv.on`:
+ * Parameter of request handler of `_.on`:
  * ```js
- * this.on ('READ','Books', (req) => req.reply([...]))
+ * _.on ('READ','Books', (req) => req.reply([...]))
  * ```
- * **this currently only describes event handlers registered in custom service definitions**
- * not sure how else to know which service is registering the handler
  */
-class RequestSource extends ValueNode, ParameterNode {
-  UserDefinedApplicationService svc;
-  RequestSource() {
-    // TODO : consider  - do we need to actually ever know which service the handler is associated to?
-    exists(MethodCallNode on, FunctionNode init, FunctionNode handler |
-      svc.getAnInstanceMember() = init and
-      init.getName() =  "init"
-      and on.getMethodName() = "on"
-      and on.getEnclosingFunction() = init.getAstNode()
+class OnNodeParam extends ValueNode, ParameterNode {
+  MethodCallNode on;
+  OnNodeParam() {
+    exists(FunctionNode handler |
+      on.getMethodName() = "on"
       and on.getLastArgument() = handler
       and handler.getLastParameter() = this
     )
   }
-  UserDefinedApplicationService getDefiningService(){
-    result = svc
+  MethodCallNode getOnNode(){
+    result = on
   }
 
 }
 
+/**
+ * Parameter of request handler of `srv.on`:
+ * ```js
+ * this.on ('READ','Books', (req) => req.reply([...]))
+ * ```
+ * not sure how else to know which service is registering the handler
+ */
+class RequestSource extends OnNodeParam {
+  RequestSource() {
+    // TODO : consider  - do we need to actually ever know which service the handler is associated to?
+    exists(UserDefinedApplicationService svc, FunctionNode init |
+      svc.getAnInstanceMember() = init and
+      init.getName() =  "init"
+      and this.getOnNode().getEnclosingFunction() = init.getAstNode()
+    )
+    or
+    exists(WithCallParameter pa |
+      this.getOnNode().getEnclosingFunction() = pa.getFunction())
+  }
+}
 
 class ApplicationService extends API::Node {
   ApplicationService(){

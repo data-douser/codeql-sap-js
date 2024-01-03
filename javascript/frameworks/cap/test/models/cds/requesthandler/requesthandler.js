@@ -12,6 +12,6 @@ class BooksService extends cds.ApplicationService {
 }
 module.exports = BooksService
 
-cds.serve('./test-service') .with ((srv) => {
-        srv.on ('READ','Books', (req) => req.reply([])) //currently this handler is not detected
+cds.serve('./test-service').with ((srv) => {
+        srv.on ('READ','Books', (req) => req.reply([]))
     })
