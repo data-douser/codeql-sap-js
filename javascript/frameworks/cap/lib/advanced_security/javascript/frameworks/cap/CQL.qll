@@ -5,17 +5,18 @@ import CDS::CDS
 module CQL {
 class CqlQueryBase extends VarRef {
   CqlQueryBase() {
+    exists(string name | 
+    this.getName() = name and
+    name in ["SELECT", "INSERT", "DELETE", "UPDATE", "UPSERT"] and
     // Made available as a global variable
     exists(GlobalVariable queryBase |
-      queryBase.getName() = ["SELECT", "INSERT", "DELETE", "UPDATE", "UPSERT"]
-    |
       this = queryBase.getAReference()
     )
     or
     // Imported from `cds.ql` */
-    exists(CdsFacade cds, PropRef cdsDotQl |
-      this.flow().getALocalSource() = cdsDotQl and
-      cdsDotQl.getBase() = cds.getInducingNode()
+    exists(CdsFacade cds |
+      cds.getMember("ql").getMember(name).getAValueReachableFromSource().asExpr() = this 
+    )
     )
   }
 }
@@ -81,7 +82,7 @@ Expr getRootReceiver(Expr e) {
   result = getRootReceiver(e.(TaggedTemplateExpr).getTag())
 }
 
-newtype TCqlExpr =
+newtype TCqlExprClause =
   TaggedTemplate(TaggedTemplateExpr tagExpr) {
     exists(CqlQueryBase base | base = getRootReceiver(tagExpr)) or
     exists(CqlQueryBaseCall call | call = getRootReceiver(tagExpr))
@@ -92,7 +93,7 @@ newtype TCqlExpr =
   } or
   ShortcutCall(CqlQueryBaseCall callExpr)
 
-class CqlExpr extends TCqlExpr {
+class CqlExpr extends TCqlExprClause {
   TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplate(result) }
 
   MethodCallExpr asMethodCall() { this = MethodCall(result) }
@@ -201,9 +202,8 @@ class CqlSelectExpr extends CqlExpr {
     exists(CqlSelectBase cqlSelect |
       this.getCqlBase() = cqlSelect and
       not exists(
-        any(CqlExpr ancestorSelect |
+        CqlExpr ancestorSelect |
           ancestorSelect = this.getAnAncestorCqlExpr() and ancestorSelect.getCqlBase() = cqlSelect
-        )
       )
     )
     or
@@ -227,9 +227,8 @@ class CqlInsertExpr extends CqlExpr {
     exists(CqlInsertBase cqlInsert |
       this.getCqlBase() = cqlInsert and
       not exists(
-        any(CqlExpr ancestorInsert |
+        CqlExpr ancestorInsert |
           ancestorInsert = this.getAnAncestorCqlExpr() and ancestorInsert.getCqlBase() = cqlInsert
-        )
       )
     )
     or

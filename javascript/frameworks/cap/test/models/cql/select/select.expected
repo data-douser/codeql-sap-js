@@ -1,12 +1,4 @@
-| insert.js:76:36:76:73 | insert.js:76 | insert.js:76:36:76:73 | SELECT. ... , col2` |
-| insert.js:77:36:77:72 | insert.js:77 | insert.js:77:36:77:72 | SELECT. ... ${"*"}` |
-| insert.js:79:3:79:64 | insert.js:79 | insert.js:79:3:79:64 | SELECT. ... ${"*"}` |
-| insert.js:82:38:82:75 | insert.js:82 | insert.js:82:38:82:75 | SELECT. ... , col2` |
-| insert.js:83:38:83:74 | insert.js:83 | insert.js:83:38:83:74 | SELECT. ... ${"*"}` |
-| insert.js:85:3:85:64 | insert.js:85 | insert.js:85:3:85:64 | SELECT. ... ${"*"}` |
-| insert.js:88:36:88:73 | insert.js:88 | insert.js:88:36:88:73 | SELECT. ... , col2` |
-| insert.js:89:36:89:72 | insert.js:89 | insert.js:89:36:89:72 | SELECT. ... ${"*"}` |
-| insert.js:91:3:91:64 | insert.js:91 | insert.js:91:3:91:64 | SELECT. ... ${"*"}` |
+| select2.js:4:14:4:35 | select2.js:4 | select2.js:4:14:4:35 | SELECT. ... (Table) |
 | select.js:2:14:2:43 | select.js:2 | select.js:2:14:2:43 | SELECT` ... `Table` |
 | select.js:3:14:3:43 | select.js:3 | select.js:3:14:3:43 | SELECT` ... (Table) |
 | select.js:4:14:4:45 | select.js:4 | select.js:4:14:4:45 | SELECT` ... Table") |
@@ -162,3 +154,4 @@
 | select.js:279:14:280:35 | select.js:279 | select.js:279:14:280:35 | SELECT. ... pdate() |
 | select.js:283:14:284:38 | select.js:283 | select.js:283:14:284:38 | SELECT. ... eLock() |
 | select.js:287:14:292:48 | select.js:287 | select.js:287:14:292:48 | SELECT. ... eLock() |
+| select.js:328:10:328:47 | select.js:328 | select.js:328:10:328:47 | SELECT. ... ${201}` |
