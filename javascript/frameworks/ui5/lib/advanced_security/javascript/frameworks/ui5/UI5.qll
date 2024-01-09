@@ -14,6 +14,7 @@ private module WebAppResourceRootJsonReader implements JsonParser::MakeJsonReade
       |
         result = this.getCoreScript().getAttributeByName(resourceRootAttributeName).getValue()
       )
+
     }
   }
 }
@@ -35,6 +36,7 @@ private predicate isAnUnResolvedResourceRoot(WebApp webApp, string name, string 
 
 class ResourceRootPathString extends PathString {
   WebApp webApp;
+
 
   ResourceRootPathString() { isAnUnResolvedResourceRoot(webApp, _, this) }
 
@@ -137,6 +139,18 @@ class Loader extends CallNode {
 abstract class UserModule extends InvokeNode {
   abstract string getADependencyType();
 
+    SapUiCoreScriptElement getCoreScript() { result = coreScript }
+
+    ResourceRoot getAResourceRoot() {
+      result.getWebApp() = this
+    }
+
+    File getAResource() { getAResourceRoot().contains(result)}
+
+    File getResource(string relativePath) {
+      result.getAbsolutePath() = getAResourceRoot().getAbsolutePath() + "/" + relativePath
+    }
+
   abstract string getModuleFileRelativePath();
 
   abstract RequiredObject getRequiredObject(string dependencyType);
@@ -148,6 +162,23 @@ abstract class UserModule extends InvokeNode {
  */
 class SapDefineModule extends CallNode, UserModule {
   SapDefineModule() { this = globalVarRef("sap").getAPropertyRead("ui").getAMethodCall("define") }
+    /**
+     * Gets the JavaScript module that serves as an entrypoint to this webapp.
+     */
+    File getInitialModule() {
+      exists(
+        string initialModuleResourcePath, string resolvedModulePath,
+        ResourceRoot resourceRoot
+      |
+        initialModuleResourcePath = coreScript.getAttributeByName("data-sap-ui-onInit").getValue() and
+        resourceRoot.getWebApp() = this and
+        resolvedModulePath =
+          initialModuleResourcePath
+              .regexpReplaceAll("^module\\s*:\\s*", "")
+              .replaceAll(resourceRoot.getName(), resourceRoot.getAbsolutePath()) and
+        result.getAbsolutePath() = resolvedModulePath + ".js"
+      )
+    }
 
   override string getADependencyType() { result = this.getDependencyType(_) }
 

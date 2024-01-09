@@ -1,0 +1,16 @@
+extensions:
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: "typeModel"
+    data:
+      - ["XMLHttpRequest", "global", "Member[XMLHttpRequest].Instance"] 
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: "sourceModel"
+    data:
+      - ["XMLHttpRequest", "Member[responseText]", "remote"]
+      - ["XMLHttpRequest", "Member[responseXML]", "remote"]
+      - ["XMLHttpRequest", "Member[response]", "remote"]
+      - ["XMLHttpRequest", "Member[statusText]", "remote"]
+      - ["XMLHttpRequest", "Member[getResponseHeader]", "remote"]
+      - ["XMLHttpRequest", "Member[getResponseHeaders]", "remote"]

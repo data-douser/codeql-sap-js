@@ -1,3 +1,7 @@
+/**
+ * A module to reason about UI5 bindings.
+ */
+
 import javascript
 import advanced_security.javascript.frameworks.ui5.BindingStringParser as MakeBindingStringParser
 
@@ -5,6 +9,9 @@ private class ContextBindingAttribute extends XmlAttribute {
   ContextBindingAttribute() { this.getName() = "binding" }
 }
 
+/**
+ * A type representing the various ways a literal binding can be specified.
+ */
 // TODO: add support for binding strings in strings such as `description: "Some {/description}"`
 private newtype TBindingString =
   TBindingStringFromLiteral(StringLiteral stringLiteral) { stringLiteral.getValue().matches("{%}") } or
@@ -19,6 +26,10 @@ private newtype TBindingString =
     bindProperty.getArgument(1).getALocalSource().asExpr().(StringLiteral).getValue().matches("{%}")
   }
 
+/**
+ * A binding string reader used by the binding string parser.
+ * This extends the type TBindingString so we can parse all the identified literal binding strings.
+ */
 private class BindingStringReader extends TBindingString {
   string toString() { result = this.getBindingString() }
 
@@ -77,16 +88,29 @@ private class BindingStringReader extends TBindingString {
   }
 }
 
+/**
+ * A binding string parser instantiated with the binding string reader.
+ */
 private module BindingStringParser =
   MakeBindingStringParser::BindingStringParser<BindingStringReader>;
 
+/**
+ * A parsed binding string whoes content could be statically determined.
+ */
 private class StaticBindingValue = BindingStringParser::Binding;
 
+/**
+ * A binding string as identified by the binding string reader.
+ */
 class BindingString extends string {
   bindingset[this]
   BindingString() { this = any(BindingStringReader reader).getBindingString() }
 }
 
+/**
+ * A `bindProperty` method call that represents a late JavaScript property binding.
+ * It is late because the binding happens after the control is created.
+ */
 private class BindPropertyMethodCallNode extends LateJavaScriptPropertyBinding,
   DataFlow::MethodCallNode
 {
@@ -112,7 +136,7 @@ private class BindValueMethodCallNode extends LateJavaScriptPropertyBinding,
 {
   BindValueMethodCallNode() { this.getMethodName() = "bindValue" }
 
-  override DataFlow::Node getBinding() { result = this.getArgument(1) }
+  override DataFlow::Node getBinding() { result = this.getArgument(0) }
 
   override DataFlow::Node getPropertyNameNode() { none() }
 
@@ -121,6 +145,10 @@ private class BindValueMethodCallNode extends LateJavaScriptPropertyBinding,
   override DataFlow::Node getTarget() { result = this.getReceiver() }
 }
 
+/**
+ * A class representing all the ways a property can be bounded in JavaScript after the
+ * control has been created.
+ */
 abstract private class LateJavaScriptPropertyBinding extends DataFlow::Node {
   abstract DataFlow::Node getBinding();
 
@@ -143,6 +171,10 @@ abstract private class LateJavaScriptPropertyBinding extends DataFlow::Node {
   }
 }
 
+/**
+ * Holds if the `newNode` parameter representing a `new ...` expression creates an instance
+ * that receives a binding `binding` with a binding path `bindingPath`.
+ */
 private predicate earlyPathPropertyBinding(
   DataFlow::NewNode newNode, DataFlow::SourceNode binding, DataFlow::Node bindingPath
 ) {
@@ -184,17 +216,21 @@ private predicate earlyPathPropertyBinding(
   )
 }
 
+/**
+ * Holds if the `bindingCall` parameter representing a method call that binds a property or element
+ * that receives a binding `binding` with a binding path `bindingPath`.
+ */
 private predicate latePathBinding(
-  DataFlow::MethodCallNode bindingCall, DataFlow::SourceNode binding, DataFlow::Node bindingPath
+  DataFlow::Node bindingExpr, DataFlow::SourceNode binding, DataFlow::Node bindingPath
 ) {
   (
     exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding |
-      bindingCall = lateJavaScriptPropertyBinding and
+      bindingExpr = lateJavaScriptPropertyBinding and
       binding = lateJavaScriptPropertyBinding.getBinding()
     )
     or
     exists(BindElementMethodCallNode bindElementMethodCall |
-      bindingCall = bindElementMethodCall and
+      bindingExpr = bindElementMethodCall and
       binding = bindElementMethodCall.getArgument(0).getALocalSource()
     )
   ) and
@@ -221,6 +257,9 @@ private predicate latePathBinding(
     )
 }
 
+/**
+ * A type reprensenting the various UI5 bindings.
+ */
 private newtype TBinding =
   /**
    * Any XML attribute that is assigned a binding string.
@@ -272,6 +311,9 @@ private newtype TBinding =
     )
   }
 
+/**
+ * Recursively gets a binding path from a binding.
+ */
 private BindingStringParser::BindingPath getABindingPath(BindingStringParser::Member member) {
   result = member.getBindingPath()
   or
@@ -286,6 +328,9 @@ private BindingStringParser::BindingPath getABindingPath(BindingStringParser::Me
           .getAMember())
 }
 
+/**
+ * A type representing the various binding paths.
+ */
 private newtype TBindingPath =
   TStaticBindingPath(StaticBindingValue binding, BindingStringParser::BindingPath path) {
     binding.asBindingPath() = path
@@ -301,6 +346,9 @@ private newtype TBindingPath =
     not bindingPath.mayHaveStringValue(_)
   }
 
+/**
+ * A class representing a binding path.
+ */
 class BindingPath extends TBindingPath {
   /**
    * For debugging purposes (pretty-printing in result table)
@@ -366,9 +414,7 @@ class BindingPath extends TBindingPath {
 }
 
 /**
- * The places whose values are determined by a binding. For example,
- * If an XML property holds a binding path, its concrete value would
- * be the one pointed to by the path.
+ * A type representing the various locations whose values can be bound.
  */
 private newtype TBindingTarget =
   TXmlPropertyBindingTarget(XmlAttribute target, Binding binding) {
@@ -392,6 +438,9 @@ private newtype TBindingTarget =
     binding = TJsonPropertyBinding(target, key, _)
   }
 
+/**
+ * A class representing a binding target, that is, a location whose value can be bound.
+ */
 class BindingTarget extends TBindingTarget {
   string toString() {
     exists(XmlAttribute attribute |
