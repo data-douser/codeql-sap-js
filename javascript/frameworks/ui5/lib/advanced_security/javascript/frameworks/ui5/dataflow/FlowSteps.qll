@@ -16,11 +16,6 @@ class ExternalModelToCustomMetadataPropertyStep extends DataFlow::SharedFlowStep
   }
 }
 
-/*
- * <A a="path1"> a.control.js: {path1: {type:string}}
- * <B b="path1"> b.control.js: {path1: {type:string}}
- */
-
 /** Control metadata property being the intermediate flow node */
 class CustomMetadataPropertyReadStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
