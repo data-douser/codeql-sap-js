@@ -12,16 +12,6 @@ class Configuration extends DomBasedXss::Configuration {
     start instanceof RemoteFlowSource
   }
 
-  // override predicate isSource(DataFlow::Node start) {
-  //   super.isSource(start)
-  //   or
-  //   exists(UI5BindingPath bindingPath |
-  //     start instanceof UI5ExternalModel and
-  //     bindingPath.getModel() = start
-  //   )
-  //   or
-  //   start instanceof RemoteFlowSource
-  // }
   override predicate isAdditionalFlowStep(
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
@@ -32,11 +22,6 @@ class Configuration extends DomBasedXss::Configuration {
     /* 2. An additional flow step defined in `UI5DataFlow` */
     UI5DataFlow::isAdditionalFlowStep(start, end)
   }
-
-  // predicate isSanitizer(DataFlow::Node node, DataFlow::FlowLabel label) {
-  //   node instanceof RemoteFlowSource and
-  //   label = "TravelAgencyInfoPage/PageContent"
-  // }
 
   override predicate isSanitizer(DataFlow::Node node) {
     /* 1. Already a sanitizer defined in `DomBasedXssQuery::Configuration` */
