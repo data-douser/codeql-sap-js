@@ -1,0 +1,2 @@
+| sqlinjection.js:13:35:13:39 | query | Injection vulnerability found. |
+| sqlinjection.js:16:36:16:41 | query2 | Injection vulnerability found. |

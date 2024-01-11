@@ -41,6 +41,9 @@ class CqlUpsertBase extends CqlQueryBase {
   CqlUpsertBase() { this.getName() = "UPSERT" }
 }
 
+/**
+ * The cds-ql docs do not mention DELETE being a function acting as a shortcut to any underlying clause
+ */
 abstract class CqlQueryBaseCall extends CallExpr {
   // TODO: Express "It's a global function or a local function imported from cds.ql"
 }
@@ -51,10 +54,6 @@ class CqlSelectBaseCall extends CqlQueryBaseCall {
 
 class CqlInsertBaseCall extends CqlQueryBaseCall {
   CqlInsertBaseCall() { this.getCalleeName() = "INSERT" }
-}
-
-class CqlDeleteBaseCall extends CqlQueryBaseCall {
-  CqlDeleteBaseCall() { this.getCalleeName() = "DELETE" }
 }
 
 class CqlUpdateBaseCall extends CqlQueryBaseCall {
@@ -82,83 +81,100 @@ Expr getRootReceiver(Expr e) {
   result = getRootReceiver(e.(TaggedTemplateExpr).getTag())
 }
 
-newtype TCqlExprClause =
-  TaggedTemplate(TaggedTemplateExpr tagExpr) {
-    exists(CqlQueryBase base | base = getRootReceiver(tagExpr)) or
-    exists(CqlQueryBaseCall call | call = getRootReceiver(tagExpr))
-  } or
+newtype TCqlClause =
   MethodCall(MethodCallExpr callExpr) {
     exists(CqlQueryBase base | base = getRootReceiver(callExpr)) or
     exists(CqlQueryBaseCall call | call = getRootReceiver(callExpr))
   } or
   ShortcutCall(CqlQueryBaseCall callExpr)
 
-class CqlExpr extends TCqlExprClause {
-  TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplate(result) }
+class CqlClause extends TCqlClause {
+
+  Expr asExpr(){
+    result = this.asMethodCall()
+    or 
+    result = this.asShortcutCall()
+  }
+
+  Expr getArgument(){
+    result = this.asMethodCall().getAnArgument()
+    or 
+    result = this.asShortcutCall().getAnArgument()
+  }
+
+  string getClauseName(){
+    result = this.asMethodCall().getMethodName()
+    or 
+    (this.asShortcutCall().getCalleeName() = "SELECT" and
+    result = "columns")
+    or 
+    (this.asShortcutCall().getCalleeName() in ["INSERT", "UPSERT"] and
+    result = "entries")
+    or 
+    (this.asShortcutCall().getCalleeName() = "UPDATE" and
+    result = "entity")
+  }
 
   MethodCallExpr asMethodCall() { this = MethodCall(result) }
 
   CallExpr asShortcutCall() { this = ShortcutCall(result) }
 
   /**
-   * Convert this `CqlExpr` into a `DotExpr`, i.e.
+   * Convert this `CqlClause` into a `DotExpr`, i.e.
    * `Get SELECT.from'Table' when given SELECT.from'Table'.wherecond`,
    */
   DotExpr asDotExpr() {
-    result = this.asTaggedTemplate().getTag().(DotExpr)
-    or
     result = this.asMethodCall().getCallee().(DotExpr)
   }
 
   string toString() {
-    result = this.asTaggedTemplate().toString() or
     result = this.asMethodCall().toString() or
     result = this.asShortcutCall().toString()
   }
 
   Location getLocation() {
-    result = this.asTaggedTemplate().getLocation() or
     result = this.asMethodCall().getLocation() or
     result = this.asShortcutCall().getLocation()
   }
 
   CqlQueryBase getCqlBase() {
-    result = getRootReceiver(this.asTaggedTemplate()) or
     result = getRootReceiver(this.asMethodCall())
   }
 
   CqlQueryBaseCall getCqlBaseCall() {
-    result = getRootReceiver(this.asTaggedTemplate()).(CqlQueryBaseCall) or
     result = getRootReceiver(this.asMethodCall()).(CqlQueryBaseCall)
-  }
-
-  Expr getReceiver() {
-    result = this.asMethodCall().getReceiver()
-    or
-    result = this.asTaggedTemplate().getTag().(DotExpr).getBase()
   }
 
   /** ========== Parent relationships ========== */
   Expr getParentExpr() {
     result = this.asMethodCall().getParentExpr() or
-    result = this.asTaggedTemplate().getParentExpr() or
     result = this.asShortcutCall().getParentExpr()
   }
 
-  CqlExpr getCqlParentExpr() {
-    result.asTaggedTemplate() = this.asMethodCall().getParentExpr() or
-    result.asMethodCall() = this.asTaggedTemplate().getParentExpr() or
-    result.asShortcutCall() = this.asShortcutCall().getParentExpr()
+  /**
+   * Possible cases for constructing a chain of clauses:
+   * 
+   * (looking at the terminal clause and its possible parent types as tuples: (this, parent))
+   * 1) MethodCall.MethodCall
+   *     - example `(SELECT.from(Table),  SELECT.from(Table).where("col1='*'"))`
+   * 2) ShortcutCall.MethodCall
+   *     - example `(SELECT("col1, col2"), SELECT("col1, col2").from("Table"))`
+   * 
+   * ShortcutCalls cannot be added to any clause chain other than the first position 
+   * example - `SELECT("col1, col2").INSERT(col2)` is not valid
+   */
+  CqlClause getCqlParentExpr() {
+    result.asMethodCall() =  this.asMethodCall().getParentExpr().getParentExpr()  
+    or
+    result.asMethodCall() = this.asShortcutCall().getParentExpr().getParentExpr()  
   }
 
   Expr getAnAncestorExpr() {
     result = this.asMethodCall().getParentExpr+() or
-    result = this.asTaggedTemplate().getParentExpr+() or
     result = this.asShortcutCall().getParentExpr+()
   }
 
-  CqlExpr getAnAncestorCqlExpr() {
-    result.asTaggedTemplate() = this.getAnAncestorExpr() or
+  CqlClause getAnAncestorCqlClause() {
     result.asMethodCall() = this.getAnAncestorExpr() or
     result.asShortcutCall() = this.getAnAncestorExpr()
   }
@@ -166,137 +182,44 @@ class CqlExpr extends TCqlExprClause {
   /** ========== Children relationships ========== */
   Expr getAChildExpr() {
     result = this.asMethodCall().getAChildExpr() or
-    result = this.asTaggedTemplate().getAChildExpr() or
     result = this.asShortcutCall().getAChildExpr()
   }
 
-  CqlExpr getAChildCqlExpr() {
-    result.asTaggedTemplate() = this.asMethodCall().getAChildExpr() or
-    result.asMethodCall() = this.asTaggedTemplate().getAChildExpr() or
-    result.asShortcutCall() = this.asShortcutCall().getAChildExpr()
+  /**
+   * the same chain order logic as `getCqlParentExpr` but reversed
+   */
+  CqlClause getAChildCqlClause() {
+    result.asMethodCall() = this.asMethodCall().getAChildExpr().getAChildExpr() or
+    result.asShortcutCall() = this.asMethodCall().getAChildExpr().getAChildExpr()
   }
 
   Expr getADescendantExpr() {
     result = this.asMethodCall().getAChildExpr+() or
-    result = this.asTaggedTemplate().getAChildExpr+() or
     result = this.asShortcutCall().getAChildExpr+()
   }
 
-  CqlExpr getADescendantCqlExpr() {
-    result.asTaggedTemplate() = this.getADescendantExpr() or
+  CqlClause getADescendantCqlClause() {
     result.asMethodCall() = this.getADescendantExpr() or
     result.asShortcutCall() = this.getADescendantExpr()
   }
 
   /**
-   * Matches the given `CqlExpr` to its method/property name, nested at arbitrary depth.
+   * Matches the given `CqlClause` to its method/property name, nested at arbitrary depth.
    */
   string getAnAPIName() {
     result = this.asDotExpr().getPropertyName() or
-    result = this.getADescendantCqlExpr().getAnAPIName()
+    result = this.getADescendantCqlClause().getAnAPIName()
   }
 }
 
-class CqlSelectExpr extends CqlExpr {
-  CqlSelectExpr() {
-    exists(CqlSelectBase cqlSelect |
-      this.getCqlBase() = cqlSelect and
-      not exists(
-        CqlExpr ancestorSelect |
-          ancestorSelect = this.getAnAncestorCqlExpr() and ancestorSelect.getCqlBase() = cqlSelect
-      )
-    )
-    or
-    this.getCqlBaseCall() instanceof CqlSelectBaseCall
+/**
+ * Call to`cds.db.run`
+ */
+//TODO: add awaits around SQLClauses
+class CQLSink extends DataFlow::Node {
+  CQLSink(){
+    this = any(CdsFacade cds).getMember("db").getMember("run").getACall().getAnArgument()
   }
-
-  predicate selectWhere() { this.getAnAPIName() = "where" }
-
-  predicate selectFrom() { this.getAnAPIName() = "from" }
-
-  predicate selectColumns() {
-    this.getAnAPIName() = "columns"
-    or
-    // SELECT itself is a shortcut of SELECT.columns
-    this.getCqlBaseCall() instanceof CqlSelectBaseCall
-  }
-}
-
-class CqlInsertExpr extends CqlExpr {
-  CqlInsertExpr() {
-    exists(CqlInsertBase cqlInsert |
-      this.getCqlBase() = cqlInsert and
-      not exists(
-        CqlExpr ancestorInsert |
-          ancestorInsert = this.getAnAncestorCqlExpr() and ancestorInsert.getCqlBase() = cqlInsert
-      )
-    )
-    or
-    this.getCqlBaseCall() instanceof CqlInsertBaseCall
-  }
-
-  predicate insertEntries() {
-    this.getAnAPIName() = "entries"
-    or
-    // INSERT itself is a shortcut of INSERT.entries
-    this.getCqlBaseCall() instanceof CqlInsertBaseCall
-  }
-}
-
-class CqlDeleteExpr extends CqlExpr {
-  CqlDeleteExpr() {
-    exists(CqlDeleteBase cqlDelete |
-      this.getCqlBase() = cqlDelete and
-      not exists(
-        any(CqlExpr ancestorDelete |
-          ancestorDelete = this.getAnAncestorCqlExpr() and ancestorDelete.getCqlBase() = cqlDelete
-        )
-      )
-    )
-  }
-}
-
-class CqlUpdateExpr extends CqlExpr {
-  CqlUpdateExpr() {
-    exists(CqlUpdateBase cqlUpdate |
-      this.getCqlBase() = cqlUpdate and
-      not exists(
-        any(CqlExpr ancestorUpdate |
-          ancestorUpdate = this.getAnAncestorCqlExpr() and ancestorUpdate.getCqlBase() = cqlUpdate
-        )
-      )
-    )
-    or
-    this.getCqlBaseCall() instanceof CqlUpdateBaseCall
-  }
-
-  predicate updateEntity() {
-    this.getAnAPIName() = "entity"
-    or
-    // UPDATE itself is a shortcut of UPDATE.entity
-    this.getCqlBaseCall() instanceof CqlUpdateBaseCall
-  }
-}
-
-class CqlUpsertExpr extends CqlExpr {
-  CqlUpsertExpr() {
-    exists(CqlUpsertBase cqlUpsert |
-      this.getCqlBase() = cqlUpsert and
-      not exists(
-        any(CqlExpr ancestorUpsert |
-          ancestorUpsert = this.getAnAncestorCqlExpr() and ancestorUpsert.getCqlBase() = cqlUpsert
-        )
-      )
-    )
-    or
-    this.getCqlBaseCall() instanceof CqlUpsertBaseCall
-  }
-
-  predicate upsertEntries() {
-    this.getAnAPIName() = "entries"
-    or
-    // UPSERT itself is a shortcut of UPSERT.entries
-    this.getCqlBaseCall() instanceof CqlUpsertBaseCall
-  }
+  
 }
 }

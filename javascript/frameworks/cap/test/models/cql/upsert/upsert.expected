@@ -1,10 +1,16 @@
+| upsert.js:2:14:5:2 | upsert.js:2 | upsert.js:2:14:5:2 | UPSERT( ... " },\\n]) |
 | upsert.js:2:14:5:14 | upsert.js:2 | upsert.js:2:14:5:14 | UPSERT( ... (Table) |
+| upsert.js:6:14:9:2 | upsert.js:6 | upsert.js:6:14:9:2 | UPSERT( ... " },\\n]) |
 | upsert.js:6:14:9:16 | upsert.js:6 | upsert.js:6:14:9:16 | UPSERT( ... Table") |
 | upsert.js:11:14:14:2 | upsert.js:11 | upsert.js:11:14:14:2 | UPSERT. ... " },\\n]) |
 | upsert.js:15:14:18:2 | upsert.js:15 | upsert.js:15:14:18:2 | UPSERT. ... " },\\n]) |
+| upsert.js:21:14:21:31 | upsert.js:21 | upsert.js:21:14:21:31 | UPSERT.into(Table) |
 | upsert.js:21:14:24:1 | upsert.js:21 | upsert.js:21:14:24:1 | UPSERT. ... 22" }\\n) |
+| upsert.js:25:14:25:31 | upsert.js:25 | upsert.js:25:14:25:31 | UPSERT.into(Table) |
 | upsert.js:25:14:28:2 | upsert.js:25 | upsert.js:25:14:28:2 | UPSERT. ... " },\\n]) |
+| upsert.js:29:14:29:33 | upsert.js:29 | upsert.js:29:14:29:33 | UPSERT.into("Table") |
 | upsert.js:29:14:32:2 | upsert.js:29 | upsert.js:29:14:32:2 | UPSERT. ... " },\\n]) |
+| upsert.js:33:14:33:33 | upsert.js:33 | upsert.js:33:14:33:33 | UPSERT.into("Table") |
 | upsert.js:33:14:36:2 | upsert.js:33 | upsert.js:33:14:36:2 | UPSERT. ... " },\\n]) |
 | upsert.js:37:14:40:2 | upsert.js:37 | upsert.js:37:14:40:2 | UPSERT. ... " },\\n]) |
 | upsert.js:41:14:44:2 | upsert.js:41 | upsert.js:41:14:44:2 | UPSERT. ... " },\\n]) |

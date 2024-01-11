@@ -1,5 +1,5 @@
 import javascript
 import advanced_security.javascript.frameworks.cap.CQL
 
-from CQL::CqlInsertExpr s
+from CQL::CqlClause s
 select s.getLocation(), s
