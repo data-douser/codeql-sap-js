@@ -7,21 +7,6 @@ import advanced_security.javascript.frameworks.ui5.RemoteFlowSources
 import advanced_security.javascript.frameworks.ui5.dataflow.FlowSteps
 private import StdLibDataFlow::DataFlow::PathGraph as DataFlowPathGraph
 
-/* TODO: Legacy code */
-predicate isAdditionalFlowStep(DataFlow::Node start, DataFlow::Node end) {
-  /* Handler argument node to handler parameter */
-  exists(UI5Handler h |
-    start = h.getBindingPath().getNode() and
-    /*
-     * Ideally we would like to show an intermediate node where
-     * the handler is bound to a control, but there is no sourceNode there
-     * `end = h.getBindingPath() or start = h.getBindingPath()`
-     */
-
-    end = h.getParameter(0)
-  )
-}
-
 class LocalModelContentBoundBidirectionallyToHtmlISinkControl extends DomBasedXss::Sink {
   UI5BindingPath bindingPath;
   UI5Control controlDeclaration;

@@ -15,11 +15,21 @@ class Configuration extends DomBasedXss::Configuration {
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
     DataFlow::FlowLabel outLabel
   ) {
-    /* 1. Already an additional flow step defined in `DomBasedXssQuery::Configuration` */
+    /* Already an additional flow step defined in `DomBasedXssQuery::Configuration` */
     super.isAdditionalFlowStep(start, end, inLabel, outLabel)
     or
-    /* 2. An additional flow step defined in `UI5DataFlow` */
-    UI5DataFlow::isAdditionalFlowStep(start, end)
+    /* TODO: Legacy code */
+    /* Handler argument node to handler parameter */
+    exists(UI5Handler h |
+      start = h.getBindingPath().getNode() and
+      /*
+       * Ideally we would like to show an intermediate node where
+       * the handler is bound to a control, but there is no sourceNode there
+       * `end = h.getBindingPath() or start = h.getBindingPath()`
+       */
+
+      end = h.getParameter(0)
+    )
   }
 
   override predicate isSanitizer(DataFlow::Node node) {
