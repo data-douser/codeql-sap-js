@@ -126,9 +126,38 @@ class LocalModelSetPropertyStep extends DataFlow::SharedFlowStep {
 
 class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
+
+/**
+ * Step from a local model or a reference to it, to a `getProperty` method call on it. This assumes a corresponding `setProperty` call exists on the same model and its same property.
+ *
+ * e.g. Given these methods in a same controller,
+ * ```javascript
+ * onInit: {
+ *   var oModel = new JSONModel({ x: null });  // A local model
+ *   this.getView().setModel("someModel", oModel);
+ * }
+ *
+ * someHandler1: {
+ *   this.getView().getModel("someModel").getProperty("x");
+ * }
+ *
+ * someHandler2: {
+ *   this.getView().getModel("someModel").setProperty("x", someValue);
+ * }
+ * ```
+ *
+ * Establish an edge from `this.getView().getModel("someModel")` in `someHandler2` to the entire `getProperty` call in `someHandler1`. Note that `modelRefFrom` and `modelRefTo` may refer to the same `ModelReference`.
+ */
+/*
+ * TODO:
+ * 1. Generalize `ModelReference` to `ModelReference` + `UI5InternalModel`.
+ */
+
+class LocalModelGetPropertyStepWithSetProperty extends DataFlow::SharedFlowStep {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(
-      MethodCallNode getPropertyCall, ModelReference modelRefTo, ModelReference modelRefFrom,
-      MethodCallNode setPropertyCall
+      MethodCallNode setPropertyCall, ModelReference modelRefFrom, MethodCallNode getPropertyCall,
+      ModelReference modelRefTo
     |
       setPropertyCall.getMethodName() = "setProperty" and
       setPropertyCall.getReceiver().getALocalSource() = modelRefFrom and
