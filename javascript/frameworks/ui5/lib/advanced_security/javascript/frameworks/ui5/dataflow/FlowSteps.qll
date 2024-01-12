@@ -1,6 +1,49 @@
 import javascript
 import advanced_security.javascript.frameworks.ui5.UI5
 
+/**
+ * Step from a part of internal model to a relevant control property.
+ * e.g.
+ * - There is a JSON model with content `{ x: null }`,
+ * - There is a user-defined custom control `C` with property `{ y: { type: "string" } }`, and
+ * - The two are associated in a control declaration in a view with a binding path `<C y={/x} />`.
+ *
+ * Then, there is a step from the content `{ x: null }` to `{ y: { type: "string" } }`.
+ */
+class InternalModelContentToCustomMetadataPropertyStep extends DataFlow::SharedFlowStep {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
+    exists(UI5BindingPath bindingPath |
+      bindingPath.getNode() = start and
+      end =
+        bindingPath
+            .getControlDeclaration()
+            .getDefinition()
+            .getMetadata()
+            .getProperty(bindingPath.getPropertyName())
+    )
+  }
+}
+
+/**
+ * This is a step in the opposite direction of the `InternalModelContentToCustomMetadataPropertyStep` above. In order to ensure that this indeed holds, we check if the internal model is set to a two-way binding mode.
+ */
+class CustomMetadataPropertyStepToInternalModelContent extends DataFlow::SharedFlowStep {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
+    exists(UI5BindingPath bindingPath, UI5InternalModel internalModel |
+      start =
+        bindingPath
+            .getControlDeclaration()
+            .getDefinition()
+            .getMetadata()
+            .getProperty(bindingPath.getPropertyName()) and
+      bindingPath.getNode() = end and
+      /* Get the content of the internal model and check if it's two-way bound. */
+      internalModel.(JsonModel).getAProperty() = end and // TODO: Generalize to UI5InternalModel
+      internalModel.(JsonModel).isTwoWayBinding() // TODO: Generalize to UI5InternalModel
+    )
+  }
+}
+
 /** External model to a relevant control property */
 class ExternalModelToCustomMetadataPropertyStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {

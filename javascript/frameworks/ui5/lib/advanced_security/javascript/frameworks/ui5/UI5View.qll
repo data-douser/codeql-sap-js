@@ -594,11 +594,7 @@ class XmlView extends UI5View, XmlFile {
       any(XmlElement element |
         // getAChild+ because "container controls" nest other controls inside them
         element = root.getAChild+() and
-        (
         // Either a builtin control provided by UI5
-        // Either a builtin control provided by UI5
-        (
-          // Either a builtin control provided by UI5
         (
           builtInControl(element.getNamespace())
           or

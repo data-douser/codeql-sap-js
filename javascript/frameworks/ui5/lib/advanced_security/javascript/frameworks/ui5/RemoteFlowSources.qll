@@ -1,5 +1,30 @@
 import javascript
 import advanced_security.javascript.frameworks.ui5.UI5
+import advanced_security.javascript.frameworks.ui5.UI5View
+
+class LocalModelContentBoundBidirectionallyToSourceControl extends RemoteFlowSource {
+  UI5BindingPath bindingPath;
+  UI5Control controlDeclaration;
+
+  LocalModelContentBoundBidirectionallyToSourceControl() {
+    exists(UI5InternalModel internalModel |
+      this = bindingPath.getNode() and
+      internalModel.getArgument(0).getALocalSource().asExpr() =
+        this.(PropWrite).getPropertyNameExpr().getParent+() and
+      any(UI5View view).getASource() = bindingPath and
+      internalModel.(JsonModel).isTwoWayBinding() and
+      controlDeclaration = bindingPath.getControlDeclaration()
+    )
+  }
+
+  override string getSourceType() {
+    result = "Local model bidirectionally bound to a input control"
+  }
+
+  UI5BindingPath getBindingPath() { result = bindingPath }
+
+  UI5Control getControlDeclaration() { result = controlDeclaration }
+}
 
 abstract class UI5ExternalModel extends UI5Model, RemoteFlowSource {
   abstract string getName();

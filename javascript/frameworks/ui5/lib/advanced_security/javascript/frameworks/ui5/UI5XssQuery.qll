@@ -53,7 +53,12 @@ class Configuration extends DomBasedXss::Configuration {
 /**
  * An HTML injection sink associated with a `UI5BoundNode`, typically for library controls acting as sinks.
  */
-private class UI5ModelHtmlISink = UI5ExternalModel;
+class UI5ModelHtmlISink extends DomBasedXss::Sink {
+  UI5ModelHtmlISink() {
+    exists(UI5View view | view.getAnHtmlISink().getModel() = this) or
+    exists(UI5View view | view.getAnHtmlISink().getNode() = this)
+  }
+}
 
 /**
  * An HTML injection sink typically for custom controls whose RenderManager calls acting as sinks.

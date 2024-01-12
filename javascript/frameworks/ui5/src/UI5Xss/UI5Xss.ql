@@ -19,11 +19,12 @@ import advanced_security.javascript.frameworks.ui5.UI5XssQuery
 
 from
   Configuration config, UI5PathGraph::UI5PathNode source, UI5PathGraph::UI5PathNode sink,
-   UI5PathGraph::UI5PathNode primarySink
+  UI5PathGraph::UI5PathNode primarySource, UI5PathGraph::UI5PathNode primarySink
 where
   config.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   config.isSource(source.asDataFlowNode()) and
   config.isSink(sink.asDataFlowNode()) and
+  primarySource = source.getAPrimarySource() and
   primarySink = sink.getAPrimaryHtmlISink()
-select primarySink, source, primarySink, "XSS vulnerability due to $@.", source,
+select primarySink, primarySource, primarySink, "XSS vulnerability due to $@.", primarySource,
   "user-provided value"

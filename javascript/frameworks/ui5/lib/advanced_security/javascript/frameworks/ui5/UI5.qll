@@ -854,8 +854,6 @@ class JsonModel extends UI5InternalModel {
       /* Fallback */
       this.getCalleeName() = "JSONModel"
     )
-    // and
-    // defaultMode = "twoway"
   }
 
   /**
@@ -922,6 +920,36 @@ class JsonModel extends UI5InternalModel {
       call.getMethodName() = "setDefaultBindingMode" and
       bindingMode.getOneWay().flowsTo(call.getArgument(0))
     )
+  }
+
+  predicate isTwoWayBinding() {
+    // Either explicitly set as two-way, or
+    exists(MethodCallNode call, BindingMode bindingMode |
+      this.flowsTo(call.getReceiver()) and
+      call.getMethodName() = "setDefaultBindingMode" and
+      bindingMode.getTwoWay().flowsTo(call.getArgument(0))
+    )
+    or
+    // left untouched as default mode which is two-way.
+    not exists(MethodCallNode call |
+      this.flowsTo(call.getReceiver()) and
+      call.getMethodName() = "setDefaultBindingMode"
+    )
+  }
+
+  /**
+   * Get a property of this `JsonModel`, e.g. given a JSON model `oModel` defined either of the following:
+   * ```javascript
+   * oModel = new JSONModel({x: null});
+   * ```
+   * ```javascript
+   * oContent = {x: null};
+   * oModel = new JSONModel(oContent);
+   * ```
+   * Get `x: null` as its result.
+   */
+  DataFlow::PropWrite getAProperty() {
+    this.getArgument(0).getALocalSource().asExpr() = result.getPropertyNameExpr().getParent+()
   }
 }
 
