@@ -25,8 +25,7 @@ class InternalModelContentToCustomMetadataPropertyStep extends DataFlow::SharedF
 }
 
 /**
- * This is a step in the opposite direction of the `InternalModelContentToCustomMetadataPropertyStep` above.
- * In order to ensure that this indeed holds, we check if the internal model is set to a two-way binding mode.
+ * This is a step in the opposite direction of the `InternalModelContentToCustomMetadataPropertyStep` above. In order to ensure that this indeed holds, we check if the internal model is set to a two-way binding mode.
  */
 class CustomMetadataPropertyStepToInternalModelContent extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
@@ -125,10 +124,6 @@ class LocalModelSetPropertyStep extends DataFlow::SharedFlowStep {
   }
 }
 
-/**
- * Step from the model 
- */
-/* TODO: Remove the check to the presence of `setPropertyCall`. */
 class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(
