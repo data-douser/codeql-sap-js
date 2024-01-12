@@ -78,15 +78,10 @@ class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
 }
 
 /**
- * Method calls that fetch a piece of data from a URI parameter. The rows of the resulting relation is supplied
- * from a `sourceModel` of the model-as-data extension, whose kinds are `"uri-parameter"`.
+ * Method calls that fetch a piece of data either from a library control capable of accepting user input, or from a URI parameter.
  */
-class UriParameterGetMethodCall extends RemoteFlowSource {
-  UriParameterGetMethodCall() {
-    this = ModelOutput::getASourceNode("remote").asSource() and
-    /* TODO: add more constraints to only find URIParameter-related methods/properties */
-    any()
-  }
+class UI5ExtRemoteSource extends RemoteFlowSource {
+  UI5ExtRemoteSource() { this = ModelOutput::getASourceNode("remote").asSource() }
 
-  override string getSourceType() { result = "URI Parameter Data" }
+  override string getSourceType() { result = "UI5-specific remote source" }
 }
