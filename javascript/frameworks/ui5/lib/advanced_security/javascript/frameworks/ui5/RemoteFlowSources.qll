@@ -3,7 +3,7 @@ import advanced_security.javascript.frameworks.ui5.UI5
 import advanced_security.javascript.frameworks.ui5.UI5View
 private import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
 
-class DataFromRemoteControlReference extends RemoteFlowSource, MethodCallNode {
+private class DataFromRemoteControlReference extends RemoteFlowSource, MethodCallNode {
   DataFromRemoteControlReference() {
     exists(UI5Control sourceControl, string typeAlias, ControlReference controlReference |
       ApiGraphModelsExtensions::typeModel(typeAlias, sourceControl.getImportPath(), _) and
@@ -93,7 +93,7 @@ class ODataServiceModel extends UI5ExternalModel {
   override string getName() { result = modelName }
 }
 
-class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
+private class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
   override string getSourceType() { result = "RouteParameterAccess" }
 
   RouteParameterAccess() {
@@ -120,7 +120,7 @@ class RouteParameterAccess extends RemoteFlowSource instanceof PropRead {
 /**
  * Method calls that fetch a piece of data either from a library control capable of accepting user input, or from a URI parameter.
  */
-class UI5ExtRemoteSource extends RemoteFlowSource {
+private class UI5ExtRemoteSource extends RemoteFlowSource {
   UI5ExtRemoteSource() { this = ModelOutput::getASourceNode("remote").asSource() }
 
   override string getSourceType() { result = "UI5-specific remote source" }
