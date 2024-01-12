@@ -314,7 +314,7 @@ class CustomController extends Extension {
 
   CustomController() {
     this.getReceiver().getALocalSource() = sapController() and
-    name = this.getFile().getBaseName().regexpCapture("([a-zA-Z0-9]+).controller.js", 1)
+    name = this.getFile().getBaseName().regexpCapture("([a-zA-Z0-9]+).[cC]ontroller.js", 1)
   }
 
   Component getOwnerComponent() {
@@ -344,8 +344,8 @@ class CustomController extends Extension {
    * Gets a reference to a view object that can be accessed from one of the methods of this controller.
    */
   ViewReference getAViewReference() {
-    result.getCalleeName() = "getView" and
     exists(ThisNode controllerThis |
+      result.getMethodName() = "getView" and
       result.(MethodCallNode).getReceiver() = controllerThis.getALocalUse() and
       controllerThis.getBinder() = this.getAMethod()
     )

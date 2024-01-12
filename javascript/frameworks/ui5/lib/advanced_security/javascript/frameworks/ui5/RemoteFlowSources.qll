@@ -1,6 +1,21 @@
 import javascript
 import advanced_security.javascript.frameworks.ui5.UI5
 import advanced_security.javascript.frameworks.ui5.UI5View
+private import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
+
+class DataFromRemoteControlReference extends RemoteFlowSource, MethodCallNode {
+  DataFromRemoteControlReference() {
+    exists(UI5Control sourceControl, string typeAlias, ControlReference controlReference |
+      ApiGraphModelsExtensions::typeModel(typeAlias, sourceControl.getImportPath(), _) and
+      ApiGraphModelsExtensions::sourceModel(typeAlias, _, "remote") and
+      sourceControl.getAReference() = controlReference and
+      controlReference.flowsTo(this.getReceiver()) and
+      this.getMethodName() = "getValue"
+    )
+  }
+
+  override string getSourceType() { result = "Data from a remote control" }
+}
 
 class LocalModelContentBoundBidirectionallyToSourceControl extends RemoteFlowSource {
   UI5BindingPath bindingPath;

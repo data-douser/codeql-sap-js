@@ -2,7 +2,7 @@ import javascript
 import DataFlow
 import advanced_security.javascript.frameworks.ui5.UI5
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow
-import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
+private import semmle.javascript.frameworks.data.internal.ApiGraphModelsExtensions as ApiGraphModelsExtensions
 import advanced_security.javascript.frameworks.ui5.Bindings
 
 /**
@@ -19,7 +19,7 @@ import advanced_security.javascript.frameworks.ui5.Bindings
  * This predicate is good for modeling the object-oriented class hierarchy in UI5.
  */
 bindingset[type]
-private string getASuperType(string type) {
+string getASuperType(string type) {
   result = type or ApiGraphModelsExtensions::typeModel(result, type, "")
 }
 
@@ -618,6 +618,12 @@ class UI5Control extends TUI5Control {
 
   string toString() { result = this.asXmlControl().toString() }
 
+  predicate hasLocationInfo(
+    string filepath, int startcolumn, int startline, int endcolumn, int endline
+  ) {
+    this.asXmlControl().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+  }
+
   /**
    * Gets the qualified type string, e.g. `sap.m.SearchField`.
    */
@@ -649,11 +655,12 @@ class UI5Control extends TUI5Control {
   }
 
   /**
-   * Gets a reference to this control in the controller code. Currently supports only such references made through `byId`.
+   * Gets a reference to this control. Currently supports only such references made through `byId`.
    */
   ControlReference getAReference() {
-    result.getEnclosingFunction() = any(CustomController controller).getAMethod().asExpr() and
-    result.getArgument(0).asExpr().(StringLiteral).getValue() = this.getProperty("id").getValue()
+    result.getMethodName() = "byId" and
+    result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() =
+      this.getProperty("id").getValue()
   }
 
   /** Gets a property of this control having the name. */
