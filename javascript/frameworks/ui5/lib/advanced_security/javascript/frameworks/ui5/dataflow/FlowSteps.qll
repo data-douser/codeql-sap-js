@@ -25,7 +25,8 @@ class InternalModelContentToCustomMetadataPropertyStep extends DataFlow::SharedF
 }
 
 /**
- * This is a step in the opposite direction of the `InternalModelContentToCustomMetadataPropertyStep` above. In order to ensure that this indeed holds, we check if the internal model is set to a two-way binding mode.
+ * This is a step in the opposite direction of the `InternalModelContentToCustomMetadataPropertyStep` above.
+ * In order to ensure that this indeed holds, we check if the internal model is set to a two-way binding mode.
  */
 class CustomMetadataPropertyStepToInternalModelContent extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
@@ -74,12 +75,32 @@ class CustomMetadataPropertyReadStep extends DataFlow::SharedFlowStep {
   }
 }
 
+/**
+ * Step from the second argument of `setProperty` method call on a local model or a reference to that model, that is, the receiver.
+ *
+ * e.g. Given these methods in a same controller,
+ *
+ * ```javascript
+ * onInit: {
+ *   var oModel = new JSONModel({ x: null });  // A local model
+ *   this.getView().setModel(oModel);
+ * }
+ *
+ * someHandler: {
+ *   this.getView().getModel().setProperty("x", someValue);
+ * }
+ * ```
+ *
+ * Create an edge from `someValue` to `this.getView().getModel()`.
+ */
 class LocalModelSetPropertyStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
+    /* 1. The receiver is a reference to the local model */
     exists(
-      MethodCallNode setPropertyCall, ModelReference modelRef, CustomController controller,
-      InternalModelManifest internalModelManifest
+      MethodCallNode setPropertyCall, CustomController controller,
+      InternalModelManifest internalModelManifest, ModelReference modelRef
     |
+      start = setPropertyCall.getArgument(1) and
       setPropertyCall.getMethodName() = "setProperty" and
       setPropertyCall.getReceiver().getALocalSource() = modelRef and
       /* We're applying TC + since the `modelRef` can be inside a callback argument. */
@@ -87,12 +108,27 @@ class LocalModelSetPropertyStep extends DataFlow::SharedFlowStep {
       controller.getAModelReference() = modelRef and
       /* `modelRef.getModelName()` can be found in manifest.js */
       internalModelManifest.getName() = modelRef.getModelName() and
-      setPropertyCall.getArgument(1) = start and
       modelRef = end
+    )
+    or
+    /* 2. The receiver is a the local model value itself */
+    exists(
+      MethodCallNode setPropertyCall, CustomController controller, UI5InternalModel internalModel
+    |
+      start = setPropertyCall.getArgument(1) and
+      setPropertyCall.getMethodName() = "setProperty" and
+      setPropertyCall.getReceiver().getALocalSource() = internalModel and
+      /* We're applying TC + since the `internalModel` can be inside a callback argument. */
+      internalModel.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and
+      internalModel = end
     )
   }
 }
 
+/**
+ * Step from the model 
+ */
+/* TODO: Remove the check to the presence of `setPropertyCall`. */
 class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(
