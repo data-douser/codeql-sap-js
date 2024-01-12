@@ -19,81 +19,13 @@ import advanced_security.javascript.frameworks.ui5.Bindings
  * This predicate is good for modeling the object-oriented class hierarchy in UI5.
  */
 bindingset[type]
-string getASuperType(string type) {
+private string getASuperType(string type) {
   result = type or ApiGraphModelsExtensions::typeModel(result, type, "")
 }
 
 /**
- * Holds if the given string contains a binding path. Also gets the
- * path string itself without the surrounding curly braces.
- * ```javascript
- * "{/property}" // Absolute path without a model name, gets `/property`
- * "{property1/property2}" // Relative path, gets `property1/property2`
- * "{model>property}" // Absolute path with a model name, gets `model>property`
- * "{ other: { foo: 'bar'}, path: 'model>property' }" // Gets the absolute path in the expression binding
- * "{.doSomething(${/input})}" // Gets the absolute path in parameter in the expression binding
- * ```
- */
-bindingset[property]
-string bindingPathCapture(string property) {
-  exists(string pattern |
-    // matches "model>property"
-    pattern = "(?:[^'\"\\}]+>)?([^'\"\\}]*)" and
-    (
-      // {model>property}
-      result = property.replaceAll(" ", "").regexpCapture("(?s)\\{" + pattern + "\\}", 1)
-      or
-      // { other: { foo: 'bar'}, path: 'model>property' }
-      result =
-        property
-            .replaceAll(" ", "")
-            .regexpCapture("(?s)\\{[^\"]*path:'" + pattern + "'[^\"]*\\}", 1)
-      or
-      // event handler with a simple parameter {.doSomething(${/input})}
-      result =
-        property
-            .replaceAll(" ", "")
-            .regexpCapture("(?s)\\.[\\w-]+\\(\\$\\{" + pattern + "\\}\\)", 1)
-    )
-  )
-}
-
-/**
- * Holds if the given string contains a binding path. Also gets the model name before the `>`
- * separator, if the given string has it.
- * ```javascript
- * "{model>property}"                                 // Gets `model`
- * "{ other: { foo: 'bar'}, path: 'model>property' }" // Gets `model` in the parameter
- * ```
- */
-bindingset[property]
-string modelNameCapture(string property) {
-  exists(string pattern |
-    // matches "model>property"
-    pattern = "([^'\"\\}]+)>([^'\"\\}]*)"
-  |
-    (
-      // {model>property}
-      result = property.replaceAll(" ", "").regexpCapture("(?s)\\{" + pattern + "\\}", 1)
-      or
-      // { other: { foo: 'bar'}, path: 'model>property' }
-      result =
-        property
-            .replaceAll(" ", "")
-            .regexpCapture("(?s)\\{[^\"]*path:'" + pattern + "'[^\"]*\\}", 1)
-      or
-      // event handler with a simple parameter {.doSomething(${/input})}
-      result =
-        property
-            .replaceAll(" ", "")
-            .regexpCapture("(?s)\\.[\\w-]+\\(\\$\\{" + pattern + "\\}\\)", 1)
-    )
-  )
-}
-
-/**
  * A [binding path](https://sapui5.hana.ondemand.com/sdk/#/topic/2888af49635949eca14fa326d04833b9) that refers
- * to a piece of data in a model. It is found in a file which defines a view declaratively, using either XML,
+ * to a piece of data in a model, whether it is internal (client-side) or external (server-side). It is found in a file which defines a view declaratively, using either XML,
  * HTML, JSON or JavaScript, and is a property of an XML/HTML element or a JSON/JavaScript object.
  *
  * Since these data cannot be recognized as `DataFlow::Node`s (with an exception of JS objects), a `UI5BindingPath`
@@ -111,7 +43,7 @@ abstract class UI5BindingPath extends BindingPath {
   abstract string getLiteralRepr();
 
   /**
-   * Resolve this path to an absolute one. It is reflexive for an already absolute path.
+   * Resolve this path to an absolute one. It gets itself for an already absolute path.
    */
   abstract string getAbsolutePath();
 
@@ -131,10 +63,14 @@ abstract class UI5BindingPath extends BindingPath {
   string getControlTypeName() { result = this.getControlQualifiedType().replaceAll(".", "/") }
 
   /**
+   * Gets the view that this binding path resides in.
+   */
+  /*
    * NOTE:
    * - [[Declarative (inside data format): path --getFile--> view]] --getController--> controller --getModel--> model.
    * - Procedural (inside JS source code): [[path --(getting the handler it's inside and getting the owner controller of the handler )--> controller --getView--> view]].
    */
+
   UI5View getView() {
     /* 1. Declarative, inside a certain data format. */
     this.getLocation().getFile() = result
@@ -212,14 +148,14 @@ abstract class UI5BindingPath extends BindingPath {
   }
 
   /**
-   * Gets the UI5BoundNode that represents this binding path.
+   * Gets the `DataFlow::Node` that represents this binding path.
    */
   Node getNode() {
     exists(Property p, JsonModel model |
-      /* Get the property bound to this binding path. */
+      /* Get the property of an JS object bound to this binding path. */
       result.(DataFlow::PropWrite).getPropertyNameExpr() = p.getNameExpr() and
       this.getAbsolutePath() = model.getPathString(p) and
-      /* Restrict search inside the same webapp. */
+      /* Restrict search to inside the same webapp. */
       exists(WebApp webApp |
         webApp.getAResource() = this.getLocation().getFile() and
         webApp.getAResource() = result.getFile()
@@ -239,9 +175,9 @@ class XmlControlProperty extends XmlAttribute {
 }
 
 /**
- * Models a UI5 View that might include
- * XSS sources and sinks in standard controls
+ * A UI5 View that might include XSS sources and sinks in standard controls.
  */
+/* TODO: Update docstring */
 abstract class UI5View extends File {
   abstract string getControllerName();
 
@@ -314,6 +250,7 @@ class JsonBindingPath extends UI5BindingPath {
 class JsView extends UI5View {
   /* sap.ui.jsview("...", ) { ... } */
   MethodCallNode rootJsViewCall;
+
   JsView() {
     exists(TopLevel toplevel, Stmt stmt |
       toplevel = unique(TopLevel t | t = this.getATopLevel()) and
@@ -324,6 +261,7 @@ class JsView extends UI5View {
       rootJsViewCall.getMethodName() = "jsview"
     )
   }
+
   override string getControllerName() {
     exists(FunctionNode function |
       function =
@@ -335,6 +273,7 @@ class JsView extends UI5View {
       result = function.getReturnNode().getALocalSource().asExpr().(StringLiteral).getValue()
     )
   }
+
   override JsViewBindingPath getASource() {
     exists(DataFlow::ObjectLiteralNode control, string type, string path, string property |
       this = control.getFile() and
@@ -344,6 +283,7 @@ class JsView extends UI5View {
       result.getBinding().getBindingTarget().asDataFlowNode() = control.getAPropertyWrite(property)
     )
   }
+
   override JsViewBindingPath getAnHtmlISink() {
     exists(DataFlow::ObjectLiteralNode control, string type, string path, string property |
       this = control.getFile() and
@@ -388,23 +328,29 @@ class JsonView extends UI5View {
 
 class JsViewBindingPath extends UI5BindingPath {
   DataFlow::Node bindingTarget;
+
   JsViewBindingPath() {
     this.getBinding().getBindingTarget().asDataFlowNode() = bindingTarget //and
     //bindingTarget.getFile() instanceof JsView
   }
+
   override string getLiteralRepr() { result = bindingTarget.getALocalSource().getStringValue() }
+
   /* `new sap.m.Input({...})` => `"sap.m.Input"` */
   override string getControlQualifiedType() {
-    result =
-      bindingTarget.asExpr().getParent+().(NewExpr).getCallee().(DotExpr).getQualifiedName()
+    result = bindingTarget.asExpr().getParent+().(NewExpr).getCallee().(DotExpr).getQualifiedName()
   }
+
   override string getAbsolutePath() { none() }
+
   override string getPath() { result = this.asString() }
+
   override string getPropertyName() {
-    exists(DataFlow::ObjectLiteralNode initializer | 
+    exists(DataFlow::ObjectLiteralNode initializer |
       initializer.getAPropertyWrite(result).getRhs() = bindingTarget
     )
   }
+
   override UI5Control getControlDeclaration() {
     /* TODO */
     none()
@@ -648,7 +594,11 @@ class XmlView extends UI5View, XmlFile {
       any(XmlElement element |
         // getAChild+ because "container controls" nest other controls inside them
         element = root.getAChild+() and
+        (
         // Either a builtin control provided by UI5
+        // Either a builtin control provided by UI5
+        (
+          // Either a builtin control provided by UI5
         (
           builtInControl(element.getNamespace())
           or

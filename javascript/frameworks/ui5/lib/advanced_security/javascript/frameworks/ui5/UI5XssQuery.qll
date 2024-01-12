@@ -5,7 +5,6 @@ import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
 import semmle.javascript.security.dataflow.ClientSideUrlRedirectCustomizations::ClientSideUrlRedirect as UrlRedirect
 
 class Configuration extends DomBasedXss::Configuration {
-  /** WARNING: VALID FOR THIS BRANCH (`jeongsoolee09/remote-model-1`) ONLY */
   override predicate isSource(DataFlow::Node start) {
     super.isSource(start)
     or
@@ -61,9 +60,4 @@ private class UI5ModelHtmlISink = UI5ExternalModel;
  */
 private class UI5ExtHtmlISink extends DomBasedXss::Sink {
   UI5ExtHtmlISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
-}
-
-predicate isUI5Sink(UI5PathGraph::UI5PathNode sink) {
-  sink.asDataFlowNode() instanceof UI5ModelHtmlISink or
-  sink.asDataFlowNode() instanceof UI5ExtHtmlISink
 }
