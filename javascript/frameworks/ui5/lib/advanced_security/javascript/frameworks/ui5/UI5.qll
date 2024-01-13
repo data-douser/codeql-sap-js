@@ -445,6 +445,13 @@ class ModelReference extends MethodCallNode {
     result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
   }
 
+  predicate isLocalModelReference() {
+    exists(InternalModelManifest internalModelManifest |
+      internalModelManifest.getName() = this.getModelName() or
+      this.getResolvedModel() instanceof UI5InternalModel
+    )
+  }
+
   /**
    * Gets the matching `setModel` method call of this `ModelReference`.
    */

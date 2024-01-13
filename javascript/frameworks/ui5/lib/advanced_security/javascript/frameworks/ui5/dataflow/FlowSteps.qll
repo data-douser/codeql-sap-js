@@ -75,7 +75,7 @@ class CustomMetadataPropertyReadStep extends DataFlow::SharedFlowStep {
 }
 
 /**
- * Step from the second argument of `setProperty` method call on a local model or a reference to that model, that is, the receiver.
+ * Step from the second argument of `setProperty` method call on a local model or a reference to that model, that is, the receiver. If the contents of the model is statically visible, then get the relevant portion of the content instead.
  *
  * e.g. Given these methods in a same controller,
  *
@@ -86,46 +86,112 @@ class CustomMetadataPropertyReadStep extends DataFlow::SharedFlowStep {
  * }
  *
  * someHandler: {
- *   this.getView().getModel().setProperty("x", someValue);
+ *   this.getView().getModel().setProperty("/x", someValue);
  * }
  * ```
  *
- * Create an edge from `someValue` to `this.getView().getModel()`.
+ * Create an edge from `someValue` to `this.getView().getModel()`. As the content of `oModel` can be statically determined, also create an edge from `someValue` to `x: null`.
  */
 class LocalModelSetPropertyStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
     /* 1. The receiver is a reference to the local model */
-    exists(
-      MethodCallNode setPropertyCall, CustomController controller,
-      InternalModelManifest internalModelManifest, ModelReference modelRef
-    |
+    exists(MethodCallNode setPropertyCall, CustomController controller, ModelReference modelRef |
       start = setPropertyCall.getArgument(1) and
       setPropertyCall.getMethodName() = "setProperty" and
       setPropertyCall.getReceiver().getALocalSource() = modelRef and
-      /* We're applying TC + since the `modelRef` can be inside a callback argument. */
-      modelRef.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and
+      modelRef.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and // apply TC + since `modelRef` can be inside a callback argument
       controller.getAModelReference() = modelRef and
-      /* `modelRef.getModelName()` can be found in manifest.js */
-      internalModelManifest.getName() = modelRef.getModelName() and
+      modelRef.isLocalModelReference() and
       modelRef = end
     )
     or
-    /* 2. The receiver is a the local model value itself */
+    /* 2. The receiver is the local model itself */
     exists(
       MethodCallNode setPropertyCall, CustomController controller, UI5InternalModel internalModel
     |
       start = setPropertyCall.getArgument(1) and
       setPropertyCall.getMethodName() = "setProperty" and
       setPropertyCall.getReceiver().getALocalSource() = internalModel and
-      /* We're applying TC + since the `internalModel` can be inside a callback argument. */
-      internalModel.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and
+      internalModel.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and // apply TC + since `internalModel` can be inside a callback argument
       internalModel = end
+    )
+    or
+    /* 3. The receiver is a relevant content in the local model */
+    exists(
+      MethodCallNode setPropertyCall, CustomController controller, UI5InternalModel internalModel,
+      UI5BindingPath bindingPath
+    |
+      start = setPropertyCall.getArgument(1) and
+      setPropertyCall.getMethodName() = "setProperty" and
+      setPropertyCall.getReceiver().getALocalSource() = internalModel and
+      internalModel.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and // apply TC + since `internalModel` can be inside a callback argument
+      bindingPath.getNode() = internalModel.(JsonModel).getAProperty() and
+      bindingPath.getPath() =
+        setPropertyCall.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() and
+      end = bindingPath.getNode()
     )
   }
 }
 
+/**
+ * Step from a local model or a reference to it, to a `getProperty` method call on it.
+ *
+ * e.g Given these methods in a same controller,
+ * ```javascript
+ * onInit: {
+ *   var oModel = new JSONModel({ x: null });  // A local model
+ *   this.getView().setModel("someModel", oModel);
+ * }
+ *
+ * someHandler1: {
+ *   var value = this.getView().getModel("someModel").getProperty("/x");
+ * }
+ * ```
+ *
+ * Establish an edge from `this.getView().getModel("someModel")` in `someHandler2` to the entire `getProperty` call in `someHandler1`. Note that `modelRefFrom` and `modelRefTo` may refer to the same `ModelReference`.
+ *
+ * This is a dual of `LocalModelSetPropertyStep` above.
+ */
 class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
+    /* 1. The receiver is a reference to the local model */
+    exists(MethodCallNode getPropertyCall, CustomController controller, ModelReference modelRef |
+      modelRef = start and
+      getPropertyCall.getMethodName() = "getProperty" and
+      getPropertyCall.getReceiver().getALocalSource() = modelRef and
+      modelRef.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and
+      controller.getAModelReference() = modelRef and // apply TC + since `modelRef` can be inside a callback argument
+      modelRef.isLocalModelReference() and
+      end = getPropertyCall.getArgument(1)
+    )
+    or
+    /* 2. The receiver is a the local model value itself */
+    exists(
+      MethodCallNode getPropertyCall, CustomController controller, UI5InternalModel internalModel
+    |
+      internalModel = start and
+      getPropertyCall.getMethodName() = "getProperty" and
+      getPropertyCall.getReceiver().getALocalSource() = internalModel and
+      internalModel.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and // apply TC + since `internalModel` can be inside a callback argument
+      end = getPropertyCall
+    )
+    or
+    /* 3. The receiver is a relevant content in the local model */
+    exists(
+      MethodCallNode getPropertyCall, CustomController controller, UI5InternalModel internalModel,
+      UI5BindingPath bindingPath
+    |
+      start = bindingPath.getNode() and
+      getPropertyCall.getMethodName() = "getProperty" and
+      getPropertyCall.getReceiver().getALocalSource() = internalModel and
+      internalModel.asExpr().getEnclosingFunction+() = controller.getAHandler().getFunction() and // apply TC + since `internalModel` can be inside a callback argument
+      bindingPath.getNode() = internalModel.(JsonModel).getAProperty() and
+      bindingPath.getPath() =
+        getPropertyCall.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() and
+      end = getPropertyCall
+    )
+  }
+}
 
 /**
  * Step from a local model or a reference to it, to a `getProperty` method call on it. This assumes a corresponding `setProperty` call exists on the same model and its same property.
@@ -138,11 +204,11 @@ class LocalModelGetPropertyStep extends DataFlow::SharedFlowStep {
  * }
  *
  * someHandler1: {
- *   this.getView().getModel("someModel").getProperty("x");
+ *   var value = this.getView().getModel("someModel").getProperty("/x");
  * }
  *
  * someHandler2: {
- *   this.getView().getModel("someModel").setProperty("x", someValue);
+ *   this.getView().getModel("someModel").setProperty("/x", someValue);
  * }
  * ```
  *
