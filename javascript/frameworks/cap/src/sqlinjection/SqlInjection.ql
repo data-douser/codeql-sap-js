@@ -1,3 +1,15 @@
+/**
+ * @name Uncontrolled data in SQL query
+ * @description Including user-supplied data in a SQL query without
+ *              neutralizing special elements can make code vulnerable
+ *              to SQL Injection.
+ * @kind problem
+ * @problem.severity error
+ * @id javascript/sql-injection-custom
+ * @tags security
+ *       external/cwe/cwe-089
+ */
+
 import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 import advanced_security.javascript.frameworks.cap.CQL

@@ -214,11 +214,14 @@ class CqlClause extends TCqlClause {
 
 /**
  * Call to`cds.db.run`
+ * or 
+ * an await surrounding a sql statement
  */
-//TODO: add awaits around SQLClauses
 class CQLSink extends DataFlow::Node {
   CQLSink(){
     this = any(CdsFacade cds).getMember("db").getMember("run").getACall().getAnArgument()
+    or 
+    exists(AwaitExpr a, CQL::CqlClause clause | a.getAChildExpr() = clause.asExpr() and this.asExpr() = clause.asExpr())
   }
   
 }
