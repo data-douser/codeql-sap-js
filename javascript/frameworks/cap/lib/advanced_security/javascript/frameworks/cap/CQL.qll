@@ -213,6 +213,17 @@ class CqlClause extends TCqlClause {
 }
 
 /**
+ * A possibly tainted clause
+ * any clause with a string concatenation in it
+ * regardless of where that operand came from
+ */
+class TaintedClause extends CqlClause {
+  TaintedClause(){
+    exists(StringConcatenation::getAnOperand(this.getArgument().flow()))
+  }
+}
+
+/**
  * Call to`cds.db.run`
  * or 
  * an await surrounding a sql statement
@@ -222,7 +233,25 @@ class CQLSink extends DataFlow::Node {
     this = any(CdsFacade cds).getMember("db").getMember("run").getACall().getAnArgument()
     or 
     exists(AwaitExpr a, CQL::CqlClause clause | a.getAChildExpr() = clause.asExpr() and this.asExpr() = clause.asExpr())
-  }
-  
+  } 
 }
+
+/**
+ * a more heurisitic based taint step
+ * captures one of the alternative ways to construct query strings:
+ * `cds.parse.cql(`string`+userInput)`
+ * and considers them tainted if they've been concatenated against
+ * in any manner
+ */
+class ParseCQLTaintedClause extends CallNode {
+  ParseCQLTaintedClause(){
+    this = any(CdsFacade cds).getMember("parse").getMember("cql").getACall() and
+      exists(DataFlow::Node n | n =  StringConcatenation::getAnOperand(this.getAnArgument())
+      //omit the fact that the arg of cds.parse.cql (`SELECT * from Foo`)
+      //is technically a string concat
+      and not n.asExpr() instanceof TemplateElement
+      )
+  }
+}
+
 }

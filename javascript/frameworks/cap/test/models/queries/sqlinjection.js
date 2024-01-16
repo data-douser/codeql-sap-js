@@ -20,6 +20,15 @@ class SampleVulnService extends cds.ApplicationService { init(){
     let books22 = await SELECT.from `Books` .where ('ID='+book) //alert
 
     let books3 = await SELECT.from `Books` .where `ID=${book}` //safe
+
+    let id=2
+    let books33 = await SELECT.from `Books` .where ('ID='+id) //safe
+
+    let cqn = CQL`SELECT col1, col2, col3 from Books` + book
+    let books222 = await cds.db.run (cqn) //alert
+
+    let cqn1 = cds.parse.cql (`SELECT * from Books`+ book) 
+    let books111 = await cds.db.run (cqn1) //alert
   })
 
   return super.init()

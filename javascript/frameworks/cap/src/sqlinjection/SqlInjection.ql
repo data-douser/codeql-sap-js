@@ -13,7 +13,6 @@
 import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 import advanced_security.javascript.frameworks.cap.CQL
-import semmle.javascript.StringConcatenation
 
 class SqlInjectionConfiguration extends TaintTracking::Configuration {
     SqlInjectionConfiguration(){
@@ -31,11 +30,15 @@ class SqlInjectionConfiguration extends TaintTracking::Configuration {
 
     override predicate isAdditionalTaintStep(DataFlow::Node pred, DataFlow::Node succ) { 
         //string concatenation in a clause arg taints the clause
-        exists(CQL::CqlClause clause | 
+        exists(CQL::TaintedClause clause | 
             clause.getArgument() = pred.asExpr() 
             and clause.asExpr() = succ.asExpr()
-            and
-            exists(StringConcatenation::getAnOperand(pred))
+        )
+        or
+        //less precise, any concat in the alternative sql stmt construction techniques
+        exists(CQL::ParseCQLTaintedClause parse |
+            parse.getAnArgument() = pred    
+            and parse = succ
         )
     }
 }

@@ -291,9 +291,6 @@ var select = SELECT.distinct.from`Table`.where`col1 in ${[("*", 10)]}`.groupBy(
   ref: [{ id: "function", args: { p: { ref: ["arg1"] } } }],
 }).orderBy`col1 desc, col2.prop2`.forShareLock();
 
-/* ========== CQL tagged function ========== */
-CQL`SELECT col1, col2, col3 from Table`;
-
 /* ========== JSON literal queries ========== */
 
 var select = {
