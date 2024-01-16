@@ -162,6 +162,13 @@ abstract class UI5BindingPath extends BindingPath {
       )
     )
     or
+    exists(string propName, JsonModel model |
+      /* Get the property of an JS object bound to this binding path. */
+      result = model.getArgument(0).getALocalSource() and
+      this.getPath() = model.getPathStringPropName(propName) and
+      exists(JsonObject obj, JsonValue val | val = obj.getPropValue(propName))
+    )
+    or
     result = this.getModel().(UI5ExternalModel)
   }
 }

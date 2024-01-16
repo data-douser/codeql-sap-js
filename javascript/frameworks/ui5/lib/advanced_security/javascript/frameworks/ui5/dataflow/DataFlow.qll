@@ -7,6 +7,33 @@ import advanced_security.javascript.frameworks.ui5.RemoteFlowSources
 import advanced_security.javascript.frameworks.ui5.dataflow.FlowSteps
 private import StdLibDataFlow::DataFlow::PathGraph as DataFlowPathGraph
 
+/**
+ * A statically visible part of a local model's content that has a binding path referring to it in a control declaration acting as an HTML injection sink.
+ *
+ * e.g.1. Given a JSON model `oModel` declared in a controller handler and an HTML injection sink `SomeSinkControl` as:
+ * ```javascript
+ * let oModel = new JSONModel({ y: null });
+ * ```
+ * and
+ * ```xml
+ * <SomeSinkControl x="{/y}"/>
+ * ```
+ * The content `y: null` of `oModel` is recognized as an instance of this class.
+ *
+ * e.g.2. Given a JSON model `oModel` which gains its content from a JSON file and an HTML injection sink `SomeSinkControl` as:
+ * ```javascript
+ * let oModel = new JSONModel("controller/contents.json");
+ * ```
+ * and
+ * ```xml
+ * <SomeSinkControl x="{/y}"/>
+ * ```
+ * where `controller/contents.json` contains
+ * ```json
+ * { "y": null }
+ * ```
+ * The content `y: null` of `oModel` is recognized as an instance of this class.
+ */
 class LocalModelContentBoundBidirectionallyToHtmlISinkControl extends DomBasedXss::Sink {
   UI5BindingPath bindingPath;
   UI5Control controlDeclaration;
@@ -14,8 +41,14 @@ class LocalModelContentBoundBidirectionallyToHtmlISinkControl extends DomBasedXs
   LocalModelContentBoundBidirectionallyToHtmlISinkControl() {
     exists(UI5InternalModel internalModel |
       this = bindingPath.getNode() and
-      internalModel.getArgument(0).getALocalSource().asExpr() =
-        this.(PropWrite).getPropertyNameExpr().getParent+() and
+      (
+        this instanceof PropWrite and
+        internalModel.getArgument(0).getALocalSource().asExpr() =
+          this.(PropWrite).getPropertyNameExpr().getParent+()
+        or
+        this.asExpr() instanceof StringLiteral and
+        internalModel.asExpr() = this.asExpr().getParent()
+      ) and
       any(UI5View view).getAnHtmlISink() = bindingPath and
       internalModel.(JsonModel).isTwoWayBinding() and
       controlDeclaration = bindingPath.getControlDeclaration()
@@ -127,12 +160,18 @@ module UI5PathGraph {
     predicate internalModelContentToBindingPath(
       UI5PathNode ui5PathNodePred, UI5PathNode ui5PathNodeSucc
     ) {
-      exists(UI5BindingPath bindingPath, UI5InternalModel internalModel, PropWrite property |
+      exists(UI5BindingPath bindingPath, UI5InternalModel internalModel, Node boundNode |
         bindingPath = ui5PathNodeSucc.asUI5BindingPathNode() and
-        property = bindingPath.getNode() and
-        ui5PathNodePred.asDataFlowNode() = property and
-        internalModel.(JsonModel).getAProperty() = property and // TODO: Generalize to UI5InternalModel
-        internalModel.(JsonModel).isTwoWayBinding() // TODO: Generalize to UI5InternalModel
+        boundNode = bindingPath.getNode() and
+        (
+          boundNode instanceof PropWrite and
+          internalModel.(JsonModel).getAProperty() = boundNode // TODO: Generalize to UI5InternalModel
+          or
+          boundNode.asExpr() instanceof StringLiteral and
+          ui5PathNodePred.asDataFlowNode() = boundNode
+        ) and
+        ui5PathNodePred.asDataFlowNode() = boundNode and
+        internalModel.(JsonModel).isTwoWayBinding()
       )
     }
   }

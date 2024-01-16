@@ -824,7 +824,7 @@ string constructPathStringJson(JsonValue object) {
 bindingset[propName]
 string constructPathStringJson(JsonValue object, string propName) {
   exists(string pathString | pathString = constructPathStringJson(object) |
-    pathString.regexpMatch(propName) and
+    pathString.regexpMatch(".*" + propName + ".*") and
     result = pathString
   )
 }
@@ -864,7 +864,7 @@ class JsonModel extends UI5InternalModel {
   }
 
   /**
-   *  Gets all possible path strings that can be constructed of this JSON model.
+   *  Gets all possible path strings that can be constructed from this JSON model.
    */
   override string getPathString() {
     /* 1. new JSONModel("controller/model.json") */
@@ -912,7 +912,8 @@ class JsonModel extends UI5InternalModel {
   bindingset[propName]
   string getPathStringPropName(string propName) {
     exists(JsonObject jsonObject |
-      jsonObject = resolveDirectPath(this.getAnArgument().asExpr().(StringLiteral).getValue())
+      jsonObject =
+        resolveDirectPath(this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue())
     |
       constructPathStringJson(jsonObject, propName) = result
     )

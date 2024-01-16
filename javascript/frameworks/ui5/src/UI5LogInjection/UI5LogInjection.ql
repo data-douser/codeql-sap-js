@@ -12,47 +12,21 @@
  */
 
 import javascript
-import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow as UI5DataFlow
-import UI5DataFlow::UI5PathGraph
+import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow
+import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow::UI5PathGraph
 import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjection
 
 class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfiguration {
-  override predicate isAdditionalFlowStep(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel inLabel,
-    DataFlow::FlowLabel outLabel
-  ) {
-    super.isAdditionalFlowStep(start, end, inLabel, outLabel)
-    or
-    UI5DataFlow::isAdditionalFlowStep(start, end)
+  override predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
+
+  override predicate isSink(DataFlow::Node node) {
+    node = ModelOutput::getASinkNode("ui5-log-injection").asSink()
   }
-}
-
-/**
- * An remote source associated with a `UI5BoundNode`
- */
-class UI5ModelSource extends LogInjection::Source instanceof UI5DataFlow::UI5ExternalModel { }
-
-// Sources and Sinks from data-extensions
-class UI5ExtSource extends LogInjection::Source {
-  UI5ExtSource() { this = ModelOutput::getASourceNode("ui5-remote").asSource() }
-}
-
-class UI5ExtLogISink extends LogInjection::Sink {
-  UI5ExtLogISink() { this = ModelOutput::getASinkNode("ui5-log-injection").asSink() }
-}
-
-// log-injections source or sinks that are ui5-specific
-private predicate isUI5Specific(UI5PathNode source, UI5PathNode sink) {
-  source.asDataFlowNode() instanceof UI5ExtSource or
-  source.asDataFlowNode() instanceof UI5ModelSource or
-  sink.asDataFlowNode() instanceof UI5ExtLogISink
 }
 
 from
   UI5LogInjectionConfiguration cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
 where
   cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
-  primarySource = source.getAPrimarySource() and
-  /* Source or sink are UI5-specific */
-  isUI5Specific(source, sink)
+  primarySource = source.getAPrimarySource()
 select sink, primarySource, sink, "Log entry depends on a $@.", primarySource, "user-provided value"
