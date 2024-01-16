@@ -992,8 +992,13 @@ class BindingMode extends RequiredObject {
 
 class RequiredObject extends SourceNode {
   RequiredObject() {
-    this =
-      any(SapDefineModule sapModule).getArgument(1).getALocalSource().(FunctionNode).getParameter(_)
+    exists(SapDefineModule sapDefineModule |
+      this = sapDefineModule.getArgument(1).getALocalSource().(FunctionNode).getParameter(_)
+    ) or
+    exists(JQueryDefineModule jQueryDefineModule |
+      this.toString() =
+        jQueryDefineModule.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    )
   }
 
   UserModule getDefiningModule() { result.getArgument(1).(FunctionNode).getParameter(_) = this }
