@@ -47,7 +47,7 @@ class Configuration extends DomBasedXss::Configuration {
             ["encodeCSS", "encodeJS", "encodeURL", "encodeURLParameters", "encodeXML"])
     )
     or
-    /* 3-2. Santizers provided by `jQuery.sap` */
+    /* 3-2. Sanitizers provided by `jQuery.sap` */
     node.(DataFlow::CallNode).getReceiver().asExpr().(PropAccess).getQualifiedName() = "jQuery.sap" and
     node.(DataFlow::CallNode).getCalleeName() =
       ["encodeCSS", "encodeJS", "encodeURL", "encodeURLParameters", "encodeXML", "encodeHTML"]
