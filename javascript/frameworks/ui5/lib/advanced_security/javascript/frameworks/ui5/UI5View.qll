@@ -284,6 +284,8 @@ class JsView extends UI5View {
     )
   }
 
+  MethodCallNode getRoot() { result = rootJsViewCall }
+
   override UI5Control getControl() {
     exists(NewNode node |
       result.asJsControl() = node and
@@ -345,6 +347,8 @@ class JsonView extends UI5View {
     root.getPropStringValue("Type") = "sap.ui.core.mvc.JSONView" and
     this = root.getJsonFile()
   }
+
+  JsonObject getRoot() { result = root }
 
   override UI5Control getControl() {
     exists(JsonObject object |
@@ -485,6 +489,14 @@ class HtmlBindingPath extends UI5BindingPath {
 class HtmlView extends UI5View, HTML::HtmlFile {
   HTML::Element root;
 
+  HtmlView() {
+    this = root.getFile() and
+    this.getBaseName().toLowerCase().matches("%.view.html") and
+    root.isTopLevel()
+  }
+
+  HTML::Element getRoot() { result = root }
+
   override UI5Control getControl() {
     exists(HTML::Element element |
       result.asXmlControl() = element and
@@ -505,12 +517,6 @@ class HtmlView extends UI5View, HTML::HtmlFile {
         )
       )
     )
-  }
-
-  HtmlView() {
-    this = root.getFile() and
-    this.getBaseName().toLowerCase().matches("%.view.html") and
-    root.isTopLevel()
   }
 
   override string getControllerName() {
@@ -636,6 +642,8 @@ class XmlView extends UI5View, XmlFile {
     root.hasName("View")
   }
 
+  XmlElement getRoot() { result = root }
+
   /** Get the qualified type string, e.g. `sap.m.SearchField` */
   string getQualifiedType() { result = root.getNamespace().getUri() + "." + root.getName() }
 
@@ -697,8 +705,25 @@ class XmlView extends UI5View, XmlFile {
 
 newtype TUI5Control =
   TXmlControl(XmlElement control) or
-  TJsonControl(JsonObject control) or
-  TJsControl(NewNode control)
+  TJsonControl(JsonObject control) {
+    exists(JsonView view | control.getParent() = view.getRoot().getPropValue("content"))
+  } or
+  TJsControl(NewNode control) {
+    exists(JsView view |
+      control.asExpr().getParentExpr() =
+        view.getRoot()
+            .getArgument(1)
+            .getALocalSource()
+            .(ObjectLiteralNode)
+            .getAPropertyWrite("createContent")
+            .getRhs()
+            .(FunctionNode)
+            .getReturnNode()
+            .getALocalSource()
+            .(ArrayLiteralNode)
+            .asExpr()
+    )
+  }
 
 class UI5Control extends TUI5Control {
   XmlElement asXmlControl() { this = TXmlControl(result) }
@@ -839,10 +864,6 @@ class UI5Control extends TUI5Control {
       model.(UI5InternalModel).getPathString() = bindingPath.getPath() and
       bindingPath.getBindingTarget() = this.asXmlControl().getAnAttribute()
     )
-    // or
-    // exists(JsonView view |
-    //   this = view.getXml
-    // )
   }
 
   /** Get the view that this control is part of. */
