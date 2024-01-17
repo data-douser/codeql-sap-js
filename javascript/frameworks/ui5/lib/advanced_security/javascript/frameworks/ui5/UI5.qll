@@ -447,9 +447,9 @@ class ModelReference extends MethodCallNode {
 
   predicate isLocalModelReference() {
     exists(InternalModelManifest internalModelManifest |
-      internalModelManifest.getName() = this.getModelName() or
-      this.getResolvedModel() instanceof UI5InternalModel
-    )
+      internalModelManifest.getName() = this.getModelName()
+    ) or
+    this.getResolvedModel() instanceof UI5InternalModel
   }
 
   /**
@@ -522,7 +522,7 @@ class ModelReference extends MethodCallNode {
    */
   UI5Model getResolvedModel() {
     /* TODO: If the argument of the setModelCall is another ModelReference, then we should recursively resolve that */
-    result = this.getAMatchingSetModelCall().getArgument(0)
+    result = this.getAMatchingSetModelCall().getArgument(0).getALocalSource()
   }
 }
 
