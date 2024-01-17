@@ -220,7 +220,7 @@ abstract class UI5View extends File {
 
 JsonBindingPath getJsonItemsBinding(JsonBindingPath bindingPath) {
   exists(Binding itemsBinding |
-    itemsBinding.getBindingTarget().asJsonObject("items") =
+    itemsBinding.getBindingTarget().asJsonObjectProperty("items") =
       bindingPath.getBindingTarget().getParent+() and
     result = itemsBinding.getBindingPath() and
     result != bindingPath // exclude ourselves
@@ -237,7 +237,7 @@ class JsonBindingPath extends UI5BindingPath {
   JsonObject bindingTarget;
 
   JsonBindingPath() {
-    bindingTarget = binding.getBindingTarget().asJsonObject(boundPropertyName) and
+    bindingTarget = binding.getBindingTarget().asJsonObjectProperty(boundPropertyName) and
     binding.getBindingPath() = this
   }
 
