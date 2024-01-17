@@ -1015,9 +1015,9 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
       )
     }
 
-    stdlib::Location getLocation() {
-      result = getSourceToken().getReader().getLocation()
-    }
+    stdlib::Location getLocation() { result = getSourceToken().getReader().getLocation() }
+
+    string getSource() { result = getSourceToken().getReader().getBindingString() }
   }
 
   predicate mkBindingPath(Token first, BindingPath bindingPath, Token last) {
