@@ -342,8 +342,9 @@ private newtype TBindingPath =
       earlyPathPropertyBinding(_, binding, bindingPath)
       or
       latePathBinding(_, binding, bindingPath)
-    ) and
-    not bindingPath.mayHaveStringValue(_)
+    )
+    // and
+    // not bindingPath.mayHaveStringValue(_)
   }
 
 /**
@@ -423,6 +424,13 @@ private newtype TBindingTarget =
   TXmlContextBindingTarget(ContextBindingAttribute target, Binding binding) {
     binding = TXmlContextBinding(target, _)
   } or
+  TEarlyJavaScriptBindingTarget(DataFlow::Node target, Binding binding) {
+    exists(DataFlow::NewNode newNode, Property property |
+      binding = TEarlyJavaScriptPropertyBinding(newNode, _) and
+      newNode.getAnArgument().getALocalSource().asExpr().(ObjectExpr).getAProperty() = property and
+      target = property.getInit().flow().getALocalSource()
+    )
+  } or
   TLateJavaScriptBindingTarget(DataFlow::Node target, Binding binding) {
     exists(DataFlow::MethodCallNode call |
       binding = TLateJavaScriptContextBinding(call, _) and
@@ -451,6 +459,11 @@ class BindingTarget extends TBindingTarget {
     exists(ContextBindingAttribute attribute |
       this = TXmlContextBindingTarget(attribute, _) and
       result = attribute.getName()
+    )
+    or
+    exists(DataFlow::Node target |
+      this = TEarlyJavaScriptBindingTarget(target, _) and
+      result = target.toString()
     )
     or
     exists(DataFlow::Node target |
@@ -484,7 +497,10 @@ class BindingTarget extends TBindingTarget {
 
   DataFlow::Node asDataFlowNode() {
     exists(DataFlow::Node target |
-      this = TLateJavaScriptBindingTarget(target, _) and
+      (
+        this = TEarlyJavaScriptBindingTarget(target, _) or
+        this = TLateJavaScriptBindingTarget(target, _)
+      ) and
       result = target
     )
   }
@@ -501,6 +517,11 @@ class BindingTarget extends TBindingTarget {
     )
     or
     exists(DataFlow::Node target |
+      this = TEarlyJavaScriptBindingTarget(target, _) and
+      result = target.asExpr().getLocation()
+    )
+    or
+    exists(DataFlow::Node target |
       this = TLateJavaScriptBindingTarget(target, _) and
       result = target.asExpr().getLocation()
     )
@@ -514,6 +535,7 @@ class BindingTarget extends TBindingTarget {
   Binding getBinding() {
     this = TXmlPropertyBindingTarget(_, result) or
     this = TXmlContextBindingTarget(_, result) or
+    this = TEarlyJavaScriptBindingTarget(_, result) or
     this = TLateJavaScriptBindingTarget(_, result) or
     this = TJsonPropertyBindingTarget(_, _, result)
   }

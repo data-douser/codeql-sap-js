@@ -65,12 +65,6 @@ abstract class UI5BindingPath extends BindingPath {
   /**
    * Gets the view that this binding path resides in.
    */
-  /*
-   * NOTE:
-   * - [[Declarative (inside data format): path --getFile--> view]] --getController--> controller --getModel--> model.
-   * - Procedural (inside JS source code): [[path --(getting the handler it's inside and getting the owner controller of the handler )--> controller --getView--> view]].
-   */
-
   UI5View getView() {
     /* 1. Declarative, inside a certain data format. */
     this.getLocation().getFile() = result
@@ -392,10 +386,11 @@ class JsonView extends UI5View {
 
 class JsViewBindingPath extends UI5BindingPath {
   DataFlow::Node bindingTarget;
+  Binding binding;
 
   JsViewBindingPath() {
-    this.getBinding().getBindingTarget().asDataFlowNode() = bindingTarget //and
-    //bindingTarget.getFile() instanceof JsView
+    bindingTarget = binding.getBindingTarget().asDataFlowNode() and
+    binding.getBindingPath() = this
   }
 
   override string getLiteralRepr() { result = bindingTarget.getALocalSource().getStringValue() }
