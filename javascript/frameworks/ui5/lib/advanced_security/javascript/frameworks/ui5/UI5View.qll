@@ -181,6 +181,20 @@ class XmlControlProperty extends XmlAttribute {
   override string getValue() { result = XmlAttribute.super.getValue() }
 }
 
+bindingset[qualifiedTypeUri]
+predicate isBuiltInControl(string qualifiedTypeUri) {
+  exists(string namespace |
+    namespace =
+      [
+        "sap\\.m.*", // https://sapui5.hana.ondemand.com/#/api/sap.m: The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.
+        "sap\\.f.*", // https://sapui5.hana.ondemand.com/#/api/sap.f: SAPUI5 library with controls specialized for SAP Fiori apps.
+        "sap\\.ui.*" // https://sapui5.hana.ondemand.com/#/api/sap.ui: The sap.ui namespace is the central OpenAjax compliant entry point for UI related JavaScript functionality provided by SAP.
+      ]
+  |
+    qualifiedTypeUri.regexpMatch(namespace)
+  )
+}
+
 /**
  * A UI5 View that might include XSS sources and sinks in standard controls.
  */
@@ -199,6 +213,8 @@ abstract class UI5View extends File {
       webApp.getAResource() = this and webApp.getAResource() = result.getFile()
     )
   }
+
+  abstract UI5Control getControl();
 
   abstract UI5BindingPath getASource();
 
@@ -258,6 +274,27 @@ class JsView extends UI5View {
   /* sap.ui.jsview("...", ) { ... } */
   MethodCallNode rootJsViewCall;
 
+  override UI5Control getControl() {
+    exists(NewNode node |
+      result.asJsControl() = node and
+      /* Use getAChild+ because some controls nest other controls inside them as aggregations */
+      node.asExpr() = rootJsViewCall.asExpr().getAChild+() and
+      (
+        /* 1. A builtin control provided by UI5 */
+        isBuiltInControl(node.asExpr().getAChildExpr().(DotExpr).getQualifiedName())
+        or
+        /* 2. A custom control with implementation code found in the webapp */
+        exists(CustomControl control |
+          control.getName() = node.asExpr().getAChildExpr().(DotExpr).getQualifiedName() and
+          exists(WebApp webApp |
+            webApp.getAResource() = control.getFile() and
+            webApp.getAResource() = node.getFile()
+          )
+        )
+      )
+    )
+  }
+
   JsView() {
     exists(TopLevel toplevel, Stmt stmt |
       toplevel = unique(TopLevel t | t = this.getATopLevel()) and
@@ -308,6 +345,26 @@ class JsonView extends UI5View {
   JsonView() {
     root.getPropStringValue("Type") = "sap.ui.core.mvc.JSONView" and
     this = root.getJsonFile()
+  }
+
+  override UI5Control getControl() {
+    exists(JsonObject object |
+      root = result.asJsonControl().getParent+() and
+      /* Use getAChild+ because some controls nest other controls inside them as aggregations */
+      (
+        /* 1. A builtin control provided by UI5 */
+        isBuiltInControl(object.getPropStringValue("Type"))
+        or
+        /* 2. A custom control with implementation code found in the webapp */
+        exists(CustomControl control |
+          control.getName() = object.getPropStringValue("Type") and
+          exists(WebApp webApp |
+            webApp.getAResource() = control.getFile() and
+            webApp.getAResource() = object.getFile()
+          )
+        )
+      )
+    )
   }
 
   override string getControllerName() { result = root.getPropStringValue("controllerName") }
@@ -416,6 +473,28 @@ class HtmlBindingPath extends UI5BindingPath {
 
 class HtmlView extends UI5View, HTML::HtmlFile {
   HTML::Element root;
+
+  override UI5Control getControl() {
+    exists(HTML::Element element |
+      result.asXmlControl() = element and
+      /* Use getAChild+ because some controls nest other controls inside them as aggregations */
+      element = root.getChild+() and
+      (
+        /* 1. A builtin control provided by UI5 */
+        isBuiltInControl(element.getAttributeByName("sap-ui-type").getValue())
+        or
+        /* 2. A custom control with implementation code found in the webapp */
+        /* 2. A custom control with implementation code found in the webapp */
+        exists(CustomControl control |
+          control.getName() = element.getAttributeByName("sap-ui-type").getValue() and
+          exists(WebApp webApp |
+            webApp.getAResource() = control.getFile() and
+            webApp.getAResource() = element.getFile()
+          )
+        )
+      )
+    )
+  }
 
   HtmlView() {
     this = root.getFile() and
@@ -580,64 +659,89 @@ class XmlView extends UI5View, XmlFile {
     )
   }
 
-  predicate builtInControl(XmlNamespace qualifiedTypeUri) {
-    exists(string namespace |
-      namespace =
-        [
-          "sap\\.m.*", // https://sapui5.hana.ondemand.com/#/api/sap.m: The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.
-          "sap\\.f.*", // https://sapui5.hana.ondemand.com/#/api/sap.f: SAPUI5 library with controls specialized for SAP Fiori apps.
-          "sap\\.ui.*" // https://sapui5.hana.ondemand.com/#/api/sap.ui: The sap.ui namespace is the central OpenAjax compliant entry point for UI related JavaScript functionality provided by SAP.
-        ]
-    |
-      qualifiedTypeUri.getUri().regexpMatch(namespace)
-    )
-  }
-
   /**
    * Get the XML tags associated with UI5 Controls declared in this XML view.
    */
-  UI5Control getXmlControl() {
-    result.asXmlControl() =
-      any(XmlElement element |
-        // getAChild+ because "container controls" nest other controls inside them
-        element = root.getAChild+() and
-        (
-          // Either a builtin control provided by UI5
-          builtInControl(element.getNamespace())
-          or
-          // or a custom control with implementation code found in the webapp
-          exists(CustomControl control |
-            control.getName() = element.getNamespace().getUri() + "." + element.getName() and
-            exists(WebApp webApp |
-              webApp.getAResource() = control.getFile() and
-              webApp.getAResource() = element.getFile()
-            )
+  override UI5Control getControl() {
+    exists(XmlElement element |
+      result.asXmlControl() = element and
+      /* Use getAChild+ because some controls nest other controls inside them as aggregations */
+      element = root.getAChild+() and
+      (
+        /* 1. A builtin control provided by UI5 */
+        isBuiltInControl(element.getNamespace().getUri())
+        or
+        /* 2. A custom control with implementation code found in the webapp */
+        exists(CustomControl control |
+          control.getName() = element.getNamespace().getUri() + "." + element.getName() and
+          exists(WebApp webApp |
+            webApp.getAResource() = control.getFile() and
+            webApp.getAResource() = element.getFile()
           )
         )
       )
+    )
   }
 }
 
-newtype TUI5Control = TXmlControl(XmlElement element)
+newtype TUI5Control =
+  TXmlControl(XmlElement control) or
+  TJsonControl(JsonObject control) or
+  TJsControl(NewNode control)
 
 class UI5Control extends TUI5Control {
   XmlElement asXmlControl() { this = TXmlControl(result) }
 
-  string toString() { result = this.asXmlControl().toString() }
+  JsonObject asJsonControl() { this = TJsonControl(result) }
+
+  NewNode asJsControl() { this = TJsControl(result) }
+
+  string toString() {
+    result = this.asXmlControl().toString()
+    or
+    result = this.asJsonControl().toString()
+    or
+    result = this.asJsControl().toString()
+  }
 
   predicate hasLocationInfo(
     string filepath, int startcolumn, int startline, int endcolumn, int endline
   ) {
     this.asXmlControl().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+    or
+    /* Since JsonValue does not implement `hasLocationInfo`, we use `getLocation` instead. */
+    exists(Location location | location = this.asJsonControl().getLocation() |
+      location.getFile().getAbsolutePath() = filepath and
+      location.getStartColumn() = startcolumn and
+      location.getStartLine() = startline and
+      location.getEndColumn() = endcolumn and
+      location.getEndLine() = endline
+    )
+    or
+    this.asJsControl().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
   }
 
   /**
    * Gets the qualified type string, e.g. `sap.m.SearchField`.
    */
   string getQualifiedType() {
-    exists(XmlElement element | element = this.asXmlControl() |
-      result = element.getNamespace().getUri() + "." + element.getName()
+    exists(XmlElement control | control = this.asXmlControl() |
+      result = control.getNamespace().getUri() + "." + control.getName()
     )
+    or
+    exists(JsonObject control | control = this.asJsonControl() |
+      result = control.getPropStringValue("Type")
+    )
+    or
+    exists(NewNode control | control = this.asJsControl() |
+      result = this.asJsControl().asExpr().getAChildExpr().(DotExpr).getQualifiedName()
+    )
+  }
+
+  File getFile() {
+    result = this.asXmlControl().getFile() or
+    result = this.asJsonControl().getFile() or
+    result = this.asJsControl().getFile()
   }
 
   /**
@@ -656,7 +760,7 @@ class UI5Control extends TUI5Control {
   CustomControl getDefinition() {
     result.getName() = this.getQualifiedType() and
     exists(WebApp webApp |
-      webApp.getAResource() = this.asXmlControl().getFile() and
+      webApp.getAResource() = this.getFile() and
       webApp.getAResource() = result.getFile()
     )
   }
@@ -673,15 +777,29 @@ class UI5Control extends TUI5Control {
   /** Gets a property of this control having the name. */
   UI5ControlProperty getProperty(string propName) {
     result.asXmlControlProperty() = this.asXmlControl().getAttribute(propName)
+    or
+    result.asJsonControlProperty() = this.asJsonControl().getPropValue(propName)
+    or
+    result.asJsControlProperty() =
+      this.asJsControl()
+          .getArgument(0)
+          .getALocalSource()
+          .asExpr()
+          .(ObjectExpr)
+          .getPropertyByName(propName)
+          .getAChildExpr()
+          .flow() and
+    not exists(Property property | result.asJsControlProperty() = property.getNameExpr().flow())
   }
 
+  /** Gets a property of this control. */
   UI5ControlProperty getAProperty() { result = this.getProperty(_) }
 
   bindingset[propName]
   MethodCallNode getARead(string propName) {
     // TODO: in same view
     exists(WebApp webApp |
-      webApp.getAResource() = this.asXmlControl().getFile() and
+      webApp.getAResource() = this.getFile() and
       webApp.getAResource() = result.getFile()
     ) and
     result.getMethodName() = "get" + capitalize(propName)
@@ -691,7 +809,7 @@ class UI5Control extends TUI5Control {
   MethodCallNode getAWrite(string propName) {
     // TODO: in same view
     exists(WebApp webApp |
-      webApp.getAResource() = this.asXmlControl().getFile() and
+      webApp.getAResource() = this.getFile() and
       webApp.getAResource() = result.getFile()
     ) and
     result.getMethodName() = "set" + capitalize(propName)
@@ -705,12 +823,15 @@ class UI5Control extends TUI5Control {
     // Verify that the controller's model has the referenced property
     exists(XmlView view |
       // Both this control and the model belong to the same view
-      this = view.getXmlControl() and
+      this = view.getControl() and
       model = view.getController().getModel() and
       model.(UI5InternalModel).getPathString() = bindingPath.getPath() and
       bindingPath.getBindingTarget() = this.asXmlControl().getAnAttribute()
     )
-    // TODO: Add case where modelName is present
+    // or
+    // exists(JsonView view |
+    //   this = view.getXml
+    // )
   }
 
   /** Get the view that this control is part of. */
@@ -720,18 +841,45 @@ class UI5Control extends TUI5Control {
   CustomController getController() { result = this.getView().getController() }
 }
 
-newtype TUI5ControlProperty = TXmlControlProperty(XmlAttribute property)
+newtype TUI5ControlProperty =
+  TXmlControlProperty(XmlAttribute property) or
+  TJsonControlProperty(JsonValue property) or
+  TJsControlProperty(ValueNode property)
 
 class UI5ControlProperty extends TUI5ControlProperty {
   XmlAttribute asXmlControlProperty() { this = TXmlControlProperty(result) }
 
-  string toString() { result = this.asXmlControlProperty().toString() }
+  JsonValue asJsonControlProperty() { this = TJsonControlProperty(result) }
 
-  UI5Control getControl() { result.asXmlControl() = this.asXmlControlProperty().getElement() }
+  ValueNode asJsControlProperty() { this = TJsControlProperty(result) }
 
-  string getName() { result = this.asXmlControlProperty().getName() }
+  string toString() {
+    result = this.asXmlControlProperty().toString() or
+    result = this.asJsonControlProperty().toString() or
+    result = this.asJsControlProperty().toString()
+  }
 
-  string getValue() { result = this.asXmlControlProperty().getValue() }
+  UI5Control getControl() {
+    result.asXmlControl() = this.asXmlControlProperty().getElement() or
+    result.asJsonControl() = this.asJsonControlProperty().getParent() or
+    result.asJsControl().getArgument(0).asExpr() = this.asJsControlProperty().getEnclosingExpr()
+  }
+
+  string getName() {
+    result = this.asXmlControlProperty().getName()
+    or
+    exists(JsonValue parent | parent.getPropValue(result) = this.asJsonControlProperty())
+    or
+    exists(Property property |
+      property.getAChildExpr() = this.asJsControlProperty().asExpr() and result = property.getName()
+    )
+  }
+
+  string getValue() {
+    result = this.asXmlControlProperty().getValue() or
+    result = this.asJsonControlProperty().getStringValue() or
+    result = this.asJsControlProperty().asExpr().(StringLiteral).getValue()
+  }
 }
 
 /**
