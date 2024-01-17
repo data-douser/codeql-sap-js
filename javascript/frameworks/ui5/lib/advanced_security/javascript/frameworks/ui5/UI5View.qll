@@ -48,7 +48,7 @@ abstract class UI5BindingPath extends BindingPath {
   abstract string getAbsolutePath();
 
   /**
-   * Gets the fully qualified name of the associated control.
+   * Gets the name of the associated control.
    */
   abstract string getPropertyName();
 
