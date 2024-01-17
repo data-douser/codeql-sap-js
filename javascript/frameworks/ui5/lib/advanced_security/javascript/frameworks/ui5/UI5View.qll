@@ -79,7 +79,7 @@ abstract class UI5BindingPath extends BindingPath {
   /**
    * Gets the UI5Control using this UI5BindingPath.
    */
-  UI5Control getControlDeclaration() { none() }
+  abstract UI5Control getControlDeclaration();
 
   /**
    * Gets the model, attached to either a control or a view, that this binding path refers to.
@@ -145,6 +145,7 @@ abstract class UI5BindingPath extends BindingPath {
    * Gets the `DataFlow::Node` that represents this binding path.
    */
   Node getNode() {
+    /* 1-1. Internal (Client-side) model, model hardcoded in JS code */
     exists(Property p, JsonModel model |
       /* Get the property of an JS object bound to this binding path. */
       result.(DataFlow::PropWrite).getPropertyNameExpr() = p.getNameExpr() and
@@ -156,6 +157,7 @@ abstract class UI5BindingPath extends BindingPath {
       )
     )
     or
+    /* 1-2. Internal (Client-side) model, model loaded from JSON file */
     exists(string propName, JsonModel model |
       /* Get the property of an JS object bound to this binding path. */
       result = model.getArgument(0).getALocalSource() and
@@ -163,6 +165,7 @@ abstract class UI5BindingPath extends BindingPath {
       exists(JsonObject obj, JsonValue val | val = obj.getPropValue(propName))
     )
     or
+    /* 2. External (Server-side) model */
     result = this.getModel().(UI5ExternalModel)
   }
 }
@@ -262,11 +265,24 @@ class JsonBindingPath extends UI5BindingPath {
   override string getControlQualifiedType() { result = bindingTarget.getPropStringValue("Type") }
 
   JsonObject getBindingTarget() { result = bindingTarget }
+
+  override UI5Control getControlDeclaration() { result.asJsonControl() = bindingTarget }
 }
 
 class JsView extends UI5View {
   /* sap.ui.jsview("...", ) { ... } */
   MethodCallNode rootJsViewCall;
+
+  JsView() {
+    exists(TopLevel toplevel, Stmt stmt |
+      toplevel = unique(TopLevel t | t = this.getATopLevel()) and
+      stmt = unique(Stmt s | s = toplevel.getAChildStmt())
+    |
+      rootJsViewCall.asExpr() = stmt.getAChildExpr() and
+      rootJsViewCall.getReceiver() = DataFlow::globalVarRef("sap").getAPropertyReference("ui") and
+      rootJsViewCall.getMethodName() = "jsview"
+    )
+  }
 
   override UI5Control getControl() {
     exists(NewNode node |
@@ -286,17 +302,6 @@ class JsView extends UI5View {
           )
         )
       )
-    )
-  }
-
-  JsView() {
-    exists(TopLevel toplevel, Stmt stmt |
-      toplevel = unique(TopLevel t | t = this.getATopLevel()) and
-      stmt = unique(Stmt s | s = toplevel.getAChildStmt())
-    |
-      rootJsViewCall.asExpr() = stmt.getAChildExpr() and
-      rootJsViewCall.getReceiver() = DataFlow::globalVarRef("sap").getAPropertyReference("ui") and
-      rootJsViewCall.getMethodName() = "jsview"
     )
   }
 
@@ -385,7 +390,7 @@ class JsonView extends UI5View {
 }
 
 class JsViewBindingPath extends UI5BindingPath {
-  DataFlow::Node bindingTarget;
+  DataFlow::PropWrite bindingTarget;
   Binding binding;
 
   JsViewBindingPath() {
@@ -397,10 +402,20 @@ class JsViewBindingPath extends UI5BindingPath {
 
   /* `new sap.m.Input({...})` => `"sap.m.Input"` */
   override string getControlQualifiedType() {
-    result = bindingTarget.asExpr().getParent+().(NewExpr).getCallee().(DotExpr).getQualifiedName()
+    result =
+      bindingTarget
+          .getPropertyNameExpr()
+          .getParent+()
+          .(NewExpr)
+          .getAChildExpr()
+          .(DotExpr)
+          .getQualifiedName()
   }
 
-  override string getAbsolutePath() { none() }
+  override string getAbsolutePath() {
+    /* TODO: Implement this properly! */
+    result = this.getPath()
+  }
 
   override string getPath() { result = this.asString() }
 
@@ -411,8 +426,7 @@ class JsViewBindingPath extends UI5BindingPath {
   }
 
   override UI5Control getControlDeclaration() {
-    /* TODO */
-    none()
+    result.asJsControl().asExpr() = bindingTarget.getPropertyNameExpr().getParentExpr+().(NewExpr)
   }
 }
 
@@ -462,6 +476,8 @@ class HtmlBindingPath extends UI5BindingPath {
   }
 
   HTML::Attribute getBindingTarget() { result = bindingTarget }
+
+  override UI5Control getControlDeclaration() { result.asXmlControl() = bindingTarget.getElement() }
 
   override string toString() { result = bindingTarget.toString() }
 }
@@ -713,7 +729,7 @@ class UI5Control extends TUI5Control {
       location.getEndLine() = endline
     )
     or
-    this.asJsControl().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+    this.asJsControl().hasLocationInfo(filepath, startcolumn, startline, endcolumn, endline)
   }
 
   /**

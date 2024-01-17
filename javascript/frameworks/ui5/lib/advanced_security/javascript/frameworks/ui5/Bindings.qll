@@ -189,12 +189,12 @@ private predicate earlyPathPropertyBinding(
     else pathValue = bindingPath // e.g., path: "/" + someVar
   )
   or
-  // Propery binding where the binding is the binding path.
-  exists(Property prop |
-    newNode.getAnArgument().getALocalSource().asExpr().(ObjectExpr).getAProperty() = prop and
-    prop.getInit().flow().getALocalSource() = binding and
-    binding = bindingPath and
-    binding.getStringValue() instanceof BindingString
+  // Property binding where the binding is the binding path.
+  exists(DataFlow::PropWrite prop |
+    newNode.getAnArgument().getALocalSource().asExpr().(ObjectExpr) =
+      prop.getPropertyNameExpr().getParentExpr+() and
+    prop.getRhs() = bindingPath and
+    bindingPath.getStringValue() instanceof BindingString
   )
   or
   exists(
@@ -376,6 +376,11 @@ class BindingPath extends TBindingPath {
       this = TStaticBindingPath(_, path) and
       result = path.toString()
     )
+    or
+    exists(DataFlow::Node pathValue |
+      this = TDynamicBindingPath(_, pathValue) and
+      result = pathValue.asExpr().(StringLiteral).getValue().regexpCapture("\\{(.*)\\}", 1)
+    )
   }
 
   Location getLocation() {
@@ -424,11 +429,12 @@ private newtype TBindingTarget =
   TXmlContextBindingTarget(ContextBindingAttribute target, Binding binding) {
     binding = TXmlContextBinding(target, _)
   } or
-  TEarlyJavaScriptBindingTarget(DataFlow::Node target, Binding binding) {
-    exists(DataFlow::NewNode newNode, Property property |
-      binding = TEarlyJavaScriptPropertyBinding(newNode, _) and
-      newNode.getAnArgument().getALocalSource().asExpr().(ObjectExpr).getAProperty() = property and
-      target = property.getInit().flow().getALocalSource()
+  TEarlyJavaScriptBindingTarget(DataFlow::PropWrite target, Binding binding) {
+    exists(DataFlow::NewNode newNode, DataFlow::Node bindingNode |
+      binding = TEarlyJavaScriptPropertyBinding(newNode, bindingNode) and
+      newNode.getArgument(0) = target.getBase() and
+      target.getRhs() = bindingNode and
+      bindingNode.getStringValue() instanceof BindingString
     )
   } or
   TLateJavaScriptBindingTarget(DataFlow::Node target, Binding binding) {

@@ -8,7 +8,7 @@ import advanced_security.javascript.frameworks.ui5.UI5HTML
 private module WebAppResourceRootJsonReader implements JsonParser::MakeJsonReaderSig<WebApp> {
   class JsonReader extends WebApp {
     string getJson() {
-      // We match on the lowercase to cover all the possible variants of wrtiting the attribute name.
+      // We match on the lowercase to cover all the possible variants of writing the attribute name.
       exists(string resourceRootAttributeName |
         resourceRootAttributeName.toLowerCase() = "data-sap-ui-resourceroots"
       |
