@@ -82,8 +82,6 @@ module UI5PathGraph {
       this.asDataFlowNode().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
       or
       this.asUI5BindingPathNode()
-          // TODO: generalize from XML
-          .(XmlBindingPath)
           .getLocation()
           .hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
     }
