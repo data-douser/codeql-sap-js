@@ -129,5 +129,7 @@ private class RouteParameterAccess extends RemoteFlowSource instanceof PropRead 
 private class UI5ExtRemoteSource extends RemoteFlowSource {
   UI5ExtRemoteSource() { this = ModelOutput::getASourceNode("remote").asSource() }
 
-  override string getSourceType() { result = "UI5-specific remote source" }
+  override string getSourceType() {
+    result = "Remote flow" // Don't discriminate between UI5-specific remote flows and vanilla ones
+  }
 }
