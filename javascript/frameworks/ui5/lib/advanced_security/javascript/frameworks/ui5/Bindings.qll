@@ -86,6 +86,22 @@ private class BindingStringReader extends TBindingString {
       result = bindProperty.getArgument(1).getALocalSource().asExpr().(StringLiteral).getLocation()
     )
   }
+
+  DataFlow::Node getANode() {
+    this = TBindingStringFromLiteral(result.asExpr())
+    or
+    exists(BindElementMethodCallNode bindElement |
+      this = TBindingStringFromBindElementMethodCall(bindElement) and
+      result = bindElement.getArgument(0).getALocalSource() and
+      result.asExpr() instanceof StringLiteral
+    )
+    or
+    exists(BindPropertyMethodCallNode bindProperty |
+      this = TBindingStringFromBindPropertyMethodCall(bindProperty) and
+      result = bindProperty.getArgument(1).getALocalSource() and
+      result.asExpr() instanceof StringLiteral
+    )
+  }
 }
 
 /**
@@ -203,7 +219,7 @@ private predicate earlyPropertyBinding(
   or
   // Composite binding https://ui5.sap.com/#/topic/a2fe8e763014477e87990ff50657a0d0
   exists(
-    DataFlow::ObjectLiteralNode objectLiteral, 
+    DataFlow::ObjectLiteralNode objectLiteral,
     DataFlow::ObjectLiteralNode valueLiteral, DataFlow::PropWrite partWrite,
     DataFlow::ArrayLiteralNode partsArray, DataFlow::ObjectLiteralNode partsElement,
     DataFlow::PropWrite pathWrite, DataFlow::ValueNode pathValue
@@ -387,7 +403,7 @@ private newtype TBindingPath =
           or
           binding = TLateJavaScriptContextBinding(_, possibleStaticBinding)
         ) and
-        possibleStaticBinding.mayHaveStringValue(parsedBinding.getReader().getBindingString())
+        possibleStaticBinding.getALocalSource() = parsedBinding.getReader().getANode()
       )
       or
       binding = TJsonPropertyBinding(_, _, parsedBinding)
@@ -480,7 +496,7 @@ class BindingPath extends TBindingPath {
   }
 
   Binding getBinding() {
-    this = TStaticBindingPath(result, _, _) 
+    this = TStaticBindingPath(result, _, _)
     or
     this = TDynamicBindingPath(result, _, _)
   }
