@@ -1,34 +1,37 @@
 | app.view.html:5:11:5:31 | data-value={/input} | /input |
 | app.view.html:8:11:8:33 | data-content={/input} | /input |
-| app.view.js:18:13:18:29 | value: "{/input}" | /input |
-| app.view.js:21:13:21:31 | content: "{/input}" | /input |
+| app.view.js:18:20:18:29 | /input | /input |
+| app.view.js:21:22:21:31 | /input | /input |
 | binding1.json:9:21:9:29 | "items": "{/Base}" | /Base |
 | binding1.json:15:30:15:38 | "value": "{input}" | /Base/input |
 | binding1.json:19:32:19:78 | "content": "{path:'/input', formatter: '.valueFormatter'}" | /input |
 | binding1.xml:6:5:6:35 | value={/firstName} | /firstName |
 | binding1.xml:7:5:7:77 | value={path: '/firstName', type: 'sap.ui.model.type.String'} | /firstName |
+| binding1.xml:9:5:15:49 | value={parts: [\n\t        \t {path:'/birthday/day'},\n\t        \t {path:'/birthday/month'},\n\t        \t {path:'/birthday/year'}\n        \t    ], \n\t            formatter:'my.globalFormatter'} | /birthday/day |
+| binding1.xml:9:5:15:49 | value={parts: [\n\t        \t {path:'/birthday/day'},\n\t        \t {path:'/birthday/month'},\n\t        \t {path:'/birthday/year'}\n        \t    ], \n\t            formatter:'my.globalFormatter'} | /birthday/month |
 | binding1.xml:9:5:15:49 | value={parts: [\n\t        \t {path:'/birthday/day'},\n\t        \t {path:'/birthday/month'},\n\t        \t {path:'/birthday/year'}\n        \t    ], \n\t            formatter:'my.globalFormatter'} | /birthday/year |
-| binding1.xml:17:5:20:46 | items={Result>/Rowsets/Rowset/Row} | /Rowsets/Rowset/Row |
-| binding1.xml:21:9:21:46 | label={Result>Name} | /Rowsets/Rowset/Row/Name |
-| binding1.xml:22:13:24:100 | items={path:'Result>Selection/Row', templateShareable: true} | /Rowsets/Rowset/Row/Selection/Row |
-| binding1.xml:27:21:27:94 | key={Result>Value} | /Rowsets/Rowset/Row/Selection/Row/Value |
-| binding1.xml:27:21:27:94 | key={Result>Value} | /Rowsets/Rowset/Row/Value |
-| binding1.xml:27:21:27:94 | text={path:'Result>Value'} | /Rowsets/Rowset/Row/Selection/Row/Value |
-| binding1.xml:27:21:27:94 | text={path:'Result>Value'} | /Rowsets/Rowset/Row/Value |
-| binding1.xml:31:13:33:67 | items={path:'Result>', templateShareable: true} | /Rowsets/Rowset/Row/ |
-| binding1.xml:34:17:34:79 | key={Result>Subvalue} | /Rowsets/Rowset/Row//Subvalue |
-| binding1.xml:34:17:34:79 | key={Result>Subvalue} | /Rowsets/Rowset/Row/Subvalue |
-| binding1.xml:34:17:34:79 | text={Result>Subvalue} | /Rowsets/Rowset/Row//Subvalue |
-| binding1.xml:34:17:34:79 | text={Result>Subvalue} | /Rowsets/Rowset/Row/Subvalue |
-| binding1.xml:42:13:42:110 | items={other:{foo:'val1', bar:val2}path: '/country'} | /country |
-| binding1.xml:44:21:44:71 | key={Key} | /country/Key |
-| binding1.xml:44:21:44:71 | text={Name} | /country/Name |
-| bindingComposite.xml:6:9:6:81 | items={products>/Products} | /Products |
+| binding1.xml:17:5:20:46 | items={Result>/Rowsets/Rowset/Row} | Result>/Rowsets/Rowset/Row |
+| binding1.xml:21:9:21:46 | label={Result>Name} | Result>Name |
+| binding1.xml:22:13:24:100 | items={path:'Result>Selection/Row', templateShareable: true} | Result>Selection/Row |
+| binding1.xml:27:21:27:94 | key={Result>Value} | Result>Value |
+| binding1.xml:27:21:27:94 | text={path:'Result>Value'} | Result>Value |
+| binding1.xml:34:17:34:79 | key={Result>Subvalue} | Result>Subvalue |
+| binding1.xml:34:17:34:79 | key={Result>Subvalue} | Result>Subvalue |
+| binding1.xml:34:17:34:79 | text={Result>Subvalue} | Result>Subvalue |
+| binding1.xml:34:17:34:79 | text={Result>Subvalue} | Result>Subvalue |
+| binding1.xml:44:21:44:71 | key={Key} | Key |
+| binding1.xml:44:21:44:71 | text={Name} | Name |
+| bindingComposite.xml:5:5:5:92 | headerText={i18n>panel3HeaderText} | i18n>panel3HeaderText |
+| bindingComposite.xml:6:9:6:81 | headerText={i18n>productListTitle} | i18n>productListTitle |
+| bindingComposite.xml:6:9:6:81 | items={products>/Products} | products>/Products |
 | bindingComposite.xml:8:17:17:50 | number={\n\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t],\n\t\t\t\t\t\ttype: 'sap.ui.model.type.Currency',\n\t\t\t\t\t\tformatOptions: { showMeasure: false }\n\t\t\t\t\t} | /currencyCode |
+| bindingComposite.xml:8:17:17:50 | number={\n\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t],\n\t\t\t\t\t\ttype: 'sap.ui.model.type.Currency',\n\t\t\t\t\t\tformatOptions: { showMeasure: false }\n\t\t\t\t\t} | products>UnitPrice |
 | bindingComposite.xml:8:17:17:50 | numberUnit={/currencyCode} | /currencyCode |
-| bindingComposite.xml:8:17:17:50 | title={products>ProductName} | /Products/ProductName |
-| bindingComposite.xml:19:25:19:78 | text={products>QuantityPerUnit} | /Products/QuantityPerUnit |
+| bindingComposite.xml:8:17:17:50 | title={products>ProductName} | products>ProductName |
+| bindingComposite.xml:19:25:19:78 | text={products>QuantityPerUnit} | products>QuantityPerUnit |
 | bindingComposite.xml:20:25:28:13 | text={\n\t\t\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitsInStock'},\n\t\t\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\t\tformatter: '.formatStockValue'\n\t\t\t\t\t\t\t} | /currencyCode |
-| bindingComposite.xml:20:25:28:13 | title={i18n>stockValue} | /Products/stockValue |
+| bindingComposite.xml:20:25:28:13 | text={\n\t\t\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitsInStock'},\n\t\t\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\t\tformatter: '.formatStockValue'\n\t\t\t\t\t\t\t} | products>UnitPrice |
+| bindingComposite.xml:20:25:28:13 | text={\n\t\t\t\t\t\t\t\tparts: [\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitPrice'},\n\t\t\t\t\t\t\t\t\t{path: 'products>UnitsInStock'},\n\t\t\t\t\t\t\t\t\t{path: '/currencyCode'}\n\t\t\t\t\t\t\t\t],\n\t\t\t\t\t\t\t\tformatter: '.formatStockValue'\n\t\t\t\t\t\t\t} | products>UnitsInStock |
+| bindingComposite.xml:20:25:28:13 | title={i18n>stockValue} | i18n>stockValue |
 | bindingComposite.xml:34:5:36:28 | value={/input} | /input |
 | bindingComposite.xml:38:5:38:45 | content={path: '/input'} | /input |
