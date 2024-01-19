@@ -118,7 +118,6 @@ jobs:
         with:
           qlt-version: 'latest'
           add-to-path: true
-          token: ${{ secrets.ACCESS_TOKEN }}
         
 
       - name: Collect test results
