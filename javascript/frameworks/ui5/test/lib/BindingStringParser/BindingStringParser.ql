@@ -10,6 +10,10 @@ class BindingStringReader extends StringLiteral {
     string getBindingString() {
         result = this.getValue()
     }
+    
+    DataFlow::Node getANode() {
+        result.asExpr() = this
+    } 
 }
 
 module BindingStringParser = Make::BindingStringParser<BindingStringReader>;
