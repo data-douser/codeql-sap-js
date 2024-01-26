@@ -4,6 +4,6 @@ warnOnImplicitThis: false
 name: advanced-security/javascript-heuristic-models
 version: 0.0.1
 extensionTargets:
-  codeql/javascript-all: "^0.8.8"
+  codeql/javascript-all: "^0.8.7"
 dataExtensions:
   - "*.model.yml"
