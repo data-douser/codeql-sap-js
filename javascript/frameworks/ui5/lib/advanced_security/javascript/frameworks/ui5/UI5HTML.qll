@@ -1,6 +1,6 @@
-private import javascript
-private import DataFlow
-private import advanced_security.javascript.frameworks.ui5.UI5
+import javascript
+import DataFlow
+import advanced_security.javascript.frameworks.ui5.UI5
 
 newtype TFrameOptions =
   /*
@@ -87,7 +87,7 @@ class FrameOptions extends TFrameOptions {
 /**
  * Holds if there are no frame options specified to prevent click jacking.
  */
-predicate isMissingFrameOptionsToPreventClickjacking(UI5::WebApp webapp) {
+predicate isMissingFrameOptionsToPreventClickjacking(WebApp webapp) {
   not exists(FrameOptions frameOptions | webapp.getFrameOptions() = frameOptions |
     frameOptions.allowsSharedOriginEmbedding() or
     frameOptions.deniesEmbedding() or

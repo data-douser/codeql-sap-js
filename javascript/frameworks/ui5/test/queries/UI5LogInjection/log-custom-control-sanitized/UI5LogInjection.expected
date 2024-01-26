@@ -23,5 +23,7 @@ edges
 | webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/view/app.view.xml:5:5:7:28 | value={/input} |
 | webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/view/app.view.xml:8:5:8:38 | text={/input} |
 | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:9:17:9:27 | input: null |
+| webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:11:26:11:45 | new JSONModel(oData) |
+| webapp/view/app.view.xml:8:5:8:38 | text={/input} | webapp/controller/app.controller.js:9:17:9:27 | input: null |
 #select
 | webapp/control/xss.js:17:38:17:46 | sanitized | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/control/xss.js:17:38:17:46 | sanitized | Log entry depends on a $@. | webapp/view/app.view.xml:5:5:7:28 | value={/input} | user-provided value |
