@@ -62,7 +62,7 @@ extensions:
       - ["UI5ClientStorage", "global", "Member[sap].Member[ui].Member[util].Member[Storage]"]
       - ["UI5ClientStorage", "global", "Member[jQuery].Member[sap].Member[storage]"]
       - ["UI5ClientStorage", "sap/ui/core/util/File", ""]
-      - ["UI5ClientStorage", "Member[sap].Member[ui].Member[core].Member[util].Member[File]", ""]
+      - ["UI5ClientStorage", "global", "Member[sap].Member[ui].Member[core].Member[util].Member[File]"]
 
 
   - addsTo:
