@@ -7,7 +7,7 @@
 
 import javascript
 import semmle.javascript.security.dataflow.TaintedPathQuery as TaintedPathQuery
-import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow as UI5DataFlow // HACK: Why does this test pass only when we import this?
+import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow as UI5DataFlow
 
 class UI5ExtPathISink extends TaintedPathQuery::Sink {
   UI5ExtPathISink() { this = ModelOutput::getASinkNode("ui5-path-injection").asSink() }
