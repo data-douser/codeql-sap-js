@@ -193,7 +193,8 @@ abstract private class LateJavaScriptPropertyBinding extends DataFlow::Node {
  */
 private predicate earlyPropertyBinding(
   DataFlow::NewNode newNode, DataFlow::PropWrite bindingTarget, DataFlow::Node binding,
-  DataFlow::Node bindingPath) {
+  DataFlow::Node bindingPath
+) {
   // Property binding via an object literal binding with property `path`.
   // This assumes the value assigned to `path` is a binding, even if we cannot
   // statically determine it is a binding.
@@ -205,9 +206,10 @@ private predicate earlyPropertyBinding(
     if exists(binding.getALocalSource())
     then binding.getALocalSource() = bindingPath
     else binding = bindingPath // e.g., path: "/" + someVar
-  ) and not bindingPath.getStringValue() instanceof BindingString
+  ) and
+  not bindingPath.getStringValue() instanceof BindingString
   or
-  // Propery binding of an arbitrary property for which we can statically determined
+  // Property binding of an arbitrary property for which we can statically determined
   // the value written to the property is a binding path.
   exists(DataFlow::SourceNode objectLiteral |
     newNode.getAnArgument().getALocalSource() = objectLiteral and
@@ -339,9 +341,7 @@ private newtype TBinding =
    * with a property `parts` assigned a value, or
    * an object literal that is assigned a string value that is a binding path.
    */
-  TEarlyJavaScriptPropertyBinding(
-    DataFlow::PropWrite bindingTarget, DataFlow::ValueNode binding
-  ) {
+  TEarlyJavaScriptPropertyBinding(DataFlow::PropWrite bindingTarget, DataFlow::ValueNode binding) {
     earlyPropertyBinding(_, bindingTarget, binding, _)
   } or
   // Property binding via a call to `bindProperty` or `bindValue`.
@@ -415,22 +415,24 @@ private newtype TBindingPath =
     )
   } or
   TDynamicBindingPath(Binding binding, DataFlow::Node dynamicBinding, DataFlow::Node bindingPath) {
-    (exists(DataFlow::PropWrite bindingTarget |
-      binding = TEarlyJavaScriptPropertyBinding(bindingTarget, dynamicBinding) and
-      earlyPropertyBinding(_, bindingTarget, dynamicBinding, bindingPath)
-    )
-    or
-    exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding |
-      // Property binding via a call to `bindProperty` or `bindValue`.
-      binding = TLateJavaScriptPropertyBinding(lateJavaScriptPropertyBinding, dynamicBinding) and
-      latePropertyBinding(lateJavaScriptPropertyBinding, dynamicBinding, bindingPath)
-    )
-    or
-    exists(BindElementMethodCallNode bindElementMethodCall |
-      // Element binding via a call to `bindElement`.
-      binding = TLateJavaScriptContextBinding(bindElementMethodCall, dynamicBinding) and
-      lateContextBinding(bindElementMethodCall, dynamicBinding, bindingPath)
-    )) and
+    (
+      exists(DataFlow::PropWrite bindingTarget |
+        binding = TEarlyJavaScriptPropertyBinding(bindingTarget, dynamicBinding) and
+        earlyPropertyBinding(_, bindingTarget, dynamicBinding, bindingPath)
+      )
+      or
+      exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding |
+        // Property binding via a call to `bindProperty` or `bindValue`.
+        binding = TLateJavaScriptPropertyBinding(lateJavaScriptPropertyBinding, dynamicBinding) and
+        latePropertyBinding(lateJavaScriptPropertyBinding, dynamicBinding, bindingPath)
+      )
+      or
+      exists(BindElementMethodCallNode bindElementMethodCall |
+        // Element binding via a call to `bindElement`.
+        binding = TLateJavaScriptContextBinding(bindElementMethodCall, dynamicBinding) and
+        lateContextBinding(bindElementMethodCall, dynamicBinding, bindingPath)
+      )
+    ) and
     not dynamicBinding.mayHaveStringValue(_)
   }
 
@@ -438,6 +440,9 @@ private newtype TBindingPath =
  * A class representing a binding path.
  */
 class BindingPath extends TBindingPath {
+  /**
+   * For debugging purposes (pretty-printing in result table)
+   */
   string toString() {
     exists(BindingStringParser::BindingPath path |
       this = TStaticBindingPath(_, _, path) and
@@ -459,6 +464,11 @@ class BindingPath extends TBindingPath {
     exists(BindingStringParser::BindingPath path |
       this = TStaticBindingPath(_, _, path) and
       result = path.toString()
+    )
+    or
+    exists(DataFlow::Node pathValue |
+      this = TDynamicBindingPath(_, _, pathValue) and
+      result = pathValue.asExpr().(StringLiteral).getValue().regexpCapture("\\{(.*)\\}", 1)
     )
   }
 
@@ -616,8 +626,8 @@ class BindingTarget extends TBindingTarget {
   Binding getBinding() {
     this = TXmlPropertyBindingTarget(_, result) or
     this = TXmlContextBindingTarget(_, result) or
-    this = TLateJavaScriptBindingTarget(_, result) or
     this = TEarlyJavaScriptPropertyBindingTarget(_, result) or
+    this = TLateJavaScriptBindingTarget(_, result) or
     this = TJsonPropertyBindingTarget(_, _, result)
   }
 }
@@ -650,7 +660,9 @@ class Binding extends TBinding {
     or
     exists(DataFlow::PropWrite bindingTarget, DataFlow::Node binding |
       this = TEarlyJavaScriptPropertyBinding(bindingTarget, binding) and
-      result = "Early JavaScript property binding: " + bindingTarget.getPropertyNameExpr() + " to " + binding
+      result =
+        "Early JavaScript property binding: " + bindingTarget.getPropertyNameExpr() + " to " +
+          binding
     )
     or
     exists(LateJavaScriptPropertyBinding lateJavaScriptPropertyBinding, DataFlow::Node binding |
@@ -710,9 +722,7 @@ class Binding extends TBinding {
     )
   }
 
-  BindingPath getBindingPath() {
-    result.getBinding() = this
-  }
+  BindingPath getBindingPath() { result.getBinding() = this }
 
   BindingTarget getBindingTarget() { result.getBinding() = this }
 }
