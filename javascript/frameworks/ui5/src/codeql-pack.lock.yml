@@ -2,7 +2,7 @@
 lockVersion: 1.0.0
 dependencies:
   codeql/javascript-all:
-    version: 0.8.1
+    version: 0.8.7
   codeql/mad:
     version: 0.2.1
   codeql/regex:
