@@ -1,0 +1,1 @@
+| loginjection.js:11:14:11:26 | "test" + book | Log injection vulnerability found. |
