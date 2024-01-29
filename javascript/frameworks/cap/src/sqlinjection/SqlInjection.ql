@@ -6,7 +6,7 @@
  * @problem.severity error
  * @security-severity 8.8
  * @precision high
- * @id js/sql-injection-cap
+ * @id js/cap-sql-injection
  * @tags security
  */
 

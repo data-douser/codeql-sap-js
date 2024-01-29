@@ -6,7 +6,7 @@
  * @problem.severity error
  * @security-severity 7.8
  * @precision medium
- * @id js/log-injection-cap
+ * @id js/cap-log-injection
  * @tags security
  */
 
