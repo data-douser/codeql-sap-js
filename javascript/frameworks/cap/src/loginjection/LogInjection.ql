@@ -1,32 +1,31 @@
 /**
  * @name Uncontrolled data in logging call
- * @description If unsanitized user input is written to a log entry, 
- *              a malicious user may be able to forge new log entries
- * @kind problem
+ * @description Building log entries from user-controlled sources is vulnerable to
+ *              insertion of forged log entries by a malicious user.
+ * @kind path-problem
  * @problem.severity error
- * @id javascript/log-injection-custom
+ * @security-severity 7.8
+ * @precision medium
+ * @id js/log-injection-cap
  * @tags security
- *       external/cwe/cwe-117
  */
 
- import javascript
- import advanced_security.javascript.frameworks.cap.CDS
- 
- class  LogInjectionConfiguration extends TaintTracking::Configuration {
-    LogInjectionConfiguration(){
-         this = ""
-     }
-     override predicate isSource(DataFlow::Node source) {
-         exists(CDS::RequestSource src |
-             source = src )
-     }
- 
-     override predicate isSink(DataFlow::Node sink) { 
-         exists(CDS::CdsLogSink snk |
-             sink = snk )
-     }
- }
- 
- from LogInjectionConfiguration log , DataFlow::Node source, DataFlow::Node sink
- where log.hasFlow(source, sink)
- select sink, "Log injection vulnerability found."
+import javascript
+import DataFlow::PathGraph
+import semmle.javascript.security.dataflow.LogInjectionQuery
+import advanced_security.javascript.frameworks.cap.CDS
+
+/**
+ * A source of remote user controlled input.
+ */
+class CapRemoteSource extends Source, CDS::RequestSource { }
+
+/**
+ * An argument to a logging mechanism.
+ */
+class CapLoggingSink extends Sink, CDS::CdsLogSink { }
+
+from Configuration config, DataFlow::PathNode source, DataFlow::PathNode sink
+where config.hasFlowPath(source, sink)
+select sink.getNode(), source, sink, "Log entry depends on a $@.", source.getNode(),
+  "user-provided value"

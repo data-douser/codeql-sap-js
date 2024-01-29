@@ -1,6 +1,84 @@
-| sqlinjection.js:13:35:13:39 | query | Injection vulnerability found. |
-| sqlinjection.js:15:25:15:65 | SELECT. ... book}`) | Injection vulnerability found. |
-| sqlinjection.js:18:36:18:41 | query2 | Injection vulnerability found. |
-| sqlinjection.js:20:25:20:63 | SELECT. ... '+book) | Injection vulnerability found. |
-| sqlinjection.js:28:38:28:40 | cqn | Injection vulnerability found. |
-| sqlinjection.js:31:38:31:41 | cqn1 | Injection vulnerability found. |
+nodes
+| sqlinjection.js:7:33:7:35 | req |
+| sqlinjection.js:7:33:7:35 | req |
+| sqlinjection.js:8:11:8:25 | {book,quantity} |
+| sqlinjection.js:8:11:8:36 | book |
+| sqlinjection.js:8:12:8:15 | book |
+| sqlinjection.js:8:29:8:31 | req |
+| sqlinjection.js:8:29:8:36 | req.data |
+| sqlinjection.js:12:9:12:57 | query |
+| sqlinjection.js:12:17:12:57 | SELECT. ... book}`) |
+| sqlinjection.js:12:45:12:56 | `ID=${book}` |
+| sqlinjection.js:12:51:12:54 | book |
+| sqlinjection.js:13:35:13:39 | query |
+| sqlinjection.js:13:35:13:39 | query |
+| sqlinjection.js:15:25:15:65 | SELECT. ... book}`) |
+| sqlinjection.js:15:25:15:65 | SELECT. ... book}`) |
+| sqlinjection.js:15:53:15:64 | `ID=${book}` |
+| sqlinjection.js:15:59:15:62 | book |
+| sqlinjection.js:17:9:17:56 | query2 |
+| sqlinjection.js:17:18:17:56 | SELECT. ... '+book) |
+| sqlinjection.js:17:46:17:55 | 'ID='+book |
+| sqlinjection.js:17:52:17:55 | book |
+| sqlinjection.js:18:36:18:41 | query2 |
+| sqlinjection.js:18:36:18:41 | query2 |
+| sqlinjection.js:20:25:20:63 | SELECT. ... '+book) |
+| sqlinjection.js:20:25:20:63 | SELECT. ... '+book) |
+| sqlinjection.js:20:53:20:62 | 'ID='+book |
+| sqlinjection.js:20:59:20:62 | book |
+| sqlinjection.js:27:9:27:60 | cqn |
+| sqlinjection.js:27:15:27:60 | CQL`SEL ...  + book |
+| sqlinjection.js:27:57:27:60 | book |
+| sqlinjection.js:28:38:28:40 | cqn |
+| sqlinjection.js:28:38:28:40 | cqn |
+| sqlinjection.js:30:9:30:58 | cqn1 |
+| sqlinjection.js:30:16:30:58 | cds.par ... + book) |
+| sqlinjection.js:30:31:30:57 | `SELECT ... `+ book |
+| sqlinjection.js:30:54:30:57 | book |
+| sqlinjection.js:31:38:31:41 | cqn1 |
+| sqlinjection.js:31:38:31:41 | cqn1 |
+edges
+| sqlinjection.js:7:33:7:35 | req | sqlinjection.js:8:29:8:31 | req |
+| sqlinjection.js:7:33:7:35 | req | sqlinjection.js:8:29:8:31 | req |
+| sqlinjection.js:8:11:8:25 | {book,quantity} | sqlinjection.js:8:12:8:15 | book |
+| sqlinjection.js:8:11:8:36 | book | sqlinjection.js:12:51:12:54 | book |
+| sqlinjection.js:8:11:8:36 | book | sqlinjection.js:15:59:15:62 | book |
+| sqlinjection.js:8:11:8:36 | book | sqlinjection.js:17:52:17:55 | book |
+| sqlinjection.js:8:11:8:36 | book | sqlinjection.js:20:59:20:62 | book |
+| sqlinjection.js:8:11:8:36 | book | sqlinjection.js:27:57:27:60 | book |
+| sqlinjection.js:8:11:8:36 | book | sqlinjection.js:30:54:30:57 | book |
+| sqlinjection.js:8:12:8:15 | book | sqlinjection.js:8:11:8:36 | book |
+| sqlinjection.js:8:29:8:31 | req | sqlinjection.js:8:29:8:36 | req.data |
+| sqlinjection.js:8:29:8:36 | req.data | sqlinjection.js:8:11:8:25 | {book,quantity} |
+| sqlinjection.js:12:9:12:57 | query | sqlinjection.js:13:35:13:39 | query |
+| sqlinjection.js:12:9:12:57 | query | sqlinjection.js:13:35:13:39 | query |
+| sqlinjection.js:12:17:12:57 | SELECT. ... book}`) | sqlinjection.js:12:9:12:57 | query |
+| sqlinjection.js:12:45:12:56 | `ID=${book}` | sqlinjection.js:12:17:12:57 | SELECT. ... book}`) |
+| sqlinjection.js:12:51:12:54 | book | sqlinjection.js:12:45:12:56 | `ID=${book}` |
+| sqlinjection.js:15:53:15:64 | `ID=${book}` | sqlinjection.js:15:25:15:65 | SELECT. ... book}`) |
+| sqlinjection.js:15:53:15:64 | `ID=${book}` | sqlinjection.js:15:25:15:65 | SELECT. ... book}`) |
+| sqlinjection.js:15:59:15:62 | book | sqlinjection.js:15:53:15:64 | `ID=${book}` |
+| sqlinjection.js:17:9:17:56 | query2 | sqlinjection.js:18:36:18:41 | query2 |
+| sqlinjection.js:17:9:17:56 | query2 | sqlinjection.js:18:36:18:41 | query2 |
+| sqlinjection.js:17:18:17:56 | SELECT. ... '+book) | sqlinjection.js:17:9:17:56 | query2 |
+| sqlinjection.js:17:46:17:55 | 'ID='+book | sqlinjection.js:17:18:17:56 | SELECT. ... '+book) |
+| sqlinjection.js:17:52:17:55 | book | sqlinjection.js:17:46:17:55 | 'ID='+book |
+| sqlinjection.js:20:53:20:62 | 'ID='+book | sqlinjection.js:20:25:20:63 | SELECT. ... '+book) |
+| sqlinjection.js:20:53:20:62 | 'ID='+book | sqlinjection.js:20:25:20:63 | SELECT. ... '+book) |
+| sqlinjection.js:20:59:20:62 | book | sqlinjection.js:20:53:20:62 | 'ID='+book |
+| sqlinjection.js:27:9:27:60 | cqn | sqlinjection.js:28:38:28:40 | cqn |
+| sqlinjection.js:27:9:27:60 | cqn | sqlinjection.js:28:38:28:40 | cqn |
+| sqlinjection.js:27:15:27:60 | CQL`SEL ...  + book | sqlinjection.js:27:9:27:60 | cqn |
+| sqlinjection.js:27:57:27:60 | book | sqlinjection.js:27:15:27:60 | CQL`SEL ...  + book |
+| sqlinjection.js:30:9:30:58 | cqn1 | sqlinjection.js:31:38:31:41 | cqn1 |
+| sqlinjection.js:30:9:30:58 | cqn1 | sqlinjection.js:31:38:31:41 | cqn1 |
+| sqlinjection.js:30:16:30:58 | cds.par ... + book) | sqlinjection.js:30:9:30:58 | cqn1 |
+| sqlinjection.js:30:31:30:57 | `SELECT ... `+ book | sqlinjection.js:30:16:30:58 | cds.par ... + book) |
+| sqlinjection.js:30:54:30:57 | book | sqlinjection.js:30:31:30:57 | `SELECT ... `+ book |
+#select
+| sqlinjection.js:13:35:13:39 | query | sqlinjection.js:7:33:7:35 | req | sqlinjection.js:13:35:13:39 | query | This query depends on a $@. | sqlinjection.js:7:33:7:35 | req | user-provided value |
+| sqlinjection.js:15:25:15:65 | SELECT. ... book}`) | sqlinjection.js:7:33:7:35 | req | sqlinjection.js:15:25:15:65 | SELECT. ... book}`) | This query depends on a $@. | sqlinjection.js:7:33:7:35 | req | user-provided value |
+| sqlinjection.js:18:36:18:41 | query2 | sqlinjection.js:7:33:7:35 | req | sqlinjection.js:18:36:18:41 | query2 | This query depends on a $@. | sqlinjection.js:7:33:7:35 | req | user-provided value |
+| sqlinjection.js:20:25:20:63 | SELECT. ... '+book) | sqlinjection.js:7:33:7:35 | req | sqlinjection.js:20:25:20:63 | SELECT. ... '+book) | This query depends on a $@. | sqlinjection.js:7:33:7:35 | req | user-provided value |
+| sqlinjection.js:28:38:28:40 | cqn | sqlinjection.js:7:33:7:35 | req | sqlinjection.js:28:38:28:40 | cqn | This query depends on a $@. | sqlinjection.js:7:33:7:35 | req | user-provided value |
+| sqlinjection.js:31:38:31:41 | cqn1 | sqlinjection.js:7:33:7:35 | req | sqlinjection.js:31:38:31:41 | cqn1 | This query depends on a $@. | sqlinjection.js:7:33:7:35 | req | user-provided value |
