@@ -19,9 +19,13 @@ import advanced_security.javascript.frameworks.cap.CQL
 class Configuration extends TaintTracking::Configuration {
   Configuration() { this = "CapSqlInjection" }
 
-  override predicate isSource(DataFlow::Node source) { source instanceof CDS::RequestSource }
+  override predicate isSource(DataFlow::Node source) {
+    source instanceof Source or source instanceof CDS::RequestSource
+  }
 
-  override predicate isSink(DataFlow::Node sink) { sink instanceof CQL::CQLSink }
+  override predicate isSink(DataFlow::Node sink) {
+    sink instanceof Sink or sink instanceof CQL::CQLSink
+  }
 
   override predicate isAdditionalTaintStep(DataFlow::Node pred, DataFlow::Node succ) {
     //string concatenation in a clause arg taints the clause
