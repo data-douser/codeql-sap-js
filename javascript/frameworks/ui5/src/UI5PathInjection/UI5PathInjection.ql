@@ -31,5 +31,5 @@ from
 where
   config.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   primarySource = source.getAPrimarySource()
-select sink, primarySource, sink, "Path of a saved file depends on a $@.", primarySource,
+select sink, primarySource, sink, "The path of a saved file depends on a $@.", primarySource,
   "user-provided value"
