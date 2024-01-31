@@ -4,7 +4,8 @@ queries:
   # for log-injection
   - uses: security-and-quality
   # for ui5/cap queries
-  - uses: ./javascript/frameworks
+  - uses: ./javascript/frameworks/ui5/src
+  - uses: ./javascript/frameworks/cap/src
   
 query-filters:
 - exclude:
