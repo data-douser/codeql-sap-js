@@ -119,7 +119,11 @@ sap.ui.require(
     var value = sap.ui.util.Storage.put(code0, code1);
     var value = jQuery.sap.storage.put(code0, code1);
 
+    var value = File.save(code0, code1, "csv", "text/csv", code4, code5);
+    var value = File.save(code0, code1, "csv", "text/plain", code4, code5);
     var value = File.save(code0, code1, code2, code3, code4, code5);
+    var value = sap.ui.core.util.File.save(code0, code1, "csv", "text/csv", code4, code5);
+    var value = sap.ui.core.util.File.save(code0, code1, "csv", "text/plain", code4, code5);
     var value = sap.ui.core.util.File.save(code0, code1, code2, code3, code4, code5);
   },
 );
