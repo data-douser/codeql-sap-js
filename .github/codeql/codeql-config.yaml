@@ -9,7 +9,7 @@ queries:
   
 query-filters:
   - exclude:
-    problem.severity: info
+    problem.severity: recommendation
 
 paths:
   - "**/*.xml"
