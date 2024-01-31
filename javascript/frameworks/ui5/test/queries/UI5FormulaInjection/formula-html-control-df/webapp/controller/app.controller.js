@@ -1,7 +1,8 @@
 sap.ui.define([
     "sap/ui/core/mvc/Controller",
-    "sap/ui/model/json/JSONModel"
-], function (Controller, JSONModel) {
+    "sap/ui/model/json/JSONModel",
+    "sap/ui/core/util/File"
+], function (Controller, JSONModel, File) {
     "use strict";
     return Controller.extend("codeql-sap-js.controller.app", {
         onInit: function () {
@@ -11,10 +12,10 @@ sap.ui.define([
             };
             var oModel = new JSONModel(oData);
             this.getView().setModel(oModel);
-            
-            var input = oModel.getProperty('/input');
 
-            sap.ui.core.util.File.put("someKey", input); // Path injection sink, data is not sanitized.
+            var oControl = this.getView().byId("xssSink");
+            /* Data is not sanitized against formula injection. */
+            File.save(oControl.getText(), "/some/path/", "csv", "text/csv", "utf-8");
         }
     });
 }
