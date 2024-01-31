@@ -101,8 +101,8 @@ extensions:
       - ["ResourceBundle", "Member[create].Argument[0]", "ui5-path-injection"]
       - ["Properties", "Member[create].Argument[0]", "ui5-path-injection"]
       - ["LoaderExtensions", "Member[registerResourcePath].Argument[1]", "ui5-path-injection"]
-      - ["UI5ClientStorage", "Member[put].Argument[0..]", "ui5-path-injection"]
-      - ["UI5ClientStorage", "Member[save].Argument[0..]", "ui5-path-injection"]
+      - ["UI5ClientStorage", "Member[put].Argument[0]", "ui5-path-injection"]
+      - ["UI5ClientStorage", "Member[save].Argument[1]", "ui5-path-injection"]
 
   - addsTo:
       pack: codeql/javascript-all
