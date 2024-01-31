@@ -5,11 +5,6 @@ queries:
   # for ui5/cap queries
   - uses: ./javascript/frameworks/ui5/src/codeql-suites/sap-ui5-security-extended.qls
   - uses: ./javascript/frameworks/cap/src
-  
-query-filters:
-  - exclude:
-    problem.severity:
-      - recommendation
 
 paths:
   - "**/*.xml"
