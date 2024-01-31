@@ -1,4 +1,4 @@
-sap.ui.require(
+sap.ui.define(
   [
     "sap/base/util/LoaderExtensions",
     "sap/base/i18n/ResourceBundle",
