@@ -1,7 +1,6 @@
 name: "My CodeQL config"
 
 queries:
-  # for log-injection
   - uses: security-and-quality
   # for ui5/cap queries
   - uses: ./javascript/frameworks/ui5/src
@@ -10,6 +9,16 @@ queries:
 query-filters:
   - include:
     tags contain: security
+    kind:
+    - problem
+    - path-problem
+    precision:
+    - medium
+    - high
+    - very-high
+    problem.severity:
+    - warning
+    - error
 
 paths:
   - "**/*.xml"
