@@ -8,8 +8,8 @@ queries:
   - uses: ./javascript/frameworks/cap/src
   
 query-filters:
-  - exclude:
-    problem.severity: recommendation
+  - include:
+    tags contain: security
 
 paths:
   - "**/*.xml"
