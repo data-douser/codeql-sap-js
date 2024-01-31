@@ -1,0 +1,3 @@
+| parseexpr.js:3:27:3:39 | `foo.bar > 9` |
+| parseexpr.js:4:26:4:38 | `foo.bar > 9` |
+| parseexpr.js:5:26:5:34 | `foo.bar` |

@@ -144,6 +144,11 @@ module CDS {
    */
   class CdsLogSink extends DataFlow::Node {
     CdsLogSink() { this = any(CdsLogCall cdsLog).getACall().getAChainedMethodCall(["trace", "debug", "info", "log", "warn", "error"]).getAnArgument() }
-  }
 
+  /**
+   * Methods that parse source strings into a CQL expression
+   */
+  class ParseSink extends DataFlow::Node {
+    ParseSink() { this = any(CdsFacade cds).getMember("parse").getMember(["expr", "ref", "xpr"]).getACall().getAnArgument() }
+  }
 }
