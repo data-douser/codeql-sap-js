@@ -9,4 +9,5 @@ queries:
 paths:
   - "**/*.xml"
   - "**/*.json"
-
+paths-ignore:
+  - "**/frameworks/*/test/models"
