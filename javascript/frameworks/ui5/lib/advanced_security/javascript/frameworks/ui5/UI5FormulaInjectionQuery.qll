@@ -50,8 +50,14 @@ private class FileSaveCall extends CallNode {
       this.getCalleeName() = "save"
     )
     or
-    /* 2. Direct call to `sap.ui.util.File.put */
-    this = API::moduleImport("sap.ui.util.File").getMember("put").getACall()
+    /* 2. Direct call to `sap.ui.core.util.File.save */
+    this =
+      globalVarRef("sap")
+          .getAPropertyRead("ui")
+          .getAPropertyRead("core")
+          .getAPropertyRead("util")
+          .getAPropertyRead("File")
+          .getAMemberCall("save")
   }
 
   /**
@@ -71,12 +77,24 @@ private class FileSaveCall extends CallNode {
   /**
    * Holds if the file MIME type is `"text/csv"`.
    */
-  predicate mimeIsCsvType() { this.getMimeType() = "text/csv" }
+  predicate mimeTypeIsCsv() { this.getMimeType() = "text/csv" }
 
   /**
-   * Holds if the file extension is `"csv"`. It can be used as a fallback if `this.mimeIsCsvType()` fails.
+   * Holds if the file MIME type is `"application/json"`.
    */
-  predicate mimeMaybeCsvType() { this.getExtension() = "csv" }
+  predicate mimeTypeIsJson() { this.getMimeType() = "application/json" }
+
+  /**
+   * Holds if the file extension is `"csv"`. It can be used as a fallback
+   * to detect a CSV data being written if `this.mimeTypeIsCsv()` fails.
+   */
+  predicate extensionIsCsv() { this.getExtension() = "csv" }
+
+  /**
+   * Holds if the file extension is `"json"`. It can be used as a fallback
+   * to detect a JSON data being written if `this.mimeTypeIsJson()` fails.
+   */
+  predicate extensionIsJson() { this.getExtension() = "json" }
 
   /**
    * Gets the content object to be saved into the file.
@@ -103,11 +121,11 @@ class UI5FormulaInjectionConfiguration extends TaintTracking::Configuration {
       node = fileSaveCall.getArgument(0) and
       (
         /* 1. Primary check: match on the MIME type */
-        fileSaveCall.getArgument(3).getALocalSource().asExpr().(StringLiteral).getValue() =
-          "text/csv"
-        or
+        fileSaveCall.mimeTypeIsCsv() or
+        fileSaveCall.mimeTypeIsJson() or
         /* 2. Fallback check: match on the file extension */
-        fileSaveCall.getArgument(2).getALocalSource().asExpr().(StringLiteral).getValue() = "csv"
+        fileSaveCall.extensionIsCsv() or
+        fileSaveCall.extensionIsJson()
       )
     )
   }
