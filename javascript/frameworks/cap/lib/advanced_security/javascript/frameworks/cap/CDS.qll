@@ -131,4 +131,13 @@ module CDS {
   class CdsFacade extends API::Node {
     CdsFacade() { this = API::moduleImport("@sap/cds") }
   }
+
+
+  /**
+   * Methods that parse source strings into a CQL expression
+   */
+  class ParseSink extends DataFlow::Node {
+    ParseSink() { this = any(CdsFacade cds).getMember("parse").getMember(["expr", "ref", "xpr"]).getACall().getAnArgument() }
+  }
+
 }
