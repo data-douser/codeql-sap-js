@@ -3,8 +3,8 @@ name: "My CodeQL config"
 queries:
   # for log-injection
   - uses: security-and-quality
-  # for ui5 queries
-  - uses: ./javascript/frameworks/*/src
+  # for ui5/cap queries
+  - uses: ./javascript/frameworks
   
 query-filters:
 - exclude:
