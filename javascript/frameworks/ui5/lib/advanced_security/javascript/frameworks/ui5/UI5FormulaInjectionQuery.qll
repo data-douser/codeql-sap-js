@@ -50,7 +50,7 @@ private class FileSaveCall extends CallNode {
       this.getCalleeName() = "save"
     )
     or
-    /* 2. Direct call to `sap.ui.core.util.File.save */
+    /* 2. Direct call to `sap.ui.core.util.File.save` */
     this =
       globalVarRef("sap")
           .getAPropertyRead("ui")

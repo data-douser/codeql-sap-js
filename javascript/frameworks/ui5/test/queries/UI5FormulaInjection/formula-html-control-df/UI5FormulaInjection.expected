@@ -1,19 +1,15 @@
 nodes
-| webapp/controller/app.controller.js:9:17:9:27 | input: null |
-| webapp/controller/app.controller.js:15:17:15:52 | input |
-| webapp/controller/app.controller.js:15:25:15:52 | oModel. ... input') |
-| webapp/controller/app.controller.js:17:50:17:54 | input |
+| webapp/controller/app.controller.js:10:17:10:27 | input: null |
+| webapp/controller/app.controller.js:16:23:16:50 | oModel. ... input') |
 | webapp/view/app.view.xml:5:5:7:28 | value={/input} |
-| webapp/view/app.view.xml:8:5:8:37 | content={/output} |
+| webapp/view/app.view.xml:8:5:8:49 | content={/input} |
 edges
-| webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/controller/app.controller.js:15:25:15:52 | oModel. ... input') |
-| webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/view/app.view.xml:5:5:7:28 | value={/input} |
-| webapp/controller/app.controller.js:10:17:10:28 | output: null | webapp/view/app.view.xml:8:5:8:37 | content={/output} |
-| webapp/controller/app.controller.js:12:26:12:45 | new JSONModel(oData) | webapp/view/app.view.xml:8:5:8:37 | content={/output} |
-| webapp/controller/app.controller.js:15:17:15:52 | input | webapp/controller/app.controller.js:17:50:17:54 | input |
-| webapp/controller/app.controller.js:15:25:15:52 | oModel. ... input') | webapp/controller/app.controller.js:15:17:15:52 | input |
-| webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:9:17:9:27 | input: null |
+| webapp/controller/app.controller.js:10:17:10:27 | input: null | webapp/controller/app.controller.js:16:23:16:50 | oModel. ... input') |
+| webapp/controller/app.controller.js:10:17:10:27 | input: null | webapp/view/app.view.xml:5:5:7:28 | value={/input} |
+| webapp/controller/app.controller.js:10:17:10:27 | input: null | webapp/view/app.view.xml:8:5:8:49 | content={/input} |
+| webapp/controller/app.controller.js:12:26:12:45 | new JSONModel(oData) | webapp/view/app.view.xml:8:5:8:49 | content={/input} |
+| webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:10:17:10:27 | input: null |
 | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:12:26:12:45 | new JSONModel(oData) |
-| webapp/view/app.view.xml:8:5:8:37 | content={/output} | webapp/controller/app.controller.js:10:17:10:28 | output: null |
+| webapp/view/app.view.xml:8:5:8:49 | content={/input} | webapp/controller/app.controller.js:10:17:10:27 | input: null |
 #select
-| webapp/controller/app.controller.js:17:50:17:54 | input | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:17:50:17:54 | input | Path or file content depends on a $@. | webapp/view/app.view.xml:5:5:7:28 | value={/input} | user-provided value |
+| webapp/controller/app.controller.js:16:23:16:50 | oModel. ... input') | webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:16:23:16:50 | oModel. ... input') | The content of a saved file depends on a $@. | webapp/view/app.view.xml:5:5:7:28 | value={/input} | user-provided value |

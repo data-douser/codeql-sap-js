@@ -20,7 +20,7 @@ sap.ui.define([
                 oRm.unsafeHtml(xssSanitized);
                 oRm.close("div");
                 /* Data is not sanitized against formula injection. */
-                File.save(oControl.getText(), "/some/path/", "csv", "text/csv", "utf-8");
+                File.save(xssSanitized, "/some/path/", "csv", "text/csv", "utf-8");
             }
         }
     });

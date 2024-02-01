@@ -8,14 +8,12 @@ sap.ui.define([
         onInit: function () {
             var oData = {
                 input: null,
-                output: null,
             };
             var oModel = new JSONModel(oData);
             this.getView().setModel(oModel);
 
-            var oControl = this.getView().byId("xssSink");
             /* Data is not sanitized against formula injection. */
-            File.save(oControl.getText(), "/some/path/", "csv", "text/csv", "utf-8");
+            File.save(oModel.getProperty('/input'), "/some/path/", "csv", "text/csv", "utf-8");
         }
     });
 }

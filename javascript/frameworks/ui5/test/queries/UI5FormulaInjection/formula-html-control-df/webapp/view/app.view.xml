@@ -5,5 +5,5 @@
     <Input placeholder="Enter Payload" 
         description="Try: &lt;img src=x onerror=alert(&quot;XSS&quot;)&gt;" 
         value="{/input}" />  <!--User input source sap.m.Input.value -->
-    <core:HTML id="xssSink" content="{/output}"/> <!--XSS sink sap.ui.core.HTML.content -->
+    <core:HTML id="xssSink" content="{/input}"/> <!--XSS sink sap.ui.core.HTML.content -->
 </mvc:View>
