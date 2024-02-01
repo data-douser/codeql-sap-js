@@ -15,9 +15,11 @@
 import javascript
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow::UI5PathGraph
-import semmle.javascript.security.dataflow.TaintedPathQuery as TaintedPathQuery
 
-class UI5PathInjectionConfiguration extends TaintedPathQuery::Configuration {
+// import semmle.javascript.security.dataflow.TaintedPathQuery as TaintedPathQuery
+class UI5PathInjectionConfiguration extends TaintTracking::Configuration {
+  UI5PathInjectionConfiguration() { this = "UI5 Path Injection" }
+
   override predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
 
   override predicate isSink(DataFlow::Node node) {

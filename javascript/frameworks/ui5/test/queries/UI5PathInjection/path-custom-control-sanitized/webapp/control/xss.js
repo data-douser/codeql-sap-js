@@ -1,7 +1,8 @@
 sap.ui.define([
     "sap/ui/core/Control",
-    "sap/base/security/encodeXML"
-], function (Control, encodeXML) {
+    "sap/base/security/encodeXML",
+    "sap/ui/core/util/File"
+], function (Control, encodeXML, File) {
     return Control.extend("codeql-sap-js.control.xss", {
         metadata: {
             properties: {
@@ -11,12 +12,15 @@ sap.ui.define([
         renderer: {
             apiVersion: 2,
             render: function (oRm, oControl) {
-                oRm.openStart("div", oControl);
                 var value = oControl.getText();
-                var xssSanitized = encodeXML(String(value)) // XSS sanitizer applied.
-                sap.ui.core.util.File.put("someKey", xssSanitized); // Data not sanitized for a path injection sink.
-                oRm.unsafeHtml(xssSanitized); // Data sanitized for a XSS sink.
+                /* XSS sanitizer is applied. */
+                var xssSanitized = encodeXML(String(value));
+                oRm.openStart("div", oControl);
+                /* Data is sanitized against XSS. */
+                oRm.unsafeHtml(xssSanitized);
                 oRm.close("div");
+                /* Data is not sanitized against formula injection. */
+                File.save("some_content", xssSanitized, "csv", "text/csv", "utf-8");
             }
         }
     });
