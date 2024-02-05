@@ -6,7 +6,7 @@ UI5 applications that save local data, fetched from an uncontrolled remote sourc
 
 ### Escape the leading special characters
 
-CSV cells containing a leading special characters such as equal sign (`=`) may be interpreted as spreadsheet formulas. Therefore, these prefixes should be escaped with surrounding single quotes in order to keep them as literal strings.
+CSV cells containing a leading special characters such as the equal sign (`=`) may be interpreted as spreadsheet formulas. Therefore, these prefixes should be escaped with surrounding single quotes in order to have them interpreted as literal strings.
 
 ### Use a dedicated API function
 
