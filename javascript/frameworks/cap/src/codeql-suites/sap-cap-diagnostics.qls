@@ -1,0 +1,4 @@
+- description: SAP CAPire Code Scanning Suite
+- queries: .
+- include:
+    tags contain: diagnostics
