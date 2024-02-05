@@ -1,4 +1,4 @@
-sap.ui.require(
+sap.ui.define(
   [
     "sap/base/util/LoaderExtensions",
     "sap/base/i18n/ResourceBundle",
@@ -7,6 +7,8 @@ sap.ui.require(
     "sap/ui/core/HTML",
     "sap/base/util/Properties",
     "sap/ui/core/RenderManager",
+    "sap/ui/util/Storage",
+    "sap/ui/core/util/File"
   ],
   function (
     LoaderExtensions,
@@ -16,6 +18,8 @@ sap.ui.require(
     HTML,
     Properties,
     RenderManager,
+    Storage,
+    File
   ) {
     var value = jQuery.sap.log.fatal(code0, code1, code2);
     var value = jQuery.sap.log.error(code0, code1, code2);
@@ -110,5 +114,16 @@ sap.ui.require(
 
     var value = sap.ui.dom.includeScript(code0);
     var value = sap.ui.dom.includeStyleSheet(code0);
+
+    var value = Storage.put(code0, code1);
+    var value = sap.ui.util.Storage.put(code0, code1);
+    var value = jQuery.sap.storage.put(code0, code1);
+
+    var value = File.save(code0, code1, "csv", "text/csv", code4, code5);
+    var value = File.save(code0, code1, "csv", "text/plain", code4, code5);
+    var value = File.save(code0, code1, code2, code3, code4, code5);
+    var value = sap.ui.core.util.File.save(code0, code1, "csv", "text/csv", code4, code5);
+    var value = sap.ui.core.util.File.save(code0, code1, "csv", "text/plain", code4, code5);
+    var value = sap.ui.core.util.File.save(code0, code1, code2, code3, code4, code5);
   },
 );

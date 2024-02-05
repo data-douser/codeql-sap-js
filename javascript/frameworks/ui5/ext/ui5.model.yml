@@ -57,6 +57,13 @@ extensions:
       - ["UI5Control", "sap/ui/richtexteditor/RichTextEditor", ""]
       - ["UI5CodeEditor", "UI5CodeEditor", "Instance"]
       - ["UI5CodeEditor", "sap/ui/codeeditor/CodeEditor", ""]
+      # Classes that provide Path injection APIs
+      - ["UI5ClientStorage", "sap/ui/util/Storage", ""]
+      - ["UI5ClientStorage", "global", "Member[sap].Member[ui].Member[util].Member[Storage]"]
+      - ["UI5ClientStorage", "global", "Member[jQuery].Member[sap].Member[storage]"]
+      - ["UI5ClientStorage", "sap/ui/core/util/File", ""]
+      - ["UI5ClientStorage", "global", "Member[sap].Member[ui].Member[core].Member[util].Member[File]"]
+
 
   - addsTo:
       pack: codeql/javascript-all
@@ -94,6 +101,8 @@ extensions:
       - ["ResourceBundle", "Member[create].Argument[0]", "ui5-path-injection"]
       - ["Properties", "Member[create].Argument[0]", "ui5-path-injection"]
       - ["LoaderExtensions", "Member[registerResourcePath].Argument[1]", "ui5-path-injection"]
+      - ["UI5ClientStorage", "Member[put].Argument[0]", "ui5-path-injection"]
+      - ["UI5ClientStorage", "Member[save].Argument[1]", "ui5-path-injection"]
 
   - addsTo:
       pack: codeql/javascript-all
