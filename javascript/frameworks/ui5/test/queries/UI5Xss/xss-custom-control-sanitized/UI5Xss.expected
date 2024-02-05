@@ -1,0 +1,10 @@
+nodes
+| webapp/view/app.view.xml:5:5:7:28 | value={/input} |
+| webapp/view/app.view.xml:8:5:8:38 | text={/input} |
+edges
+| webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/view/app.view.xml:5:5:7:28 | value={/input} |
+| webapp/controller/app.controller.js:9:17:9:27 | input: null | webapp/view/app.view.xml:8:5:8:38 | text={/input} |
+| webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:9:17:9:27 | input: null |
+| webapp/view/app.view.xml:5:5:7:28 | value={/input} | webapp/controller/app.controller.js:11:26:11:45 | new JSONModel(oData) |
+| webapp/view/app.view.xml:8:5:8:38 | text={/input} | webapp/controller/app.controller.js:9:17:9:27 | input: null |
+#select

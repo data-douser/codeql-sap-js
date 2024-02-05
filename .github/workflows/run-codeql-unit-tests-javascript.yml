@@ -7,7 +7,7 @@ on:
       - 'main'
   pull_request:
     branches:
-      - '**'
+      - 'main'
   workflow_dispatch:
 
 jobs:
@@ -26,7 +26,6 @@ jobs:
         with:
           qlt-version: 'latest'
           add-to-path: true
-          token: ${{ secrets.ACCESS_TOKEN }}
 
       - name: Export unit test matrix
         id: export-unit-test-matrix
@@ -52,8 +51,7 @@ jobs:
         with:
           qlt-version: 'latest'
           add-to-path: true
-          token: ${{ secrets.ACCESS_TOKEN }}
-
+          
       - name: Install CodeQL
         id: install-codeql
         uses: ./.github/actions/install-codeql
@@ -120,7 +118,6 @@ jobs:
         with:
           qlt-version: 'latest'
           add-to-path: true
-          token: ${{ secrets.ACCESS_TOKEN }}
         
 
       - name: Collect test results

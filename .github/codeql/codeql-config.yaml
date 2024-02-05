@@ -1,12 +1,13 @@
 name: "My CodeQL config"
 
 queries:
-  # for log-injection
-  - uses: security-and-quality
-  # for ui5 queries
-  - uses: ./javascript/javascript-sap-ui5-queries/src
+  - uses: security-extended
+  # for ui5/cap queries
+  - uses: ./javascript/frameworks/ui5/src/codeql-suites/sap-ui5-security-extended.qls
+  - uses: ./javascript/frameworks/cap/src
 
 paths:
   - "**/*.xml"
   - "**/*.json"
-
+paths-ignore:
+  - "**/frameworks/*/test/models"
