@@ -1,6 +1,6 @@
 # Formula injection
 
-UI5 applications that saves a local data, fetched from an uncontrolled remote source, into a CSV file format using generic APIs such as [`sap.ui.core.util.File.save`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.util.File%23methods/sap.ui.core.util.File.save) is vulnerable to formula injections, or CSV injections.
+UI5 applications that save local data, fetched from an uncontrolled remote source, into a CSV file format using generic APIs such as [`sap.ui.core.util.File.save`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.util.File%23methods/sap.ui.core.util.File.save) are vulnerable to formula injection, or CSV injection.
 
 ## Recommendation
 
