@@ -56,7 +56,7 @@ sap.ui.define([
   });
 ```
 
-Even if the server which updates the OData V2 model is in a trusted domain such as within the organization, the server may still contain a tainted information if the UI5 application in question is already vulnerable to some other vulnerabilities, say XSS. This may lead to the attacker being able to save a file in the victim's local filesystem with the given filename which might be used for further attacks.
+Even if the server which updates the OData V2 model is in a trusted domain such as within the organization, the server may still contain tainted information if the UI5 application in question is vulnerable to other security attacks, say XSS. This may allow an attacker to save a file in the victim's local filesystem.
 
 ## References
 
