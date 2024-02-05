@@ -35,10 +35,9 @@ jobs:
           mv $dir .github/codeql/extensions/$dir
         done
 
-
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: javascript
         config-file: ./.github/codeql/codeql-config.yaml
@@ -46,11 +45,12 @@ jobs:
 
     - name: Perform CodeQL Analysis
       id: analyze
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
     
     - name: Setup Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
+        python-version: '3.10' 
         cache: 'pip'
         
     - name: Validate results
@@ -64,10 +64,12 @@ jobs:
         
     - name: Upload sarif-diff
       if: steps.validate.outcome != 'success'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sarif-diff.json
-        path: sarif-diff.json
+        path: |
+          sarif-diff.json
+          ${{ steps.analyze.outputs.sarif-output }}
     
     - name: Unexpected Code Scanning results
       if: steps.validate.outcome != 'success'
