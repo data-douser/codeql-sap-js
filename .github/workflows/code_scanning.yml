@@ -66,11 +66,11 @@ jobs:
         sarif diff ${{ steps.analyze.outputs.sarif-output }} .github/workflows/javascript.sarif.expected -o sarif-diff.json
         ! grep -q "[1-9]" sarif-diff.json
         
-    - name: Upload sarif-diff
+    - name: Upload sarif change
       if: steps.validate.outcome != 'success'
       uses: actions/upload-artifact@v4
       with:
-        name: sarif-diff.json
+        name: sarif
         path: |
           sarif-diff.json
           ${{ steps.analyze.outputs.sarif-output }}
