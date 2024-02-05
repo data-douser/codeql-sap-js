@@ -4,7 +4,7 @@ queries:
   - uses: security-extended
   # for ui5/cap queries
   - uses: ./javascript/frameworks/ui5/src/codeql-suites/sap-ui5-security-extended.qls
-  - uses: ./javascript/frameworks/cap/src
+  - uses: ./javascript/frameworks/cap/src/codeql-suites/sap-cap-security-extended.qls
 
 paths:
   - "**/*.xml"
