@@ -1,6 +1,6 @@
 # Client-side path injection
 
-UI5 applications that dynamically configures the path of a file to be saved to or loaded from is vulnerable to injection attacks that allows an attacker to manipulate the location of the file.
+UI5 applications that access files using a dynamically configured path are vulnerable to injection attacks that allow an attacker to manipulate the file location.
 
 ## Recommendation
 
