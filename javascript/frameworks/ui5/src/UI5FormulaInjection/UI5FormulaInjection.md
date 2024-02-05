@@ -10,7 +10,7 @@ CSV cells containing a leading special characters such as the equal sign (`=`) m
 
 ### Use a dedicated API function
 
-As in any other injection attacks, it should not be encouraged to assemble the contents manually using string concatenation then pass it onto a generic file-saving function, even if sanitizers are to be used, since it is an error-prone process. Instead, a dedicated library function should be used. For example, if the target being exported is a [sap.m.Table](https://sapui5.hana.ondemand.com/sdk/#/api/sap.m.Table) and the resulting file is to intended to be opened using a spreadsheet program anyways, then using one of the API functions provided by [`sap.ui.export.Spreadsheet`](https://sapui5.hana.ondemand.com/#/entity/sap.ui.export.Spreadsheet) is the preferred method of achieving the same exporting functionality.
+As in other injection attacks, it is not recommended to use string concatenation to assemble data passed into a generic file-saving function, even if sanitizers are to be used. Instead, a dedicated library function should be used. For example, if the target being exported is a [sap.m.Table](https://sapui5.hana.ondemand.com/sdk/#/api/sap.m.Table) and the resulting file is intended to be opened using a spreadsheet program, then using one of the API functions provided by [`sap.ui.export.Spreadsheet`](https://sapui5.hana.ondemand.com/#/entity/sap.ui.export.Spreadsheet) is the preferred method of achieving the same exporting functionality.
 
 ## Example
 
