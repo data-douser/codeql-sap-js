@@ -132,6 +132,19 @@ module CDS {
     CdsFacade() { this = API::moduleImport("@sap/cds") }
   }
 
+  /**
+   * Call to`cds.log`
+   */
+  class CdsLogCall extends API::Node {
+    CdsLogCall() { this = any(CdsFacade cds).getMember("log") }
+  }
+
+  /**
+   * Arguments of calls to `cds.log.{trace, debug, info, log, warn, error}`
+   */
+  class CdsLogSink extends DataFlow::Node {
+    CdsLogSink() { this = any(CdsLogCall cdsLog).getACall().getAChainedMethodCall(["trace", "debug", "info", "log", "warn", "error"]).getAnArgument() }
+  }
 
   /**
    * Methods that parse source strings into a CQL expression
@@ -139,5 +152,4 @@ module CDS {
   class ParseSink extends DataFlow::Node {
     ParseSink() { this = any(CdsFacade cds).getMember("parse").getMember(["expr", "ref", "xpr"]).getACall().getAnArgument() }
   }
-
 }
