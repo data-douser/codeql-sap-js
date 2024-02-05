@@ -14,7 +14,7 @@ Keep a strict allow-list of safe paths to load from or send requests to. Before 
 
 ### Check the script into the repository or use package managers
 
-Since the URL of the script may be pointing to a web server vulnerable to being hijacked, to increase the degree of control it may be a good idea to check a stable version of the script into the repository to be locally sourced from. If it is not an option, using a trusted package manager such as `npm` is also a good idea.
+Since the URL of the script may be pointing to a web server vulnerable to being hijacked, it may be a good idea to check a stable version of the script into the repository to increase the degree of control. If not possible, use a trusted package manager such as `npm`.
 
 ## Example
 
