@@ -10,7 +10,7 @@ If possible, do not parameterize the path on a user input. Either hardcode the p
 
 ### Keep an allow-list of safe paths
 
-Keep a strict allow-list of safe paths to load from or send request to. Before loading a script from a location outside the application or making an API request to a location, check if the path is contained in the list of safe paths. Also, make sure that the allow-list is kept up to date.
+Keep a strict allow-list of safe paths to load from or send requests to. Before loading a script from a location outside the application or making an API request to a location, check if the path is contained in the list of safe paths. Also, make sure that the allow-list is kept up to date.
 
 ### Check the script into the repository or use package managers
 
