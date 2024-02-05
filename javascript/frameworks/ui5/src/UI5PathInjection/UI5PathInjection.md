@@ -6,7 +6,7 @@ UI5 applications that access files using a dynamically configured path are vulne
 
 ### Make path argument independent of the user input
 
-If possible, do not parameterize the path on a user input. Either make the path string to be hardcoded in the source, or dependent only on data that are created within the application.
+If possible, do not parameterize the path on a user input. Either hardcode the path string in the source, or use only strings that are created within the application.
 
 ### Keep an allow-list of safe paths
 
