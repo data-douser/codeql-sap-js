@@ -1,20 +1,20 @@
 # Client-side path injection
 
-UI5 applications that dynamically configures the path of a file to be saved to or loaded from is vulnerable to injection attacks that allows an attacker to manipulate the location of the file.
+UI5 applications that access files using a dynamically configured path are vulnerable to injection attacks that allow an attacker to manipulate the file location.
 
 ## Recommendation
 
 ### Make path argument independent of the user input
 
-If possible, do not parameterize the path on a user input. Either make the path string to be hardcoded in the source, or dependent only on data that are created within the application.
+If possible, do not parameterize the path on a user input. Either hardcode the path string in the source, or use only strings that are created within the application.
 
 ### Keep an allow-list of safe paths
 
-Keep a strict allow-list of safe paths to load from or send request to. Before loading a script from a location outside the application or making an API request to a location, check if the path is contained in the list of safe paths. Also, make sure that the allow-list is kept up to date.
+Keep a strict allow-list of safe paths to load from or send requests to. Before loading a script from a location outside the application or making an API request to a location, check if the path is contained in the list of safe paths. Also, make sure that the allow-list is kept up to date.
 
 ### Check the script into the repository or use package managers
 
-Since the URL of the script may be pointing to a web server vulnerable to being hijacked, to increase the degree of control it may be a good idea to check a stable version of the script into the repository to be locally sourced from. If it is not an option, using a trusted package manager such as `npm` is also a good idea.
+Since the URL of the script may be pointing to a web server vulnerable to being hijacked, it may be a good idea to check a stable version of the script into the repository to increase the degree of control. If not possible, use a trusted package manager such as `npm`.
 
 ## Example
 
@@ -56,7 +56,7 @@ sap.ui.define([
   });
 ```
 
-Even if the server which updates the OData V2 model is in a trusted domain such as within the organization, the server may still contain a tainted information if the UI5 application in question is already vulnerable to some other vulnerabilities, say XSS. This may lead to the attacker being able to save a file in the victim's local filesystem with the given filename which might be used for further attacks.
+Even if the server which updates the OData V2 model is in a trusted domain such as within the organization, the server may still contain tainted information if the UI5 application in question is vulnerable to other security attacks, say XSS. This may allow an attacker to save a file in the victim's local filesystem.
 
 ## References
 
