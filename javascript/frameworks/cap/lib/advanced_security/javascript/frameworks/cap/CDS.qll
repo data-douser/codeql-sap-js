@@ -122,16 +122,19 @@ module CDS {
   }
 
   class ApplicationService extends API::Node {
-    ApplicationService() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
+    ApplicationService() {
+      exists(CdsFacade c | this = c.getMember(["ApplicationService", "Service"]))
+    }
   }
 
   /**
    * ```js
    * const cds = require('@sap/cds')
+   * const cds = require('@sap/cds/lib')
    * ```
    */
   class CdsFacade extends API::Node {
-    CdsFacade() { this = API::moduleImport("@sap/cds") }
+    CdsFacade() { this = API::moduleImport(["@sap/cds", "@sap/cds/lib"]) }
   }
 
   /**

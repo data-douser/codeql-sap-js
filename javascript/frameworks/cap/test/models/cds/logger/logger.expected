@@ -5,3 +5,5 @@
 | logger.js:7:24:7:29 | `test` |
 | logger.js:8:25:8:30 | `test` |
 | logger.js:11:10:11:15 | "test" |
+| logger.js:15:11:15:19 | 'format:' |
+| logger.js:15:22:15:27 | `test` |

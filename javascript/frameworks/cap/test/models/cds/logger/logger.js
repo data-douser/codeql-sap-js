@@ -9,3 +9,7 @@ cds.log('nodejs').error(`test`);
 
 const LOG = cds.log("nodejs");
 LOG.info("test");
+
+const cdslib = require('@sap/cds/lib')
+const LOG2 = cdslib.log('cds.log')
+LOG2.info('format:', `test`)

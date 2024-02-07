@@ -5,3 +5,6 @@ const svc2 = cds.connect.to ('some-service')
 const svc3 = await cds.connect.to ('some-service')
 const { svc5 } = cds.serve ('some-service')
 const { svc4 } = await cds.serve ('some-service')
+
+const cdslib = require("@sap/cds/lib");
+const { svc6 } = cdslib.serve ('some-service')

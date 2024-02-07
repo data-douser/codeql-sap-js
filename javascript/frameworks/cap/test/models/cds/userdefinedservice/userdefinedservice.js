@@ -6,3 +6,9 @@ class BooksService extends cds.ApplicationService {
   }
 }
 module.exports = BooksService
+
+module.exports = class LogService extends cds.Service {
+  init() {
+    return super.init()
+  }
+}
