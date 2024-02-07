@@ -145,28 +145,37 @@ abstract class UI5BindingPath extends BindingPath {
    * Gets the `DataFlow::Node` that represents this binding path.
    */
   Node getNode() {
-    /* Restrict search to the same webapp. */
+    /* 1-1. Internal (Client-side) model, model hardcoded in JS code */
+    exists(Property p, JsonModel model |
+      /* Get the property of an JS object bound to this binding path. */
+      result.(DataFlow::PropWrite).getPropertyNameExpr() = p.getNameExpr() and
+      this.getAbsolutePath() = model.getPathString(p) and
+      /* Restrict search to inside the same webapp. */
+      exists(WebApp webApp |
+        webApp.getAResource() = this.getLocation().getFile() and
+        webApp.getAResource() = result.getFile()
+      )
+    )
+    or
+    /* 1-2. Internal (Client-side) model, model loaded from JSON file */
+    exists(string propName, JsonModel model |
+      /* Get the property of an JS object bound to this binding path. */
+      result = model.getArgument(0).getALocalSource() and
+      this.getPath() = model.getPathStringPropName(propName) and
+      exists(JsonObject obj, JsonValue val | val = obj.getPropValue(propName)) and
+      /* Restrict search to inside the same webapp. */
+      exists(WebApp webApp |
+        webApp.getAResource() = this.getLocation().getFile() and
+        webApp.getAResource() = result.getFile()
+      )
+    )
+    or
+    /* 2. External (Server-side) model */
+    result = this.getModel().(UI5ExternalModel) and
+    /* Restrict search to inside the same webapp. */
     exists(WebApp webApp |
       webApp.getAResource() = this.getLocation().getFile() and
       webApp.getAResource() = result.getFile()
-    |
-      /* 1-1. Internal (Client-side) model, model hardcoded in JS code */
-      exists(Property p, JsonModel model |
-        /* Get the property of an JS object bound to this binding path. */
-        result.(DataFlow::PropWrite).getPropertyNameExpr() = p.getNameExpr() and
-        this.getAbsolutePath() = model.getPathString(p)
-      )
-      or
-      /* 1-2. Internal (Client-side) model, model loaded from JSON file */
-      exists(string propName, JsonModel model |
-        /* Get the property of an JS object bound to this binding path. */
-        result = model.getArgument(0).getALocalSource() and
-        this.getPath() = model.getPathStringPropName(propName) and
-        exists(JsonObject obj, JsonValue val | val = obj.getPropValue(propName))
-      )
-      or
-      /* 2. External (Server-side) model */
-      result = this.getModel().(UI5ExternalModel)
     )
   }
 }
