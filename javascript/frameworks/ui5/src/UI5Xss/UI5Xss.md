@@ -94,11 +94,11 @@ The issue can be resolved by setting the `HTML` control's `sanitizeContent` attr
 ## References
 
 - OWASP: [DOM Based XSS](https://owasp.org/www-community/attacks/DOM_Based_XSS).
-- Documentation: [Cross-site Scripting](https://sapui5.hana.ondemand.com/sdk/#/topic/91f0bd316f4d1014b6dd926db0e91070.html) in UI5.
-- Documentation: [Prevention of Cross-site Scripting](https://sapui5.hana.ondemand.com/sdk/#/topic/4de64e2e191f4a7297d4fd2d1e233a2d.html) in UI5.
-- Documentation: [API Documentation of sap.ui.core.RenderManager](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.RenderManager).
-- Documentation: [Defining Control Properties](https://sapui5.hana.ondemand.com/sdk/#/topic/ac56d92162ed47ff858fdf1ce26c18c4.html).
-- Documentation: [Expression Binding](https://sapui5.hana.ondemand.com/sdk/#/topic/daf6852a04b44d118963968a1239d2c0).
-- API Reference: [`sap.ui.core.HTML`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.HTML%23methods/setSanitizeContent).
+- SAP UI5 Documentation: [Cross-site Scripting](https://sapui5.hana.ondemand.com/sdk/#/topic/91f0bd316f4d1014b6dd926db0e91070.html) in UI5.
+- SAP UI5 Documentation: [Prevention of Cross-site Scripting](https://sapui5.hana.ondemand.com/sdk/#/topic/4de64e2e191f4a7297d4fd2d1e233a2d.html) in UI5.
+- SAP UI5 Documentation: [API Documentation of sap.ui.core.RenderManager](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.RenderManager).
+- SAP UI5 Documentation: [Defining Control Properties](https://sapui5.hana.ondemand.com/sdk/#/topic/ac56d92162ed47ff858fdf1ce26c18c4.html).
+- SAP UI5 Documentation: [Expression Binding](https://sapui5.hana.ondemand.com/sdk/#/topic/daf6852a04b44d118963968a1239d2c0).
+- SAP UI5 API Reference: [`sap.ui.core.HTML`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.HTML%23methods/setSanitizeContent).
 - Common Weakness Enumeration: [CWE-79](https://cwe.mitre.org/data/definitions/79.html).
 - Common Weakness Enumeration: [CWE-116](https://cwe.mitre.org/data/definitions/116.html).

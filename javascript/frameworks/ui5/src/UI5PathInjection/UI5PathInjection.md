@@ -62,6 +62,6 @@ Even if the server which updates the OData V2 model is in a trusted domain such 
 
 - Common Weakness Enumeration: [CWE-829](https://cwe.mitre.org/data/definitions/829.html).
 - Common Weakness Enumeration: [CWE-073](https://cwe.mitre.org/data/definitions/73.html).
-- API Reference: [`sap.ui.core.util.File`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.util.File%23methods/sap.ui.core.util.File.save).
-- API Reference: [`sap.ui.dom.includeScript`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript) and [`sap.ui.dom.includeStyleSheet`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeStylesheet).
-- API Reference: [`jQuery.sap.includeScript`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript) and [`jQuery.sap.includeStyleSheet`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript).
+- SAP UI5 API Reference: [`sap.ui.core.util.File`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.util.File%23methods/sap.ui.core.util.File.save).
+- SAP UI5 API Reference: [`sap.ui.dom.includeScript`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript) and [`sap.ui.dom.includeStyleSheet`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeStylesheet).
+- SAP UI5 API Reference: [`jQuery.sap.includeScript`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript) and [`jQuery.sap.includeStyleSheet`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript).

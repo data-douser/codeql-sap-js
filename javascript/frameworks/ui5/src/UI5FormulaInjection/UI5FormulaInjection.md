@@ -35,5 +35,5 @@ sap.ui.define([
 
 - OWASP: [CSV Injection](https://owasp.org/www-community/attacks/CSV_Injection).
 - Common Weakness Enumeration: [CWE-1236](https://cwe.mitre.org/data/definitions/1236.html).
-- API Reference: [`sap.ui.export.Spreadsheet`](https://sapui5.hana.ondemand.com/#/entity/sap.ui.export.Spreadsheet).
-- API Reference: [`sap.ui.core.util.File.save`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.util.File%23methods/sap.ui.core.util.File.save).
+- SAP UI5 API Reference: [`sap.ui.export.Spreadsheet`](https://sapui5.hana.ondemand.com/#/entity/sap.ui.export.Spreadsheet).
+- SAP UI5 API Reference: [`sap.ui.core.util.File.save`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.util.File%23methods/sap.ui.core.util.File.save).
