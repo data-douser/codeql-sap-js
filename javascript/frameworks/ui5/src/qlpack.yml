@@ -8,4 +8,4 @@ dependencies:
   codeql/javascript-all: "^0.8.7"
   advanced-security/javascript-sap-ui5-models: "^0.5.0"
   advanced-security/javascript-sap-ui5-all: "^0.5.0"
-default-suite-file: codeql-suites/sap-ui5-code-scanning.qls
+default-suite-file: codeql-suites/javascript-code-scanning.qls
