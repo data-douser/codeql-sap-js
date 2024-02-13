@@ -7,5 +7,5 @@ cds.once('bootstrap', (app) => {
 
 Service1.on("Received1", async (msg) => {
     const { messageToPass } = msg.data;
-    Service2.send("Received2", { messageToPass });
+    await Service2.send("Received2", { messageToPass });
 });
