@@ -1,0 +1,13 @@
+{
+  "name": "@advanced-security/sql-injection",
+  "version": "1.0.0",
+  "dependencies": {
+    "@cap-js/sqlite": "*",
+    "@sap/cds": "^7",
+    "express": "^4.17.1"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "cds watch"
+  }
+}
