@@ -8,5 +8,5 @@ cds.once("bootstrap", (app) => {
 /*  */
 Service1.on("Received1", async (msg) => {
     const { messageToPass } = msg.data;
-    await Service2.run(SELECT.from `Service2Entity`.where({Attribute3: messageToPass}));
+    await Service2.run(SELECT.from `Service2Entity`.where(`Attribute3=${messageToPass}`));
 })
