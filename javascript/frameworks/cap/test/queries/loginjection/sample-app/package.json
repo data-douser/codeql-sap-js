@@ -1,8 +1,6 @@
 {
   "name": "@advanced-security/log-injection",
   "version": "1.0.0",
-  "devDependencies": {
-  },
   "dependencies": {
     "@sap/cds": "^7",
     "express": "^4.17.1"
