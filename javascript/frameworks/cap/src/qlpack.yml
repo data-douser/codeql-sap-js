@@ -8,3 +8,4 @@ dependencies:
   codeql/javascript-all: "^0.8.7"
   advanced-security/javascript-sap-cap-models: "^0.1.0"
   advanced-security/javascript-sap-cap-all: "^0.1.0"
+default-suite-file: codeql-suites/javascript-code-scanning.qls
