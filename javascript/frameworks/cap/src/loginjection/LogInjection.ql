@@ -18,12 +18,12 @@ import advanced_security.javascript.frameworks.cap.CDS
 /**
  * A source of remote user controlled input.
  */
-class CapRemoteSource extends Source, CDS::RequestSource { }
+class CapRemoteSource extends Source, RequestSource { }
 
 /**
  * An argument to a logging mechanism.
  */
-class CapLoggingSink extends Sink, CDS::CdsLogSink { }
+class CapLoggingSink extends Sink, CdsLogSink { }
 
 from Configuration config, DataFlow::PathNode source, DataFlow::PathNode sink
 where config.hasFlowPath(source, sink)
