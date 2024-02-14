@@ -31,17 +31,33 @@ private class RequestHandler extends FunctionNode { }
 
 private class ErrorHandler extends RequestHandler { }
 
+newtype TUserDefinedApplicationService =
+  TClassDefinition(ClassNode classNode) {
+    exists(ApplicationService cdsApplicationService |
+      classNode.getASuperClassNode() = cdsApplicationService.asSource()
+    )
+  } or
+  TImplMethodCall(MethodCallNode cdsServiceImplCall) {
+    exists(CdsFacade cds |
+      cdsServiceImplCall.getReceiver() = cds.getMember("service").asSource() and
+      cdsServiceImplCall.getMethodName() = "impl"
+    )
+  }
+
 /**
  * Subclassing ApplicationService via `extends`:
  * ```js
  * class SomeService extends cds.ApplicationService
  * ```
  */
-class UserDefinedApplicationService extends ClassNode {
-  UserDefinedApplicationService() {
-    exists(ApplicationService cdsApplicationService |
-      this.getASuperClassNode() = cdsApplicationService.asSource()
-    )
+class UserDefinedApplicationService extends TUserDefinedApplicationService {
+  ClassNode asClassDefinition() { this = TClassDefinition(result) }
+
+  MethodCallNode asImplMethodCall() { this = TImplMethodCall(result) }
+
+  string toString() {
+    result = this.asClassDefinition().toString() or
+    result = this.asImplMethodCall().toString()
   }
 }
 
@@ -109,7 +125,7 @@ class RequestSource extends OnNodeParam {
   RequestSource() {
     // TODO : consider  - do we need to actually ever know which service the handler is associated to?
     exists(UserDefinedApplicationService svc, FunctionNode init |
-      svc.getAnInstanceMember() = init and
+      svc.asClassDefinition().getAnInstanceMember() = init and
       init.getName() = "init" and
       this.getOnNode().getEnclosingFunction() = init.getAstNode()
     )
