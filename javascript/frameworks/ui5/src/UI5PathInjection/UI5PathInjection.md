@@ -60,8 +60,8 @@ Even if the server which updates the OData V2 model is in a trusted domain such 
 
 ## References
 
-- [CWE-829](https://cwe.mitre.org/data/definitions/829.html): Inclusion of Functionality from Untrusted Control Sphere
-- [CWE-073](https://cwe.mitre.org/data/definitions/73.html): External Control of File Name or Path
-- [API Documentation of `sap.ui.core.util.File`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.util.File%23methods/sap.ui.core.util.File.save)
-- [API Documentation of `sap.ui.dom.includeScript`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript) and [`sap.ui.dom.includeStyleSheet`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeStylesheet)
-- [API Documentation of `jQuery.sap.includeScript`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript) and [`jQuery.sap.includeStyleSheet`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript)
+- Common Weakness Enumeration: [CWE-829](https://cwe.mitre.org/data/definitions/829.html).
+- Common Weakness Enumeration: [CWE-073](https://cwe.mitre.org/data/definitions/73.html).
+- SAP UI5 API Reference: [`sap.ui.core.util.File`](https://sapui5.hana.ondemand.com/sdk/#/api/sap.ui.core.util.File%23methods/sap.ui.core.util.File.save).
+- SAP UI5 API Reference: [`sap.ui.dom.includeScript`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript) and [`sap.ui.dom.includeStyleSheet`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeStylesheet).
+- SAP UI5 API Reference: [`jQuery.sap.includeScript`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript) and [`jQuery.sap.includeStyleSheet`](https://sapui5.hana.ondemand.com/sdk/#/api/module:sap/ui/dom/includeScript).

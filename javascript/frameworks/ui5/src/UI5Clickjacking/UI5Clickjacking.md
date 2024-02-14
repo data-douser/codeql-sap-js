@@ -55,6 +55,6 @@ The default value of `window["sap-ui-config"]` and `data-sap-ui-frameOptions` ar
 ## References
 * OWASP: [Clickjacking Defense Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Clickjacking_Defense_Cheat_Sheet.html).
 * Mozilla: [X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options).
-* SAP: [Frame Options](https://sapui5.hana.ondemand.com/sdk/#/topic/62d9c4d8f5ad49aa914624af9551beb7.html).
-* SAP: [Allowlist Service](https://sapui5.hana.ondemand.com/sdk/#/topic/d04a6d41480c4396af16b5d2b25509ec.html).
+* SAP UI5 Documentation: [Frame Options](https://sapui5.hana.ondemand.com/sdk/#/topic/62d9c4d8f5ad49aa914624af9551beb7.html).
+* SAP UI5 Documentation: [Allowlist Service](https://sapui5.hana.ondemand.com/sdk/#/topic/d04a6d41480c4396af16b5d2b25509ec.html).
 * Common Weakness Enumeration: [CWE-451](https://cwe.mitre.org/data/definitions/451.html).
