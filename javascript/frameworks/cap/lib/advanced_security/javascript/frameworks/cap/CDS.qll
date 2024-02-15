@@ -1,5 +1,6 @@
 import javascript
 import DataFlow
+import advanced_security.javascript.frameworks.cap.CDL
 
 /**
  * ```js
@@ -136,7 +137,7 @@ class HandlerRegistration extends MethodCallNode {
  * The handler that implements a service's logic to deal with the incoming request or message when a certain event is fired.
  * It is the last argument to the method calls that registers the handler: either `srv.before`, `srv.on`, or `srv.after`.
  */
-abstract class Handler extends FunctionNode {
+class Handler extends FunctionNode {
   UserDefinedApplicationService srv;
   string eventName;
 
@@ -160,20 +161,19 @@ abstract class Handler extends FunctionNode {
 }
 
 /**
- * A handler whose parameter is of type `cds.Event`. It handles asynchronous events.
+ * A handler whose first parameter is of type `cds.Event` and handles the event in an
+ * asynchronous manner, or is of type `cds.Request` and handles the event synchronously.
  */
-class MessageHandler extends Handler { }
+class EventHandler extends Handler {
+  EventHandler() { exists(CdlEvent event | this.getAnEventName() = event.getName()) }
+}
 
 /**
- * A handler whose parameter is of type `cds.Request`, and might contain a second parameter for
- * passing the control to the handler registered below it. It handles synchronous requests.
+ * A handler that handles errors.
  */
-class RequestHandler extends Handler { }
-
-/**
- * A handler that handles errors. (TODO)
- */
-class ErrorHandler extends Handler { }
+class ErrorHandler extends Handler {
+  ErrorHandler() { this.getAnEventName() = "error" }
+}
 
 newtype TUserDefinedApplicationService =
   /**
