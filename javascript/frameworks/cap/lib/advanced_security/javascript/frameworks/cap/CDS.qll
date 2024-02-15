@@ -30,7 +30,7 @@ class CdsServeCall extends MethodCallNode {
  *
  * // Obtained through `cds.connect.to`
  * const Service1 = await cds.connect.to("service-1");
- * 
+ *
  * // A constructor call
  * const srv = new cds.ApplicationService(...);
  * const srv = new cds.Service(...);
