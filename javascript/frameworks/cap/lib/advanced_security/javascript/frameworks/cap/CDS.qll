@@ -77,7 +77,7 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
  * ```
  */
 class ServiceInstanceFromConstructor extends ServiceInstance {
-  ServiceInstanceFromConstructor() { this = any(ApplicationService cds).getAnInstantiation() }
+  ServiceInstanceFromConstructor() { this = any(CdsApplicationService cds).getAnInstantiation() }
 }
 
 /**
@@ -115,7 +115,7 @@ private class CdsConnectTo extends MethodCallNode {
 }
 
 /**
- * A call to `before`, `on`, or `after` on an `ApplicationService`.
+ * A call to `before`, `on`, or `after` on an `CdsApplicationService`.
  * It registers an handler to be executed when an event is fired,
  * to do something with the incoming request or event as its parameter.
  */
@@ -232,18 +232,18 @@ class ErrorHandler extends Handler {
 
 newtype TUserDefinedApplicationService =
   /**
-   * Subclassing `ApplicationService` via a ES6 class definition.
+   * Subclassing `cds.ApplicationService` via a ES6 class definition.
    * ```js
    * class SomeService extends cds.ApplicationService
    * ```
    */
   TClassDefinition(ClassNode classNode) {
-    exists(ApplicationService cdsApplicationService |
+    exists(CdsApplicationService cdsApplicationService |
       classNode.getASuperClassNode() = cdsApplicationService.asSource()
     )
   } or
   /**
-   * Subclassing `ApplicationService` via a call to `cds.service.impl`.
+   * Subclassing `cds.ApplicationService` via a call to `cds.service.impl`.
    * ```js
    * const cds = require('@sap/cds')
    * module.exports = cds.service.impl (function() { ... })
@@ -286,8 +286,8 @@ class UserDefinedApplicationService extends TUserDefinedApplicationService {
   }
 }
 
-private class ApplicationService extends API::Node {
-  ApplicationService() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
+private class CdsApplicationService extends API::Node {
+  CdsApplicationService() { exists(CdsFacade c | this = c.getMember("CdsApplicationService")) }
 }
 
 /**
