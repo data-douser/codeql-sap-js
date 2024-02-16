@@ -9,6 +9,8 @@ import advanced_security.javascript.frameworks.cap.CDL
  */
 class CdsFacade extends API::Node {
   CdsFacade() { this = API::moduleImport("@sap/cds") }
+
+  Node getNode() { result = this.asSource() }
 }
 
 /**
@@ -19,72 +21,89 @@ class CdsServeCall extends MethodCallNode {
 }
 
 /**
- * A service instance that are obtained by the service's name, either via:
- * - Serving defined services via cds.serve and awaiting its promise, or
- * - Connecting to a service already being served and awaiting its promise, or
- * - Simply calling a constructor with a `new` keyword.
- * e.g.
+ * A dataflow node that represents a service.
+ */
+abstract class ServiceInstance extends DataFlow::Node { } // Use `DataFlow::Node` to be the most general.
+
+/**
+ * A service instance obtained by the service's name, via serving
+ * defined services via `cds.serve` and awaiting its promise. e.g.
  * ```javascript
  * // Obtained through `cds.serve`
  * const { Service1, Service2 } = await cds.serve("all");
  * const Service1 = await cds.serve("service-1");
- *
+ * ```
+ */
+class ServiceInstanceFromCdsServe extends ServiceInstance {
+  ServiceInstanceFromCdsServe() {
+    exists(AwaitExpr await, CdsServeCall cdsServe |
+      /* 1. Obtained using `cds.Serve` */
+      (
+        /* 1-1. Destructuring definition */
+        this.asExpr().getFirstControlFlowNode().(VarDef).getDestructuringSource() = await
+        or
+        /* 1-2. Direct definition */
+        this.getALocalSource().asExpr() = await
+      ) and
+      await.getOperand().flow() = cdsServe
+    )
+  }
+}
+
+/**
+ * A service instance obtained by the service's name, via connecting
+ * to a service already being served and awaiting its promise. e.g.
+ * ```javascript
  * // Obtained through `cds.connect.to`
  * const Service1 = await cds.connect.to("service-1");
- *
+ * ```
+ */
+class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
+  ServiceInstanceFromCdsConnectTo() {
+    exists(AwaitExpr await, CdsConnectTo cdsConnectTo |
+      this.getALocalSource().asExpr() = await and
+      await.getOperand().flow() = cdsConnectTo
+    )
+  }
+}
+
+/**
+ * A service instance obtained by directly calling the constructor
+ * of its class with a `new` keyword. e.g.
+ * ```javascript
  * // A constructor call
  * const srv = new cds.ApplicationService(...);
  * const srv = new cds.Service(...);
  * ```
  */
-class ServiceInstance extends DataFlow::Node {
-  ServiceInstance() {
-    exists(AwaitExpr await, CdsServeCall cdsServe |
-      /* 1. Obtained using `cds.Serve` */
-      (
-        /*
-         * 1-1. Destructuring definition, e.g.
-         * ```
-         * const { Service1, Service2 } = await cds.serve("all");
-         * ```
-         */
+class ServiceInstanceFromConstructor extends ServiceInstance {
+  ServiceInstanceFromConstructor() { this = any(ApplicationService cds).getAnInstantiation() }
+}
 
-        this.asExpr().getFirstControlFlowNode().(VarDef).getDestructuringSource() = await
-        or
-        /*
-         * 1-2. Direct definition, e.g.
-         * ```
-         * const Service1 = await cds.serve("service-1");
-         * ```
-         */
-
-        this.getALocalSource().asExpr() = await
-      ) and
-      await.getOperand().flow() = cdsServe
+/**
+ * The parameter node representing the service being served, given to a
+ * callback argument to the `cds.serve(...).with` call. e.g.
+ * ```js
+ * cds.serve('./srv/some-service').with ((srv) => {
+ *   srv.on ('READ','SomeEntity', (req) => req.reply([...]))
+ * })
+ * ```
+ * This is used to extend the given service's functionality.
+ */
+class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstance {
+  ServiceInstanceFromServeWithParameter() {
+    exists(MethodCallNode withCall, CdsServeCall cdsServe |
+      withCall.getMethodName() = "with" and
+      withCall.getReceiver() = cdsServe and
+      this = withCall.getArgument(0).(FunctionNode).getParameter(0)
     )
-    or
-    /* 2. Obtained using `cds.connect.to` */
-    exists(AwaitExpr await, CdsConnectTo cdsConnectTo |
-      this.getALocalSource().asExpr() = await and
-      await.getOperand().flow() = cdsConnectTo
-    )
-    or
-    /*
-     * 3. A constructor call on the class with a `new` keyword, e.g.
-     * ```
-     * const srv = new cds.ApplicationService(...);
-     * const srv = new cds.Service(...);
-     * ```
-     */
-
-    this = any(ApplicationService cds).getAnInstantiation()
   }
 }
 
 /**
  * A Call to `cds.connect.to` that returns a promise containing the service that is asked for by its name.
  */
-class CdsConnectTo extends MethodCallNode {
+private class CdsConnectTo extends MethodCallNode {
   string serviceName;
 
   CdsConnectTo() {
@@ -98,12 +117,15 @@ class CdsConnectTo extends MethodCallNode {
 /**
  * A call to `before`, `on`, or `after` on an `ApplicationService`.
  * It registers an handler to be executed when an event is fired,
- * to do something with the incoming request or event.
+ * to do something with the incoming request or event as its parameter.
  */
 class HandlerRegistration extends MethodCallNode {
   HandlerRegistration() {
-    exists(ApplicationService srv |
-      this.getReceiver() = srv.asSource() and
+    exists(UserDefinedApplicationService srv |
+      (
+        this.getReceiver() = srv.asClassDefinition() or
+        this.getReceiver() = srv.asImplMethodCall()
+      ) and
       (
         this.getMethodName() = "before" or
         this.getMethodName() = "on" or
@@ -161,11 +183,44 @@ class Handler extends FunctionNode {
 }
 
 /**
+ * Built-in event names to use to talk to a service.
+ * - Event names for [REST-style API](https://cap.cloud.sap/docs/node.js/core-services#rest-style-api)
+ *   - GET
+ *   - PUT
+ *   - POST
+ *   - PATCH
+ *   - DELETE
+ * - Event names for [CRUD-style API](https://cap.cloud.sap/docs/node.js/core-services#crud-style-api)
+ *   - READ
+ *   - CREATE
+ *   - INSERT
+ *   - UPSERT
+ *   - UPDATE
+ *   - DELETE
+ */
+class BuiltInEventNames extends string {
+  BuiltInEventNames() {
+    /* 1. REST-style API names. */
+    this = ["GET", "PUT", "POST", "PATCH", "DELETE"]
+    or
+    /* 2. CRUD-style API names. */
+    this = ["READ", "CREATE", "INSERT", "UPSERT", "UPDATE", "DELETE"]
+  }
+
+  predicate isRestStyle() { this = ["GET", "PUT", "POST", "PATCH", "DELETE"] }
+
+  predicate isCrudStyle() { this = ["READ", "CREATE", "INSERT", "UPSERT", "UPDATE", "DELETE"] }
+}
+
+/**
  * A handler whose first parameter is of type `cds.Event` and handles the event in an
  * asynchronous manner, or is of type `cds.Request` and handles the event synchronously.
  */
 class EventHandler extends Handler {
-  EventHandler() { exists(CdlEvent event | this.getAnEventName() = event.getName()) }
+  EventHandler() {
+    exists(CdlEvent event | this.getAnEventName() = event.getBasename()) or
+    exists(BuiltInEventNames builtInName | this.getAnEventName() = builtInName)
+  }
 }
 
 /**
@@ -222,65 +277,12 @@ class UserDefinedApplicationService extends TUserDefinedApplicationService {
   HandlerRegistration getAHandlerRegistration() {
     result.getEnclosingFunction() = getInitFunction().asExpr()
   }
-}
 
-/**
- *  Parameter of a `srv.with` method call:
- * ```js
- * cds.serve('./srv/cat-service') .with ((srv) => {
- *     srv.on ('READ','Books', (req) => req.reply([...]))
- * })
- * ```
- *
- * TODO expand this to capture request handlers registered inside the function
- */
-class WithCallParameter extends RequestHandler {
-  WithCallParameter() {
-    exists(MethodCallNode withCall, ServiceInstance svc |
-      withCall.getArgument(0) = this and
-      withCall.getMethodName() = "with" and
-      withCall.getReceiver() = svc
-    )
-  }
-}
-
-/**
- * Parameter of request handler of `_.on`:
- * ```js
- * _.on ('READ','Books', (req) => req.reply([...]))
- * ```
- */
-class OnNodeParam extends ValueNode, ParameterNode {
-  MethodCallNode on;
-
-  OnNodeParam() {
-    exists(FunctionNode handler |
-      on.getMethodName() = "on" and
-      on.getLastArgument() = handler and
-      handler.getLastParameter() = this
-    )
-  }
-
-  MethodCallNode getOnNode() { result = on }
-}
-
-/**
- * Parameter of request handler of `srv.on`:
- * ```js
- * this.on ('READ','Books', (req) => req.reply([...]))
- * ```
- * not sure how else to know which service is registering the handler
- */
-class RequestSource extends OnNodeParam {
-  RequestSource() {
-    // TODO : consider  - do we need to actually ever know which service the handler is associated to?
-    exists(UserDefinedApplicationService svc, FunctionNode init |
-      svc.asClassDefinition().getAnInstanceMember() = init and
-      init.getName() = "init" and
-      this.getOnNode().getEnclosingFunction() = init.getAstNode()
-    )
-    or
-    exists(WithCallParameter pa | this.getOnNode().getEnclosingFunction() = pa.getFunction())
+  predicate hasLocationInfo(
+    string filepath, int startline, int startcolumn, int endline, int endcolumn
+  ) {
+    this.asClassDefinition().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn) or
+    this.asImplMethodCall().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
   }
 }
 

@@ -80,6 +80,8 @@ class CdlEvent extends CdlElement {
     )
   }
 
+  string getBasename() { result = name.splitAt(".", count(name.indexOf("."))) }
+
   override string getName() { result = name }
 
   override CdlKind getKind() { result = kind }
