@@ -1,5 +1,6 @@
 import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 
-from CDS::OldStyleUserDefinedApplicationService svc
-select svc
+from MethodCallNode cdsServiceImplCall
+where exists(TUserDefinedApplicationService svc | svc = TImplMethodCall(cdsServiceImplCall))
+select cdsServiceImplCall
