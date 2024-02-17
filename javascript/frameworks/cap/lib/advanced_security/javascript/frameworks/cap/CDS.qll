@@ -35,19 +35,7 @@ abstract class ServiceInstance extends DataFlow::Node { } // Use `DataFlow::Node
  * ```
  */
 class ServiceInstanceFromCdsServe extends ServiceInstance {
-  ServiceInstanceFromCdsServe() {
-    exists(AwaitExpr await, CdsServeCall cdsServe |
-      /* 1. Obtained using `cds.Serve` */
-      (
-        /* 1-1. Destructuring definition */
-        this.asExpr().getFirstControlFlowNode().(VarDef).getDestructuringSource() = await
-        or
-        /* 1-2. Direct definition */
-        this.getALocalSource().asExpr() = await
-      ) and
-      await.getOperand().flow() = cdsServe
-    )
-  }
+  ServiceInstanceFromCdsServe() { exists(CdsFacade cds | this = cds.getMember("serve").getACall()) }
 }
 
 /**
@@ -56,13 +44,16 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
  * ```javascript
  * // Obtained through `cds.connect.to`
  * const Service1 = await cds.connect.to("service-1");
+ * const Service1 = cds.connect.to("service-2");
  * ```
  */
-class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
+class ServiceInstanceFromCdsConnectTo extends MethodCallNode, ServiceInstance {
+  string serviceName;
+
   ServiceInstanceFromCdsConnectTo() {
-    exists(AwaitExpr await, CdsConnectTo cdsConnectTo |
-      this.getALocalSource().asExpr() = await and
-      await.getOperand().flow() = cdsConnectTo
+    exists(CdsFacade cds |
+      this = cds.getMember("connect").getMember("to").getACall() and
+      serviceName = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
     )
   }
 }
@@ -105,20 +96,6 @@ class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstan
       withCall.getMethodName() = "with" and
       withCall.getReceiver() = cdsServe and
       this = withCall.getArgument(0).(FunctionNode).getParameter(0)
-    )
-  }
-}
-
-/**
- * A Call to `cds.connect.to` that returns a promise containing the service that is asked for by its name.
- */
-private class CdsConnectTo extends MethodCallNode {
-  string serviceName;
-
-  CdsConnectTo() {
-    exists(CdsFacade cds |
-      this = cds.getMember("connect").getMember("to").getACall() and
-      serviceName = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
     )
   }
 }
