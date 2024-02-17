@@ -81,6 +81,15 @@ class ServiceInstanceFromConstructor extends ServiceInstance {
 }
 
 /**
+ * A service instance that represents an w
+ */
+class ServiceInstanceFromThisNode extends ServiceInstance {
+  ServiceInstanceFromThisNode() {
+    exists(ThisNode thisNode | thisNode.flowsTo(this) and this != thisNode)
+  }
+}
+
+/**
  * The parameter node representing the service being served, given to a
  * callback argument to the `cds.serve(...).with` call. e.g.
  * ```js
@@ -115,17 +124,14 @@ private class CdsConnectTo extends MethodCallNode {
 }
 
 /**
- * A call to `before`, `on`, or `after` on an `CdsApplicationService`.
+ * A call to `before`, `on`, or `after` on an `cds.ApplicationService`.
  * It registers an handler to be executed when an event is fired,
  * to do something with the incoming request or event as its parameter.
  */
 class HandlerRegistration extends MethodCallNode {
   HandlerRegistration() {
-    exists(UserDefinedApplicationService srv |
-      (
-        this.getReceiver() = srv.asClassDefinition() or
-        this.getReceiver() = srv.asImplMethodCall()
-      ) and
+    exists(ServiceInstance srv |
+      (srv.(SourceNode).flowsTo(this.getReceiver()) or srv = this.getReceiver()) and
       (
         this.getMethodName() = "before" or
         this.getMethodName() = "on" or
@@ -158,16 +164,17 @@ class HandlerRegistration extends MethodCallNode {
 /**
  * The handler that implements a service's logic to deal with the incoming request or message when a certain event is fired.
  * It is the last argument to the method calls that registers the handler: either `srv.before`, `srv.on`, or `srv.after`.
+ * Its first parameter is of type `cds.Event` and handles the event in an asynchronous manner,
+ * or is of type `cds.Request` and handles the event synchronously.
  */
 class Handler extends FunctionNode {
   UserDefinedApplicationService srv;
   string eventName;
 
   Handler() {
-    this.asExpr().getEnclosingFunction() = srv.getInitFunction().asExpr() and
     exists(HandlerRegistration handlerRegistration |
-      handlerRegistration.asExpr() = this.getEnclosingExpr() and
-      eventName = handlerRegistration.getAnEventName()
+      this = handlerRegistration.getAnArgument() and
+      eventName = handlerRegistration.getArgument(0).asExpr().(StringLiteral).getValue()
     )
   }
 
@@ -210,17 +217,6 @@ class BuiltInEventNames extends string {
   predicate isRestStyle() { this = ["GET", "PUT", "POST", "PATCH", "DELETE"] }
 
   predicate isCrudStyle() { this = ["READ", "CREATE", "INSERT", "UPSERT", "UPDATE", "DELETE"] }
-}
-
-/**
- * A handler whose first parameter is of type `cds.Event` and handles the event in an
- * asynchronous manner, or is of type `cds.Request` and handles the event synchronously.
- */
-class EventHandler extends Handler {
-  EventHandler() {
-    exists(CdlEvent event | this.getAnEventName() = event.getBasename()) or
-    exists(BuiltInEventNames builtInName | this.getAnEventName() = builtInName)
-  }
 }
 
 /**
@@ -287,7 +283,7 @@ class UserDefinedApplicationService extends TUserDefinedApplicationService {
 }
 
 private class CdsApplicationService extends API::Node {
-  CdsApplicationService() { exists(CdsFacade c | this = c.getMember("CdsApplicationService")) }
+  CdsApplicationService() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
 }
 
 /**

@@ -13,7 +13,7 @@ import advanced_security.javascript.frameworks.cap.CDS
  */
 /* TODO: narrow the definition down to exposed events */
 class HandlerParameter extends ParameterNode, RemoteFlowSource {
-  HandlerParameter() { exists(EventHandler handler | this = handler.getParameter(0)) }
+  HandlerParameter() { exists(Handler handler | this = handler.getParameter(0)) }
 
   override string getSourceType() { result = "Parameter of an event handler" }
 }

@@ -1,5 +1,5 @@
 import javascript
-import advanced_security.javascript.frameworks.cap.CDS
+import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 
-from CDS::RequestSource src
+from HandlerParameter src
 select src
