@@ -5,7 +5,7 @@ module.exports = class Service1 extends cds.ApplicationService {
     init() {
         this.on("READ", "Entity1/Attribute1", (req) => {
             const { messageToPass } = req.data;
-            await this.emit("Received1", { messageToPass });
+            this.emit("Received1", { messageToPass });
         });
     }
 }
