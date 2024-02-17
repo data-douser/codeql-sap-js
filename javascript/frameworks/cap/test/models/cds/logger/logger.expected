@@ -1,7 +1,7 @@
-| logger.js:3:25:3:30 | `test` |
-| logger.js:4:25:4:30 | `test` |
-| logger.js:5:24:5:29 | `test` |
-| logger.js:6:23:6:28 | `test` |
-| logger.js:7:24:7:29 | `test` |
-| logger.js:8:25:8:30 | `test` |
-| logger.js:11:10:11:15 | "test" |
+| logger.js:3:25:3:29 | code0 |
+| logger.js:4:25:4:29 | code0 |
+| logger.js:5:24:5:28 | code0 |
+| logger.js:6:23:6:27 | code0 |
+| logger.js:7:24:7:28 | code0 |
+| logger.js:8:25:8:29 | code0 |
+| logger.js:12:10:12:14 | code1 |

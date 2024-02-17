@@ -1,5 +1,5 @@
 import javascript
-import advanced_security.javascript.frameworks.cap.CDS
+import advanced_security.javascript.frameworks.cap.CAPLogInjection
 
-from CDS::CdsLogSink sink
+from CdsLogSink sink
 select sink
