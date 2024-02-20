@@ -13,12 +13,16 @@
 import javascript
 import DataFlow::PathGraph
 import semmle.javascript.security.dataflow.LogInjectionQuery
+import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 import advanced_security.javascript.frameworks.cap.CDS
+import advanced_security.javascript.frameworks.cap.CAPLogInjection
 
 /**
  * A source of remote user controlled input.
  */
-class CapRemoteSource extends Source, RequestSource { }
+class CapRemoteSource extends Source {
+  CapRemoteSource() { this instanceof RemoteFlowSource }
+}
 
 /**
  * An argument to a logging mechanism.

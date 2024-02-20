@@ -15,12 +15,13 @@ import DataFlow::PathGraph
 import semmle.javascript.security.dataflow.SqlInjectionCustomizations::SqlInjection
 import advanced_security.javascript.frameworks.cap.CDS
 import advanced_security.javascript.frameworks.cap.CQL
+import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 
 class Configuration extends TaintTracking::Configuration {
   Configuration() { this = "CapSqlInjection" }
 
   override predicate isSource(DataFlow::Node source) {
-    source instanceof Source or source instanceof RequestSource
+    source instanceof RemoteFlowSource
   }
 
   override predicate isSink(DataFlow::Node sink) {
