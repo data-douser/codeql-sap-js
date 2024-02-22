@@ -262,17 +262,3 @@ class UserDefinedApplicationService extends TUserDefinedApplicationService {
 private class CdsApplicationService extends API::Node {
   CdsApplicationService() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
 }
-
-/**
- * Methods that parse source strings into a CQL expression.
- */
-class ParseSink extends DataFlow::Node {
-  ParseSink() {
-    this =
-      any(CdsFacade cds)
-          .getMember("parse")
-          .getMember(["expr", "ref", "xpr"])
-          .getACall()
-          .getAnArgument()
-  }
-}
