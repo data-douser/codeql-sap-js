@@ -1,6 +1,7 @@
 import javascript
 import DataFlow
 import advanced_security.javascript.frameworks.cap.CDL
+import advanced_security.javascript.frameworks.cap.PackageJson
 
 /**
  * ```js
@@ -23,7 +24,9 @@ class CdsServeCall extends MethodCallNode {
 /**
  * A dataflow node that represents a service.
  */
-abstract class ServiceInstance extends DataFlow::Node { } // Use `DataFlow::Node` to be the most general.
+abstract class ServiceInstance extends DataFlow::Node {
+  abstract UserDefinedApplicationService getDefinition();
+}
 
 /**
  * A service instance obtained by the service's name, via serving
@@ -36,6 +39,10 @@ abstract class ServiceInstance extends DataFlow::Node { } // Use `DataFlow::Node
  */
 class ServiceInstanceFromCdsServe extends ServiceInstance {
   ServiceInstanceFromCdsServe() { exists(CdsFacade cds | this = cds.getMember("serve").getACall()) }
+
+  override UserDefinedApplicationService getDefinition() {
+    none() // TODO: how should we deal with serve("all")?
+  }
 }
 
 /**
@@ -56,6 +63,14 @@ class ServiceInstanceFromCdsConnectTo extends MethodCallNode, ServiceInstance {
       serviceName = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
     )
   }
+
+  override UserDefinedApplicationService getDefinition() {
+    exists(RequiredService serviceDecl, string abspath |
+      serviceDecl.getName() = serviceName and
+      abspath = serviceDecl.getImplementationFile().getAbsolutePath() and
+      result.hasLocationInfo(abspath, _, _, _, _)
+    )
+  }
 }
 
 /**
@@ -69,6 +84,8 @@ class ServiceInstanceFromCdsConnectTo extends MethodCallNode, ServiceInstance {
  */
 class ServiceInstanceFromConstructor extends ServiceInstance {
   ServiceInstanceFromConstructor() { this = any(CdsApplicationService cds).getAnInstantiation() }
+
+  override UserDefinedApplicationService getDefinition() { none() }
 }
 
 /**
@@ -77,6 +94,10 @@ class ServiceInstanceFromConstructor extends ServiceInstance {
 class ServiceInstanceFromThisNode extends ServiceInstance {
   ServiceInstanceFromThisNode() {
     exists(ThisNode thisNode | thisNode.flowsTo(this) and this != thisNode)
+  }
+
+  override UserDefinedApplicationService getDefinition() {
+    result.getInitFunction().asExpr() = this.asExpr().getEnclosingFunction()
   }
 }
 
@@ -97,6 +118,10 @@ class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstan
       withCall.getReceiver() = cdsServe and
       this = withCall.getArgument(0).(FunctionNode).getParameter(0)
     )
+  }
+
+  override UserDefinedApplicationService getDefinition() {
+    none() // TODO
   }
 }
 

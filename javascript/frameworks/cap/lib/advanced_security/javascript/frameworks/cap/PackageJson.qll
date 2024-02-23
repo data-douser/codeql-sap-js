@@ -20,24 +20,18 @@ class RequiresSection extends JsonObject {
  */
 class RequiredService extends JsonObject {
   string name;
-  string kind;
 
-  RequiredService() {
-    exists(RequiresSection requires |
-      this = requires.getPropValue(name) and
-      kind = this.getPropStringValue("kind")
-    )
-  }
+  RequiredService() { exists(RequiresSection requires | this = requires.getPropValue(name)) }
 
   string getName() { result = name }
-
-  string getKind() { result = kind }
 
   /**
    * Holds if this is a declaration of a remote service. All possible kinds of remote services can
    * be found in [this part of CAPire](https://cap.cloud.sap/docs/guides/using-services#import-api).
    */
-  predicate isRemote() { kind = ["odata", "odata-v4", "odata-v2", "rest", "sql", "sqlite"] }
+  predicate isRemote() {
+    this.getPropStringValue("kind") = ["odata", "odata-v4", "odata-v2", "rest", "sql", "sqlite"]
+  }
 
   /**
    * Holds if this is a declaration of a local service, which must provide an
@@ -45,8 +39,10 @@ class RequiredService extends JsonObject {
    */
   predicate isLocal() { exists(string path | path = this.getPropStringValue("impl")) }
 
+  File getImplementationFile() { "./" + result.getRelativePath() = this.getPropStringValue("impl") }
+
   /**
    * Holds if this is a declaration of a database service, which is considered remote.
    */
-  predicate isDatabase() { kind = ["sql", "sqlite"] }
+  predicate isDatabase() { this.getPropStringValue("kind") = ["sql", "sqlite"] }
 }
