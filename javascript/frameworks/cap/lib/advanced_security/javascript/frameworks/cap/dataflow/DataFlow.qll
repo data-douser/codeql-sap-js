@@ -34,6 +34,10 @@ abstract class InterServiceCommunication extends MethodCallNode {
    * The service that receives the request and handles it.
    */
   UserDefinedApplicationService recipient;
+
+  UserDefinedApplicationService getSender() { result = sender }
+
+  UserDefinedApplicationService getReceipient() { result = recipient }
 }
 
 class RestStyleCommunication extends InterServiceCommunication {
@@ -64,15 +68,12 @@ class AsyncStyleCommunication extends InterServiceCommunication {
       /* The service that emits the event and the service that registers the handler are the same; it's the sender. */
       this = orchestratingRegistration and
       sender = emittingRegistration.getReceiver().(ServiceInstance).getDefinition() and
+      srvEmit.asExpr().getEnclosingFunction+() = sender.getInitFunction().asExpr() and
       /* 1. match by their event name. */
       srvEmit.getEmittedEvent() = orchestratingRegistration.getAnEventName() and
       /* 2. match by their service name in cds.connect().to(). */
       srvEmit.getEmitter().getDefinition().getManifestName() =
-        orchestratingRegistration
-            .getReceiver()
-            .getALocalSource()
-            .(ServiceInstanceFromCdsConnectTo)
-            .getServiceName() and
+        orchestratingRegistration.getReceiver().(ServiceInstanceFromCdsConnectTo).getServiceName() and
       recipient = methodCallOnReceiver.getReceiver().(ServiceInstance).getDefinition() and
       methodCallOnReceiver.getEnclosingFunction() = orchestratingRegistration.getHandler().asExpr()
     )

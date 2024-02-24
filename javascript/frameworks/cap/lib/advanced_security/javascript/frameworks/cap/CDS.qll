@@ -23,7 +23,30 @@ class CdsServeCall extends API::Node {
 }
 
 /**
- * A dataflow node that represents a service.
+ * A `cds.connect.to(serveName)` call to connect to a local or remote service.
+ */
+class CdsConnectToCall extends API::Node {
+  CdsConnectToCall() { exists(CdsFacade cds | this = cds.getMember("connect").getMember("to")) }
+
+  /**
+   * Gets a variable definition using either `cds.connect.to(...)` or awaiting that at its RHS.
+   */
+  VarDef getVarDefUsingCdsConnect() {
+    result.getSource() = this.getACall().asExpr()
+    or
+    result.getSource().(AwaitExpr).getOperand() = this.getACall().asExpr()
+  }
+
+  /**
+   * Gets the service name that this call connects to.
+   */
+  string getServiceName() {
+    result = this.getACall().getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+  }
+}
+
+/**
+ * A dataflow node that represents a service. Note that its definition is a `UserDefinedApplicationService`, not a `ServiceInstance`.
  */
 abstract class ServiceInstance extends DataFlow::Node {
   abstract UserDefinedApplicationService getDefinition();
@@ -52,6 +75,7 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
   }
 }
 
+/* TODO: change `ServiceInstanceFromCdsConnectTo` to an VarAccess to the VarDef whose getSource() is CdsConnectToCall or an AwaitExpr wrapping it */
 /**
  * A service instance obtained by the service's name, via connecting
  * to a service already being served and awaiting its promise. e.g.
@@ -64,19 +88,11 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
 class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
   string serviceName;
 
+  /* TODO: change this to an VarAccess to the VarDef whose getSource() is CdsConnectToCall or an AwaitExpr wrapping it */
   ServiceInstanceFromCdsConnectTo() {
-    exists(CdsFacade cds |
-      this = cds.getMember("connect").getMember("to").getACall() and
-      serviceName =
-        this.(MethodCallNode).getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
-    )
-    or
-    exists(AwaitExpr await, CdsFacade cds, MethodCallNode awaitOperand |
-      this = await.flow() and
-      await.getOperand().flow() = awaitOperand and
-      awaitOperand = cds.getMember("connect").getMember("to").getACall() and
-      serviceName =
-        awaitOperand.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    exists(CdsConnectToCall cdsConnectTo |
+      this = cdsConnectTo.getVarDefUsingCdsConnect().getAVariable().getAnAccess().flow() and
+      serviceName = cdsConnectTo.getServiceName()
     )
   }
 
@@ -93,12 +109,7 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
   /**
    * Gets a method call on this service instance.
    */
-  override MethodCallNode getASrvMethodCall() {
-    exists(VarDef definition |
-      definition.getSource().flow() = this and
-      definition.getAVariable().getAnAccess() = result.getReceiver().asExpr()
-    )
-  }
+  override MethodCallNode getASrvMethodCall() { result.getReceiver() = this }
 }
 
 /**
@@ -354,15 +365,14 @@ private class CdsApplicationService extends API::Node {
   CdsApplicationService() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
 }
 
-abstract class InterServiceCommunicationMethodCall extends MethodCallNode { }
+abstract class InterServiceCommunicationMethodCall extends MethodCallNode {
+  InterServiceCommunicationMethodCall() {
+    exists(ServiceInstance srv | this = srv.getASrvMethodCall())
+  }
+}
 
 class SrvRun extends InterServiceCommunicationMethodCall {
-  SrvRun() {
-    exists(ServiceInstance srv |
-      srv = this.getReceiver() and
-      this.getMethodName() = "run"
-    )
-  }
+  SrvRun() { this.getMethodName() = "run" }
 
   CqlClause getCql() {
     result.asMethodCall() = this.getArgument(0).asExpr() or
@@ -374,8 +384,8 @@ class SrvEmit extends InterServiceCommunicationMethodCall {
   ServiceInstance emittingService;
 
   SrvEmit() {
-    emittingService = this.getReceiver() and
-    this.getMethodName() = "emit"
+    this.getMethodName() = "emit" and
+    emittingService = this.getReceiver()
   }
 
   ServiceInstance getEmitter() { result = emittingService }
@@ -386,10 +396,5 @@ class SrvEmit extends InterServiceCommunicationMethodCall {
 }
 
 class SrvSend extends InterServiceCommunicationMethodCall {
-  SrvSend() {
-    exists(ServiceInstance srv |
-      srv = this.getReceiver() and
-      this.getMethodName() = "send"
-    )
-  }
+  SrvSend() { this.getMethodName() = "send" }
 }
