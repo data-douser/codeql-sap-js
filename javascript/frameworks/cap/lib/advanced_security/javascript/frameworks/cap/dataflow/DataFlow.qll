@@ -16,33 +16,6 @@ class ParseSink extends DataFlow::Node {
   }
 }
 
-class SrvRun extends MethodCallNode {
-  SrvRun() {
-    exists(ServiceInstance srv |
-      srv = this.getReceiver() and
-      this.getMethodName() = "run"
-    )
-  }
-}
-
-class SrvEmit extends MethodCallNode {
-  SrvEmit() {
-    exists(ServiceInstance srv |
-      srv = this.getReceiver() and
-      this.getMethodName() = "emit"
-    )
-  }
-}
-
-class SrvSend extends MethodCallNode {
-  SrvSend() {
-    exists(ServiceInstance srv |
-      srv = this.getReceiver() and
-      this.getMethodName() = "send"
-    )
-  }
-}
-
 /**
  * A communication happening between `cds.Service`s. This includes:
  * 1. Ones based on REST-style API, based on `cds.Service.send`,
@@ -50,6 +23,8 @@ class SrvSend extends MethodCallNode {
  * 3. Ones based on emitting and subscribing to asynchronous event messages.
  */
 abstract class InterServiceCommunication extends MethodCallNode {
+  InterServiceCommunication() { this.getReceiver() instanceof ServiceInstance }
+
   /* TODO: Generalize UserApplicationService to include built-in services such as log and db */
   /**
    * The service that sends the request.
@@ -59,32 +34,47 @@ abstract class InterServiceCommunication extends MethodCallNode {
    * The service that receives the request and handles it.
    */
   UserDefinedApplicationService recipient;
-  /**
-   * The handler registration that set ups the communication.
-   */
-  HandlerRegistration registration;
 }
 
 class RestStyleCommunication extends InterServiceCommunication {
-  override UserDefinedApplicationService sender;
-  override UserDefinedApplicationService recipient;
-  override HandlerRegistration registration;
-
   RestStyleCommunication() {
-    registration = slfkjsd and
-    sender = registration.getReceiver().(ServiceInstance).getDefinition() and
-    recipient = sdlkfjdskf
+    exists(HandlerRegistration registration, SrvSend srvSend |
+      sender = registration.getReceiver().(ServiceInstance).getDefinition() and
+      recipient = srvSend.getReceiver().(ServiceInstance).getDefinition()
+    )
   }
 }
 
 class CrudStyleCommunication extends InterServiceCommunication {
-  override UserDefinedApplicationService sender;
-  override UserDefinedApplicationService recipient;
-  override HandlerRegistration registration;
+  CrudStyleCommunication() {
+    exists(HandlerRegistration registration, SrvRun srvRun |
+      sender = registration.getReceiver().(ServiceInstance).getDefinition() and
+      recipient = srvRun.getReceiver().(ServiceInstance).getDefinition()
+    )
+  }
 }
 
 class AsyncStyleCommunication extends InterServiceCommunication {
-  override UserDefinedApplicationService sender;
-  override UserDefinedApplicationService recipient;
-  override HandlerRegistration registration;
+  AsyncStyleCommunication() {
+    exists(
+      HandlerRegistration emittingRegistration, HandlerRegistration orchestratingRegistration,
+      SrvEmit srvEmit, InterServiceCommunicationMethodCall methodCallOnReceiver
+    |
+      emittingRegistration != orchestratingRegistration and
+      /* The service that emits the event and the service that registers the handler are the same; it's the sender. */
+      this = orchestratingRegistration and
+      sender = emittingRegistration.getReceiver().(ServiceInstance).getDefinition() and
+      /* 1. match by their event name. */
+      srvEmit.getEmittedEvent() = orchestratingRegistration.getAnEventName() and
+      /* 2. match by their service name in cds.connect().to(). */
+      srvEmit.getEmitter().getDefinition().getManifestName() =
+        orchestratingRegistration
+            .getReceiver()
+            .getALocalSource()
+            .(ServiceInstanceFromCdsConnectTo)
+            .getServiceName() and
+      recipient = methodCallOnReceiver.getReceiver().(ServiceInstance).getDefinition() and
+      methodCallOnReceiver.getEnclosingFunction() = orchestratingRegistration.getHandler().asExpr()
+    )
+  }
 }

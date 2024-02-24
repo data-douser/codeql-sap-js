@@ -1,7 +1,8 @@
 import javascript
 import DataFlow
-import advanced_security.javascript.frameworks.cap.CDL
 import advanced_security.javascript.frameworks.cap.PackageJson
+import advanced_security.javascript.frameworks.cap.CDL
+import advanced_security.javascript.frameworks.cap.CQL
 
 /**
  * ```js
@@ -17,8 +18,8 @@ class CdsFacade extends API::Node {
 /**
  * A call to `serve` on a CDS facade.
  */
-class CdsServeCall extends MethodCallNode {
-  CdsServeCall() { exists(CdsFacade cds | this = cds.getMember("serve").getACall()) }
+class CdsServeCall extends API::Node {
+  CdsServeCall() { exists(CdsFacade cds | this = cds.getMember("serve")) }
 }
 
 /**
@@ -26,6 +27,8 @@ class CdsServeCall extends MethodCallNode {
  */
 abstract class ServiceInstance extends DataFlow::Node {
   abstract UserDefinedApplicationService getDefinition();
+
+  abstract MethodCallNode getASrvMethodCall();
 }
 
 /**
@@ -43,6 +46,10 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
   override UserDefinedApplicationService getDefinition() {
     none() // TODO: how should we deal with serve("all")?
   }
+
+  override MethodCallNode getASrvMethodCall() {
+    none() // TODO
+  }
 }
 
 /**
@@ -54,13 +61,22 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
  * const Service1 = cds.connect.to("service-2");
  * ```
  */
-class ServiceInstanceFromCdsConnectTo extends MethodCallNode, ServiceInstance {
+class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
   string serviceName;
 
   ServiceInstanceFromCdsConnectTo() {
     exists(CdsFacade cds |
       this = cds.getMember("connect").getMember("to").getACall() and
-      serviceName = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+      serviceName =
+        this.(MethodCallNode).getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    )
+    or
+    exists(AwaitExpr await, CdsFacade cds, MethodCallNode awaitOperand |
+      this = await.flow() and
+      await.getOperand().flow() = awaitOperand and
+      awaitOperand = cds.getMember("connect").getMember("to").getACall() and
+      serviceName =
+        awaitOperand.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
     )
   }
 
@@ -69,6 +85,18 @@ class ServiceInstanceFromCdsConnectTo extends MethodCallNode, ServiceInstance {
       serviceDecl.getName() = serviceName and
       abspath = serviceDecl.getImplementationFile().getAbsolutePath() and
       result.hasLocationInfo(abspath, _, _, _, _)
+    )
+  }
+
+  string getServiceName() { result = serviceName }
+
+  /**
+   * Gets a method call on this service instance.
+   */
+  override MethodCallNode getASrvMethodCall() {
+    exists(VarDef definition |
+      definition.getSource().flow() = this and
+      definition.getAVariable().getAnAccess() = result.getReceiver().asExpr()
     )
   }
 }
@@ -86,6 +114,16 @@ class ServiceInstanceFromConstructor extends ServiceInstance {
   ServiceInstanceFromConstructor() { this = any(CdsApplicationService cds).getAnInstantiation() }
 
   override UserDefinedApplicationService getDefinition() { none() }
+
+  /**
+   * Gets a method call on this service instance.
+   */
+  override MethodCallNode getASrvMethodCall() {
+    exists(VarDef definition |
+      definition.getSource().flow() = this and
+      definition.getAVariable().getAnAccess() = result.getReceiver().asExpr()
+    )
+  }
 }
 
 /**
@@ -97,8 +135,13 @@ class ServiceInstanceFromThisNode extends ServiceInstance {
   }
 
   override UserDefinedApplicationService getDefinition() {
-    result.getInitFunction().asExpr() = this.asExpr().getEnclosingFunction()
+    result.getInitFunction().asExpr() = this.asExpr().getEnclosingFunction+()
   }
+
+  /**
+   * Gets a method call on this service instance.
+   */
+  override MethodCallNode getASrvMethodCall() { result.getReceiver() = this }
 }
 
 /**
@@ -115,12 +158,16 @@ class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstan
   ServiceInstanceFromServeWithParameter() {
     exists(MethodCallNode withCall, CdsServeCall cdsServe |
       withCall.getMethodName() = "with" and
-      withCall.getReceiver() = cdsServe and
+      withCall.getReceiver() = cdsServe.getACall() and
       this = withCall.getArgument(0).(FunctionNode).getParameter(0)
     )
   }
 
   override UserDefinedApplicationService getDefinition() {
+    none() // TODO
+  }
+
+  override MethodCallNode getASrvMethodCall() {
     none() // TODO
   }
 }
@@ -133,7 +180,11 @@ class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstan
 class HandlerRegistration extends MethodCallNode {
   HandlerRegistration() {
     exists(ServiceInstance srv |
-      (srv.(SourceNode).flowsTo(this.getReceiver()) or srv = this.getReceiver()) and
+      (
+        srv.(SourceNode).flowsTo(this.getReceiver())
+        or
+        srv = this.getReceiver()
+      ) and
       (
         this.getMethodName() = "before" or
         this.getMethodName() = "on" or
@@ -161,6 +212,11 @@ class HandlerRegistration extends MethodCallNode {
    * Get the name of the entity that the handler is registered for, if any.
    */
   string getEntityName() { result = this.getArgument(1).asExpr().(StringLiteral).getValue() }
+
+  /**
+   * Gets the handler that is being registrated to an event by this registering function call.
+   */
+  Handler getHandler() { result = this.getAnArgument() }
 }
 
 /**
@@ -282,8 +338,58 @@ class UserDefinedApplicationService extends TUserDefinedApplicationService {
     this.asClassDefinition().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn) or
     this.asImplMethodCall().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
   }
+
+  /**
+   * Gets the name of this service as declared in the ` package.json`.
+   */
+  string getManifestName() {
+    exists(RequiredService serviceManifest |
+      this.hasLocationInfo(serviceManifest.getImplementationFile().getAbsolutePath(), _, _, _, _) and
+      result = serviceManifest.getName()
+    )
+  }
 }
 
 private class CdsApplicationService extends API::Node {
   CdsApplicationService() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
+}
+
+abstract class InterServiceCommunicationMethodCall extends MethodCallNode { }
+
+class SrvRun extends InterServiceCommunicationMethodCall {
+  SrvRun() {
+    exists(ServiceInstance srv |
+      srv = this.getReceiver() and
+      this.getMethodName() = "run"
+    )
+  }
+
+  CqlClause getCql() {
+    result.asMethodCall() = this.getArgument(0).asExpr() or
+    result.asDotExpr() = this.getArgument(0).asExpr()
+  }
+}
+
+class SrvEmit extends InterServiceCommunicationMethodCall {
+  ServiceInstance emittingService;
+
+  SrvEmit() {
+    emittingService = this.getReceiver() and
+    this.getMethodName() = "emit"
+  }
+
+  ServiceInstance getEmitter() { result = emittingService }
+
+  string getEmittedEvent() {
+    result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+  }
+}
+
+class SrvSend extends InterServiceCommunicationMethodCall {
+  SrvSend() {
+    exists(ServiceInstance srv |
+      srv = this.getReceiver() and
+      this.getMethodName() = "send"
+    )
+  }
 }
