@@ -9,6 +9,13 @@ nodes
 | loginjection.js:11:14:11:26 | "test" + book |
 | loginjection.js:11:14:11:26 | "test" + book |
 | loginjection.js:11:23:11:26 | book |
+| loginjection.js:14:22:14:24 | req |
+| loginjection.js:14:22:14:24 | req |
+| loginjection.js:17:11:17:22 | $ |
+| loginjection.js:17:15:17:17 | req |
+| loginjection.js:17:15:17:22 | req.data |
+| loginjection.js:17:45:17:45 | $ |
+| loginjection.js:17:45:17:45 | $ |
 edges
 | loginjection.js:7:33:7:35 | req | loginjection.js:8:29:8:31 | req |
 | loginjection.js:7:33:7:35 | req | loginjection.js:8:29:8:31 | req |
@@ -19,5 +26,12 @@ edges
 | loginjection.js:8:29:8:36 | req.data | loginjection.js:8:11:8:25 | {book,quantity} |
 | loginjection.js:11:23:11:26 | book | loginjection.js:11:14:11:26 | "test" + book |
 | loginjection.js:11:23:11:26 | book | loginjection.js:11:14:11:26 | "test" + book |
+| loginjection.js:14:22:14:24 | req | loginjection.js:17:15:17:17 | req |
+| loginjection.js:14:22:14:24 | req | loginjection.js:17:15:17:17 | req |
+| loginjection.js:17:11:17:22 | $ | loginjection.js:17:45:17:45 | $ |
+| loginjection.js:17:11:17:22 | $ | loginjection.js:17:45:17:45 | $ |
+| loginjection.js:17:15:17:17 | req | loginjection.js:17:15:17:22 | req.data |
+| loginjection.js:17:15:17:22 | req.data | loginjection.js:17:11:17:22 | $ |
 #select
 | loginjection.js:11:14:11:26 | "test" + book | loginjection.js:7:33:7:35 | req | loginjection.js:11:14:11:26 | "test" + book | Log entry depends on a $@. | loginjection.js:7:33:7:35 | req | user-provided value |
+| loginjection.js:17:45:17:45 | $ | loginjection.js:14:22:14:24 | req | loginjection.js:17:45:17:45 | $ | Log entry depends on a $@. | loginjection.js:14:22:14:24 | req | user-provided value |

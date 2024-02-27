@@ -80,23 +80,23 @@ module CDS {
   }
 
   /**
-   * Parameter of request handler of `_.on`:
+   * Parameter of request handler phases `_.before`, `_.on` `_.after`:
    * ```js
    * _.on ('READ','Books', (req) => req.reply([...]))
    * ```
    */
-  class OnNodeParam extends ValueNode, ParameterNode {
-    MethodCallNode on;
+  class EventPhaseNodeParam extends ValueNode, ParameterNode {
+    MethodCallNode eventPhase;
 
-    OnNodeParam() {
+    EventPhaseNodeParam() {
       exists(FunctionNode handler |
-        on.getMethodName() = "on" and
-        on.getLastArgument() = handler and
+        eventPhase.getMethodName() = ["before", "on", "after"] and
+        eventPhase.getLastArgument() = handler and
         handler.getLastParameter() = this
       )
     }
 
-    MethodCallNode getOnNode() { result = on }
+    MethodCallNode getEventPhaseNode() { result = eventPhase }
   }
 
   /**
@@ -106,30 +106,35 @@ module CDS {
    * ```
    * not sure how else to know which service is registering the handler
    */
-  class RequestSource extends OnNodeParam {
+  class RequestSource extends EventPhaseNodeParam {
     RequestSource() {
       // TODO : consider  - do we need to actually ever know which service the handler is associated to?
       exists(UserDefinedApplicationService svc, FunctionNode init |
         svc.getAnInstanceMember() = init and
         init.getName() = "init" and
-        this.getOnNode().getEnclosingFunction() = init.getAstNode()
+        this.getEventPhaseNode().getEnclosingFunction() = init.getAstNode()
       )
       or
-      exists(WithCallParameter pa | this.getOnNode().getEnclosingFunction() = pa.getFunction())
+      exists(WithCallParameter pa |
+        this.getEventPhaseNode().getEnclosingFunction() = pa.getFunction()
+      )
     }
   }
 
   class ApplicationService extends API::Node {
-    ApplicationService() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
+    ApplicationService() {
+      exists(CdsFacade c | this = c.getMember(["ApplicationService", "Service"]))
+    }
   }
 
   /**
    * ```js
    * const cds = require('@sap/cds')
+   * const cds = require('@sap/cds/lib')
    * ```
    */
   class CdsFacade extends API::Node {
-    CdsFacade() { this = API::moduleImport("@sap/cds") }
+    CdsFacade() { this = API::moduleImport(["@sap/cds", "@sap/cds/lib"]) }
   }
 
   /**
@@ -143,13 +148,26 @@ module CDS {
    * Arguments of calls to `cds.log.{trace, debug, info, log, warn, error}`
    */
   class CdsLogSink extends DataFlow::Node {
-    CdsLogSink() { this = any(CdsLogCall cdsLog).getACall().getAChainedMethodCall(["trace", "debug", "info", "log", "warn", "error"]).getAnArgument() }
+    CdsLogSink() {
+      this =
+        any(CdsLogCall cdsLog)
+            .getACall()
+            .getAChainedMethodCall(["trace", "debug", "info", "log", "warn", "error"])
+            .getAnArgument()
+    }
   }
 
   /**
    * Methods that parse source strings into a CQL expression
    */
   class ParseSink extends DataFlow::Node {
-    ParseSink() { this = any(CdsFacade cds).getMember("parse").getMember(["expr", "ref", "xpr"]).getACall().getAnArgument() }
+    ParseSink() {
+      this =
+        any(CdsFacade cds)
+            .getMember("parse")
+            .getMember(["expr", "ref", "xpr"])
+            .getACall()
+            .getAnArgument()
+    }
   }
 }

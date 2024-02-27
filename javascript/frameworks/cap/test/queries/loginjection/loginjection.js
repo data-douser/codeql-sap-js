@@ -8,7 +8,13 @@ class SampleVulnService extends cds.ApplicationService { init(){
     const {book,quantity} = req.data
 
     const LOG = cds.log("nodejs");
-    LOG.info("test" + book);
+    LOG.info("test" + book); // Log injection alert
+  })
+
+  this.on('format', (req) => {
+    const cds2 = require ('@sap/cds/lib')
+    const LOG = cds2.log('cds.log')
+    const $ = req.data; LOG.info('format:', $) // Log injection alert
   })
 
   return super.init()

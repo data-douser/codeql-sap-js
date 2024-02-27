@@ -64,6 +64,7 @@ jobs:
         pip install sarif-tools
         sarif --version
         sarif diff ${{ steps.analyze.outputs.sarif-output }} .github/workflows/javascript.sarif.expected -o sarif-diff.json
+        cat sarif-diff.json
         ! grep -q "[1-9]" sarif-diff.json
         
     - name: Upload sarif change
