@@ -1,0 +1,21 @@
+{
+  "definitions": {
+    "Service2": {
+      "@source": "srv/service2.cds",
+      "kind": "service"
+    },
+    "Service2.Received2": {
+      "kind": "event",
+      "elements": {
+        "messageToPass": {
+          "type": "cds.String"
+        }
+      }
+    }
+  },
+  "meta": {
+    "creator": "CDS Compiler v4.1.2",
+    "flavor": "inferred"
+  },
+  "$version": "2.0"
+}
