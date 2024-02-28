@@ -3,9 +3,9 @@ const cds = require("@sap/cds");
 /* Emit a "Received1" event upon receiving a READ request on its entity. */
 module.exports = class Service1 extends cds.ApplicationService {
     init() {
-        this.on("READ", "Entity1/Attribute1", (req) => {
+        this.on("send1", async (req) => { // req is not used at all
             let datetime = new Date();
-            this.emit("Received1", { datetime.toString() });
+            Service2.send("send2", { messageToPass: datetime.toString() });
         });
     }
 }
