@@ -15,8 +15,8 @@ import DataFlow::PathGraph
 import semmle.javascript.security.dataflow.SqlInjectionCustomizations::SqlInjection
 import advanced_security.javascript.frameworks.cap.CQL
 
-class CapSqlIConfiguration extends TaintTracking::Configuration {
-  CapSqlIConfiguration() { this = "CapSqlInjection" }
+class CqlIConfiguration extends TaintTracking::Configuration {
+  CqlIConfiguration() { this = "CqlInjection" }
 
   override predicate isSource(DataFlow::Node source) { source instanceof Source }
 
@@ -42,7 +42,7 @@ class CapSqlIConfiguration extends TaintTracking::Configuration {
   }
 }
 
-from CapSqlIConfiguration sql, DataFlow::PathNode source, DataFlow::PathNode sink
+from CqlIConfiguration sql, DataFlow::PathNode source, DataFlow::PathNode sink
 where sql.hasFlowPath(source, sink)
 select sink.getNode(), source, sink, "This query depends on a $@.", source.getNode(),
   "user-provided value"

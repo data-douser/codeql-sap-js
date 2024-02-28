@@ -1,4 +1,4 @@
-# Log Injection
+# CAP Log Injection
 
 If unsanitized user input is written to a log entry using the CAP Node.js logging API, a malicious user may be able to forge new log entries.
 
