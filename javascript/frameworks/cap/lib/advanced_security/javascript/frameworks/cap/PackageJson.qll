@@ -39,7 +39,7 @@ class RequiredService extends JsonObject {
    */
   predicate isLocal() { exists(string path | path = this.getPropStringValue("impl")) }
 
-  File getImplementationFile() { "./" + result.getRelativePath() = this.getPropStringValue("impl") }
+  File getImplementationFile() { result.getRelativePath() = this.getPropStringValue("impl") }
 
   /**
    * Holds if this is a declaration of a database service, which is considered remote.

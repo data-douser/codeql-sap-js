@@ -22,7 +22,7 @@ class ParseSink extends DataFlow::Node {
  * 2. Ones based on query-style API, based on `cds.Services.run`, and
  * 3. Ones based on emitting and subscribing to asynchronous event messages.
  */
-abstract class InterServiceCommunication extends MethodCallNode {
+abstract class InterServiceCommunication extends HandlerRegistration {
   InterServiceCommunication() { this.getReceiver() instanceof ServiceInstance }
 
   /* TODO: Generalize UserApplicationService to include built-in services such as log and db */
@@ -40,20 +40,26 @@ abstract class InterServiceCommunication extends MethodCallNode {
   UserDefinedApplicationService getReceipient() { result = recipient }
 }
 
+/**
+ * A REST style communication method that covers the built-in REST events (`GET`, `POST`, `PUT`, `UPDATE`, and `DELETE`),
+ * as well as custom actions that are defined in the accompanying `.cds` files.
+ */
 class RestStyleCommunication extends InterServiceCommunication {
   RestStyleCommunication() {
-    exists(HandlerRegistration registration, SrvSend srvSend |
-      sender = registration.getReceiver().(ServiceInstance).getDefinition() and
-      recipient = srvSend.getReceiver().(ServiceInstance).getDefinition()
+    exists(SrvSend srvSend |
+      sender = this.getReceiver().(ServiceInstance).getDefinition() and
+      recipient = srvSend.getReceiver().(ServiceInstance).getDefinition() and
+      srvSend.asExpr().getEnclosingFunction+() = this.getHandler().asExpr()
     )
   }
 }
 
 class CrudStyleCommunication extends InterServiceCommunication {
   CrudStyleCommunication() {
-    exists(HandlerRegistration registration, SrvRun srvRun |
-      sender = registration.getReceiver().(ServiceInstance).getDefinition() and
-      recipient = srvRun.getReceiver().(ServiceInstance).getDefinition()
+    exists(SrvRun srvRun |
+      sender = this.getReceiver().(ServiceInstance).getDefinition() and
+      recipient = srvRun.getReceiver().(ServiceInstance).getDefinition() and
+      srvRun.asExpr().getEnclosingFunction+() = this.getHandler().asExpr()
     )
   }
 }

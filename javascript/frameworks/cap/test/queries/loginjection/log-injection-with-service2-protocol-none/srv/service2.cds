@@ -10,3 +10,4 @@ service Service2 @(path: '/service-2') {
     messageToPass: String
   ) returns String;
 }
+

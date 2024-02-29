@@ -1,5 +1,5 @@
 import javascript
-import DataFlow
+import semmle.javascript.dataflow.DataFlow
 import advanced_security.javascript.frameworks.cap.PackageJson
 import advanced_security.javascript.frameworks.cap.CDL
 import advanced_security.javascript.frameworks.cap.CQL
@@ -295,59 +295,14 @@ class ErrorHandler extends Handler {
   ErrorHandler() { this.getAnEventName() = "error" }
 }
 
-newtype TUserDefinedApplicationService =
-  /**
-   * Subclassing `cds.ApplicationService` via a ES6 class definition.
-   * ```js
-   * class SomeService extends cds.ApplicationService
-   * ```
-   */
-  TClassDefinition(ClassNode classNode) {
-    exists(CdsApplicationService cdsApplicationService |
-      classNode.getASuperClassNode() = cdsApplicationService.asSource()
-    )
-  } or
-  /**
-   * Subclassing `cds.ApplicationService` via a call to `cds.service.impl`.
-   * ```js
-   * const cds = require('@sap/cds')
-   * module.exports = cds.service.impl (function() { ... })
-   * ```
-   */
-  TImplMethodCall(MethodCallNode cdsServiceImplCall) {
-    exists(CdsFacade cds |
-      cdsServiceImplCall.getReceiver() = cds.getMember("service").asSource() and
-      cdsServiceImplCall.getMethodName() = "impl"
-    )
-  }
-
 /**
  * A custom application service of type `cds.ApplicationService`, where parts of the business logic are implemented.
  */
-class UserDefinedApplicationService extends TUserDefinedApplicationService {
-  ClassNode asClassDefinition() { this = TClassDefinition(result) }
-
-  MethodCallNode asImplMethodCall() { this = TImplMethodCall(result) }
-
-  string toString() {
-    result = this.asClassDefinition().toString() or
-    result = this.asImplMethodCall().toString()
-  }
-
-  FunctionNode getInitFunction() {
-    result = this.asClassDefinition().getInstanceMethod("init") or
-    result = this.asImplMethodCall().getArgument(0)
-  }
+abstract class UserDefinedApplicationService extends DataFlow::Node {
+  abstract FunctionNode getInitFunction();
 
   HandlerRegistration getAHandlerRegistration() {
-    result.getEnclosingFunction() = getInitFunction().asExpr()
-  }
-
-  predicate hasLocationInfo(
-    string filepath, int startline, int startcolumn, int endline, int endcolumn
-  ) {
-    this.asClassDefinition().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn) or
-    this.asImplMethodCall().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
+    result.getEnclosingFunction() = this.getInitFunction().asExpr()
   }
 
   /**
@@ -359,6 +314,40 @@ class UserDefinedApplicationService extends TUserDefinedApplicationService {
       result = serviceManifest.getName()
     )
   }
+}
+
+/**
+ * Subclassing `cds.ApplicationService` via a ES6 class definition.
+ * ```js
+ * class SomeService extends cds.ApplicationService
+ * ```
+ */
+class ES6Definition extends ClassNode, UserDefinedApplicationService {
+  ES6Definition() {
+    exists(CdsApplicationService cdsApplicationService |
+      this.getASuperClassNode() = cdsApplicationService.asSource()
+    )
+  }
+
+  override FunctionNode getInitFunction() { result = this.getInstanceMethod("init") }
+}
+
+/**
+ * Subclassing `cds.ApplicationService` via a call to `cds.service.impl`.
+ * ```js
+ * const cds = require('@sap/cds')
+ * module.exports = cds.service.impl (function() { ... })
+ * ```
+ */
+class ImplMethodCallDefinition extends MethodCallNode, UserDefinedApplicationService {
+  ImplMethodCallDefinition() {
+    exists(CdsFacade cds |
+      this.getReceiver() = cds.getMember("service").asSource() and
+      this.getMethodName() = "impl"
+    )
+  }
+
+  override FunctionNode getInitFunction() { result = this.getArgument(0) }
 }
 
 private class CdsApplicationService extends API::Node {
