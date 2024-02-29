@@ -1,13 +1,11 @@
 #!/bin/bash
-# Run it at test/queries/
-
-codeql="/home/codespace/.vscode-remote/data/User/globalStorage/github.vscode-codeql/distribution7/codeql/codeql"
+# !!!!!!! Run it at test/queries/ !!!!!!!
 
 # Remember current directory
 TEST_DIR=$(pwd)
 
 # Loop over all the directories in the test directory
-for dir in xss-*; do
+for dir in *; do
     # Change to the directory
     cd $dir
 
@@ -21,7 +19,7 @@ for dir in xss-*; do
     export LGTM_INDEX_FILTERS=include:**/*.json
 
     # Create CodeQL database
-    $codeql database create $FOLDER_NAME --language=javascript --overwrite
+    codeql database create $FOLDER_NAME --language=javascript --overwrite
 
     # Change back to the test directory
     cd $TEST_DIR
