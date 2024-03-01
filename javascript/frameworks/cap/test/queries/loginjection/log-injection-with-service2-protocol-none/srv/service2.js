@@ -7,5 +7,5 @@ module.exports = cds.service.impl(function() {
         const { messageToPass } = msg.data;
         /* A log injection sink. */
         LOG.info("Received: ", messageToPass);
-  });
+    });
 })
