@@ -1,4 +1,4 @@
-# SQL Injection
+# CQL query built from user-controlled sources
 
 If a database query is built from user-provided data without sufficient sanitization, a malicious user may be able to run malicious database queries.
 

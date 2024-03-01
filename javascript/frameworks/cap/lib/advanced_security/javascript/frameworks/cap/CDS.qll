@@ -106,7 +106,7 @@ module CDS {
    * ```
    * not sure how else to know which service is registering the handler
    */
-  class RequestSource extends EventPhaseNodeParam {
+  class RequestSource extends EventPhaseNodeParam, RemoteFlowSource {
     RequestSource() {
       // TODO : consider  - do we need to actually ever know which service the handler is associated to?
       exists(UserDefinedApplicationService svc, FunctionNode init |
@@ -119,6 +119,8 @@ module CDS {
         this.getEventPhaseNode().getEnclosingFunction() = pa.getFunction()
       )
     }
+
+    override string getSourceType() { result = "CAP request source" }
   }
 
   class ApplicationService extends API::Node {
