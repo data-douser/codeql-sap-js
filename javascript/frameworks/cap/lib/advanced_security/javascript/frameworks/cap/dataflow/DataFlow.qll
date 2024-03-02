@@ -3,7 +3,9 @@
  */
 
 import javascript
+import semmle.javascript.dataflow.DataFlow
 import advanced_security.javascript.frameworks.cap.CDS
+import advanced_security.javascript.frameworks.cap.dataflow.FlowSteps
 
 /**
  * Methods that parse source strings into a CQL expression.
