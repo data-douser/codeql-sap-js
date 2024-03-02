@@ -10,9 +10,13 @@ class CdsLogger extends MethodCallNode {
   string name;
 
   CdsLogger() {
-    this = any(CdsFacade cds).getMember("log").getACall() and
-    name = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    exists(CdsFacade cds |
+      this = cds.getMember("log").getACall() and
+      name = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    )
   }
+
+  string getName() { result = name }
 }
 
 /**
