@@ -88,7 +88,6 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
 class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
   string serviceName;
 
-  /* TODO: change this to an VarAccess to the VarDef whose getSource() is CdsConnectToCall or an AwaitExpr wrapping it */
   ServiceInstanceFromCdsConnectTo() {
     exists(CdsConnectToCall cdsConnectTo |
       this = cdsConnectTo.getVarDefUsingCdsConnect().getAVariable().getAnAccess().flow() and
@@ -301,9 +300,12 @@ class ErrorHandler extends Handler {
 abstract class UserDefinedApplicationService extends DataFlow::Node {
   abstract FunctionNode getInitFunction();
 
-  HandlerRegistration getAHandlerRegistration() {
-    result.getEnclosingFunction() = this.getInitFunction().asExpr()
+  HandlerRegistration getHandlerRegistration(string eventName) {
+    result.getEnclosingFunction() = this.getInitFunction().asExpr() and
+    result.getAnEventName() = eventName
   }
+
+  HandlerRegistration getAHandlerRegistration() { result = this.getHandlerRegistration(_) }
 
   /**
    * Gets the name of this service as declared in the ` package.json`.
