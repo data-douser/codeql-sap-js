@@ -25,6 +25,12 @@ abstract class CdlElement extends JsonObject {
   abstract string getName();
 
   abstract CdlKind getKind();
+
+  CdlAnnotation getAnnotation(string annotationName) {
+    this = result.getQualifiedElement() and result.getName() = annotationName
+  }
+
+  CdlAnnotation getAnAnnotation() { result = this.getAnnotation(_) }
 }
 
 class CdlService extends CdlElement {
@@ -121,4 +127,43 @@ class CdlAttribute extends JsonObject {
   string getType() { result = this.getPropStringValue("type") }
 
   int getLength() { result = this.getPropValue("length").(JsonPrimitiveValue).getIntValue() }
+}
+
+abstract class CdlAnnotation extends JsonValue {
+  string annotationName;
+  CdlElement element;
+
+  CdlAnnotation() {
+    this = element.getPropValue(annotationName) and
+    annotationName.charAt(0) = "@"
+  }
+
+  /**
+   * Gets the name of this annotation, without the leading `@` character.
+   */
+  string getName() { "@" + result = annotationName }
+
+  /**
+   * Gets the CDL Element that this annotation is attached to.
+   */
+  CdlElement getQualifiedElement() { result = element }
+}
+
+class ProtocolAnnotation extends CdlAnnotation {
+  ProtocolAnnotation() { this = element.(CdlService).getPropValue("@protocol") }
+
+  string getAnExposedProtocol() {
+    /* e.g. @protocol: 'odata' */
+    result = this.(JsonString).getValue()
+    or
+    /* e.g. @protocol: ['odata', 'rest', 'graphql'] */
+    result = this.(JsonArray).getElementStringValue(_)
+    or
+    /* e.g. @protocol: [{ kind: 'odata', path: 'some/path' }] */
+    result = this.(JsonArray).getElementValue(_).(JsonObject).getPropStringValue("kind")
+  }
+}
+
+class CdsFile extends File {
+  CdsFile() { exists(CdlElement element | this = element.getJsonFile()) }
 }

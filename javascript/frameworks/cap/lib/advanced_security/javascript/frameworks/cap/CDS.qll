@@ -121,7 +121,9 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
  * ```
  */
 class ServiceInstanceFromConstructor extends ServiceInstance {
-  ServiceInstanceFromConstructor() { this = any(CdsApplicationService cds).getAnInstantiation() }
+  ServiceInstanceFromConstructor() {
+    exists(CdsApplicationServiceClass cds | this = cds.getAnInstantiation())
+  }
 
   override UserDefinedApplicationService getDefinition() { none() }
 
@@ -308,7 +310,7 @@ abstract class UserDefinedApplicationService extends DataFlow::Node {
   HandlerRegistration getAHandlerRegistration() { result = this.getHandlerRegistration(_) }
 
   /**
-   * Gets the name of this service as declared in the ` package.json`.
+   * Gets the name of this service as declared in the `package.json`.
    */
   string getManifestName() {
     exists(RequiredService serviceManifest |
@@ -316,17 +318,45 @@ abstract class UserDefinedApplicationService extends DataFlow::Node {
       result = serviceManifest.getName()
     )
   }
+
+  /**
+   * Gets the CDS definition of this service.
+   */
+  CdlService getCdsDeclaration() {
+    exists(CdsFile cdsFile |
+      cdsFile.getStem() = this.getFile().getStem() and
+      cdsFile.getParentContainer() = this.getFile().getParentContainer() and
+      result.getFile() = cdsFile
+    )
+  }
+
+  /**
+   * Holds if this service supports access from the outside through any kind of protocol.
+   */
+  predicate isExposed() { not this.isInternal() }
+
+  /**
+   * Holds if this service does not support access from the outside through any kind of protocol, thus being internal only.
+   */
+  predicate isInternal() {
+    exists(CdlService cdsDeclaration | cdsDeclaration = this.getCdsDeclaration() |
+      cdsDeclaration.getAnnotation("protocol").(ProtocolAnnotation).getAnExposedProtocol() = "none" and
+      not exists(CdlAnnotation annotation |
+        annotation = cdsDeclaration.getAnnotation(["rest", "odata", "graphql"])
+      )
+    )
+  }
 }
 
 /**
  * Subclassing `cds.ApplicationService` via a ES6 class definition.
  * ```js
- * class SomeService extends cds.ApplicationService
+ * class SomeService extends cds.ApplicationService { init() { ... } }
  * ```
  */
 class ES6Definition extends ClassNode, UserDefinedApplicationService {
   ES6Definition() {
-    exists(CdsApplicationService cdsApplicationService |
+    exists(CdsApplicationServiceClass cdsApplicationService |
       this.getASuperClassNode() = cdsApplicationService.asSource()
     )
   }
@@ -352,8 +382,8 @@ class ImplMethodCallDefinition extends MethodCallNode, UserDefinedApplicationSer
   override FunctionNode getInitFunction() { result = this.getArgument(0) }
 }
 
-private class CdsApplicationService extends API::Node {
-  CdsApplicationService() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
+private class CdsApplicationServiceClass extends API::Node {
+  CdsApplicationServiceClass() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
 }
 
 abstract class InterServiceCommunicationMethodCall extends MethodCallNode {
