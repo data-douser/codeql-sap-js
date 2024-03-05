@@ -3,7 +3,7 @@ import semmle.javascript.dataflow.DataFlow
 import semmle.javascript.security.dataflow.LogInjectionQuery
 import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 import advanced_security.javascript.frameworks.cap.CDS
-import advanced_security.javascript.frameworks.cap.dataflow.FlowSteps
+import advanced_security.javascript.frameworks.cap.dataflow.DataFlow
 
 /**
  * A logger obtained by a call to `log` on a CDS facade. Each logger is associated with
@@ -37,11 +37,11 @@ class CdsLogSink extends DataFlow::Node {
   }
 }
 
-class Configuration extends LogInjectionConfiguration {
+class CAPLogInjectionConfiguration extends LogInjectionConfiguration {
   override predicate isSource(DataFlow::Node start) {
     super.isSource(start) or
     start instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node node) { node instanceof CdsLogSink }
+  override predicate isSink(DataFlow::Node end) { end instanceof CdsLogSink }
 }

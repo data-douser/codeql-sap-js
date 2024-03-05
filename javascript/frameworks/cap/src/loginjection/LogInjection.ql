@@ -12,9 +12,10 @@
 
 import javascript
 import DataFlow::PathGraph
+import advanced_security.javascript.frameworks.cap.dataflow.DataFlow
 import advanced_security.javascript.frameworks.cap.CAPLogInjectionQuery
 
-from Configuration config, DataFlow::PathNode source, DataFlow::PathNode sink
+from CAPLogInjectionConfiguration config, DataFlow::PathNode source, DataFlow::PathNode sink
 where config.hasFlowPath(source, sink)
 select sink.getNode(), source, sink, "Log entry depends on a $@.", source.getNode(),
   "user-provided value"

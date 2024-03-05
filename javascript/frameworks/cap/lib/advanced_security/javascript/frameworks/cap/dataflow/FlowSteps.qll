@@ -29,5 +29,18 @@ class InterServiceCommunicationStepFromSenderToReceiver extends DataFlow::Shared
             .getHandler()
             .getParameter(0)
     )
+    or
+    exists(InterServiceCommunication communication, string communicationEventName |
+      succ = communication.getCommunicationMethodCall().getArgument(1) and
+      communicationEventName =
+        communication
+            .getCommunicationMethodCall()
+            .getArgument(0)
+            .getALocalSource()
+            .asExpr()
+            .(StringLiteral)
+            .getValue() and
+      pred = any(PropWrite write | write.getBase() = succ).getRhs()
+    )
   }
 }
