@@ -1,5 +1,5 @@
 #!/bin/bash
-# !!!!!!! Run it at test/queries/ !!!!!!!
+# !!!!!!! Run it at javascript/frameworks/ui5/test/queries/test/queries/ !!!!!!!
 
 # Remember current directory
 TEST_DIR=$(pwd)
