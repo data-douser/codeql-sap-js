@@ -9,15 +9,6 @@ nodes
 | loginjection.js:11:14:11:26 | "test" + book |
 | loginjection.js:11:14:11:26 | "test" + book |
 | loginjection.js:11:23:11:26 | book |
-| sample-app/srv/service2.js:6:33:6:35 | msg |
-| sample-app/srv/service2.js:6:33:6:35 | msg |
-| sample-app/srv/service2.js:7:15:7:31 | { messageToPass } |
-| sample-app/srv/service2.js:7:15:7:42 | messageToPass |
-| sample-app/srv/service2.js:7:17:7:29 | messageToPass |
-| sample-app/srv/service2.js:7:35:7:37 | msg |
-| sample-app/srv/service2.js:7:35:7:42 | msg.data |
-| sample-app/srv/service2.js:9:32:9:44 | messageToPass |
-| sample-app/srv/service2.js:9:32:9:44 | messageToPass |
 edges
 | loginjection.js:7:33:7:35 | req | loginjection.js:8:29:8:31 | req |
 | loginjection.js:7:33:7:35 | req | loginjection.js:8:29:8:31 | req |
@@ -28,14 +19,5 @@ edges
 | loginjection.js:8:29:8:36 | req.data | loginjection.js:8:11:8:25 | {book,quantity} |
 | loginjection.js:11:23:11:26 | book | loginjection.js:11:14:11:26 | "test" + book |
 | loginjection.js:11:23:11:26 | book | loginjection.js:11:14:11:26 | "test" + book |
-| sample-app/srv/service2.js:6:33:6:35 | msg | sample-app/srv/service2.js:7:35:7:37 | msg |
-| sample-app/srv/service2.js:6:33:6:35 | msg | sample-app/srv/service2.js:7:35:7:37 | msg |
-| sample-app/srv/service2.js:7:15:7:31 | { messageToPass } | sample-app/srv/service2.js:7:17:7:29 | messageToPass |
-| sample-app/srv/service2.js:7:15:7:42 | messageToPass | sample-app/srv/service2.js:9:32:9:44 | messageToPass |
-| sample-app/srv/service2.js:7:15:7:42 | messageToPass | sample-app/srv/service2.js:9:32:9:44 | messageToPass |
-| sample-app/srv/service2.js:7:17:7:29 | messageToPass | sample-app/srv/service2.js:7:15:7:42 | messageToPass |
-| sample-app/srv/service2.js:7:35:7:37 | msg | sample-app/srv/service2.js:7:35:7:42 | msg.data |
-| sample-app/srv/service2.js:7:35:7:42 | msg.data | sample-app/srv/service2.js:7:15:7:31 | { messageToPass } |
 #select
 | loginjection.js:11:14:11:26 | "test" + book | loginjection.js:7:33:7:35 | req | loginjection.js:11:14:11:26 | "test" + book | Log entry depends on a $@. | loginjection.js:7:33:7:35 | req | user-provided value |
-| sample-app/srv/service2.js:9:32:9:44 | messageToPass | sample-app/srv/service2.js:6:33:6:35 | msg | sample-app/srv/service2.js:9:32:9:44 | messageToPass | Log entry depends on a $@. | sample-app/srv/service2.js:6:33:6:35 | msg | user-provided value |
