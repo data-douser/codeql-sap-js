@@ -1,4 +1,5 @@
 import javascript
+import advanced_security.javascript.frameworks.cap.Application
 
 /**
  * The "cds" section of this application's `package.json`.
@@ -39,7 +40,11 @@ class RequiredService extends JsonObject {
    */
   predicate isLocal() { exists(string path | path = this.getPropStringValue("impl")) }
 
-  File getImplementationFile() { result.getRelativePath() = this.getPropStringValue("impl") }
+  File getImplementationFile() {
+    exists(RootDirectory root |
+      root.getFilePathRelativeToRoot(result) = "./" + this.getPropStringValue("impl")
+    )
+  }
 
   /**
    * Holds if this is a declaration of a database service, which is considered remote.
