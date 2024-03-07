@@ -1,5 +1,5 @@
 import javascript
-import advanced_security.javascript.frameworks.cap.RemoteFlowSources
+import advanced_security.javascript.frameworks.cap.CDS
 
-from HandlerParameter src
-select src
+from Handler handler
+select handler.getAParameter()
