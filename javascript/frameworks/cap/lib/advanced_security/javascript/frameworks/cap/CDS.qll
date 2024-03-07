@@ -296,12 +296,32 @@ class ErrorHandler extends Handler {
   ErrorHandler() { this.getAnEventName() = "error" }
 }
 
+private class CdsServiceClass extends API::Node {
+  CdsServiceClass() { exists(CdsFacade c | this = c.getMember("Service")) }
+}
+
+private class CdsApplicationServiceClass extends API::Node {
+  CdsApplicationServiceClass() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
+}
+
+abstract class UserDefinedService extends DataFlow::Node {
+  abstract FunctionNode getInitFunction();
+}
+
+abstract class UserDefinedBaseService extends UserDefinedService { }
+
+class ES6BaseServiceDefinition extends ClassNode, UserDefinedBaseService {
+  ES6BaseServiceDefinition() {
+    exists(CdsServiceClass cdsService | this.getASuperClassNode() = cdsService.asSource())
+  }
+
+  override FunctionNode getInitFunction() { result = this.getInstanceMethod("init") }
+}
+
 /**
  * A custom application service of type `cds.ApplicationService`, where parts of the business logic are implemented.
  */
-abstract class UserDefinedApplicationService extends DataFlow::Node {
-  abstract FunctionNode getInitFunction();
-
+abstract class UserDefinedApplicationService extends UserDefinedService {
   HandlerRegistration getHandlerRegistration(string eventName) {
     result.getEnclosingFunction() = this.getInitFunction().asExpr() and
     result.getAnEventName() = eventName
@@ -354,8 +374,8 @@ abstract class UserDefinedApplicationService extends DataFlow::Node {
  * class SomeService extends cds.ApplicationService { init() { ... } }
  * ```
  */
-class ES6Definition extends ClassNode, UserDefinedApplicationService {
-  ES6Definition() {
+class ES6ApplicationServiceDefinition extends ClassNode, UserDefinedApplicationService {
+  ES6ApplicationServiceDefinition() {
     exists(CdsApplicationServiceClass cdsApplicationService |
       this.getASuperClassNode() = cdsApplicationService.asSource()
     )
@@ -371,8 +391,10 @@ class ES6Definition extends ClassNode, UserDefinedApplicationService {
  * module.exports = cds.service.impl (function() { ... })
  * ```
  */
-class ImplMethodCallDefinition extends MethodCallNode, UserDefinedApplicationService {
-  ImplMethodCallDefinition() {
+class ImplMethodCallApplicationServiceDefinition extends MethodCallNode,
+  UserDefinedApplicationService
+{
+  ImplMethodCallApplicationServiceDefinition() {
     exists(CdsFacade cds |
       this.getReceiver() = cds.getMember("service").asSource() and
       this.getMethodName() = "impl"
@@ -380,10 +402,6 @@ class ImplMethodCallDefinition extends MethodCallNode, UserDefinedApplicationSer
   }
 
   override FunctionNode getInitFunction() { result = this.getArgument(0) }
-}
-
-private class CdsApplicationServiceClass extends API::Node {
-  CdsApplicationServiceClass() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
 }
 
 abstract class InterServiceCommunicationMethodCall extends MethodCallNode {
