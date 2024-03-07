@@ -21,7 +21,7 @@ class CqlIConfiguration extends TaintTracking::Configuration {
 
   override predicate isSource(DataFlow::Node source) { source instanceof RemoteFlowSource }
 
-  override predicate isSink(DataFlow::Node sink) { sink instanceof Sink or sink instanceof CQLSink }
+  override predicate isSink(DataFlow::Node sink) { sink instanceof CQLSink }
 
   override predicate isSanitizer(DataFlow::Node node) {
     super.isSanitizer(node) or

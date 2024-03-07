@@ -10,7 +10,7 @@ import advanced_security.javascript.frameworks.cap.CQL
  * ```
  */
 class CdsFacade extends API::Node {
-  CdsFacade() { this = API::moduleImport("@sap/cds") }
+  CdsFacade() { this = API::moduleImport(["@sap/cds", "@sap/cds/lib"]) }
 
   Node getNode() { result = this.asSource() }
 }
