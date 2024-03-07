@@ -90,7 +90,10 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
 
   ServiceInstanceFromCdsConnectTo() {
     exists(CdsConnectToCall cdsConnectTo |
-      this = cdsConnectTo.getVarDefUsingCdsConnect().getAVariable().getAnAccess().flow() and
+      (
+        this = cdsConnectTo.getACall() or
+        this = cdsConnectTo.getVarDefUsingCdsConnect().getAVariable().getAnAccess().flow()
+      ) and
       serviceName = cdsConnectTo.getServiceName()
     )
   }
