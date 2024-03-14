@@ -373,7 +373,12 @@ class CustomController extends Extension {
     )
   }
 
-  ModelReference getAModelReference() { this.getAViewReference().flowsTo(result.getReceiver()) }
+  ModelReference getModelReference(string modelName) {
+    this.getAViewReference().flowsTo(result.getReceiver()) and
+    result.getModelName() = modelName
+  }
+
+  ModelReference getAModelReference() { result = this.getModelReference(_) }
 
   RouterReference getARouterReference() {
     result.getMethodName() = "getRouter" and
@@ -454,7 +459,13 @@ class DisplayEventHandler extends FunctionNode {
 class ModelReference extends MethodCallNode {
   ModelReference() {
     this.getMethodName() = "getModel" and
-    exists(ViewReference view | view.flowsTo(this.getReceiver()))
+    exists(CustomController controller |
+      controller.getAViewReference().flowsTo(this.getReceiver()) or
+      controller.getOwnerComponentRef().flowsTo(this.getReceiver())
+    ) or
+    exists(Component component |
+      component.getAThisNode().flowsTo(this.getReceiver()) 
+      )
   }
 
   predicate isDefaultModelReference() { this.getNumArgument() = 0 }
@@ -614,10 +625,10 @@ class Component extends Extension {
   DataSourceManifest getADataSource(string modelName) { result.getName() = modelName }
 
   /** Get a reference to this component's external model. */
-  MethodCallNode getAnExternalModelRef() { result = this.getAnExternalModelRef(_) }
+  ModelReference getAnExternalModelRef() { result = this.getAnExternalModelRef(_) }
 
   /** Get a reference to this component's external model called `modelName`. */
-  MethodCallNode getAnExternalModelRef(string modelName) {
+  ModelReference getAnExternalModelRef(string modelName) {
     result.getMethodName() = "getModel" and
     result.getArgument(0).asExpr().(StringLiteral).getValue() = modelName and
     exists(ExternalModelManifest externModelDef | externModelDef.getName() = modelName)
@@ -628,6 +639,8 @@ class Component extends Extension {
   }
 
   ExternalModelManifest getAnExternalModelDef() { result = this.getExternalModelDef(_) }
+
+  ThisNode getAThisNode() { result.getBinder() = this.getAMethod() }
 }
 
 module ManifestJson {
