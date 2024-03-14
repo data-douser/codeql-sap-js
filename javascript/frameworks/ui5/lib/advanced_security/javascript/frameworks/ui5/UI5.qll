@@ -88,10 +88,10 @@ class WebApp extends HTML::HtmlFile {
 
   ResourceRoot getAResourceRoot() { result.getWebApp() = this }
 
-  File getAResource() { getAResourceRoot().contains(result) }
+  File getAResource() { this.getAResourceRoot().contains(result) }
 
   File getResource(string relativePath) {
-    result.getAbsolutePath() = getAResourceRoot().getAbsolutePath() + "/" + relativePath
+    result.getAbsolutePath() = this.getAResourceRoot().getAbsolutePath() + "/" + relativePath
   }
 
   Folder getWebAppFolder() { result = this.getParentContainer() }
@@ -423,7 +423,28 @@ class ControllerHandler extends FunctionNode {
 class RouterReference extends MethodCallNode {
   RouterReference() {
     this.getMethodName() = "getRouter" and
-    exists(CustomController controller | controller.getAThisNode().flowsTo(this.getReceiver()))
+    exists(CustomController controller |
+      controller.getAThisNode().flowsTo(this.getReceiver()) or
+      controller.getOwnerComponentRef().flowsTo(this.getReceiver())
+    )
+  }
+
+  MethodCallNode getTarget(string targetName) {
+    result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = targetName and
+    this = result.getReceiver().getALocalSource() and
+    result.getMethodName() = "getTarget"
+  }
+
+  MethodCallNode getATarget() { result = this.getTarget(_) }
+}
+
+class DisplayEventHandler extends FunctionNode {
+  DisplayEventHandler() {
+    exists(RouterReference routerReference, MethodCallNode displayHandlerRegistration |
+      displayHandlerRegistration.getReceiver().getALocalSource() = routerReference.getATarget() and
+      displayHandlerRegistration.getMethodName() = ["attachDisplay", "detachDisplay"] and
+      this = displayHandlerRegistration.getArgument(0)
+    )
   }
 }
 
