@@ -237,12 +237,26 @@ private SourceNode sapController() { result = sapController(TypeTracker::end()) 
 class CustomControl extends Extension {
   CustomControl() {
     this.getReceiver().getALocalSource() = sapControl() or
-    this.getDefine() = any(SapDefineModule sapModule).getExtendingDefine()
+    exists(SapDefineModule sapModule | this.getDefine() = sapModule.getExtendingDefine())
   }
 
   CustomController getController() { this = result.getAControlReference().getDefinition() }
 
   UI5Control getAViewUsage() { result.getDefinition() = this }
+
+  FunctionNode getRenderer() {
+    /* Old API */
+    result = this.getMethod("renderer")
+    or
+    /* Newer API (v2) */
+    result =
+      this.getContent()
+          .getAPropertyWrite("renderer")
+          .getRhs()
+          .(ObjectLiteralNode)
+          .getAPropertyWrite("render")
+          .getRhs()
+  }
 }
 
 abstract class Reference extends MethodCallNode { }
@@ -380,7 +394,7 @@ class CustomController extends Extension {
     result.getModelName() = modelName
   }
 
-  ModelReference getAModelReference() { result = this.getModelReference(_) }
+  ModelReference getAModelReference() { this.getAViewReference().flowsTo(result.getReceiver()) }
 
   RouterReference getARouterReference() {
     result.getMethodName() = "getRouter" and
@@ -502,12 +516,16 @@ class DisplayEventHandler extends EventHandler {
 class ModelReference extends MethodCallNode {
   ModelReference() {
     this.getMethodName() = "getModel" and
-    exists(CustomController controller |
-      controller.getAViewReference().flowsTo(this.getReceiver()) or
-      controller.getOwnerComponentRef().flowsTo(this.getReceiver())
+    (
+      exists(ViewReference view | view.flowsTo(this.getReceiver()))
+      or
+      exists(CustomController controller |
+        controller.getAViewReference().flowsTo(this.getReceiver()) or
+        controller.getOwnerComponentRef().flowsTo(this.getReceiver())
+      )
+      or
+      exists(Component component | component.getAThisNode().flowsTo(this.getReceiver()))
     )
-    or
-    exists(Component component | component.getAThisNode().flowsTo(this.getReceiver()))
   }
 
   predicate isDefaultModelReference() { this.getNumArgument() = 0 }
@@ -1292,7 +1310,7 @@ class PropertyMetadata extends ObjectLiteralNode {
        */
 
       exists(CustomControl control |
-        result.getReceiver().getALocalSource() = control.getMethod("renderer").getParameter(1) and
+        result.getReceiver().getALocalSource() = control.getRenderer().getParameter(1) and
         exists(control.getMetadata().getProperty(name))
       )
     ) and
@@ -1311,7 +1329,7 @@ class PropertyMetadata extends ObjectLiteralNode {
     (
       /*
        * 1. The receiver is a reference to a custom control whose property
-       * has the same name of the property the setter is writing to.
+       * has the same name of the property the getter is reading from.
        */
 
       exists(ControlReference controlReference |
@@ -1321,12 +1339,12 @@ class PropertyMetadata extends ObjectLiteralNode {
       or
       /*
        * 2. The receiver is a parameter of the `renderer` method of the custom
-       * control whose property has the same name of the property the setter is
-       * writing to.
+       * control whose property has the same name of the property the getter is
+       * reading from.
        */
 
       exists(CustomControl control |
-        result.getReceiver().getALocalSource() = control.getMethod("renderer").getParameter(1) and
+        result.getReceiver().getALocalSource() = control.getRenderer().getParameter(1) and
         exists(control.getMetadata().getProperty(name))
       )
     ) and
