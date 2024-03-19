@@ -331,17 +331,6 @@ class ResourceBundleGetTextCallArgToReturnValueStep extends DataFlow::SharedFlow
       getTextCall.getMethodName() = "getText" and
       start = getTextCall.getArgument(1) and
       end = getTextCall
-      // DataFlow::localFlowStep+(start, getTextCall.getAnArgument()) and
-      // // oneOrMore(start, getTextCall.getAnArgument()) and
-      // end = getTextCall
     )
   }
 }
-// private predicate oneOrMore(DataFlow::Node start, DataFlow::Node end) {
-//   DataFlow::localFlowStep(start, end)
-//   or
-//   exists(DataFlow::Node intermediate |
-//     DataFlow::localFlowStep(start, intermediate) and
-//     oneOrMore(intermediate, end)
-//   )
-// }

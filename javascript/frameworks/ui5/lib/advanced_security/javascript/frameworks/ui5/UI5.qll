@@ -310,19 +310,6 @@ class CustomControl extends Extension {
       result = renderer.getRenderer()
     )
   }
-
-  private predicate test() {
-    exists(
-      this.getContent()
-          .getAPropertyWrite("renderer")
-          .getRhs()
-          .getALocalSource()
-          .asExpr()
-          .(StringLiteral)
-          .getValue()
-    ) or
-    exists(this.getName())
-  }
 }
 
 abstract class Reference extends MethodCallNode { }
