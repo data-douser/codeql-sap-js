@@ -1400,13 +1400,6 @@ class PropertyMetadata extends ObjectLiteralNode {
     not exists(this.getAPropertySource("type"))
   }
 
-  /*
-   * TODO: Set a restraint on the receiver of the reads and writes:
-   * The receiver should be either
-   * 1. A controlreference whose definition has the property with the same name or
-   * 2. The second (`oControl`) parameter of the renderer method of a CustomController
-   */
-
   MethodCallNode getAWrite() {
     (
       /*
