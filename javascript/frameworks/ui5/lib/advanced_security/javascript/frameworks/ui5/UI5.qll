@@ -234,6 +234,32 @@ private SourceNode sapController(TypeTracker t) {
 
 private SourceNode sapController() { result = sapController(TypeTracker::end()) }
 
+private SourceNode sapRenderer(TypeTracker t) {
+  t.start() and
+  exists(UserModule d, string dependencyType |
+    dependencyType = ["sap/ui/core/Renderer", "sap.ui.core.Renderer"]
+  |
+    d.getADependencyType() = dependencyType and
+    result = d.getRequiredObject(dependencyType)
+  )
+  or
+  exists(TypeTracker t2 | result = sapController(t2).track(t2, t))
+}
+
+private SourceNode sapRenderer() { result = sapRenderer(TypeTracker::end()) }
+
+private class Renderer extends Extension {
+  Renderer() { this.getReceiver().getALocalSource() = sapRenderer() }
+
+  FunctionNode getRenderer() {
+    /* 1. Old API */
+    result = this.getMethod("renderer")
+    or
+    /* 2. Newer API (v2) */
+    result = this.getContent().getAPropertyWrite("render").getRhs()
+  }
+}
+
 class CustomControl extends Extension {
   CustomControl() {
     this.getReceiver().getALocalSource() = sapControl() or
@@ -245,10 +271,10 @@ class CustomControl extends Extension {
   UI5Control getAViewUsage() { result.getDefinition() = this }
 
   FunctionNode getRenderer() {
-    /* Old API */
+    /* 1. Old API */
     result = this.getMethod("renderer")
     or
-    /* Newer API (v2) */
+    /* 2. Newer API (v2) */
     result =
       this.getContent()
           .getAPropertyWrite("renderer")
@@ -256,6 +282,46 @@ class CustomControl extends Extension {
           .(ObjectLiteralNode)
           .getAPropertyWrite("render")
           .getRhs()
+    or
+    /* 3. Renderer declared in a different file */
+    /*
+     * 3-1. The renderer is declared in another custom control with the module name
+     * in place of the function expression.
+     */
+
+    exists(Renderer renderer |
+      this.getContent()
+          .getAPropertyWrite("renderer")
+          .getRhs()
+          .getALocalSource()
+          .asExpr()
+          .(StringLiteral)
+          .getValue() = renderer.getName() and
+      result = renderer.getRenderer()
+    )
+    or
+    /*
+     * 3-2. The renderer is declared in the custom control with whose file name
+     * is `{controlName}Renderer.js`.
+     */
+
+    exists(Renderer renderer |
+      renderer.getFile().getStem() = this.getFile().getStem() + "Renderer" and
+      result = renderer.getRenderer()
+    )
+  }
+
+  private predicate test() {
+    exists(
+      this.getContent()
+          .getAPropertyWrite("renderer")
+          .getRhs()
+          .getALocalSource()
+          .asExpr()
+          .(StringLiteral)
+          .getValue()
+    ) or
+    exists(this.getName())
   }
 }
 
@@ -269,7 +335,10 @@ class ControlReference extends Reference {
 
   ControlReference() {
     exists(CustomController controller |
-      controller.getAViewReference().flowsTo(this.getReceiver()) and
+      (
+        controller.getAViewReference().flowsTo(this.getReceiver()) or
+        controller.getAThisNode() = this.getReceiver()
+      ) and
       this.getMethodName() = "byId" and
       this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = controlId
     )
@@ -283,6 +352,66 @@ class ControlReference extends Reference {
   }
 
   string getId() { result = controlId }
+
+  MethodCallNode getARead(string propertyName) {
+    /*
+     * 1. This is a reference to a custom control with implementation found in the codebase.
+     */
+
+    exists(PropertyMetadata property |
+      result = property.getARead() and
+      property.getName() = propertyName
+    )
+    or
+    (
+      /*
+       * 2. This is a reference to a UI5 library control without an implementation.
+       */
+
+      not exists(this.getDefinition()) and
+      result.getReceiver().getALocalSource() = this and
+      (
+        result.getMethodName().prefix(3) = "get" and
+        result.getMethodName().suffix(3).toLowerCase() = propertyName
+        or
+        result.getMethodName() = "getProperty" and
+        result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = propertyName
+      )
+    ) and
+    exists(WebApp webApp |
+      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+    )
+  }
+
+  MethodCallNode getAWrite(string propertyName) {
+    (
+      /*
+       * 1. This is a reference to a custom control with implementation found in the codebase.
+       */
+
+      exists(PropertyMetadata property |
+        result = property.getAWrite() and
+        property.getName() = propertyName
+      )
+      or
+      /*
+       * 2. This is a reference to a UI5 library control without an implementation.
+       */
+
+      not exists(this.getDefinition()) and
+      result.getReceiver().getALocalSource() = this and
+      (
+        result.getMethodName().prefix(3) = "set" and
+        result.getMethodName().suffix(3).toLowerCase() = propertyName
+        or
+        result.getMethodName() = "setProperty" and
+        result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = propertyName
+      )
+    ) and
+    exists(WebApp webApp |
+      webApp.getAResource() = this.getFile() and webApp.getAResource() = result.getFile()
+    )
+  }
 }
 
 /**
