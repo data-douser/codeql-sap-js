@@ -1,0 +1,6 @@
+| App.controller.js:6:16:6:29 | function () {} |
+| App.controller.js:7:16:7:34 | function (event) {} |
+| App.controller.js:8:26:13:7 | functio ...       } |
+| App.controller.js:12:26:12:44 | function (event) {} |
+| App.controller.js:14:26:19:7 | functio ...       } |
+| App.controller.js:18:26:18:44 | function (event) {} |
