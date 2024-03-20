@@ -4,6 +4,12 @@
 # Remember current directory
 TEST_DIR=$(pwd)
 
+# Ensure that we have the `cds` command
+if ! command -v cds &> /dev/null
+then
+    npm install -g @sap/cds
+fi
+
 # Loop over all the directories in the test directory
 for dir in *; do
     # Change to the directory
@@ -19,7 +25,7 @@ for dir in *; do
     export LGTM_INDEX_FILTERS=include:**/*.json
 
     # Compile all .cds files to .json
-    for cds_file in $(find . -type f \( -iname '*.cds' \) -print  ); do cds compile $cds_file -2 json -o "$(dirname $cds_file)/$(basename $cds_file .cds).json"; done
+    ./compile-all-cds-in-directory.sh
 
     # Create CodeQL database
     codeql database create $FOLDER_NAME --language=javascript --overwrite
@@ -29,4 +35,3 @@ for dir in *; do
 done
 
 echo "Done!"
-
