@@ -14,6 +14,12 @@ class RootDirectory extends Folder {
    * Gets the path of a file relative to this root directory.
    */
   string getFilePathRelativeToRoot(File file) {
-    result = file.getAbsolutePath().regexpReplaceAll(this.getAbsolutePath(), ".")
+    result = file.getAbsolutePath().regexpReplaceAll(this.getAbsolutePath(), ".") and
+    result.charAt(0) = "."
   }
+
+  /**
+   * Holds if this root directory of the application contains the given file.
+   */
+  predicate contains(File file) { exists(this.getFilePathRelativeToRoot(file)) }
 }
