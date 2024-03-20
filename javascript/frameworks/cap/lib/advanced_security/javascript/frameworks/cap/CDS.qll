@@ -347,7 +347,7 @@ abstract class UserDefinedApplicationService extends UserDefinedService {
    */
   CdlService getCdsDeclaration() {
     exists(CdsFile cdsFile |
-      cdsFile.getStem() = this.getFile().getStem() and
+      cdsFile.getStem() = this.getFile().getStem() + ".cds" and
       cdsFile.getParentContainer() = this.getFile().getParentContainer() and
       result.getFile() = cdsFile
     )
