@@ -358,9 +358,12 @@ class ControlReference extends Reference {
       not exists(this.getDefinition()) and
       result.getReceiver().getALocalSource() = this and
       (
+        result.getNumArgument() = 0 and
         result.getMethodName().prefix(3) = "get" and
-        result.getMethodName().suffix(3).toLowerCase() = propertyName
+        result.getMethodName().suffix(3).toLowerCase() = propertyName and
+        propertyName != "Property"
         or
+        result.getNumArgument() = 1 and
         result.getMethodName() = "getProperty" and
         result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = propertyName
       )
@@ -388,9 +391,11 @@ class ControlReference extends Reference {
       not exists(this.getDefinition()) and
       result.getReceiver().getALocalSource() = this and
       (
+        result.getNumArgument() = 1 and
         result.getMethodName().prefix(3) = "set" and
         result.getMethodName().suffix(3).toLowerCase() = propertyName
         or
+        result.getNumArgument() = 2 and
         result.getMethodName() = "setProperty" and
         result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = propertyName
       )
@@ -1424,8 +1429,11 @@ class PropertyMetadata extends ObjectLiteralNode {
       )
     ) and
     (
-      result.getMethodName() = "set" + capitalize(name)
+      result.getNumArgument() = 1 and
+      result.getMethodName() = "set" + capitalize(name) and
+      name != "property"
       or
+      result.getNumArgument() = 2 and
       result.getMethodName() = "setProperty" and
       result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = name
     ) and
@@ -1458,8 +1466,11 @@ class PropertyMetadata extends ObjectLiteralNode {
       )
     ) and
     (
-      result.getMethodName() = "get" + capitalize(name)
+      result.getNumArgument() = 0 and
+      result.getMethodName() = "get" + capitalize(name) and
+      name != "property"
       or
+      result.getNumArgument() = 1 and
       result.getMethodName() = "getProperty" and
       result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = name
     ) and
