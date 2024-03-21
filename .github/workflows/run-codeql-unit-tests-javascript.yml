@@ -51,7 +51,7 @@ jobs:
         with:
           qlt-version: 'latest'
           add-to-path: true
-          
+
       - name: Install CodeQL
         id: install-codeql
         shell: bash
@@ -61,13 +61,13 @@ jobs:
           echo "-----------------------------"
           echo "CodeQL Home: $QLT_CODEQL_HOME"
           echo "CodeQL Binary: $QLT_CODEQL_PATH"
-          
+
       - name: Verify Versions of Tooling
         shell: bash
         run: |
           echo -e "Checking CodeQL Version:"
           $QLT_CODEQL_PATH --version
-                     
+
           echo -e "Checking QLT Version:"
           echo "QLT Home: ${{ steps.install-qlt.outputs.qlt-home }}"
           qlt version
@@ -76,6 +76,31 @@ jobs:
         shell: bash
         run: |
           qlt query run install-packs
+
+      - name: Ensure presence of cds shell command
+        run: |
+          if ! command -v cds &> /dev/null
+          then
+            npm install -g @sap/cds
+          fi
+
+      # Compile .cds files to .cds.json files.
+      - name: Compile CAP CDS files
+        run: |
+          cd javascript/frameworks/cap/test/queries/test/queries/
+          TEST_DIR=$(pwd)
+          for dir in */
+          do
+            cd $dir
+            npm install
+            for cds_file in $(find . -type f \( -iname '*.cds' \) -print)
+            do
+              cds compile $cds_file \
+                -2 json \
+                -o "$(dirname $cds_file)/$cds_file.json"
+            done
+            cd $TEST_DIR
+          done
 
       - name: Run test suites
         id: run-test-suites
@@ -89,13 +114,13 @@ jobs:
 
         shell: bash
         run: >
-          qlt test run execute-unit-tests  
+          qlt test run execute-unit-tests
           --codeql-args "--threads=0 --strict-test-discovery"
-          --num-threads 2 
-          --language javascript 
-          --runner-os $RUNNER_OS 
+          --num-threads 2
+          --language javascript
+          --runner-os $RUNNER_OS
           --work-dir $RUNNER_TMP
-            
+
       - name: Upload test results
         uses: actions/upload-artifact@v2
         with:
@@ -119,12 +144,12 @@ jobs:
         with:
           qlt-version: 'latest'
           add-to-path: true
-        
+
 
       - name: Collect test results
         uses: actions/download-artifact@v2
 
       - name: Validate test results
-        run: |          
+        run: |
           qlt test run validate-unit-tests --pretty-print --results-directory . >> $GITHUB_STEP_SUMMARY
-          qlt test run validate-unit-tests --results-directory . 
+          qlt test run validate-unit-tests --results-directory .
