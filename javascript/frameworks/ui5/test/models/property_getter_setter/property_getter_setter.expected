@@ -1,0 +1,16 @@
+| webapp/controller/App.controller.js:17:17:17:38 | control ... Prop1() | Getter of property prop1 |
+| webapp/controller/App.controller.js:18:17:18:48 | control ... prop1") | Getter of property prop1 |
+| webapp/controller/App.controller.js:20:17:20:38 | control ... Prop2() | Getter of property prop2 |
+| webapp/controller/App.controller.js:21:17:21:48 | control ... prop2") | Getter of property prop2 |
+| webapp/controller/App.controller.js:27:17:27:35 | inputRef.getValue() | Getter of property value |
+| webapp/controller/App.controller.js:28:17:28:45 | inputRe ... value") | Getter of property value |
+| webapp/controller/App.controller.js:30:17:30:36 | htmlRef.getContent() | Getter of property content |
+| webapp/controller/App.controller.js:31:17:31:46 | htmlRef ... ntent") | Getter of property content |
+| webapp/controller/App.controller.js:48:17:48:48 | control ... Value") | Setter of property prop1 |
+| webapp/controller/App.controller.js:49:17:49:60 | control ... Value") | Setter of property prop1 |
+| webapp/controller/App.controller.js:51:17:51:48 | control ... Value") | Setter of property prop2 |
+| webapp/controller/App.controller.js:52:17:52:60 | control ... Value") | Setter of property prop2 |
+| webapp/controller/App.controller.js:58:17:58:45 | inputRe ... Value") | Setter of property value |
+| webapp/controller/App.controller.js:59:17:59:57 | inputRe ... Value") | Setter of property value |
+| webapp/controller/App.controller.js:61:17:61:46 | htmlRef ... Value") | Setter of property content |
+| webapp/controller/App.controller.js:62:17:62:58 | htmlRef ... Value") | Setter of property content |
