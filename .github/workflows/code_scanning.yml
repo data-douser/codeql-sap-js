@@ -59,7 +59,6 @@ jobs:
         for dir in */
         do
           cd $dir
-          npm install
           for cds_file in $(find . -type f \( -iname '*.cds' \) -print)
           do
             cds compile $cds_file \
