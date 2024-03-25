@@ -36,14 +36,6 @@ jobs:
           mv $dir .github/codeql/extensions/$dir
         done
 
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: javascript
-        config-file: ./.github/codeql/codeql-config.yaml
-        debug: true
-
     - name: Ensure presence of cds shell command
       run: |
         if ! command -v cds &> /dev/null
@@ -69,6 +61,14 @@ jobs:
           done
           cd $TEST_DIR
         done
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript
+        config-file: ./.github/codeql/codeql-config.yaml
+        debug: true
 
     - name: Perform CodeQL Analysis
       id: analyze
