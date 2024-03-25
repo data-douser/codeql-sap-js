@@ -61,6 +61,7 @@ jobs:
           cd $dir
           for cds_file in $(find . -type f \( -iname '*.cds' \) -print)
           do
+            echo "I am compiling $cds_file"
             cds compile $cds_file \
               -2 json \
               -o "$(dirname $cds_file)/$cds_file.json"
