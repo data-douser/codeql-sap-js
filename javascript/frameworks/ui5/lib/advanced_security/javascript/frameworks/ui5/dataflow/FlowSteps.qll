@@ -64,7 +64,13 @@ class CustomMetadataPropertyReadStep extends DataFlow::SharedFlowStep {
   override predicate step(DataFlow::Node start, DataFlow::Node end) {
     exists(PropertyMetadata property |
       /* Writing site -> Control property */
-      start = property.getAWrite().getArgument(1) and
+      exists(MethodCallNode propertyWrite | propertyWrite = property.getAWrite() |
+        propertyWrite.getNumArgument() = 1 and
+        start = propertyWrite.getArgument(0)
+        or
+        propertyWrite.getNumArgument() = 2 and
+        start = propertyWrite.getArgument(1)
+      ) and
       end = property
       or
       /* Control property -> Reading site */
@@ -309,6 +315,22 @@ class GetModelToGetPropertyStep extends DataFlow::SharedFlowStep {
       readingMethodCall = modelReference.getARead() and
       start = modelReference and
       end = readingMethodCall
+    )
+  }
+}
+
+/**
+ * A step from any node that flows into the argument of
+ * `ResourceBundle.getText` to its return value (which is
+ * equivalent to the method call itself modulo the data flow.)
+ */
+class ResourceBundleGetTextCallArgToReturnValueStep extends DataFlow::SharedFlowStep {
+  override predicate step(DataFlow::Node start, DataFlow::Node end) {
+    exists(MethodCallNode getTextCall, ResourceModel resourceModel |
+      getTextCall.getReceiver().getALocalSource() = resourceModel.getResourceBundle() and
+      getTextCall.getMethodName() = "getText" and
+      start = getTextCall.getArgument(1) and
+      end = getTextCall
     )
   }
 }

@@ -123,6 +123,18 @@ private class RouteParameterAccess extends RemoteFlowSource instanceof PropRead 
   }
 }
 
+private class DisplayEventHandlerParameterAccess extends RemoteFlowSource instanceof PropRead {
+  override string getSourceType() { result = "DisplayEventHandlerParameterAccess" }
+
+  DisplayEventHandlerParameterAccess() {
+    exists(DisplayEventHandler handler, MethodCallNode getParameterCall |
+      getParameterCall.getMethodName() = "getParameter" and
+      this.getBase().getALocalSource() = getParameterCall and
+      handler.getParameter(0) = getParameterCall.getReceiver().getALocalSource()
+    )
+  }
+}
+
 /**
  * Method calls that fetch a piece of data either from a library control capable of accepting user input, or from a URI parameter.
  */

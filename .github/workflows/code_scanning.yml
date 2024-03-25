@@ -48,7 +48,7 @@ jobs:
       run: |
         if ! command -v cds &> /dev/null
         then
-          npm install -g @sap/cds
+          npm install -g @sap/cds-dk
         fi
 
     # Compile .cds files to .cds.json files.

@@ -1,0 +1,19 @@
+{
+  "_version": "0.0.1",
+  "sap.app": {
+    "_version": "0.0.1",
+    "id": "sample.app",
+    "type": "application",
+    "applicationVersion": {
+      "version": "0.0.1"
+    }
+  },
+  "models": {
+    "i18n": {
+      "type": "sap.ui.model.resource.ResourceModel",
+      "settings": {
+        "bundleName": "sample.app.bundle"
+      }
+    }
+  }
+}
