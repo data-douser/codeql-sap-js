@@ -1,11 +1,13 @@
-using { advanced-security.log-injection.sample-entities as db-schema } from '../db/schema';
+using { advanced_security.sql_injection.sample_entities as db_schema } from '../db/schema';
 
-service Service1 {
-  /* Entity to send READ about. */
-  entity Service1Entity as projection on db-schema.Entity1 excluding { Attribute2 }
+@protocol: 'none'
+service Service1 @(path: '/service-1') {
+  /* Entity to send READ/GET about. */
+  entity Service1Entity as projection on db_schema.Entity1 excluding { Attribute2 }
 
-  /* Async API for Service1 to speak through. */
-  event Received1: {
-    messageToPass : String;
-  }
+  /* API to talk to Service1. */
+  action send1 (
+    messageToPass : String
+  ) returns String;
 }
+
