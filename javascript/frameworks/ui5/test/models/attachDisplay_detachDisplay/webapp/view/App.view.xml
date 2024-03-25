@@ -1,0 +1,16 @@
+<mvc:View controllerName="sample.controller.app"
+     xmlns="sap.m"
+     xmlns:core="sap.ui.core"
+     xmlns:mvc="sap.ui.core.mvc"
+     xmlns:customControl="sample.control">
+     <!-- Declaration of Library controls:
+         1. sap.m.Input
+         2. sap.ui.core.HTML -->
+     <Input id="sap-input" />
+     <core:HTML id="sap-html" />
+     <!-- Declaration of Custom controls:
+         1. sample.control.control1
+         2. sample.control.control2 -->
+     <customControl:control1 id="customControl1" text="control1Content" />
+     <customControl:control2 id="customControl2" text="control2Content" />
+</mvc:View>
