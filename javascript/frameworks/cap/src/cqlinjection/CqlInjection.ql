@@ -14,13 +14,14 @@ import javascript
 import DataFlow::PathGraph
 import semmle.javascript.security.dataflow.SqlInjectionCustomizations::SqlInjection
 import advanced_security.javascript.frameworks.cap.CQL
+import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 
 class CqlIConfiguration extends TaintTracking::Configuration {
   CqlIConfiguration() { this = "CqlInjection" }
 
-  override predicate isSource(DataFlow::Node source) { source instanceof Source }
+  override predicate isSource(DataFlow::Node source) { source instanceof RemoteFlowSource }
 
-  override predicate isSink(DataFlow::Node sink) { sink instanceof CQL::CQLSink }
+  override predicate isSink(DataFlow::Node sink) { sink instanceof CQLSink }
 
   override predicate isSanitizer(DataFlow::Node node) {
     super.isSanitizer(node) or
@@ -29,13 +30,13 @@ class CqlIConfiguration extends TaintTracking::Configuration {
 
   override predicate isAdditionalTaintStep(DataFlow::Node pred, DataFlow::Node succ) {
     //string concatenation in a clause arg taints the clause
-    exists(CQL::TaintedClause clause |
+    exists(TaintedClause clause |
       clause.getArgument() = pred.asExpr() and
       clause.asExpr() = succ.asExpr()
     )
     or
     //less precise, any concat in the alternative sql stmt construction techniques
-    exists(CQL::ParseCQLTaintedClause parse |
+    exists(ParseCQLTaintedClause parse |
       parse.getAnArgument() = pred and
       parse = succ
     )
