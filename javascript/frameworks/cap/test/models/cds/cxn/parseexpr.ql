@@ -1,5 +1,5 @@
 import javascript
-import advanced_security.javascript.frameworks.cap.CDS
+import advanced_security.javascript.frameworks.cap.dataflow.DataFlow
 
-from CDS::ParseSink sink
+from ParseSink sink
 select sink

@@ -1,0 +1,21 @@
+nodes
+| srv/service2.js:6:29:6:31 | msg |
+| srv/service2.js:6:29:6:31 | msg |
+| srv/service2.js:7:15:7:31 | { messageToPass } |
+| srv/service2.js:7:15:7:42 | messageToPass |
+| srv/service2.js:7:17:7:29 | messageToPass |
+| srv/service2.js:7:35:7:37 | msg |
+| srv/service2.js:7:35:7:42 | msg.data |
+| srv/service2.js:9:32:9:44 | messageToPass |
+| srv/service2.js:9:32:9:44 | messageToPass |
+edges
+| srv/service2.js:6:29:6:31 | msg | srv/service2.js:7:35:7:37 | msg |
+| srv/service2.js:6:29:6:31 | msg | srv/service2.js:7:35:7:37 | msg |
+| srv/service2.js:7:15:7:31 | { messageToPass } | srv/service2.js:7:17:7:29 | messageToPass |
+| srv/service2.js:7:15:7:42 | messageToPass | srv/service2.js:9:32:9:44 | messageToPass |
+| srv/service2.js:7:15:7:42 | messageToPass | srv/service2.js:9:32:9:44 | messageToPass |
+| srv/service2.js:7:17:7:29 | messageToPass | srv/service2.js:7:15:7:42 | messageToPass |
+| srv/service2.js:7:35:7:37 | msg | srv/service2.js:7:35:7:42 | msg.data |
+| srv/service2.js:7:35:7:42 | msg.data | srv/service2.js:7:15:7:31 | { messageToPass } |
+#select
+| srv/service2.js:9:32:9:44 | messageToPass | srv/service2.js:6:29:6:31 | msg | srv/service2.js:9:32:9:44 | messageToPass | Log entry depends on a $@. | srv/service2.js:6:29:6:31 | msg | user-provided value |

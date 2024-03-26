@@ -1,175 +1,442 @@
 import javascript
-import DataFlow
+import semmle.javascript.dataflow.DataFlow
+import advanced_security.javascript.frameworks.cap.PackageJson
+import advanced_security.javascript.frameworks.cap.CDL
+import advanced_security.javascript.frameworks.cap.CQL
 
-module CDS {
-  // TODO: should this base type be more specific?
-  abstract class ServiceInstance extends DataFlow::Node { }
+/**
+ * ```js
+ * const cds = require('@sap/cds')
+ * ```
+ */
+class CdsFacade extends API::Node {
+  CdsFacade() { this = API::moduleImport(["@sap/cds", "@sap/cds/lib"]) }
+
+  Node getNode() { result = this.asSource() }
+}
+
+/**
+ * A call to `serve` on a CDS facade.
+ */
+class CdsServeCall extends API::Node {
+  CdsServeCall() { exists(CdsFacade cds | this = cds.getMember("serve")) }
+}
+
+/**
+ * A `cds.connect.to(serveName)` call to connect to a local or remote service.
+ */
+class CdsConnectToCall extends API::Node {
+  CdsConnectToCall() { exists(CdsFacade cds | this = cds.getMember("connect").getMember("to")) }
 
   /**
-   * Call to`cds.serve`
+   * Gets a variable definition using either `cds.connect.to(...)` or awaiting that at its RHS.
    */
-  class CdsServeCall extends ServiceInstance {
-    CdsServeCall() { this = any(CdsFacade cds).getMember("serve").getACall() }
+  VarDef getVarDefUsingCdsConnect() {
+    result.getSource() = this.getACall().asExpr()
+    or
+    result.getSource().(AwaitExpr).getOperand() = this.getACall().asExpr()
   }
 
   /**
-   * call to:
-   *  `new cds.ApplicationService` or `new cds.Service`
+   * Gets the service name that this call connects to.
    */
-  class ServiceConstructor extends ServiceInstance {
-    ServiceConstructor() { this = any(ApplicationService cds).getAnInstantiation() }
+  string getServiceName() {
+    result = this.getACall().getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+  }
+}
+
+/**
+ * A dataflow node that represents a service. Note that its definition is a `UserDefinedApplicationService`, not a `ServiceInstance`.
+ */
+abstract class ServiceInstance extends DataFlow::Node {
+  abstract UserDefinedApplicationService getDefinition();
+
+  abstract MethodCallNode getASrvMethodCall();
+}
+
+/**
+ * A service instance obtained by the service's name, via serving
+ * defined services via `cds.serve` and awaiting its promise. e.g.
+ * ```javascript
+ * // Obtained through `cds.serve`
+ * const { Service1, Service2 } = await cds.serve("all");
+ * const Service1 = await cds.serve("service-1");
+ * ```
+ */
+class ServiceInstanceFromCdsServe extends ServiceInstance {
+  ServiceInstanceFromCdsServe() { exists(CdsFacade cds | this = cds.getMember("serve").getACall()) }
+
+  override UserDefinedApplicationService getDefinition() {
+    none() // TODO: how should we deal with serve("all")?
+  }
+
+  override MethodCallNode getASrvMethodCall() {
+    none() // TODO
+  }
+}
+
+/* TODO: change `ServiceInstanceFromCdsConnectTo` to an VarAccess to the VarDef whose getSource() is CdsConnectToCall or an AwaitExpr wrapping it */
+/**
+ * A service instance obtained by the service's name, via connecting
+ * to a service already being served and awaiting its promise. e.g.
+ * ```javascript
+ * // Obtained through `cds.connect.to`
+ * const Service1 = await cds.connect.to("service-1");
+ * const Service1 = cds.connect.to("service-2");
+ * ```
+ */
+class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
+  string serviceName;
+
+  ServiceInstanceFromCdsConnectTo() {
+    exists(CdsConnectToCall cdsConnectTo |
+      (
+        this = cdsConnectTo.getACall() or
+        this = cdsConnectTo.getVarDefUsingCdsConnect().getAVariable().getAnAccess().flow()
+      ) and
+      serviceName = cdsConnectTo.getServiceName()
+    )
+  }
+
+  override UserDefinedApplicationService getDefinition() {
+    exists(RequiredService serviceDecl, string abspath |
+      serviceDecl.getName() = serviceName and
+      abspath = serviceDecl.getImplementationFile().getAbsolutePath() and
+      result.hasLocationInfo(abspath, _, _, _, _)
+    )
+  }
+
+  string getServiceName() { result = serviceName }
+
+  /**
+   * Gets a method call on this service instance.
+   */
+  override MethodCallNode getASrvMethodCall() { result.getReceiver() = this }
+}
+
+/**
+ * A service instance obtained by directly calling the constructor
+ * of its class with a `new` keyword. e.g.
+ * ```javascript
+ * // A constructor call
+ * const srv = new cds.ApplicationService(...);
+ * const srv = new cds.Service(...);
+ * ```
+ */
+class ServiceInstanceFromConstructor extends ServiceInstance {
+  ServiceInstanceFromConstructor() {
+    exists(CdsApplicationServiceClass cds | this = cds.getAnInstantiation())
+  }
+
+  override UserDefinedApplicationService getDefinition() { none() }
+
+  /**
+   * Gets a method call on this service instance.
+   */
+  override MethodCallNode getASrvMethodCall() {
+    exists(VarDef definition |
+      definition.getSource().flow() = this and
+      definition.getAVariable().getAnAccess() = result.getReceiver().asExpr()
+    )
+  }
+}
+
+/**
+ * A service instance that represents an w
+ */
+class ServiceInstanceFromThisNode extends ServiceInstance {
+  ServiceInstanceFromThisNode() {
+    exists(ThisNode thisNode | thisNode.flowsTo(this) and this != thisNode)
+  }
+
+  override UserDefinedApplicationService getDefinition() {
+    result.getInitFunction().asExpr() = this.asExpr().getEnclosingFunction+()
   }
 
   /**
-   * return value of `cds.connect.to`
+   * Gets a method call on this service instance.
    */
-  class ConnectTo extends ServiceInstance {
-    ConnectTo() { this = any(CdsFacade cds).getMember("connect").getMember("to").getACall() }
+  override MethodCallNode getASrvMethodCall() { result.getReceiver() = this }
+}
+
+/**
+ * The parameter node representing the service being served, given to a
+ * callback argument to the `cds.serve(...).with` call. e.g.
+ * ```js
+ * cds.serve('./srv/some-service').with ((srv) => {
+ *   srv.on ('READ','SomeEntity', (req) => req.reply([...]))
+ * })
+ * ```
+ * This is used to extend the given service's functionality.
+ */
+class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstance {
+  ServiceInstanceFromServeWithParameter() {
+    exists(MethodCallNode withCall, CdsServeCall cdsServe |
+      withCall.getMethodName() = "with" and
+      withCall.getReceiver() = cdsServe.getACall() and
+      this = withCall.getArgument(0).(FunctionNode).getParameter(0)
+    )
   }
 
-  /** Last argument to the service methods `srv.before`, `srv.on`, and `srv.after` */
-  private class RequestHandler extends FunctionNode { }
+  override UserDefinedApplicationService getDefinition() {
+    none() // TODO
+  }
 
-  private class ErrorHandler extends RequestHandler { }
+  override MethodCallNode getASrvMethodCall() {
+    none() // TODO
+  }
+}
 
-  /**
-   * Subclassing ApplicationService via `extends`:
-   * ```js
-   * class SomeService extends cds.ApplicationService
-   * ```
-   */
-  class UserDefinedApplicationService extends ClassNode {
-    UserDefinedApplicationService() {
-      exists(ApplicationService cdsApplicationService |
-        this.getASuperClassNode() = cdsApplicationService.asSource()
+/**
+ * A call to `before`, `on`, or `after` on an `cds.ApplicationService`.
+ * It registers an handler to be executed when an event is fired,
+ * to do something with the incoming request or event as its parameter.
+ */
+class HandlerRegistration extends MethodCallNode {
+  HandlerRegistration() {
+    exists(ServiceInstance srv |
+      (
+        srv.(SourceNode).flowsTo(this.getReceiver())
+        or
+        srv = this.getReceiver()
+      ) and
+      (
+        this.getMethodName() = "before" or
+        this.getMethodName() = "on" or
+        this.getMethodName() = "after"
       )
-    }
+    )
   }
 
   /**
-   * Subclassing ApplicationService via `cds.service.impl`:
-   * ```js
-   * const cds = require('@sap/cds')
-   * module.exports = cds.service.impl (function() { ... })
-   * ```
+   * Get the name of the event that the handler is registered for.
    */
-  class OldStyleUserDefinedApplicationService extends MethodCallNode {
-    OldStyleUserDefinedApplicationService() {
-      exists(CdsFacade cds | this = cds.getMember("service").getMember("impl").getACall())
-    }
+  string getAnEventName() {
+    exists(StringLiteral stringLiteral |
+      stringLiteral = this.getArgument(0).asExpr() and
+      result = stringLiteral.getValue()
+    )
+    or
+    exists(ArrayLiteralNode arrayLiteral |
+      arrayLiteral = this.getArgument(0) and
+      result = arrayLiteral.getAnElement().asExpr().(StringLiteral).getValue()
+    )
   }
 
   /**
-   *  Parameter of a `srv.with` method call:
-   * ```js
-   * cds.serve('./srv/cat-service') .with ((srv) => {
-   *     srv.on ('READ','Books', (req) => req.reply([...]))
-   * })
-   * ```
-   *
-   * TODO expand this to capture request handlers registered inside the function
+   * Get the name of the entity that the handler is registered for, if any.
    */
-  class WithCallParameter extends RequestHandler {
-    WithCallParameter() {
-      exists(MethodCallNode withCall, ServiceInstance svc |
-        withCall.getArgument(0) = this and
-        withCall.getMethodName() = "with" and
-        withCall.getReceiver() = svc
+  string getEntityName() { result = this.getArgument(1).asExpr().(StringLiteral).getValue() }
+
+  /**
+   * Gets the handler that is being registrated to an event by this registering function call.
+   */
+  Handler getHandler() { result = this.getAnArgument() }
+}
+
+/**
+ * The handler that implements a service's logic to deal with the incoming request or message when a certain event is fired.
+ * It is the last argument to the method calls that registers the handler: either `srv.before`, `srv.on`, or `srv.after`.
+ * Its first parameter is of type `cds.Event` and handles the event in an asynchronous manner,
+ * or is of type `cds.Request` and handles the event synchronously.
+ */
+class Handler extends FunctionNode {
+  UserDefinedApplicationService srv;
+  string eventName;
+
+  Handler() {
+    exists(HandlerRegistration handlerRegistration |
+      this = handlerRegistration.getAnArgument() and
+      eventName = handlerRegistration.getArgument(0).asExpr().(StringLiteral).getValue()
+    )
+  }
+
+  /**
+   * Gets the service registering this handler.
+   */
+  UserDefinedApplicationService getDefiningService() { result = srv }
+
+  /**
+   * Gets a name of one of the event this handler is registered for.
+   */
+  string getAnEventName() { result = eventName }
+}
+
+/**
+ * Built-in event names to use to talk to a service.
+ * - Event names for [REST-style API](https://cap.cloud.sap/docs/node.js/core-services#rest-style-api)
+ *   - GET
+ *   - PUT
+ *   - POST
+ *   - PATCH
+ *   - DELETE
+ * - Event names for [CRUD-style API](https://cap.cloud.sap/docs/node.js/core-services#crud-style-api)
+ *   - READ
+ *   - CREATE
+ *   - INSERT
+ *   - UPSERT
+ *   - UPDATE
+ *   - DELETE
+ */
+class BuiltInEventNames extends string {
+  BuiltInEventNames() {
+    /* 1. REST-style API names. */
+    this = ["GET", "PUT", "POST", "PATCH", "DELETE"]
+    or
+    /* 2. CRUD-style API names. */
+    this = ["READ", "CREATE", "INSERT", "UPSERT", "UPDATE", "DELETE"]
+  }
+
+  predicate isRestStyle() { this = ["GET", "PUT", "POST", "PATCH", "DELETE"] }
+
+  predicate isCrudStyle() { this = ["READ", "CREATE", "INSERT", "UPSERT", "UPDATE", "DELETE"] }
+}
+
+/**
+ * A handler that handles errors.
+ */
+class ErrorHandler extends Handler {
+  ErrorHandler() { this.getAnEventName() = "error" }
+}
+
+private class CdsServiceClass extends API::Node {
+  CdsServiceClass() { exists(CdsFacade c | this = c.getMember("Service")) }
+}
+
+private class CdsApplicationServiceClass extends API::Node {
+  CdsApplicationServiceClass() { exists(CdsFacade c | this = c.getMember("ApplicationService")) }
+}
+
+abstract class UserDefinedService extends DataFlow::Node {
+  abstract FunctionNode getInitFunction();
+}
+
+abstract class UserDefinedBaseService extends UserDefinedService { }
+
+class ES6BaseServiceDefinition extends ClassNode, UserDefinedBaseService {
+  ES6BaseServiceDefinition() {
+    exists(CdsServiceClass cdsService | this.getASuperClassNode() = cdsService.asSource())
+  }
+
+  override FunctionNode getInitFunction() { result = this.getInstanceMethod("init") }
+}
+
+/**
+ * A custom application service of type `cds.ApplicationService`, where parts of the business logic are implemented.
+ */
+abstract class UserDefinedApplicationService extends UserDefinedService {
+  HandlerRegistration getHandlerRegistration(string eventName) {
+    result.getEnclosingFunction() = this.getInitFunction().asExpr() and
+    result.getAnEventName() = eventName
+  }
+
+  HandlerRegistration getAHandlerRegistration() { result = this.getHandlerRegistration(_) }
+
+  /**
+   * Gets the name of this service as declared in the `package.json`.
+   */
+  string getManifestName() {
+    exists(RequiredService serviceManifest |
+      this.hasLocationInfo(serviceManifest.getImplementationFile().getAbsolutePath(), _, _, _, _) and
+      result = serviceManifest.getName()
+    )
+  }
+
+  /**
+   * Gets the CDS definition of this service.
+   */
+  CdlService getCdsDeclaration() {
+    exists(CdsFile cdsFile |
+      cdsFile.getStem() = this.getFile().getStem() + ".cds" and
+      cdsFile.getParentContainer() = this.getFile().getParentContainer() and
+      result.getFile() = cdsFile
+    )
+  }
+
+  /**
+   * Holds if this service supports access from the outside through any kind of protocol.
+   */
+  predicate isExposed() { not this.isInternal() }
+
+  /**
+   * Holds if this service does not support access from the outside through any kind of protocol, thus being internal only.
+   */
+  predicate isInternal() {
+    exists(CdlService cdsDeclaration | cdsDeclaration = this.getCdsDeclaration() |
+      cdsDeclaration.getAnnotation("protocol").(ProtocolAnnotation).getAnExposedProtocol() = "none" and
+      not exists(CdlAnnotation annotation |
+        annotation = cdsDeclaration.getAnnotation(["rest", "odata", "graphql"])
       )
-    }
+    )
+  }
+}
+
+/**
+ * Subclassing `cds.ApplicationService` via a ES6 class definition.
+ * ```js
+ * class SomeService extends cds.ApplicationService { init() { ... } }
+ * ```
+ */
+class ES6ApplicationServiceDefinition extends ClassNode, UserDefinedApplicationService {
+  ES6ApplicationServiceDefinition() {
+    exists(CdsApplicationServiceClass cdsApplicationService |
+      this.getASuperClassNode() = cdsApplicationService.asSource()
+    )
   }
 
-  /**
-   * Parameter of request handler phases `_.before`, `_.on` `_.after`:
-   * ```js
-   * _.on ('READ','Books', (req) => req.reply([...]))
-   * ```
-   */
-  class EventPhaseNodeParam extends ValueNode, ParameterNode {
-    MethodCallNode eventPhase;
+  override FunctionNode getInitFunction() { result = this.getInstanceMethod("init") }
+}
 
-    EventPhaseNodeParam() {
-      exists(FunctionNode handler |
-        eventPhase.getMethodName() = ["before", "on", "after"] and
-        eventPhase.getLastArgument() = handler and
-        handler.getLastParameter() = this
-      )
-    }
-
-    MethodCallNode getEventPhaseNode() { result = eventPhase }
+/**
+ * Subclassing `cds.ApplicationService` via a call to `cds.service.impl`.
+ * ```js
+ * const cds = require('@sap/cds')
+ * module.exports = cds.service.impl (function() { ... })
+ * ```
+ */
+class ImplMethodCallApplicationServiceDefinition extends MethodCallNode,
+  UserDefinedApplicationService
+{
+  ImplMethodCallApplicationServiceDefinition() {
+    exists(CdsFacade cds |
+      this.getReceiver() = cds.getMember("service").asSource() and
+      this.getMethodName() = "impl"
+    )
   }
 
-  /**
-   * Parameter of request handler of `srv.on`:
-   * ```js
-   * this.on ('READ','Books', (req) => req.reply([...]))
-   * ```
-   * not sure how else to know which service is registering the handler
-   */
-  class RequestSource extends EventPhaseNodeParam, RemoteFlowSource {
-    RequestSource() {
-      // TODO : consider  - do we need to actually ever know which service the handler is associated to?
-      exists(UserDefinedApplicationService svc, FunctionNode init |
-        svc.getAnInstanceMember() = init and
-        init.getName() = "init" and
-        this.getEventPhaseNode().getEnclosingFunction() = init.getAstNode()
-      )
-      or
-      exists(WithCallParameter pa |
-        this.getEventPhaseNode().getEnclosingFunction() = pa.getFunction()
-      )
-    }
+  override FunctionNode getInitFunction() { result = this.getArgument(0) }
+}
 
-    override string getSourceType() { result = "CAP request source" }
+abstract class InterServiceCommunicationMethodCall extends MethodCallNode {
+  InterServiceCommunicationMethodCall() {
+    exists(ServiceInstance srv | this = srv.getASrvMethodCall())
+  }
+}
+
+class SrvRun extends InterServiceCommunicationMethodCall {
+  SrvRun() { this.getMethodName() = "run" }
+
+  CqlClause getCql() {
+    result.asMethodCall() = this.getArgument(0).asExpr() or
+    result.asDotExpr() = this.getArgument(0).asExpr()
+  }
+}
+
+class SrvEmit extends InterServiceCommunicationMethodCall {
+  ServiceInstance emittingService;
+
+  SrvEmit() {
+    this.getMethodName() = "emit" and
+    emittingService = this.getReceiver()
   }
 
-  class ApplicationService extends API::Node {
-    ApplicationService() {
-      exists(CdsFacade c | this = c.getMember(["ApplicationService", "Service"]))
-    }
-  }
+  ServiceInstance getEmitter() { result = emittingService }
 
-  /**
-   * ```js
-   * const cds = require('@sap/cds')
-   * const cds = require('@sap/cds/lib')
-   * ```
-   */
-  class CdsFacade extends API::Node {
-    CdsFacade() { this = API::moduleImport(["@sap/cds", "@sap/cds/lib"]) }
+  string getEmittedEvent() {
+    result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
   }
+}
 
-  /**
-   * Call to`cds.log`
-   */
-  class CdsLogCall extends API::Node {
-    CdsLogCall() { this = any(CdsFacade cds).getMember("log") }
-  }
-
-  /**
-   * Arguments of calls to `cds.log.{trace, debug, info, log, warn, error}`
-   */
-  class CdsLogSink extends DataFlow::Node {
-    CdsLogSink() {
-      this =
-        any(CdsLogCall cdsLog)
-            .getACall()
-            .getAChainedMethodCall(["trace", "debug", "info", "log", "warn", "error"])
-            .getAnArgument()
-    }
-  }
-
-  /**
-   * Methods that parse source strings into a CQL expression
-   */
-  class ParseSink extends DataFlow::Node {
-    ParseSink() {
-      this =
-        any(CdsFacade cds)
-            .getMember("parse")
-            .getMember(["expr", "ref", "xpr"])
-            .getACall()
-            .getAnArgument()
-    }
-  }
+class SrvSend extends InterServiceCommunicationMethodCall {
+  SrvSend() { this.getMethodName() = "send" }
 }

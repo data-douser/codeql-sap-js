@@ -1,15 +1,12 @@
 import cds from '@sap/cds'
 
-cds.log('nodejs').trace(`test`);
-cds.log('nodejs').debug(`test`);
-cds.log('nodejs').info(`test`);
-cds.log('nodejs').log(`test`);
-cds.log('nodejs').warn(`test`);
-cds.log('nodejs').error(`test`);
+cds.log('nodejs').trace(code0);
+cds.log('nodejs').debug(code0);
+cds.log('nodejs').info(code0);
+cds.log('nodejs').log(code0);
+cds.log('nodejs').warn(code0);
+cds.log('nodejs').error(code0);
 
-const LOG = cds.log("nodejs");
-LOG.info("test");
-
-const cdslib = require('@sap/cds/lib')
-const LOG2 = cdslib.log('cds.log')
-LOG2.info('format:', `test`)
+const code0 = "some-name";
+const LOG = cds.log(code0);
+LOG.info(code1);
