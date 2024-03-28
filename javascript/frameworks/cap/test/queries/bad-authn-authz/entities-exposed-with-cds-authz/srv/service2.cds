@@ -4,7 +4,7 @@ service Service2 @(path: '/service-2', requires: [ "authenticated-user" ]) {
   /* Entity to send READ/GET about. */
   entity Service2Entity @(restrict: [
     { grant: 'WRITE', to: 'Role1' }
-    { grant: [ 'WRITE', 'UPDATE' ], to: 'Role2', where: 'Attr = $val' }
+    { grant: [ 'WRITE', 'UPDATE' ], to: 'Role2', where: 'Attribute3 = $user.attr' }
   ]) as projection on db_schema.Entity2 excluding { Attribute4 }
 
   /* API to talk to Service2. */
