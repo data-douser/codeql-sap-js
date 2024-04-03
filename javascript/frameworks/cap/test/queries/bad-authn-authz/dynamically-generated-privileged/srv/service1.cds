@@ -1,13 +1,31 @@
-using { advanced_security.log_injection.sample_entities as db_schema } from '../db/schema';
+using { advanced_security.dynamically-generated-privileged.sample_entities as db_schema } from '../db/schema';
 
-/* Uncomment the line below to make the service hidden */
-// @protocol: 'none'
 service Service1 @(path: '/service-1') {
-  /* Entity to send READ/GET about. */
-  entity Service1Entity as projection on db_schema.Entity1 excluding { Attribute2 }
+  /* Unrestricted read access to anyone. */
+  @(restrict: [ { grant: 'READ' } ])
+  entity Service1Entity1 as projection on db_schema.Entity1 excluding { Attribute2 }
+
+  /* Read access only to users with access level greater than 2. */
+  @(restrict: [ { grant: 'READ', to: '$user.level > 2' } ])
+  entity Service1Entity2 as projection on db_schema.Entity1 excluding { Attribute1 }
 
   /* API to talk to Service1. */
   action send1 (
+    messageToPass : String
+  ) returns String;
+
+  /* API to talk to Service1. */
+  action send2 (
+    messageToPass : String
+  ) returns String;
+
+  /* API to talk to Service1. */
+  action send3 (
+    messageToPass : String
+  ) returns String;
+
+  /* API to talk to Service1. */
+  action send4 (
     messageToPass : String
   ) returns String;
 }
