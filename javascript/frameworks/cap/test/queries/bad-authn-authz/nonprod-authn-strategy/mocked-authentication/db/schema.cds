@@ -1,4 +1,4 @@
-namespace advanced_security.log_injection.sample_entities;
+namespace advanced_security.mocked_authentication.sample_entities;
 
 entity Entity1 {
   Attribute1 : String(100);

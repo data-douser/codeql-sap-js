@@ -1,5 +1,5 @@
 {
-  "name": "@advanced-security/log-injection",
+  "name": "@advanced-security/entities-exposed-with-no-authz",
   "version": "1.0.0",
   "dependencies": {
     "@sap/cds": "^7",

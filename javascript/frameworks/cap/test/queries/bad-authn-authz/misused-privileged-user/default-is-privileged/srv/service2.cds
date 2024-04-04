@@ -1,4 +1,4 @@
-using { advanced_security.log_injection.sample_entities as db_schema } from '../db/schema';
+using { advanced_security.default_is_privileged.sample_entities as db_schema } from '../db/schema';
 
 /* Uncomment the line below to make the service hidden */
 // @protocol: 'none'

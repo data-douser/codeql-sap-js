@@ -1,4 +1,4 @@
-using { advanced_security.log_injection.sample_entities as db_schema } from '../db/schema';
+using { advanced_security.entities_exposed_with_js_authz.sample_entities as db_schema } from '../db/schema';
 
 service Service2 @(path: '/service-2') {
   /* Entity to send READ/GET about. */

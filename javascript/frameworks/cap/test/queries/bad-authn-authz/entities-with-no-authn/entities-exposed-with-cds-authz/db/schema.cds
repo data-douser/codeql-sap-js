@@ -1,4 +1,4 @@
-namespace advanced_security.log_injection.sample_entities;
+namespace advanced_security.entities_exposed_with_cds_authz.sample_entities;
 
 entity Entity1 {
   Attribute1 : String(100);
