@@ -1,0 +1,19 @@
+{
+  "namespace": "sap.capire.test",
+  "definitions": {
+    "sap.capire.test.Test": {
+      "kind": "entity",
+      "elements": {
+        "id": {
+          "key": true,
+          "type": "cds.Integer"
+        }
+      }
+    }
+  },
+  "meta": {
+    "creator": "CDS Compiler v4.5.0",
+    "flavor": "inferred"
+  },
+  "$version": "2.0"
+}
