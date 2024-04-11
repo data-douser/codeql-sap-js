@@ -51,3 +51,47 @@ class RequiredService extends JsonObject {
    */
   predicate isDatabase() { this.getPropStringValue("kind") = ["sql", "sqlite"] }
 }
+
+/**
+ * The authentication strategy that the application is opting to use. It can either be
+ * a simple string denoting a strategy preset or an object equipped with mocked users
+ * and their credentials. e.g.
+ * ``` json
+ * "cds": {
+ *   "requires": {
+ *     "auth": {
+ *       "kind": "basic",
+ *       "users": {
+ *          "JohnDoe": {
+ *            "password": "JohnDoe'sPassword",
+ *            "roles": [ "JohnDoe'sRole" ]
+ *          }
+ *       }
+ *     }
+ *   }
+ * }
+ * ```
+ */
+class AuthenticationStrategy extends JsonValue {
+  string name;
+
+  AuthenticationStrategy() {
+    exists(RequiresSection requires |
+      this = requires.getPropValue("auth").(JsonObject) and
+      name = this.(JsonObject).getPropStringValue("kind")
+      or
+      this = requires.getPropValue("auth") and
+      name = this.getStringValue()
+    )
+  }
+
+  /**
+   * Gets the name of the authentication strategy.
+   */
+  string getName() { result = name }
+
+  /**
+   * Gets mocked users declared in this section, if any.
+   */
+  JsonObject getHardcodedMockedUsers() { result = this.(JsonObject).getPropValue("users") }
+}
