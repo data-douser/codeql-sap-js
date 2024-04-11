@@ -73,25 +73,35 @@ class RequiredService extends JsonObject {
  * ```
  */
 class AuthenticationStrategy extends JsonValue {
-  string name;
-
   AuthenticationStrategy() {
-    exists(RequiresSection requires |
-      this = requires.getPropValue("auth").(JsonObject) and
-      name = this.(JsonObject).getPropStringValue("kind")
-      or
-      this = requires.getPropValue("auth") and
-      name = this.getStringValue()
-    )
+    exists(RequiresSection requires | this = requires.getPropValue("auth"))
   }
 
   /**
    * Gets the name of the authentication strategy.
    */
-  string getName() { result = name }
+  string getName() {
+    result = this.(JsonObject).getPropStringValue("kind") or
+    result = this.getStringValue()
+  }
 
   /**
    * Gets mocked users declared in this section, if any.
    */
   JsonObject getHardcodedMockedUsers() { result = this.(JsonObject).getPropValue("users") }
+
+  /**
+   * Holds if this authentication strategy is a preset for production.
+   */
+  predicate isProdStrategy() { this.getName() = ["jwt", "xsuaa", "ias"] }
+
+  /**
+   * Holds if this authentication strategy is a preset for development.
+   */
+  predicate isDevStrategy() { this.getName() = ["basic", "mocked", "dummy"] }
+
+  /**
+   * Holds if this authentication strategy uses a custom authentication middleware.
+   */
+  predicate isCustomStrategy() { exists(this.(JsonObject).getPropStringValue("impl")) }
 }
