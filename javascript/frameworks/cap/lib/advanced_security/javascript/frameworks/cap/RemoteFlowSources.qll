@@ -28,3 +28,26 @@ class HandlerParameter extends ParameterNode, RemoteFlowSource {
     result = "Parameter of an event handler belonging to an exposed service"
   }
 }
+
+/**
+ * A service may be described only in a CDS file, but event handlers may still be registered in a format such as:
+ * ```javascript
+ * module.exports = srv => {
+ * srv.before('CREATE', 'Media', req => { //service name is used to describe which to register this handler to
+ * ```
+ * parameters named `req` are captured in the above example.
+ */
+class ServiceinCDSHandlerParameter extends RemoteFlowSource {
+  ServiceinCDSHandlerParameter() {
+    exists(MethodCallNode m, CdlEntity service, string serviceName |
+      service.getName().regexpReplaceAll(".*\\.", "") = serviceName and
+      m.getArgument(1).toString().regexpReplaceAll("'", "") = serviceName and
+      this = m.getArgument(2) and
+      m.getMethodName() in ["on", "before", "after"]
+    )
+  }
+
+  override string getSourceType() {
+    result = "Parameter of an event handler belonging to an exposed service defined in a cds file"
+  }
+}
