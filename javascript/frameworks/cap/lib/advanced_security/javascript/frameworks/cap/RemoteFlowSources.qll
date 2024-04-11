@@ -37,12 +37,12 @@ class HandlerParameter extends ParameterNode, RemoteFlowSource {
  * ```
  * parameters named `req` are captured in the above example.
  */
-class ServiceinCDSHandlerParameter extends RemoteFlowSource {
+class ServiceinCDSHandlerParameter extends ParameterNode, RemoteFlowSource {
   ServiceinCDSHandlerParameter() {
     exists(MethodCallNode m, CdlEntity service, string serviceName |
       service.getName().regexpReplaceAll(".*\\.", "") = serviceName and
       m.getArgument(1).toString().regexpReplaceAll("'", "") = serviceName and
-      this = m.getArgument(2) and
+      this = m.getArgument(m.getNumArgument() - 1).(FunctionNode).getParameter(0) and
       m.getMethodName() in ["on", "before", "after"]
     )
   }
