@@ -41,7 +41,7 @@ class ServiceinCDSHandlerParameter extends ParameterNode, RemoteFlowSource {
   ServiceinCDSHandlerParameter() {
     exists(MethodCallNode m, CdlEntity entity, string entityName |
       entity.getName().regexpReplaceAll(".*\\.", "") = entityName and
-      m.getArgument(1).toString().regexpReplaceAll("'", "") = entityName and
+      m.getArgument(1).asExpr().getStringValue().regexpReplaceAll("'", "") = entityName and
       this = m.getArgument(m.getNumArgument() - 1).(FunctionNode).getParameter(0) and
       m.getMethodName() in ["on", "before", "after"]
     )
