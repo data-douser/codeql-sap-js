@@ -1,6 +1,10 @@
 #!/bin/bash
 # !!!!!!! Run it at javascript/frameworks/ui5/test/queries/test/queries/ !!!!!!!
 
+#test if codeql is on the path
+if command -v codeql
+   then
+
 # Remember current directory
 TEST_DIR=$(pwd)
 
@@ -26,3 +30,7 @@ for dir in *; do
 done
 
 echo "Done!"
+
+else
+    echo "Add CodeQL to PATH!"
+fi
