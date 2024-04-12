@@ -77,12 +77,18 @@ class AuthenticationStrategy extends JsonValue {
   }
 
   /**
+   * Gets the JSON string that holds the name of the authentication strategy.
+   */
+  JsonString getJsonString() {
+    this instanceof JsonObject and result = this.getPropValue("kind")
+    or
+    result = this
+  }
+
+  /**
    * Gets the name of the authentication strategy.
    */
-  string getName() {
-    result = this.(JsonObject).getPropStringValue("kind") or
-    result = this.getStringValue()
-  }
+  string getName() { result = this.getJsonString().getStringValue() }
 
   /**
    * Gets mocked users declared in this section, if any.
