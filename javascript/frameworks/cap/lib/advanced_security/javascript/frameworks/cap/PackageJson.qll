@@ -53,9 +53,8 @@ class RequiredService extends JsonObject {
 }
 
 /**
- * The authentication strategy that the application is opting to use. It can either be
- * a simple string denoting a strategy preset or an object equipped with mocked users
- * and their credentials. e.g.
+ * The authentication strategy that the application is opting to use. It can either be a simple string
+ * denoting a strategy preset or an object equipped with mocked users and their credentials. e.g.
  * ``` json
  * "cds": {
  *   "requires": {
