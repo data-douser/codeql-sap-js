@@ -6,6 +6,6 @@ module.exports = cds.service.impl(function() {
     this.on("send", async (msg) => {
         const { messageToPass } = msg.data;
         /* A log injection sink. */
-        LOG.info("Received: ", messageToPass); // CAP log injection alert
+        LOG.info("Received: ", messageToPass); // messageToPass is Integer, not a log injection!
   });
 })
