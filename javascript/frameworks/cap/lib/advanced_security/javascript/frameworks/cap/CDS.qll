@@ -440,3 +440,23 @@ class SrvEmit extends InterServiceCommunicationMethodCall {
 class SrvSend extends InterServiceCommunicationMethodCall {
   SrvSend() { this.getMethodName() = "send" }
 }
+
+class CdsUser extends API::Node {
+  CdsUser() { exists(CdsFacade c | this = c.getMember("User")) }
+
+  PropRef getDefaultUser() {
+    exists(PropRead cdsUser |
+      cdsUser = this.getInducingNode().(PropRead) and
+      cdsUser.flowsTo(result.getBase()) and
+      result.getPropertyName() = "default"
+    )
+  }
+
+  PropRef getPrivilegedUser() {
+    exists(PropRead cdsUser |
+      cdsUser = this.getInducingNode().(PropRead) and
+      cdsUser.flowsTo(result.getBase()) and
+      result.getPropertyName() = "Privileged"
+    )
+  }
+}
