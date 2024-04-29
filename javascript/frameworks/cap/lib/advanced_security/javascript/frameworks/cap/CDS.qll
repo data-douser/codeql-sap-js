@@ -446,7 +446,7 @@ class CdsUser extends API::Node {
 
   PropRef getDefaultUser() {
     exists(PropRead cdsUser |
-      cdsUser = this.getInducingNode().(PropRead) and
+      cdsUser = this.getInducingNode() and
       cdsUser.flowsTo(result.getBase()) and
       result.getPropertyName() = "default"
     )
@@ -454,7 +454,7 @@ class CdsUser extends API::Node {
 
   PropRef getPrivilegedUser() {
     exists(PropRead cdsUser |
-      cdsUser = this.getInducingNode().(PropRead) and
+      cdsUser = this.getInducingNode() and
       cdsUser.flowsTo(result.getBase()) and
       result.getPropertyName() = "Privileged"
     )
