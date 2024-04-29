@@ -460,3 +460,15 @@ class CdsUser extends API::Node {
     )
   }
 }
+
+class CustomPrivilegedUser extends ClassNode {
+  CustomPrivilegedUser() {
+    exists(CdsUser cdsUser | this.getASuperClassNode() = cdsUser.asSource()) and
+    exists(FunctionNode init |
+      init = this.getInstanceMethod("is") and
+      forall(Expr expr | expr = init.asExpr().(Function).getAReturnedExpr() |
+        expr.mayHaveBooleanValue(true)
+      )
+    )
+  }
+}
