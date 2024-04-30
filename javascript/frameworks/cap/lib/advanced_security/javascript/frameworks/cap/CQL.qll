@@ -106,6 +106,8 @@ class CqlClause extends TCqlClause {
 
   CallExpr asShortcutCall() { this = ShortcutCall(result) }
 
+  Node flow() { result = this.asExpr().flow() }
+
   Expr asExpr() {
     result = this.asTaggedTemplate()
     or
