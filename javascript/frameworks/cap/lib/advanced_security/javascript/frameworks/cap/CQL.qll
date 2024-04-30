@@ -90,6 +90,9 @@ Expr getRootReceiver(Expr e) {
  * provided by the module cds.ql
  */
 newtype TCqlClause =
+  TaggedTemplate(TaggedTemplateExpr taggedTemplateExpr) {
+    exists(CqlQueryBase base | base = getRootReceiver(taggedTemplateExpr))
+  } or
   MethodCall(MethodCallExpr callExpr) {
     exists(CqlQueryBase base | base = getRootReceiver(callExpr)) or
     exists(CqlQueryBaseCall call | call = getRootReceiver(callExpr))
@@ -97,47 +100,43 @@ newtype TCqlClause =
   ShortcutCall(CqlQueryBaseCall callExpr)
 
 class CqlClause extends TCqlClause {
+  TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplate(result) }
+
+  MethodCallExpr asMethodCall() { this = MethodCall(result) }
+
+  CallExpr asShortcutCall() { this = ShortcutCall(result) }
+
   Expr asExpr() {
+    result = this.asTaggedTemplate()
+    or
     result = this.asMethodCall()
     or
     result = this.asShortcutCall()
   }
 
   Expr getArgument() {
-    result = this.asMethodCall().getAnArgument()
-    or
+    result = this.asTaggedTemplate().getTemplate() or
+    result = this.asMethodCall().getAnArgument() or
     result = this.asShortcutCall().getAnArgument()
   }
 
-  string getClauseName() {
-    result = this.asMethodCall().getMethodName()
-    or
-    this.asShortcutCall().getCalleeName() = "SELECT" and
-    result = "columns"
-    or
-    this.asShortcutCall().getCalleeName() in ["INSERT", "UPSERT"] and
-    result = "entries"
-    or
-    this.asShortcutCall().getCalleeName() = "UPDATE" and
-    result = "entity"
-  }
-
-  MethodCallExpr asMethodCall() { this = MethodCall(result) }
-
-  CallExpr asShortcutCall() { this = ShortcutCall(result) }
-
   /**
    * Convert this `CqlClause` into a `DotExpr`, i.e.
-   * `Get SELECT.from'Table' when given SELECT.from'Table'.wherecond`,
+   * get `` SELECT.from`Table`.where `` when given `` SELECT.from`Table`.where`cond` ``.
    */
-  DotExpr asDotExpr() { result = this.asMethodCall().getCallee().(DotExpr) }
+  DotExpr asDotExpr() {
+    result = this.asTaggedTemplate().getTag() or
+    result = this.asMethodCall().getCallee()
+  }
 
   string toString() {
+    result = this.asTaggedTemplate().toString() or
     result = this.asMethodCall().toString() or
     result = this.asShortcutCall().toString()
   }
 
   Location getLocation() {
+    result = this.asTaggedTemplate().getLocation() or
     result = this.asMethodCall().getLocation() or
     result = this.asShortcutCall().getLocation()
   }
@@ -145,11 +144,13 @@ class CqlClause extends TCqlClause {
   CqlQueryBase getCqlBase() { result = getRootReceiver(this.asMethodCall()) }
 
   CqlQueryBaseCall getCqlBaseCall() {
+    result = getRootReceiver(this.asTaggedTemplate()).(CqlQueryBaseCall) or
     result = getRootReceiver(this.asMethodCall()).(CqlQueryBaseCall)
   }
 
   /** Describes a parent expression relation */
   Expr getParentExpr() {
+    result = this.asTaggedTemplate().getParentExpr() or
     result = this.asMethodCall().getParentExpr() or
     result = this.asShortcutCall().getParentExpr()
   }
@@ -167,23 +168,35 @@ class CqlClause extends TCqlClause {
    * example - `SELECT("col1, col2").INSERT(col2)` is not valid
    */
   CqlClause getCqlParentExpr() {
-    result.asMethodCall() = this.asMethodCall().getParentExpr().getParentExpr()
-    or
+    /* ========== The parent is a shortcut call ========== */
+    result.asShortcutCall() = this.asTaggedTemplate().getParentExpr().getParentExpr() or
+    result.asShortcutCall() = this.asMethodCall().getParentExpr().getParentExpr() or
+    result.asShortcutCall() = this.asShortcutCall().getParentExpr().getParentExpr() or
+    /* ========== The parent is a tagged template ========== */
+    result.asTaggedTemplate() = this.asTaggedTemplate().getParentExpr().getParentExpr() or
+    result.asTaggedTemplate() = this.asMethodCall().getParentExpr().getParentExpr() or
+    result.asTaggedTemplate() = this.asShortcutCall().getParentExpr().getParentExpr() or
+    /* ========== The parent is a method call ========== */
+    result.asMethodCall() = this.asTaggedTemplate().getParentExpr().getParentExpr() or
+    result.asMethodCall() = this.asMethodCall().getParentExpr().getParentExpr() or
     result.asMethodCall() = this.asShortcutCall().getParentExpr().getParentExpr()
   }
 
   Expr getAnAncestorExpr() {
+    result = this.asTaggedTemplate().getParentExpr+() or
     result = this.asMethodCall().getParentExpr+() or
     result = this.asShortcutCall().getParentExpr+()
   }
 
   CqlClause getAnAncestorCqlClause() {
+    result.asTaggedTemplate() = this.getAnAncestorExpr() or
     result.asMethodCall() = this.getAnAncestorExpr() or
     result.asShortcutCall() = this.getAnAncestorExpr()
   }
 
   /** Describes a child expression relation */
   Expr getAChildExpr() {
+    result = this.asTaggedTemplate().getAChildExpr() or
     result = this.asMethodCall().getAChildExpr() or
     result = this.asShortcutCall().getAChildExpr()
   }
@@ -192,16 +205,28 @@ class CqlClause extends TCqlClause {
    * the same chain order logic as `getCqlParentExpr` but reversed
    */
   CqlClause getAChildCqlClause() {
+    /* ========== The parent is a shortcut call ========== */
+    result.asShortcutCall() = this.asTaggedTemplate().getAChildExpr().getAChildExpr() or
+    result.asShortcutCall() = this.asMethodCall().getAChildExpr().getAChildExpr() or
+    result.asShortcutCall() = this.asShortcutCall().getAChildExpr().getAChildExpr() or
+    /* ========== The parent is a tagged template ========== */
+    result.asTaggedTemplate() = this.asTaggedTemplate().getAChildExpr().getAChildExpr() or
+    result.asTaggedTemplate() = this.asMethodCall().getAChildExpr().getAChildExpr() or
+    result.asTaggedTemplate() = this.asShortcutCall().getAChildExpr().getAChildExpr() or
+    /* ========== The parent is a method call ========== */
+    result.asMethodCall() = this.asTaggedTemplate().getAChildExpr().getAChildExpr() or
     result.asMethodCall() = this.asMethodCall().getAChildExpr().getAChildExpr() or
-    result.asShortcutCall() = this.asMethodCall().getAChildExpr().getAChildExpr()
+    result.asMethodCall() = this.asShortcutCall().getAChildExpr().getAChildExpr()
   }
 
   Expr getADescendantExpr() {
+    result = this.asTaggedTemplate().getAChildExpr+() or
     result = this.asMethodCall().getAChildExpr+() or
     result = this.asShortcutCall().getAChildExpr+()
   }
 
   CqlClause getADescendantCqlClause() {
+    result.asTaggedTemplate() = this.getADescendantExpr() or
     result.asMethodCall() = this.getADescendantExpr() or
     result.asShortcutCall() = this.getADescendantExpr()
   }
