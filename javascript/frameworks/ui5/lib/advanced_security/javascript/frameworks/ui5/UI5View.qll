@@ -329,7 +329,7 @@ class JsView extends UI5View {
     exists(DataFlow::ObjectLiteralNode control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote", _) and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result.getBinding().getBindingTarget().asDataFlowNode() = control.getAPropertyWrite(property)
     )
@@ -339,7 +339,7 @@ class JsView extends UI5View {
     exists(DataFlow::ObjectLiteralNode control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection", _) and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result.getBinding().getBindingTarget().asDataFlowNode() = control.getAPropertyWrite(property)
     )
@@ -382,7 +382,7 @@ class JsonView extends UI5View {
     exists(JsonObject control, string type, string path, string property |
       root = control.getParent+() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote", _) and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result.getBindingTarget() = control
     )
@@ -392,7 +392,7 @@ class JsonView extends UI5View {
     exists(JsonObject control, string type, string path, string property |
       root = control.getParent+() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection", _) and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result.getBindingTarget() = control
     )
@@ -533,7 +533,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
     exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote", _) and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result.getBindingTarget() = control.getAttributeByName("data-" + property)
     )
@@ -543,7 +543,7 @@ class HtmlView extends UI5View, HTML::HtmlFile {
     exists(HTML::Element control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection", _) and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result.getBindingTarget() = control.getAttributeByName("data-" + property)
     )
@@ -659,7 +659,7 @@ class XmlView extends UI5View instanceof XmlFile {
     exists(XmlElement control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote") and
+      ApiGraphModelsExtensions::sourceModel(getASuperType(type), path, "remote", _) and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result.getBindingTarget() = control.getAttribute(property)
     )
@@ -669,7 +669,7 @@ class XmlView extends UI5View instanceof XmlFile {
     exists(XmlElement control, string type, string path, string property |
       this = control.getFile() and
       type = result.getControlTypeName() and
-      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection") and
+      ApiGraphModelsExtensions::sinkModel(getASuperType(type), path, "ui5-html-injection", _) and
       property = path.replaceAll(" ", "").regexpCapture("Member\\[([^\\]]+)\\]", 1) and
       result.getBindingTarget() = control.getAttribute(property) and
       /* If the control is an `sap.ui.core.HTML` then the control should be missing the `sanitizeContent` attribute */
