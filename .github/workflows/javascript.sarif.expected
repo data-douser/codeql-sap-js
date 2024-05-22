@@ -1,7 +1,7 @@
 {
     "all": {
-        "+": 15,
-        "-": 0
+        "+": 0,
+        "-": 15
     },
     "error": {
         "+": 0,
@@ -9,338 +9,68 @@
         "codes": {}
     },
     "warning": {
-        "+": 15,
-        "-": 0,
+        "+": 0,
+        "-": 15,
         "codes": {
             "js/ui5-xss XSS vulnerability due to [user-provided value](1).": {
-                "<": 0,
-                ">": 20,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5FormulaInjection/formula-html-control-df/webapp/view/app.view.xml",
-                        "Line": 8
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/avoid-duplicate-alerts/XssTest.js",
-                        "Line": 5
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/avoid-duplicate-alerts/XssTest.js",
-                        "Line": 12
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/avoid-duplicate-alerts/XssTest.js",
-                        "Line": 20
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-book-example/webapp/controls/Book.js",
-                        "Line": 132
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-custom-control-api1/webapp/control/xss.js",
-                        "Line": 14
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-custom-control-api2/webapp/control/xss.js",
-                        "Line": 14
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-custom-control-jquery/webapp/control/xss.js",
-                        "Line": 14
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-event-handlers/webapp/controller/app.controller.js",
-                        "Line": 27
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-event-handlers/webapp/view/app.view.xml",
-                        "Line": 9
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-event-handlers/webapp/view/app.view.xml",
-                        "Line": 17
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-html-control-df/webapp/view/app.view.xml",
-                        "Line": 8
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-html-control/webapp/view/app.view.xml",
-                        "Line": 8
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-html-external-model/webapp/view/app.view.xml",
-                        "Line": 8
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-html-view/webapp/view/app.view.html",
-                        "Line": 8
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-indirect-control/webapp/control/xssRenderer.js",
-                        "Line": 8
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-js-view/webapp/view/app.view.js",
-                        "Line": 21
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-json-view/webapp/view/app.view.json",
-                        "Line": 13
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-separate-renderer-byname/webapp/control/xssRenderer.js",
-                        "Line": 8
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-separate-renderer/webapp/control/renderer.js",
-                        "Line": 8
-                    }
-                ]
+                "<": 20,
+                ">": 0
             },
             "js/ui5-log-injection Log entry depends on a [user-provided value](1).": {
-                "<": 0,
-                ">": 6,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/avoid-duplicate-alerts/LogInjectionTest.js",
-                        "Line": 8
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/avoid-duplicate-alerts/LogInjectionTest.js",
-                        "Line": 16
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/avoid-duplicate-alerts/LogInjectionTest.js",
-                        "Line": 25
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/log-custom-control-property-sanitized/webapp/control/xss.js",
-                        "Line": 13
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/log-custom-control-sanitized/webapp/control/xss.js",
-                        "Line": 17
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/log-html-control-df/webapp/controller/app.controller.js",
-                        "Line": 17
-                    }
-                ]
+                "<": 8,
+                ">": 0
             },
             "js/cap-sql-injection This query depends on a [user-provided value](1).": {
-                "<": 0,
-                ">": 6,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/cqlinjection/cqlinjection.js",
-                        "Line": 13
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/cqlinjection/cqlinjection.js",
-                        "Line": 15
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/cqlinjection/cqlinjection.js",
-                        "Line": 18
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/cqlinjection/cqlinjection.js",
-                        "Line": 20
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/cqlinjection/cqlinjection.js",
-                        "Line": 28
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/cqlinjection/cqlinjection.js",
-                        "Line": 31
-                    }
-                ]
+                "<": 6,
+                ">": 0
             },
             "js/log-injection Log entry depends on a [user-provided value](1).": {
-                "<": 0,
-                ">": 5,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/loginjection/log-injection-single-file/loginjection.js",
-                        "Line": 26
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/avoid-duplicate-alerts/LogInjectionTest.js",
-                        "Line": 7
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/avoid-duplicate-alerts/LogInjectionTest.js",
-                        "Line": 15
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5LogInjection/avoid-duplicate-alerts/LogInjectionTest.js",
-                        "Line": 24
-                    },
-                    {
-                        "Location": "javascript/heuristic-models/tests/Sources/test.js",
-                        "Line": 5
-                    }
-                ]
+                "<": 5,
+                ">": 0
             },
             "js/cap-log-injection Log entry depends on a [user-provided value](1).": {
-                "<": 0,
-                ">": 5,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/loginjection/log-injection-single-file/loginjection.js",
-                        "Line": 11
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/loginjection/log-injection-single-file/loginjection.js",
-                        "Line": 18
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/loginjection/log-injection-single-file/loginjection.js",
-                        "Line": 25
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/loginjection/log-injection-with-service1-protocol-none/srv/service2.js",
-                        "Line": 9
-                    },
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/loginjection/log-injection-with-service2-protocol-none/srv/service2.js",
-                        "Line": 9
-                    }
-                ]
+                "<": 5,
+                ">": 0
             },
             "js/xss Cross-site scripting vulnerability due to [user-provided value](1).": {
-                "<": 0,
-                ">": 4,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/avoid-duplicate-alerts/XssTest.js",
-                        "Line": 4
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/avoid-duplicate-alerts/XssTest.js",
-                        "Line": 11
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/avoid-duplicate-alerts/XssTest.js",
-                        "Line": 19
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/avoid-duplicate-alerts/XssTest.js",
-                        "Line": 27
-                    }
-                ]
-            },
-            "js/ui5-formula-injection The content of a saved file depends on a [user-provided value](1).": {
-                "<": 0,
-                ">": 3,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5FormulaInjection/formula-custom-control-property-sanitized/webapp/control/xss.js",
-                        "Line": 17
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5FormulaInjection/formula-custom-control-sanitized/webapp/control/xss.js",
-                        "Line": 23
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5FormulaInjection/formula-html-control-df/webapp/controller/app.controller.js",
-                        "Line": 16
-                    }
-                ]
+                "<": 4,
+                ">": 0
             },
             "js/ui5-path-injection The path of a saved file depends on a [user-provided value](1).": {
-                "<": 0,
-                ">": 3,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5PathInjection/path-custom-control-property-sanitized/webapp/control/xss.js",
-                        "Line": 17
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5PathInjection/path-custom-control-sanitized/webapp/control/xss.js",
-                        "Line": 23
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5PathInjection/path-html-control-df/webapp/controller/app.controller.js",
-                        "Line": 16
-                    }
-                ]
+                "<": 3,
+                ">": 0
+            },
+            "js/ui5-formula-injection The content of a saved file depends on a [user-provided value](1).": {
+                "<": 3,
+                ">": 0
             },
             "js/ui5-clickjacking Possible clickjacking vulnerability due to missing frame options.": {
-                "<": 0,
-                ">": 2,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Clickjacking/clickjacking-default-all/index.html",
-                        "Line": 2
-                    },
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-book-example/webapp/index.html",
-                        "Line": 2
-                    }
-                ]
+                "<": 2,
+                ">": 0
             },
             "js/missing-rate-limiting This route handler performs [a database access](1), but is not rate-limited.": {
-                "<": 0,
-                ">": 1,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/cqlinjection/cqlinjection.js",
-                        "Line": 40
-                    }
-                ]
+                "<": 1,
+                ">": 0
             },
             "js/sql-injection This query string depends on a [user-provided value](1).": {
-                "<": 0,
-                ">": 1,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/cqlinjection/cqlinjection.js",
-                        "Line": 41
-                    }
-                ]
+                "<": 1,
+                ">": 0
             },
             "js/ui5-xss XSS vulnerability due to [user-provided value](1).\nXSS vulnerability due to [user-provided value](2).": {
-                "<": 0,
-                ">": 1,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Xss/xss-webc-control/webapp/view/app.view.xml",
-                        "Line": 22
-                    }
-                ]
+                "<": 1,
+                ">": 0
             },
             "js/ui5-clickjacking Possible clickjacking vulnerability due to window\\[ ... onfig\"\\] being set to `allow`.": {
-                "<": 0,
-                ">": 1,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Clickjacking/clickjacking-allow-all/index.html",
-                        "Line": 9
-                    }
-                ]
+                "<": 1,
+                ">": 0
             },
             "js/ui5-clickjacking Possible clickjacking vulnerability due to data-sap-ui-frameOptions=allow being set to `allow`.": {
-                "<": 0,
-                ">": 1,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/ui5/test/queries/UI5Clickjacking/clickjacking-allow-all/index.html",
-                        "Line": 28
-                    }
-                ]
+                "<": 1,
+                ">": 0
             },
             "js/cap-log-injection Log entry depends on a [user-provided value](1).\nLog entry depends on a [user-provided value](2).": {
-                "<": 0,
-                ">": 1,
-                "+@": [
-                    {
-                        "Location": "javascript/frameworks/cap/test/queries/loginjection/log-injection-without-protocol-none/srv/service2.js",
-                        "Line": 9
-                    }
-                ]
+                "<": 1,
+                ">": 0
             }
         }
     },
