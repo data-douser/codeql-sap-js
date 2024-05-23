@@ -60,7 +60,7 @@ private class BindingStringReader extends TBindingString {
     )
   }
 
-  Location getLocation() {
+  DbLocation getLocation() {
     exists(StringLiteral stringLiteral |
       this = TBindingStringFromLiteral(stringLiteral) and
       result = stringLiteral.getLocation()
@@ -221,10 +221,10 @@ private predicate earlyPropertyBinding(
   or
   // Composite binding https://ui5.sap.com/#/topic/a2fe8e763014477e87990ff50657a0d0
   exists(
-    DataFlow::ObjectLiteralNode objectLiteral,
-    DataFlow::ObjectLiteralNode valueLiteral, DataFlow::PropWrite partWrite,
-    DataFlow::ArrayLiteralNode partsArray, DataFlow::ObjectLiteralNode partsElement,
-    DataFlow::PropWrite pathWrite, DataFlow::ValueNode pathValue
+    DataFlow::ObjectLiteralNode objectLiteral, DataFlow::ObjectLiteralNode valueLiteral,
+    DataFlow::PropWrite partWrite, DataFlow::ArrayLiteralNode partsArray,
+    DataFlow::ObjectLiteralNode partsElement, DataFlow::PropWrite pathWrite,
+    DataFlow::ValueNode pathValue
   |
     objectLiteral.getAPropertyWrite() = bindingTarget and
     bindingTarget.writes(_, "value", binding) and
