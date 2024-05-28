@@ -69,3 +69,4 @@ tmp/
 .cache/
 **.testproj
 dbs
+*.cds.json
