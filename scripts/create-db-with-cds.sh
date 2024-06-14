@@ -32,7 +32,7 @@ for dir in *; do
     ./compile-all-cds-in-directory.sh
 
     # Create CodeQL database
-    codeql database create $FOLDER_NAME --language=javascript --overwrite
+    codeql database create ${FOLDER_NAME}-db --language=javascript --overwrite
 
     # Change back to the test directory
     cd $TEST_DIR
