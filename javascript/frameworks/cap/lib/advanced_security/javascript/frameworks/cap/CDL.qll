@@ -73,6 +73,18 @@ class CdlEntity extends CdlElement {
   CdlAttribute getAttribute(string attributeName) {
     result = this.getPropValue("elements").getPropValue(attributeName)
   }
+
+  RestrictAnnotation getRestrictAnnotation() { result = this.getAnnotation("restrict") }
+
+  predicate isRestrictedOnlyToSomeRole(string eventName) {
+    exists(RestrictCondition restrictCondition |
+      restrictCondition = this.getRestrictAnnotation().getARestrictCondition() and
+      exists(restrictCondition.getToClause())
+    |
+      restrictCondition.grants(eventName) and
+      restrictCondition.getToClause() != "any"
+    )
+  }
 }
 
 class CdlEvent extends CdlElement {
@@ -117,6 +129,8 @@ class CdlAction extends CdlElement {
   }
 }
 
+// /* TODO */
+// class CdlFunction extends CdlElement {}
 class CdlAttribute extends JsonObject {
   string name;
 
@@ -129,7 +143,7 @@ class CdlAttribute extends JsonObject {
   int getLength() { result = this.getPropValue("length").(JsonPrimitiveValue).getIntValue() }
 }
 
-abstract class CdlAnnotation extends JsonValue {
+class CdlAnnotation extends JsonValue {
   string annotationName;
   CdlElement element;
 
@@ -150,7 +164,10 @@ abstract class CdlAnnotation extends JsonValue {
 }
 
 class ProtocolAnnotation extends CdlAnnotation {
-  ProtocolAnnotation() { this = element.(CdlService).getPropValue("@protocol") }
+  ProtocolAnnotation() {
+    // this = element.(CdlService).getPropValue("@protocol")
+    this.getQualifiedElement() instanceof CdlService and this.getName() = "protocol"
+  }
 
   string getAnExposedProtocol() {
     /* e.g. @protocol: 'odata' */
@@ -166,4 +183,40 @@ class ProtocolAnnotation extends CdlAnnotation {
 
 class CdsFile extends File {
   CdsFile() { exists(CdlElement element | this = element.getJsonFile()) }
+}
+
+class RestrictAnnotation extends CdlAnnotation, JsonArray {
+  RestrictAnnotation() {
+    this.getQualifiedElement() instanceof CdlEntity and
+    this.getName() = "restrict"
+  }
+
+  RestrictCondition getARestrictCondition() { result = this.getElementValue(_) }
+}
+
+class RestrictCondition extends JsonObject {
+  RestrictCondition() { exists(RestrictAnnotation restrict | this = restrict.getElementValue(_)) }
+
+  predicate grants(string eventName) {
+    exists(JsonValue grantClause | grantClause = this.getGrantClause() |
+      grantClause.(JsonString).getValue() = eventName or
+      grantClause.(JsonArray).getElementValue(_).(JsonString).getValue() = eventName
+    )
+  }
+
+  predicate grantsToAnyone(string eventName) {
+    this.grants(eventName) and
+    (
+      this.getToClause() = "any" or
+      not exists(this.getToClause())
+    )
+  }
+
+  JsonValue getGrantClause() { result = this.getPropValue("grant") }
+
+  string getToClause() { result = this.getPropStringValue("to") }
+
+  string getWhereClause() { result = this.getPropStringValue("where") }
+
+  string getWhereClauseParsed() { result = this.getPropStringValue("_where") }
 }
