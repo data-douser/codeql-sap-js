@@ -472,3 +472,46 @@ class CustomPrivilegedUser extends ClassNode {
     )
   }
 }
+
+class CdsTransaction extends MethodCallNode {
+  CdsTransaction() {
+    this.getReceiver() instanceof ServiceInstance and
+    this.getMethodName() = "tx"
+  }
+
+  DataFlow::Node getContextObject() {
+    result = this.getAnArgument().getALocalSource() and not result instanceof FunctionNode
+    or
+    exists(Stmt stmt, CdsFacade cds |
+      stmt = this.asExpr().getFirstControlFlowNode().getAPredecessor+() and
+      result = cds.getMember("context").asSink() and
+      stmt.getAChildExpr().(Assignment).getRhs().flow() = result
+    )
+  }
+
+  MethodCallNode getATransactionCall() {
+    exists(ControlFlowNode exprOrStmt |
+      exprOrStmt =
+        this.getAnArgument().(FunctionNode).getALocalSource().asExpr().(Function).getABodyStmt() and
+      exprOrStmt.(Stmt).getAChildExpr().flow().(MethodCallNode).getReceiver().getALocalSource() =
+        this.getAnArgument().(FunctionNode).getParameter(_) and
+      result = exprOrStmt.(Stmt).getAChildExpr().flow()
+      or
+      exprOrStmt =
+        this.getAnArgument().(FunctionNode).getALocalSource().asExpr().(Function).getAChildExpr() and
+      exprOrStmt.(Expr).flow().(MethodCallNode).getReceiver().getALocalSource() =
+        this.getAnArgument().(FunctionNode).getParameter(_) and
+      result = exprOrStmt.(MethodCallExpr).flow()
+      or
+      exprOrStmt = this.asExpr().getFirstControlFlowNode().getASuccessor+() and
+      exprOrStmt.(Expr).flow().(MethodCallNode).getReceiver().getALocalSource() = this and
+      result = exprOrStmt.(MethodCallExpr).flow()
+    )
+  }
+
+  CqlClause getAExecutedCqlClause() {
+    exists(MethodCallNode transactionCall |
+      result.asExpr() = transactionCall.getAnArgument().asExpr()
+    )
+  }
+}
