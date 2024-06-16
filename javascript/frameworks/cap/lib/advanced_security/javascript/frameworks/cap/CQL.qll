@@ -11,10 +11,10 @@ class CqlQueryBase extends VarRef {
     exists(string name |
       this.getName() = name and
       name in ["SELECT", "INSERT", "DELETE", "UPDATE", "UPSERT"] and
-      // Made available as a global variable
+      /* Made available as a global variable */
       exists(GlobalVariable queryBase | this = queryBase.getAReference())
       or
-      // Imported from `cds.ql` */
+      /* Imported from `cds.ql` */
       exists(CdsFacade cds |
         cds.getMember("ql").getMember(name).getAValueReachableFromSource().asExpr() = this
       )
@@ -42,9 +42,6 @@ class CqlUpsertBase extends CqlQueryBase {
   CqlUpsertBase() { this.getName() = "UPSERT" }
 }
 
-/**
- * The cds-ql docs do not mention DELETE being a function acting as a shortcut to any underlying clause
- */
 abstract class CqlQueryBaseCall extends CallExpr {
   // TODO: Express "It's a global function or a local function imported from cds.ql"
 }
@@ -57,6 +54,7 @@ class CqlInsertBaseCall extends CqlQueryBaseCall {
   CqlInsertBaseCall() { this.getCalleeName() = "INSERT" }
 }
 
+/* The cds-ql docs do not mention DELETE being a function acting as a shortcut to any underlying clause. */
 class CqlUpdateBaseCall extends CqlQueryBaseCall {
   CqlUpdateBaseCall() { this.getCalleeName() = "UPDATE" }
 }
