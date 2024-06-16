@@ -91,7 +91,8 @@ Expr getRootReceiver(Expr e) {
  */
 newtype TCqlClause =
   TaggedTemplate(TaggedTemplateExpr taggedTemplateExpr) {
-    exists(CqlQueryBase base | base = getRootReceiver(taggedTemplateExpr))
+    exists(CqlQueryBase base | base = getRootReceiver(taggedTemplateExpr)) or
+    exists(CqlQueryBaseCall call | call = getRootReceiver(taggedTemplateExpr))
   } or
   MethodCall(MethodCallExpr callExpr) {
     exists(CqlQueryBase base | base = getRootReceiver(callExpr)) or
@@ -117,26 +118,17 @@ class CqlClause extends TCqlClause {
   }
 
   predicate isSelect() {
-    getRootReceiver(this.asTaggedTemplate()).(VarRef).getName() = "SELECT" or
-    getRootReceiver(this.asMethodCall()).(VarRef).getName() = "SELECT" or
-    this.asShortcutCall().getCalleeName() = "SELECT"
+    this.isFinal() and
+    this.getTypeString() = "SELECT"
   }
 
-  predicate isInsert() {
-    none() // TODO
-  }
+  predicate isInsert() { this.isFinal() and this.getTypeString() = "INSERT" }
 
-  predicate isUpdate() {
-    none() // TODO
-  }
+  predicate isUpdate() { this.isFinal() and this.getTypeString() = "UPDATE" }
 
-  predicate isUpsert() {
-    none() // TODO
-  }
+  predicate isUpsert() { this.isFinal() and this.getTypeString() = "UPSERT" }
 
-  predicate isDelete() {
-    none() // TODO
-  }
+  predicate isDelete() { this.isFinal() and this.getTypeString() = "DELETE" }
 
   predicate isRead() { this.isSelect() }
 
@@ -163,6 +155,13 @@ class CqlClause extends TCqlClause {
     result = this.asShortcutCall().toString()
   }
 
+  string getTypeString() {
+    result = getRootReceiver(this.asTaggedTemplate()).(VarRef).getName() or
+    result = getRootReceiver(this.asTaggedTemplate()).(CallExpr).getCalleeName() or
+    result = getRootReceiver(this.asMethodCall()).(VarRef).getName() or
+    result = getRootReceiver(this.asMethodCall()).(CallExpr).getCalleeName()
+  }
+
   Location getLocation() {
     result = this.asTaggedTemplate().getLocation() or
     result = this.asMethodCall().getLocation() or
@@ -182,8 +181,6 @@ class CqlClause extends TCqlClause {
     result = this.asMethodCall().getParentExpr() or
     result = this.asShortcutCall().getParentExpr()
   }
-
-  private CqlClause test() { result.asMethodCall() = this.asTaggedTemplate().getParentExpr().getParentExpr() }
 
   /**
    * Possible cases for constructing a chain of clauses:
