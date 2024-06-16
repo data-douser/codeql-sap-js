@@ -116,6 +116,32 @@ class CqlClause extends TCqlClause {
     result = this.asShortcutCall()
   }
 
+  predicate isSelect() {
+    getRootReceiver(this.asTaggedTemplate()).(VarRef).getName() = "SELECT" or
+    getRootReceiver(this.asMethodCall()).(VarRef).getName() = "SELECT" or
+    this.asShortcutCall().getCalleeName() = "SELECT"
+  }
+
+  predicate isInsert() {
+    none() // TODO
+  }
+
+  predicate isUpdate() {
+    none() // TODO
+  }
+
+  predicate isUpsert() {
+    none() // TODO
+  }
+
+  predicate isDelete() {
+    none() // TODO
+  }
+
+  predicate isRead() { this.isSelect() }
+
+  predicate isWrite() { this.isInsert() or this.isUpdate() or this.isUpsert() or this.isDelete() }
+
   Expr getArgument() {
     result = this.asTaggedTemplate().getTemplate() or
     result = this.asMethodCall().getAnArgument() or
@@ -157,6 +183,8 @@ class CqlClause extends TCqlClause {
     result = this.asShortcutCall().getParentExpr()
   }
 
+  private CqlClause test() { result.asMethodCall() = this.asTaggedTemplate().getParentExpr().getParentExpr() }
+
   /**
    * Possible cases for constructing a chain of clauses:
    *
@@ -169,7 +197,7 @@ class CqlClause extends TCqlClause {
    * ShortcutCalls cannot be added to any clause chain other than the first position
    * example - `SELECT("col1, col2").INSERT(col2)` is not valid
    */
-  CqlClause getCqlParentExpr() {
+  CqlClause getParentCqlClause() {
     /* ========== The parent is a shortcut call ========== */
     result.asShortcutCall() = this.asTaggedTemplate().getParentExpr().getParentExpr() or
     result.asShortcutCall() = this.asMethodCall().getParentExpr().getParentExpr() or
@@ -204,7 +232,7 @@ class CqlClause extends TCqlClause {
   }
 
   /**
-   * the same chain order logic as `getCqlParentExpr` but reversed
+   * the same chain order logic as `getParentCqlClause` but reversed
    */
   CqlClause getAChildCqlClause() {
     /* ========== The parent is a shortcut call ========== */
@@ -232,6 +260,8 @@ class CqlClause extends TCqlClause {
     result.asMethodCall() = this.getADescendantExpr() or
     result.asShortcutCall() = this.getADescendantExpr()
   }
+
+  predicate isFinal() { not exists(this.getParentCqlClause()) }
 
   /**
    * Matches the given `CqlClause` to its method/property name, nested at arbitrary depth.
