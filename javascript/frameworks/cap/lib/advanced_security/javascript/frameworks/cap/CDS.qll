@@ -509,9 +509,7 @@ class CdsTransaction extends MethodCallNode {
     )
   }
 
-  CqlClause getAExecutedCqlClause() {
-    exists(MethodCallNode transactionCall |
-      result.asExpr() = transactionCall.getAnArgument().asExpr()
-    )
+  CqlClause getAnExecutedCqlClause() {
+    result.asExpr() = this.getATransactionCall().getAnArgument().asExpr()
   }
 }
