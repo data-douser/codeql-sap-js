@@ -8,7 +8,7 @@
     "@example/sample": "*"
   },
   "scripts": {
-    "start": "cds-serve",
+    "start": "cds serve",
     "watch": "cds watch"
   },
   "cds": {

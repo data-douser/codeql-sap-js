@@ -8,7 +8,7 @@ class Service1 extends cds.ApplicationService {
      */
     this.on("send1", async (req) => {
       return this.tx(
-        { user: new cds.user.Privileged("privileged-user-1") },
+        { user: new cds.User.Privileged("privileged-user-1") },
         (tx) =>
           tx.run(
             SELECT.from`Service1Entity1` // Declared in service1.cds
@@ -23,7 +23,7 @@ class Service1 extends cds.ApplicationService {
      */
     this.on("send2", async (req) => {
       return this.tx(
-        { user: new cds.user.Privileged("privileged-user-2") },
+        { user: new cds.User.Privileged("privileged-user-2") },
         (tx) =>
           tx.run(
             SELECT.from`Service1Entity2` // Declared in service1.cds
@@ -38,7 +38,7 @@ class Service1 extends cds.ApplicationService {
      */
     this.on("send3", async (req) => {
       return this.tx(
-        { user: new cds.user.Privileged("privileged-user-3") },
+        { user: new cds.User.Privileged("privileged-user-3") },
         (tx) =>
           tx.run(
             SELECT.from`Service2Entity1` // Declared in service2.cds
@@ -53,7 +53,7 @@ class Service1 extends cds.ApplicationService {
      */
     this.on("send4", async (req) => {
       return this.tx(
-        { user: new cds.user.Privileged("privileged-user-4") },
+        { user: new cds.User.Privileged("privileged-user-4") },
         (tx) =>
           tx.run(
             SELECT.from`Service2Entity2` // Declared in service2.cds
@@ -68,7 +68,7 @@ class Service1 extends cds.ApplicationService {
      */
     this.on("send5", async (req) => {
       return this.tx(
-        { user: new cds.user.Privileged("privileged-user-5") },
+        { user: new cds.User.Privileged("privileged-user-5") },
         (tx) =>
           tx.run(
             SELECT.from`RemoteEntity` // Assume that it's declared in @example/sample
