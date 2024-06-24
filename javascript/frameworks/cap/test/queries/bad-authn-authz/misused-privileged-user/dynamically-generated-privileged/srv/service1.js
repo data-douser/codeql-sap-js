@@ -3,7 +3,7 @@ const cds = require("@sap/cds");
 class Service1 extends cds.ApplicationService {
   init() {
     /*
-     * Service1 accessing its own entity that does not
+     * FP: Service1 accessing its own entity that does not
      * require authorization, with a privileged user.
      */
     this.on("send1", async (req) => {
@@ -18,7 +18,7 @@ class Service1 extends cds.ApplicationService {
     });
 
     /*
-     * Service1 accessing its own entity that requires
+     * Error: Service1 accessing its own entity that requires
      * authorization, with a privileged user.
      */
     this.on("send2", async (req) => {
@@ -33,7 +33,7 @@ class Service1 extends cds.ApplicationService {
     });
 
     /*
-     * Service1 accessing a local service's entity that does not
+     * FP: Service1 accessing a local service's entity that does not
      * require authorization, with a privileged user.
      */
     this.on("send3", async (req) => {
@@ -48,7 +48,7 @@ class Service1 extends cds.ApplicationService {
     });
 
     /*
-     * Service1 accessing a local service's entity that
+     * Error: Service1 accessing a local service's entity that
      * requires authorization, with a privileged user.
      */
     this.on("send4", async (req) => {
@@ -63,7 +63,7 @@ class Service1 extends cds.ApplicationService {
     });
 
     /*
-     * Service1 accessing a remote service's entity whose
+     * Warning: Service1 accessing a remote service's entity whose
      * authorization requirements are unknown.
      */
     this.on("send5", async (req) => {
