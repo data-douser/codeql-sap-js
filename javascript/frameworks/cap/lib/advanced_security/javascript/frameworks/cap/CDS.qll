@@ -513,3 +513,23 @@ class CdsTransaction extends MethodCallNode {
     result.asExpr() = this.getATransactionCall().getAnArgument().asExpr()
   }
 }
+abstract class CdsReference extends DataFlow::Node { }
+
+class ServiceReference extends CdsReference {
+  CdsConnectToCall cdsConnectToCall;
+
+  ServiceReference() {
+    exists(AwaitExpr await |
+      await.getOperand() = cdsConnectToCall.getACall().asExpr() and
+      this = await.flow()
+    )
+  }
+
+  /**
+   * Gets the identifier by which this service is looked up, if it can be determined statically.
+   */
+  string getServiceIdentifier() {
+    result = cdsConnectToCall.getACall().getArgument(0).getALocalSource().asExpr().getStringValue()
+  }
+}
+
