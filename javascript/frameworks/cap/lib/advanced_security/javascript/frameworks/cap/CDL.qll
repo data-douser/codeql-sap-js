@@ -208,6 +208,7 @@ class RestrictCondition extends JsonObject {
     this.grants(eventName) and
     (
       this.getToClause() = "any" or
+      /* The default value is `"any"`. */
       not exists(this.getToClause())
     )
   }
