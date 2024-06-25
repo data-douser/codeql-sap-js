@@ -184,13 +184,15 @@ class CqlClause extends TCqlClause {
    * Possible cases for constructing a chain of clauses:
    *
    * (looking at the terminal clause and its possible parent types as tuples: (this, parent))
-   * 1) MethodCall.MethodCall
+   * 1. MethodCall.MethodCall
    *     - example `(SELECT.from(Table),  SELECT.from(Table).where("col1='*'"))`
-   * 2) ShortcutCall.MethodCall
+   * 2. ShortcutCall.MethodCall
    *     - example `(SELECT("col1, col2"), SELECT("col1, col2").from("Table"))`
    *
-   * ShortcutCalls cannot be added to any clause chain other than the first position
-   * example - `SELECT("col1, col2").INSERT(col2)` is not valid
+   * Note that ShortcutCalls cannot be added to any clause chain other than the first position, e.g.
+   * ``` javascript
+   * SELECT("col1, col2").INSERT(col2)  // Invalid!
+   * ```
    */
   CqlClause getParentCqlClause() {
     /* ========== The parent is a shortcut call ========== */
