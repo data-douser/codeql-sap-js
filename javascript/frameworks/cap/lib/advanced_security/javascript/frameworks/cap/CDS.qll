@@ -18,30 +18,23 @@ class CdsFacade extends API::Node {
 /**
  * A call to `serve` on a CDS facade.
  */
-class CdsServeCall extends API::Node {
-  CdsServeCall() { exists(CdsFacade cds | this = cds.getMember("serve")) }
+class CdsServeCall extends DataFlow::CallNode {
+  CdsServeCall() { exists(CdsFacade cds | this = cds.getMember("serve").getACall()) }
 }
 
 /**
  * A `cds.connect.to(serveName)` call to connect to a local or remote service.
  */
-class CdsConnectToCall extends API::Node {
-  CdsConnectToCall() { exists(CdsFacade cds | this = cds.getMember("connect").getMember("to")) }
-
-  /**
-   * Gets a variable definition using either `cds.connect.to(...)` or awaiting that at its RHS.
-   */
-  VarDef getVarDefUsingCdsConnect() {
-    result.getSource() = this.getACall().asExpr()
-    or
-    result.getSource().(AwaitExpr).getOperand() = this.getACall().asExpr()
+class CdsConnectToCall extends DataFlow::CallNode {
+  CdsConnectToCall() {
+    exists(CdsFacade cds | this = cds.getMember("connect").getMember("to").getACall())
   }
 
   /**
    * Gets the service name that this call connects to.
    */
   string getServiceName() {
-    result = this.getACall().getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
   }
 }
 
@@ -64,7 +57,7 @@ abstract class ServiceInstance extends DataFlow::Node {
  * ```
  */
 class ServiceInstanceFromCdsServe extends ServiceInstance {
-  ServiceInstanceFromCdsServe() { exists(CdsFacade cds | this = cds.getMember("serve").getACall()) }
+  ServiceInstanceFromCdsServe() { exists(CdsServeCall cdsServe | this = cdsServe) }
 
   override UserDefinedApplicationService getDefinition() {
     none() // TODO: how should we deal with serve("all")?
@@ -75,7 +68,26 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
   }
 }
 
-/* TODO: change `ServiceInstanceFromCdsConnectTo` to an VarAccess to the VarDef whose getSource() is CdsConnectToCall or an AwaitExpr wrapping it */
+private SourceNode serviceInstanceFromCdsConnectTo(TypeTracker t, string serviceName) {
+  t.start() and
+  exists(CdsConnectToCall cdsConnectToCall |
+    (
+      result = cdsConnectToCall
+      or
+      exists(AwaitExpr await |
+        await.getOperand() = cdsConnectToCall.asExpr() and result = await.flow()
+      )
+    ) and
+    serviceName = cdsConnectToCall.getArgument(0).asExpr().getStringValue()
+  )
+  or
+  exists(TypeTracker t2 | result = serviceInstanceFromCdsConnectTo(t2, serviceName).track(t2, t))
+}
+
+private SourceNode serviceInstanceFromCdsConnectTo(string serviceName) {
+  result = serviceInstanceFromCdsConnectTo(TypeTracker::end(), serviceName)
+}
+
 /**
  * A service instance obtained by the service's name, via connecting
  * to a service already being served and awaiting its promise. e.g.
@@ -85,18 +97,10 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
  * const Service1 = cds.connect.to("service-2");
  * ```
  */
-class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
+class ServiceInstanceFromCdsConnectTo extends ServiceInstance, SourceNode {
   string serviceName;
 
-  ServiceInstanceFromCdsConnectTo() {
-    exists(CdsConnectToCall cdsConnectTo |
-      (
-        this = cdsConnectTo.getACall() or
-        this = cdsConnectTo.getVarDefUsingCdsConnect().getAVariable().getAnAccess().flow()
-      ) and
-      serviceName = cdsConnectTo.getServiceName()
-    )
-  }
+  ServiceInstanceFromCdsConnectTo() { this = serviceInstanceFromCdsConnectTo(serviceName) }
 
   override UserDefinedApplicationService getDefinition() {
     exists(RequiredService serviceDecl, string abspath |
@@ -111,7 +115,7 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
   /**
    * Gets a method call on this service instance.
    */
-  override MethodCallNode getASrvMethodCall() { result.getReceiver() = this }
+  override MethodCallNode getASrvMethodCall() { result = this.getAMemberCall(_) }
 }
 
 /**
@@ -173,7 +177,7 @@ class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstan
   ServiceInstanceFromServeWithParameter() {
     exists(MethodCallNode withCall, CdsServeCall cdsServe |
       withCall.getMethodName() = "with" and
-      withCall.getReceiver() = cdsServe.getACall() and
+      withCall.getReceiver() = cdsServe and
       this = withCall.getArgument(0).(FunctionNode).getParameter(0)
     )
   }
@@ -513,23 +517,12 @@ class CdsTransaction extends MethodCallNode {
     result.asExpr() = this.getATransactionCall().getAnArgument().asExpr()
   }
 }
+
 abstract class CdsReference extends DataFlow::Node { }
 
-class ServiceReference extends CdsReference {
-  CdsConnectToCall cdsConnectToCall;
-
-  ServiceReference() {
-    exists(AwaitExpr await |
-      await.getOperand() = cdsConnectToCall.getACall().asExpr() and
-      this = await.flow()
-    )
-  }
-
-  /**
-   * Gets the identifier by which this service is looked up, if it can be determined statically.
-   */
-  string getServiceIdentifier() {
-    result = cdsConnectToCall.getACall().getArgument(0).getALocalSource().asExpr().getStringValue()
-  }
-}
-
+abstract class EntityReference extends CdsReference { }
+// class EntityReferenceFromDbOrCdsEntities extends CdsReference, MethodCallNode {
+//   EntityReferenceFromDbOrCdsEntities() {
+//     this.
+//   }
+// }
