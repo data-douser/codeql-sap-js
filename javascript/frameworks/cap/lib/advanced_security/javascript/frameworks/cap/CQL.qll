@@ -116,17 +116,17 @@ class CqlClause extends TCqlClause {
   }
 
   predicate isSelect() {
-    this.isFinal() and
+    /*this.isFinal() and*/
     this.getTypeString() = "SELECT"
   }
 
-  predicate isInsert() { this.isFinal() and this.getTypeString() = "INSERT" }
+  predicate isInsert() { /*this.isFinal() and*/ this.getTypeString() = "INSERT" }
 
-  predicate isUpdate() { this.isFinal() and this.getTypeString() = "UPDATE" }
+  predicate isUpdate() { /*this.isFinal() and*/ this.getTypeString() = "UPDATE" }
 
-  predicate isUpsert() { this.isFinal() and this.getTypeString() = "UPSERT" }
+  predicate isUpsert() { /*this.isFinal() and*/ this.getTypeString() = "UPSERT" }
 
-  predicate isDelete() { this.isFinal() and this.getTypeString() = "DELETE" }
+  predicate isDelete() { /*this.isFinal() and*/ this.getTypeString() = "DELETE" }
 
   predicate isRead() { this.isSelect() }
 
@@ -267,6 +267,32 @@ class CqlClause extends TCqlClause {
     result = this.asDotExpr().getPropertyName() or
     result = this.getADescendantCqlClause().getAnAPIName()
   }
+
+  abstract ExprNode getAccessingEntityReference();
+
+  abstract CdlEntity getAccessingEntityDefinition();
+}
+
+class CqlSelectClause extends CqlClause {
+  CqlSelectClause() { this.isSelect() }
+
+  private CqlSelectClause getFromClause() {
+    result = this.getADescendantCqlClause() and
+    result.asDotExpr().getPropertyName() = "from"
+  }
+
+  /**
+   * Gets the reference to the entity that this SELECT clause is accessing.
+   */
+  override ExprNode getAccessingEntityReference() {
+    result = this.getFromClause().getArgument().flow()
+  }
+
+  override CdlEntity getAccessingEntityDefinition() {
+    result.getName() =
+      this.getAccessingEntityReference().(EntityReferenceFromTemplateOrString).getStringValue() or
+    result = this.getAccessingEntityReference().(EntityReferenceFromEntities).getCqlDefinition()
+  }
 }
 
 /**
@@ -276,6 +302,14 @@ class CqlClause extends TCqlClause {
  */
 class TaintedClause extends CqlClause {
   TaintedClause() { exists(StringConcatenation::getAnOperand(this.getArgument().flow())) }
+
+  override ExprNode getAccessingEntityReference() {
+    none() // TODO
+  }
+
+  override CdlEntity getAccessingEntityDefinition() {
+    none() // TODO
+  }
 }
 
 /**

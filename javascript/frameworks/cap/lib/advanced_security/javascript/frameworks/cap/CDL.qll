@@ -3,6 +3,7 @@
  */
 
 import javascript
+import advanced_security.javascript.frameworks.cap.CDS
 
 newtype CdlKind =
   Service(string value) { value = "service" } or
@@ -50,8 +51,12 @@ class CdlService extends CdlElement {
 
   CdlEntity getEntity(string entityName) {
     entityName = result.getName() and
-    /* WARNING: Hacky! */
-    entityName.splitAt(".", 0) = name
+    result.getFile() = this.getFile()
+  }
+
+  UserDefinedApplicationService getImplementation() {
+    this.getFile().getStem() = result.getFile().getStem() + ".cds" and
+    this.getFile().getParentContainer() = this.getFile().getParentContainer()
   }
 }
 
@@ -165,7 +170,6 @@ class CdlAnnotation extends JsonValue {
 
 class ProtocolAnnotation extends CdlAnnotation {
   ProtocolAnnotation() {
-    // this = element.(CdlService).getPropValue("@protocol")
     this.getQualifiedElement() instanceof CdlService and this.getName() = "protocol"
   }
 
@@ -207,7 +211,8 @@ class RestrictCondition extends JsonObject {
   predicate grantsToAnyone(string eventName) {
     this.grants(eventName) and
     (
-      this.getToClause() = "any" or
+      this.getToClause() = "any"
+      or
       /* The default value is `"any"`. */
       not exists(this.getToClause())
     )

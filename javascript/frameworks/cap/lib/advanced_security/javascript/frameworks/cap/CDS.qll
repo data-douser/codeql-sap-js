@@ -118,6 +118,10 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance, SourceNode {
   override MethodCallNode getASrvMethodCall() { result = this.getAMemberCall(_) }
 }
 
+class DBServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo {
+  DBServiceInstanceFromCdsConnectTo() { serviceName = "db" }
+}
+
 /**
  * A service instance obtained by directly calling the constructor
  * of its class with a `new` keyword. e.g.
@@ -358,6 +362,11 @@ abstract class UserDefinedApplicationService extends UserDefinedService {
   }
 
   /**
+   * Gets the name of this service.
+   */
+  string getServiceName() { result = this.getCdsDeclaration().getName() }
+
+  /**
    * Holds if this service supports access from the outside through any kind of protocol.
    */
   predicate isExposed() { not this.isInternal() }
@@ -521,8 +530,88 @@ class CdsTransaction extends MethodCallNode {
 abstract class CdsReference extends DataFlow::Node { }
 
 abstract class EntityReference extends CdsReference { }
-// class EntityReferenceFromDbOrCdsEntities extends CdsReference, MethodCallNode {
-//   EntityReferenceFromDbOrCdsEntities() {
-//     this.
-//   }
-// }
+
+class EntityReferenceFromEntities extends EntityReference instanceof PropRead {
+  DataFlow::SourceNode entities;
+  DataFlow::Node receiver;
+  string entityName;
+
+  EntityReferenceFromEntities() {
+    exists(MethodCallNode entitiesCall |
+      entities = entitiesCall and
+      receiver = entitiesCall.getReceiver() and
+      entitiesCall.getMethodName() = "entities" and
+      this = entitiesCall.getAPropertyRead(entityName)
+    )
+    or
+    exists(PropRead entitiesRead |
+      entities = entitiesRead and
+      receiver = entitiesRead.getBase() and
+      entitiesRead.getPropertyName() = "entities" and
+      this = entitiesRead.getAPropertyRead(entityName)
+    )
+  }
+
+  DataFlow::SourceNode getEntities() { result = entities }
+
+  DataFlow::Node getReceiver() { result = receiver }
+
+  string getEntityName() { result = entityName }
+
+  abstract CdlEntity getCqlDefinition();
+}
+
+class EntityReferenceFromUserDefinedServiceEntities extends EntityReferenceFromEntities instanceof PropRead
+{
+  ServiceInstance service;
+
+  EntityReferenceFromUserDefinedServiceEntities() {
+    this.getReceiver() = service.(ServiceInstanceFromThisNode)
+    or
+    this.getEntities() = service.(ServiceInstanceFromCdsConnectTo).getAMemberCall("entities")
+    or
+    this.getEntities() = service.(ServiceInstanceFromCdsConnectTo).getAPropertyRead("entities")
+  }
+
+  override CdlEntity getCqlDefinition() {
+    this.getEntities() instanceof PropRead and
+    result =
+      service
+          .getDefinition()
+          .getCdsDeclaration()
+          .getEntity(service.getDefinition().getServiceName() + "." + entityName)
+    or
+    result =
+      service
+          .getDefinition()
+          .getCdsDeclaration()
+          .getEntity(this.getEntities().(MethodCallNode).getArgument(0).asExpr().getStringValue() +
+              "." + entityName)
+  }
+}
+
+class EntityReferenceFromDbOrCdsEntities extends EntityReferenceFromEntities {
+  EntityReferenceFromDbOrCdsEntities() {
+    exists(DBServiceInstanceFromCdsConnectTo db |
+      entities = db.getAMemberCall("entities") or entities = db.getAPropertyRead("entities")
+    )
+    or
+    exists(CdsFacade cds |
+      entities = cds.getMember("entities").getACall() or
+      entities = cds.getMember("entities").asSource()
+    )
+  }
+
+  override CdlEntity getCqlDefinition() {
+    /* NOTE: the result may be multiple; but they are all identical so we don't really care. */
+    result.getName() =
+      this.getEntities().(MethodCallNode).getArgument(0).asExpr().getStringValue() + "." +
+        entityName
+  }
+}
+
+class EntityReferenceFromTemplateOrString extends EntityReference, ExprNode {
+  EntityReferenceFromTemplateOrString() {
+    exists(CqlClause cql | this = cql.getAccessingEntityReference())
+  }
+}
