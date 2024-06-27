@@ -268,30 +268,67 @@ class CqlClause extends TCqlClause {
     result = this.getADescendantCqlClause().getAnAPIName()
   }
 
-  abstract ExprNode getAccessingEntityReference();
+  abstract CqlClause getEntityAccessingClause();
 
-  abstract CdlEntity getAccessingEntityDefinition();
+  /**
+   * Gets the reference to the entity that this SELECT clause is accessing.
+   */
+  ExprNode getAccessingEntityReference() {
+    result = this.getEntityAccessingClause().getArgument().flow()
+  }
+
+  CdlEntity getAccessingEntityDefinition() {
+    result.getName() =
+      this.getAccessingEntityReference().(EntityReferenceFromTemplateOrString).getStringValue() or
+    result = this.getAccessingEntityReference().(EntityReferenceFromEntities).getCqlDefinition()
+  }
 }
 
 class CqlSelectClause extends CqlClause {
   CqlSelectClause() { this.isSelect() }
 
-  private CqlSelectClause getFromClause() {
+  override CqlSelectClause getEntityAccessingClause() {
     result = this.getADescendantCqlClause() and
     result.asDotExpr().getPropertyName() = "from"
   }
+}
 
-  /**
-   * Gets the reference to the entity that this SELECT clause is accessing.
-   */
-  override ExprNode getAccessingEntityReference() {
-    result = this.getFromClause().getArgument().flow()
+class CqlInsertClause extends CqlClause {
+  CqlInsertClause() { this.isInsert() }
+
+  override CqlInsertClause getEntityAccessingClause() {
+    result = this.getADescendantCqlClause() and
+    result.asDotExpr().getPropertyName() = "into"
   }
+}
 
-  override CdlEntity getAccessingEntityDefinition() {
-    result.getName() =
-      this.getAccessingEntityReference().(EntityReferenceFromTemplateOrString).getStringValue() or
-    result = this.getAccessingEntityReference().(EntityReferenceFromEntities).getCqlDefinition()
+class CqlUpdateClause extends CqlClause {
+  CqlUpdateClause() { this.isUpdate() }
+
+  override CqlUpdateClause getEntityAccessingClause() {
+    result = this.getADescendantCqlClause() and
+    (
+      result.asDotExpr().getPropertyName() = "entity" or
+      exists(result.asShortcutCall())
+    )
+  }
+}
+
+class CqlUpsertClause extends CqlClause {
+  CqlUpsertClause() { this.isUpsert() }
+
+  override CqlUpsertClause getEntityAccessingClause() {
+    result = this.getADescendantCqlClause() and
+    result.asDotExpr().getPropertyName() = "into"
+  }
+}
+
+class CqlDeleteClause extends CqlClause {
+  CqlDeleteClause() { this.isDelete() }
+
+  override CqlDeleteClause getEntityAccessingClause() {
+    result = this.getADescendantCqlClause() and
+    result.asDotExpr().getPropertyName() = "from"
   }
 }
 
@@ -303,11 +340,7 @@ class CqlSelectClause extends CqlClause {
 class TaintedClause extends CqlClause {
   TaintedClause() { exists(StringConcatenation::getAnOperand(this.getArgument().flow())) }
 
-  override ExprNode getAccessingEntityReference() {
-    none() // TODO
-  }
-
-  override CdlEntity getAccessingEntityDefinition() {
+  override CqlClause getEntityAccessingClause() {
     none() // TODO
   }
 }
