@@ -34,7 +34,7 @@ class CdsConnectToCall extends DataFlow::CallNode {
    * Gets the service name that this call connects to.
    */
   string getServiceName() {
-    result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    result = this.getArgument(0).getALocalSource().asExpr().getStringValue()
   }
 }
 
@@ -150,7 +150,7 @@ class ServiceInstanceFromConstructor extends ServiceInstance {
 }
 
 /**
- * A service instance that represents an w
+ * A read to `this` variable which represents the service whose definition encloses this variable access.
  */
 class ServiceInstanceFromThisNode extends ServiceInstance {
   ServiceInstanceFromThisNode() {
@@ -227,14 +227,14 @@ class HandlerRegistration extends MethodCallNode {
     or
     exists(ArrayLiteralNode arrayLiteral |
       arrayLiteral = this.getArgument(0) and
-      result = arrayLiteral.getAnElement().asExpr().(StringLiteral).getValue()
+      result = arrayLiteral.getAnElement().asExpr().getStringValue()
     )
   }
 
   /**
    * Get the name of the entity that the handler is registered for, if any.
    */
-  string getEntityName() { result = this.getArgument(1).asExpr().(StringLiteral).getValue() }
+  string getEntityName() { result = this.getArgument(1).asExpr().getStringValue() }
 
   /**
    * Gets the handler that is being registrated to an event by this registering function call.
@@ -255,7 +255,7 @@ class Handler extends FunctionNode {
   Handler() {
     exists(HandlerRegistration handlerRegistration |
       this = handlerRegistration.getAnArgument() and
-      eventName = handlerRegistration.getArgument(0).asExpr().(StringLiteral).getValue()
+      eventName = handlerRegistration.getArgument(0).asExpr().getStringValue()
     )
   }
 
@@ -446,7 +446,7 @@ class SrvEmit extends InterServiceCommunicationMethodCall {
   ServiceInstance getEmitter() { result = emittingService }
 
   string getEmittedEvent() {
-    result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+    result = this.getArgument(0).getALocalSource().asExpr().getStringValue()
   }
 }
 
