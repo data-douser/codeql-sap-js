@@ -33,9 +33,7 @@ class CdsConnectToCall extends DataFlow::CallNode {
   /**
    * Gets the service name that this call connects to.
    */
-  string getServiceName() {
-    result = this.getArgument(0).getALocalSource().getStringValue()
-  }
+  string getServiceName() { result = this.getArgument(0).getALocalSource().getStringValue() }
 }
 
 /**
@@ -74,9 +72,7 @@ private SourceNode serviceInstanceFromCdsConnectTo(TypeTracker t, string service
     (
       result = cdsConnectToCall
       or
-      exists(AwaitExpr await |
-        await.getOperand() = cdsConnectToCall.asExpr() and result = await.flow()
-      )
+      result.asExpr().(AwaitExpr).getOperand() = cdsConnectToCall.asExpr()
     ) and
     serviceName = cdsConnectToCall.getArgument(0).getStringValue()
   )
@@ -439,9 +435,7 @@ class SrvEmit extends InterServiceCommunicationMethodCall {
 
   ServiceInstance getEmitter() { result = emittingService }
 
-  string getEmittedEvent() {
-    result = this.getArgument(0).getALocalSource().getStringValue()
-  }
+  string getEmittedEvent() { result = this.getArgument(0).getALocalSource().getStringValue() }
 }
 
 class SrvSend extends InterServiceCommunicationMethodCall {
@@ -579,8 +573,8 @@ class EntityReferenceFromUserDefinedServiceEntities extends EntityReferenceFromE
       service
           .getDefinition()
           .getCdsDeclaration()
-          .getEntity(this.getEntities().(MethodCallNode).getArgument(0).getStringValue() +
-              "." + entityName)
+          .getEntity(this.getEntities().(MethodCallNode).getArgument(0).getStringValue() + "." +
+              entityName)
   }
 }
 
@@ -599,8 +593,7 @@ class EntityReferenceFromDbOrCdsEntities extends EntityReferenceFromEntities {
   override CdlEntity getCqlDefinition() {
     /* NOTE: the result may be multiple; but they are all identical so we don't really care. */
     result.getName() =
-      this.getEntities().(MethodCallNode).getArgument(0).getStringValue() + "." +
-        entityName
+      this.getEntities().(MethodCallNode).getArgument(0).getStringValue() + "." + entityName
   }
 }
 
