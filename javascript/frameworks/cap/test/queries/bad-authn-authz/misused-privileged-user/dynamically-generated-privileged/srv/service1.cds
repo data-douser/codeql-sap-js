@@ -28,4 +28,9 @@ service Service1 @(path: '/service-1') {
   action send4 (
     messageToPass : String
   ) returns String;
+
+  /* API to talk to Service1. */
+  action send5 (
+    messageToPass : String
+  ) returns String;
 }

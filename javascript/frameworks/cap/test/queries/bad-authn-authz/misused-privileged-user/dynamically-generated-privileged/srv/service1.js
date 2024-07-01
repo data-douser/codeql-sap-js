@@ -2,6 +2,13 @@ const cds = require("@sap/cds");
 
 class Service1 extends cds.ApplicationService {
   init() {
+    // const Service2 = await cds.connect.to("service-2");
+    // const { Service2Entity1, Service2Entity2 } = Service2.entities;
+
+    this.on("READ", "Service1Entity1", async (req) => {
+      console.log(req.data.messageToPass);
+    });
+
     /*
      * FP: Service1 accessing its own entity that does not
      * require authorization, with a privileged user.
@@ -11,9 +18,9 @@ class Service1 extends cds.ApplicationService {
         { user: new cds.User.Privileged("privileged-user-1") },
         (tx) =>
           tx.run(
-            SELECT.from`Service1Entity1` // Declared in service1.cds
-              .where`Attribute1=${req.data.messageToPass}`,
-          ),
+            SELECT.from`Service1.Service1Entity1` // Declared in service1.cds
+              .where`Attribute1=${req.data.messageToPass}`
+          )
       );
     });
 
@@ -26,9 +33,9 @@ class Service1 extends cds.ApplicationService {
         { user: new cds.User.Privileged("privileged-user-2") },
         (tx) =>
           tx.run(
-            SELECT.from`Service1Entity2` // Declared in service1.cds
-              .where`Attribute2=${req.data.messageToPass}`,
-          ),
+            SELECT.from`Service1.Service1Entity2` // Declared in service1.cds
+              .where`Attribute2=${req.data.messageToPass}`
+          )
       );
     });
 
@@ -41,9 +48,9 @@ class Service1 extends cds.ApplicationService {
         { user: new cds.User.Privileged("privileged-user-3") },
         (tx) =>
           tx.run(
-            SELECT.from`Service2Entity1` // Declared in service2.cds
-              .where`Attribute3=${req.data.messageToPass}`,
-          ),
+            SELECT.from(Service2Entity1) // Declared in service2.cds
+              .where`Attribute3=${req.data.messageToPass}`
+          )
       );
     });
 
@@ -52,13 +59,16 @@ class Service1 extends cds.ApplicationService {
      * requires authorization, with a privileged user.
      */
     this.on("send4", async (req) => {
+      const Service2 = await cds.connect.to("service-2");
+      const { Service2Entity1 } = Service2.entities; // Service2Entity1 is undefined!
+      console.log(Service2Entity1);
       return this.tx(
         { user: new cds.User.Privileged("privileged-user-4") },
         (tx) =>
           tx.run(
-            SELECT.from`Service2Entity2` // Declared in service2.cds
-              .where`Attribute4=${req.data.messageToPass}`,
-          ),
+            SELECT.from(Service2Entity1) // Declared in service2.cds
+              .where`Attribute4=${req.data.messageToPass}`
+          )
       );
     });
 
@@ -72,8 +82,8 @@ class Service1 extends cds.ApplicationService {
         (tx) =>
           tx.run(
             SELECT.from`RemoteEntity` // Assume that it's declared in @example/sample
-              .where`SomeAttribute=${req.data.messageToPass}`,
-          ),
+              .where`SomeAttribute=${req.data.messageToPass}`
+          )
       );
     });
   }

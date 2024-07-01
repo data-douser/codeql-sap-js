@@ -2,10 +2,9 @@
   "name": "@advanced-security/dynamically-generated-privileged",
   "version": "1.0.0",
   "dependencies": {
-    "@sap/cds": "^7",
+    "@sap/cds": "*",
     "express": "^4.17.1",
-    "@cap-js/sqlite": "*",
-    "@example/sample": "*"
+    "@cap-js/sqlite": "*"
   },
   "scripts": {
     "start": "cds serve",
