@@ -34,7 +34,7 @@ class CdsConnectToCall extends DataFlow::CallNode {
    * Gets the service name that this call connects to.
    */
   string getServiceName() {
-    result = this.getArgument(0).getALocalSource().asExpr().getStringValue()
+    result = this.getArgument(0).getALocalSource().getStringValue()
   }
 }
 
@@ -78,7 +78,7 @@ private SourceNode serviceInstanceFromCdsConnectTo(TypeTracker t, string service
         await.getOperand() = cdsConnectToCall.asExpr() and result = await.flow()
       )
     ) and
-    serviceName = cdsConnectToCall.getArgument(0).asExpr().getStringValue()
+    serviceName = cdsConnectToCall.getArgument(0).getStringValue()
   )
   or
   exists(TypeTracker t2 | result = serviceInstanceFromCdsConnectTo(t2, serviceName).track(t2, t))
@@ -220,21 +220,15 @@ class HandlerRegistration extends MethodCallNode {
    * Get the name of the event that the handler is registered for.
    */
   string getAnEventName() {
-    exists(StringLiteral stringLiteral |
-      stringLiteral = this.getArgument(0).asExpr() and
-      result = stringLiteral.getValue()
-    )
+    result = this.getArgument(0).getStringValue()
     or
-    exists(ArrayLiteralNode arrayLiteral |
-      arrayLiteral = this.getArgument(0) and
-      result = arrayLiteral.getAnElement().asExpr().getStringValue()
-    )
+    result = this.getArgument(0).(ArrayLiteralNode).getAnElement().getStringValue()
   }
 
   /**
    * Get the name of the entity that the handler is registered for, if any.
    */
-  string getEntityName() { result = this.getArgument(1).asExpr().getStringValue() }
+  string getEntityName() { result = this.getArgument(1).getStringValue() }
 
   /**
    * Gets the handler that is being registrated to an event by this registering function call.
@@ -255,7 +249,7 @@ class Handler extends FunctionNode {
   Handler() {
     exists(HandlerRegistration handlerRegistration |
       this = handlerRegistration.getAnArgument() and
-      eventName = handlerRegistration.getArgument(0).asExpr().getStringValue()
+      eventName = handlerRegistration.getArgument(0).getStringValue()
     )
   }
 
@@ -446,7 +440,7 @@ class SrvEmit extends InterServiceCommunicationMethodCall {
   ServiceInstance getEmitter() { result = emittingService }
 
   string getEmittedEvent() {
-    result = this.getArgument(0).getALocalSource().asExpr().getStringValue()
+    result = this.getArgument(0).getALocalSource().getStringValue()
   }
 }
 
@@ -585,7 +579,7 @@ class EntityReferenceFromUserDefinedServiceEntities extends EntityReferenceFromE
       service
           .getDefinition()
           .getCdsDeclaration()
-          .getEntity(this.getEntities().(MethodCallNode).getArgument(0).asExpr().getStringValue() +
+          .getEntity(this.getEntities().(MethodCallNode).getArgument(0).getStringValue() +
               "." + entityName)
   }
 }
@@ -605,7 +599,7 @@ class EntityReferenceFromDbOrCdsEntities extends EntityReferenceFromEntities {
   override CdlEntity getCqlDefinition() {
     /* NOTE: the result may be multiple; but they are all identical so we don't really care. */
     result.getName() =
-      this.getEntities().(MethodCallNode).getArgument(0).asExpr().getStringValue() + "." +
+      this.getEntities().(MethodCallNode).getArgument(0).getStringValue() + "." +
         entityName
   }
 }
