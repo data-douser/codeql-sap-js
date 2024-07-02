@@ -4,10 +4,10 @@ service Service1 @(path: '/service-1', requires: [ 'authenticated-user' ]) {
   entity Service1Entity1 @(restrict: [
     { grant: 'WRITE', to: 'Role1' },
     { grant: [ 'WRITE', 'UPDATE' ], to: 'Role2', where: 'Attribute1 = $user.attr' }
-  ]) as projection on db_schema.Entity11 excluding { Attribute4 }
+  ]) as projection on db_schema.Entity11 excluding { Attribute2 }
 
   /* Not an error: Inherits the `@requires` annotation of Entity12. */
-  entity Service1Entity2 as projection on db_schema.Entity12 excluding { Attribute5 }
+  entity Service1Entity2 as projection on db_schema.Entity12 excluding { Attribute1 }
 
   action send1 @(requires: 'Role3') (
     messageToPass : String

@@ -9,10 +9,10 @@ service Service2 @(path: '/service-2', requires: [ 'authenticated-user' ]) {
   /* Not an error: Inherits the `@requires` annotation of Entity21. */
   entity Service2Entity2 as projection on db_schema.Entity22 excluding { Attribute1 }
 
-  /* API to talk to Service2. */
   actions {
-    @(requires: 'Role3')
-    action send2 ( messageToPass: String ) returns String;
+    action send2 @(requires: 'Role3') (
+      messageToPass: String 
+    ) returns String;
   }
 
   function fun2 @(restrict: [{ to: 'Role4' }]) () returns String;
