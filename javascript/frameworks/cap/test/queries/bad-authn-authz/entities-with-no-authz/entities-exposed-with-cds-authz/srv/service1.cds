@@ -9,6 +9,9 @@ service Service1 @(path: '/service-1', requires: [ 'authenticated-user' ]) {
   /* Not an error: Inherits the `@requires` annotation of Entity12. */
   entity Service1Entity2 as projection on db_schema.Entity12 excluding { Attribute1 }
 
+  /* Not an error: Inherits the `@requires` annotation of Entity12. */
+  entity Service1Entity3 as select from db_schema.Entity12;
+
   action send1 @(requires: 'Role3') (
     messageToPass : String
   ) returns String;

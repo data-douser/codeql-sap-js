@@ -73,10 +73,6 @@ abstract class CdlElement extends JsonObject {
 class CdlService extends CdlElement {
   CdlService() { kind = CdlServiceKind(this.getPropStringValue("kind")) }
 
-  override string getName() { result = name }
-
-  override CdlKind getKind() { result = kind }
-
   CdlEntity getEntity(string entityName) {
     entityName = result.getName() and
     result.getFile() = this.getFile()
@@ -91,10 +87,6 @@ class CdlService extends CdlElement {
 class CdlEntity extends CdlElement {
   CdlEntity() { kind = CdlEntityKind(this.getPropStringValue("kind")) }
 
-  override string getName() { result = name }
-
-  override CdlKind getKind() { result = kind }
-
   predicate isRestrictedOnlyToSomeRole(string eventName) {
     exists(RestrictCondition restrictCondition |
       restrictCondition = this.getRestrictAnnotation().getARestrictCondition() and
@@ -104,16 +96,35 @@ class CdlEntity extends CdlElement {
       restrictCondition.getToClause() != "any"
     )
   }
+
+  predicate isSelectFrom(CdlEntity otherEntity) {
+    otherEntity.getName() =
+      this.getPropValue("query")
+          .getPropValue("SELECT")
+          .getPropValue("from")
+          .getPropValue("ref")
+          .(JsonArray)
+          .getElementStringValue(_)
+  }
+
+  predicate isProjectionOn(CdlEntity otherEntity) {
+    otherEntity.getName() =
+      this.getPropValue("projection")
+          .getPropValue("from")
+          .getPropValue("ref")
+          .(JsonArray)
+          .getElementStringValue(_)
+  }
+
+  predicate inherits(CdlEntity otherEntity) {
+    none() // TODO
+  }
 }
 
 class CdlEvent extends CdlElement {
   CdlEvent() { kind = CdlEventKind(this.getPropStringValue("kind")) }
 
   string getBasename() { result = name.splitAt(".", count(name.indexOf("."))) }
-
-  override string getName() { result = name }
-
-  override CdlKind getKind() { result = kind }
 }
 
 class CdlAction extends CdlElement {
