@@ -6,10 +6,11 @@ import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 
 newtype CdlKind =
-  Service(string value) { value = "service" } or
-  Entity(string value) { value = "entity" } or
-  Event(string value) { value = "event" } or
-  Action(string value) { value = "action" }
+  CdlServiceKind(string value) { value = "service" } or
+  CdlEntityKind(string value) { value = "entity" } or
+  CdlEventKind(string value) { value = "event" } or
+  CdlActionKind(string value) { value = "action" } or
+  CdlFunctionKind(string value) { value = "function" }
 
 /**
  * Any CDL element, including entities, event, actions, and more.
@@ -23,27 +24,54 @@ class CdlDefinition extends JsonObject {
 }
 
 abstract class CdlElement extends JsonObject {
-  abstract string getName();
+  CdlKind kind;
+  string name;
 
-  abstract CdlKind getKind();
+  CdlElement() { exists(CdlDefinition definition | this = definition.getElement(name)) }
 
+  /**
+   * Gets the name of this CDL element.
+   */
+  string getName() { result = name }
+
+  /**
+   * Gets the kind of this CDL element.
+   */
+  CdlKind getKind() { result = kind }
+
+  /**
+   * Gets an annotation attached to this CDL element with the given name.
+   */
   CdlAnnotation getAnnotation(string annotationName) {
     this = result.getQualifiedElement() and result.getName() = annotationName
   }
 
+  /**
+   * Gets an annotation attached to this CDL element.
+   */
   CdlAnnotation getAnAnnotation() { result = this.getAnnotation(_) }
+
+  CdlAttribute getAttribute(string attributeName) {
+    result = this.getPropValue("elements").getPropValue(attributeName)
+  }
+
+  /**
+   * Gets the `@restrict` annotation attached to this CDL element, if any.
+   * Note that this excludes CDL events, as events emissions are not tied to
+   * authentication or authorization.
+   */
+  RestrictAnnotation getRestrictAnnotation() { result = this.getAnnotation("restrict") }
+
+  /**
+   * Gets the `@requires` annotation attached to this CDL element, if any.
+   * Note that this excludes CDL events, as events emissions are not tied to
+   * authentication or authorization.
+   */
+  RequiresAnnotation getRequiresAnnotation() { result = this.getAnnotation("requires") }
 }
 
 class CdlService extends CdlElement {
-  string name;
-  CdlKind kind;
-
-  CdlService() {
-    exists(CdlDefinition definition |
-      this = definition.getElement(name) and
-      kind = Service(this.getPropStringValue("kind"))
-    )
-  }
+  CdlService() { kind = CdlServiceKind(this.getPropStringValue("kind")) }
 
   override string getName() { result = name }
 
@@ -61,25 +89,11 @@ class CdlService extends CdlElement {
 }
 
 class CdlEntity extends CdlElement {
-  string name;
-  CdlKind kind;
-
-  CdlEntity() {
-    exists(CdlDefinition definition |
-      this = definition.getElement(name) and
-      kind = Entity(this.getPropStringValue("kind"))
-    )
-  }
+  CdlEntity() { kind = CdlEntityKind(this.getPropStringValue("kind")) }
 
   override string getName() { result = name }
 
   override CdlKind getKind() { result = kind }
-
-  CdlAttribute getAttribute(string attributeName) {
-    result = this.getPropValue("elements").getPropValue(attributeName)
-  }
-
-  RestrictAnnotation getRestrictAnnotation() { result = this.getAnnotation("restrict") }
 
   predicate isRestrictedOnlyToSomeRole(string eventName) {
     exists(RestrictCondition restrictCondition |
@@ -93,49 +107,25 @@ class CdlEntity extends CdlElement {
 }
 
 class CdlEvent extends CdlElement {
-  string name;
-  CdlKind kind;
-
-  CdlEvent() {
-    exists(CdlDefinition definition |
-      this = definition.getElement(name) and
-      kind = Event(this.getPropStringValue("kind"))
-    )
-  }
+  CdlEvent() { kind = CdlEventKind(this.getPropStringValue("kind")) }
 
   string getBasename() { result = name.splitAt(".", count(name.indexOf("."))) }
 
   override string getName() { result = name }
 
   override CdlKind getKind() { result = kind }
-
-  CdlAttribute getAttribute(string attributeName) {
-    result = this.getPropValue("elements").getPropValue(attributeName)
-  }
 }
 
 class CdlAction extends CdlElement {
-  string name;
-  CdlKind kind;
-
-  CdlAction() {
-    exists(CdlDefinition definition |
-      this = definition.getElement(name) and
-      kind = Action(this.getPropStringValue("kind"))
-    )
-  }
-
-  override string getName() { result = name }
-
-  override CdlKind getKind() { result = kind }
-
-  CdlAttribute getAttribute(string attributeName) {
-    result = this.getPropValue("elements").getPropValue(attributeName)
-  }
+  CdlAction() { kind = CdlActionKind(this.getPropStringValue("kind")) }
 }
 
-// /* TODO */
-// class CdlFunction extends CdlElement {}
+class CdlFunction extends CdlElement {
+  CdlFunction() { kind = CdlFunctionKind(this.getPropStringValue("kind")) }
+
+  JsonObject getReturns() { result = this.getPropValue("returns") }
+}
+
 class CdlAttribute extends JsonObject {
   string name;
 
@@ -190,10 +180,7 @@ class CdsFile extends File {
 }
 
 class RestrictAnnotation extends CdlAnnotation, JsonArray {
-  RestrictAnnotation() {
-    this.getQualifiedElement() instanceof CdlEntity and
-    this.getName() = "restrict"
-  }
+  RestrictAnnotation() { this.getName() = "restrict" }
 
   RestrictCondition getARestrictCondition() { result = this.getElementValue(_) }
 }
@@ -225,4 +212,13 @@ class RestrictCondition extends JsonObject {
   string getWhereClause() { result = this.getPropStringValue("where") }
 
   string getWhereClauseParsed() { result = this.getPropStringValue("_where") }
+}
+
+class RequiresAnnotation extends CdlAnnotation {
+  RequiresAnnotation() { this.getName() = "requires" }
+
+  string getRequiredRole() {
+    result = this.(JsonArray).getElementStringValue(_) or
+    result = this.getStringValue()
+  }
 }
