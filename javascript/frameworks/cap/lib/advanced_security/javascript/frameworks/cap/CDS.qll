@@ -723,9 +723,15 @@ private class LogicalShortCircuitStatement extends ConditionalStatement, ExprStm
    * - elseBranchExpr: elseBranch
    */
 
-  override Expr getAThenBranchExpr() {
-    none() // TODO
-  }
+  /*
+   * This predicate embodies this tree-walking algorithm:
+   * 1. If this is an ||, keep recursing on the lhs until it hits an &&:
+   *   - If the lhs is another ||, recurse on the lhs.
+   *   - If the lhs is a ParExpr, recurse on the inner expr.
+   * 2. Extract the lhs.
+   */
+
+  override Expr getAThenBranchExpr() { result = unpackLhsOfOr(binaryExpr).getRightOperand() }
 
   override Expr getAnElseBranchExpr() {
     none() // TODO
@@ -735,3 +741,11 @@ private class LogicalShortCircuitStatement extends ConditionalStatement, ExprStm
     none() // TODO
   }
 }
+
+private Expr unpackLhsOfOrInner(Expr expr) {
+  result = expr.(LogicalAndExpr) or
+  result = unpackLhsOfOrInner(expr.(ParExpr).getExpression()) or
+  result = unpackLhsOfOrInner(expr.(LogicalOrExpr).getLeftOperand())
+}
+
+private LogicalAndExpr unpackLhsOfOr(LogicalOrExpr expr) { result = unpackLhsOfOrInner(expr) }
