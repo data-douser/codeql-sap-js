@@ -68,34 +68,66 @@ abstract class CdlElement extends JsonObject {
    * authentication or authorization.
    */
   RequiresAnnotation getRequiresAnnotation() { result = this.getAnnotation("requires") }
+
+  abstract predicate hasNoCdsAccessControl();
 }
 
 class CdlService extends CdlElement {
   CdlService() { kind = CdlServiceKind(this.getPropStringValue("kind")) }
 
-  CdlEntity getEntity(string entityName) {
-    entityName = result.getName() and
-    result.getFile() = this.getFile()
-  }
-
   UserDefinedApplicationService getImplementation() {
     this.getFile().getStem() = result.getFile().getStem() + ".cds" and
     this.getFile().getParentContainer() = this.getFile().getParentContainer()
+  }
+
+  CdlEntity getEntity(string entityName) {
+    result.getName() = entityName and
+    this.getName() = result.getName().splitAt(".", 0)
+  }
+
+  CdlEntity getAnEntity() { result = this.getEntity(_) }
+
+  CdlEvent getEvent(string eventName) {
+    result.getName() = eventName and this.getName() = result.getName().splitAt(".", 0)
+  }
+
+  CdlEvent getAnEvent() { result = this.getEvent(_) }
+
+  CdlAction getAction(string actionName) {
+    result.getName() = actionName and this.getName() = result.getName().splitAt(".", 0)
+  }
+
+  CdlAction getAnAction() { result = this.getAction(_) }
+
+  CdlFunction getFunction(string functionName) {
+    result.getName() = functionName and this.getName() = result.getName().splitAt(".", 0)
+  }
+
+  CdlFunction getAFunction() { result = this.getFunction(_) }
+
+  override predicate hasNoCdsAccessControl() {
+    /* ===== 1. There's no @restrict that limits to some certain role. ========== */
+    /* 1-1. There's no @restrict in the first place. */
+    not exists(RestrictAnnotation restrictAnnotation |
+      restrictAnnotation = this.getRestrictAnnotation()
+    )
+    or
+    /* 1-2. The existing @restrict is useless. */
+    this.getRestrictAnnotation().getARestrictCondition().grantsToAnyone(_)
+    or
+    /* ===== 2. There's no @requires that limits to some certain role. */
+    /* 2-1. There's no @requires in the first place. */
+    not exists(RequiresAnnotation requiresAnnotation |
+      requiresAnnotation = this.getRequiresAnnotation()
+    )
+    or
+    /* 2-2. The existing @requires is useless. */
+    this.getRequiresAnnotation().getRequiredRole() = "any"
   }
 }
 
 class CdlEntity extends CdlElement {
   CdlEntity() { kind = CdlEntityKind(this.getPropStringValue("kind")) }
-
-  predicate isRestrictedOnlyToSomeRole(string eventName) {
-    exists(RestrictCondition restrictCondition |
-      restrictCondition = this.getRestrictAnnotation().getARestrictCondition() and
-      exists(restrictCondition.getToClause())
-    |
-      restrictCondition.grants(eventName) and
-      restrictCondition.getToClause() != "any"
-    )
-  }
 
   predicate isSelectFrom(CdlEntity otherEntity) {
     otherEntity.getName() =
@@ -117,6 +149,11 @@ class CdlEntity extends CdlElement {
   }
 
   predicate inherits(CdlEntity otherEntity) {
+    this.isSelectFrom(otherEntity) or
+    this.isProjectionOn(otherEntity)
+  }
+
+  override predicate hasNoCdsAccessControl() {
     none() // TODO
   }
 }
@@ -125,16 +162,28 @@ class CdlEvent extends CdlElement {
   CdlEvent() { kind = CdlEventKind(this.getPropStringValue("kind")) }
 
   string getBasename() { result = name.splitAt(".", count(name.indexOf("."))) }
+
+  override predicate hasNoCdsAccessControl() {
+    none() // Events are not eligible for any access control.
+  }
 }
 
 class CdlAction extends CdlElement {
   CdlAction() { kind = CdlActionKind(this.getPropStringValue("kind")) }
+
+  override predicate hasNoCdsAccessControl() {
+    none() // TODO
+  }
 }
 
 class CdlFunction extends CdlElement {
   CdlFunction() { kind = CdlFunctionKind(this.getPropStringValue("kind")) }
 
   JsonObject getReturns() { result = this.getPropValue("returns") }
+
+  override predicate hasNoCdsAccessControl() {
+    none() // TODO
+  }
 }
 
 class CdlAttribute extends JsonObject {
