@@ -69,7 +69,25 @@ abstract class CdlElement extends JsonObject {
    */
   RequiresAnnotation getRequiresAnnotation() { result = this.getAnnotation("requires") }
 
-  abstract predicate hasNoCdsAccessControl();
+  predicate hasNoCdsAccessControl() {
+    /* ===== 1. There's no @restrict that limits to some certain role. ========== */
+    /* 1-1. There's no @restrict in the first place. */
+    not exists(RestrictAnnotation restrictAnnotation |
+      restrictAnnotation = this.getRestrictAnnotation()
+    )
+    or
+    /* 1-2. The existing @restrict is useless. */
+    this.getRestrictAnnotation().getARestrictCondition().grantsToAnyone(_)
+    or
+    /* ===== 2. There's no @requires that limits to some certain role. */
+    /* 2-1. There's no @requires in the first place. */
+    not exists(RequiresAnnotation requiresAnnotation |
+      requiresAnnotation = this.getRequiresAnnotation()
+    )
+    or
+    /* 2-2. The existing @requires is useless. */
+    this.getRequiresAnnotation().getRequiredRole() = "any"
+  }
 }
 
 class CdlService extends CdlElement {
@@ -104,26 +122,6 @@ class CdlService extends CdlElement {
   }
 
   CdlFunction getAFunction() { result = this.getFunction(_) }
-
-  override predicate hasNoCdsAccessControl() {
-    /* ===== 1. There's no @restrict that limits to some certain role. ========== */
-    /* 1-1. There's no @restrict in the first place. */
-    not exists(RestrictAnnotation restrictAnnotation |
-      restrictAnnotation = this.getRestrictAnnotation()
-    )
-    or
-    /* 1-2. The existing @restrict is useless. */
-    this.getRestrictAnnotation().getARestrictCondition().grantsToAnyone(_)
-    or
-    /* ===== 2. There's no @requires that limits to some certain role. */
-    /* 2-1. There's no @requires in the first place. */
-    not exists(RequiresAnnotation requiresAnnotation |
-      requiresAnnotation = this.getRequiresAnnotation()
-    )
-    or
-    /* 2-2. The existing @requires is useless. */
-    this.getRequiresAnnotation().getRequiredRole() = "any"
-  }
 }
 
 class CdlEntity extends CdlElement {
@@ -153,8 +151,8 @@ class CdlEntity extends CdlElement {
     this.isProjectionOn(otherEntity)
   }
 
-  override predicate hasNoCdsAccessControl() {
-    none() // TODO
+  predicate belongsToServiceWithNoAuthn() {
+    exists(CdlService service | service.hasNoCdsAccessControl() | this = service.getAnEntity())
   }
 }
 
@@ -162,17 +160,13 @@ class CdlEvent extends CdlElement {
   CdlEvent() { kind = CdlEventKind(this.getPropStringValue("kind")) }
 
   string getBasename() { result = name.splitAt(".", count(name.indexOf("."))) }
-
-  override predicate hasNoCdsAccessControl() {
-    none() // Events are not eligible for any access control.
-  }
 }
 
 class CdlAction extends CdlElement {
   CdlAction() { kind = CdlActionKind(this.getPropStringValue("kind")) }
 
-  override predicate hasNoCdsAccessControl() {
-    none() // TODO
+  predicate belongsToServiceWithNoAuthn() {
+    exists(CdlService service | service.hasNoCdsAccessControl() | this = service.getAnAction())
   }
 }
 
@@ -181,8 +175,8 @@ class CdlFunction extends CdlElement {
 
   JsonObject getReturns() { result = this.getPropValue("returns") }
 
-  override predicate hasNoCdsAccessControl() {
-    none() // TODO
+  predicate belongsToServiceWithNoAuthn() {
+    exists(CdlService service | service.hasNoCdsAccessControl() | this = service.getAFunction())
   }
 }
 

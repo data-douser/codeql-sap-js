@@ -3,6 +3,8 @@ import advanced_security.javascript.frameworks.cap.CDL
 
 abstract class CdlElementWithoutAuthn instanceof CdlElement {
   string toString() { result = super.toString() }
+
+  Location getLocation() { result = super.getLocation() }
 }
 
 class CdlElementWithoutCdsAuthn extends CdlElementWithoutAuthn instanceof CdlElement {
@@ -13,18 +15,17 @@ class CdlServiceWithoutCdsAuthn extends CdlElementWithoutCdsAuthn instanceof Cdl
 
 class CdlEntityWithoutCdsAuthn extends CdlElementWithoutCdsAuthn instanceof CdlEntity {
   CdlEntityWithoutCdsAuthn() {
-    any() // TODO: inherits, belongsToAuthenticatedService
+    this.belongsToServiceWithNoAuthn() or
+    exists(CdlEntityWithoutCdsAuthn otherCdlEntityWithoutCdsAuthn |
+      this.inherits(otherCdlEntityWithoutCdsAuthn)
+    )
   }
 }
 
 class CdlActionWithoutCdsAuthn extends CdlElementWithoutCdsAuthn instanceof CdlAction {
-  CdlActionWithoutCdsAuthn() {
-    any() // TODO: belongsToAuthenticatedService
-  }
+  CdlActionWithoutCdsAuthn() { this.belongsToServiceWithNoAuthn() }
 }
 
 class CdlFunctionWithoutCdsAuthn extends CdlElementWithoutCdsAuthn instanceof CdlAction {
-  CdlFunctionWithoutCdsAuthn() {
-    any() // TODO: belongsToAuthenticatedService
-  }
+  CdlFunctionWithoutCdsAuthn() { this.belongsToServiceWithNoAuthn() }
 }
