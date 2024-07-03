@@ -337,12 +337,10 @@ class CqlDeleteClause extends CqlClause {
  * any clause with a string concatenation in it
  * regardless of where that operand came from
  */
-class TaintedClause extends CqlClause {
+class TaintedClause instanceof CqlClause {
   TaintedClause() { exists(StringConcatenation::getAnOperand(this.getArgument().flow())) }
 
-  override CqlClause getEntityAccessingClause() {
-    none() // TODO
-  }
+  string toString() { result = super.toString() }
 }
 
 /**

@@ -602,3 +602,136 @@ class EntityReferenceFromTemplateOrString extends EntityReference, ExprNode {
     exists(CqlClause cql | this = cql.getAccessingEntityReference())
   }
 }
+
+class CdlElementProtection extends HandlerRegistration {
+  CdlElementProtection() {
+    none() // TODO
+  }
+}
+
+class CdlElementProtectionUsingSrvBefore extends CdlElementProtection {
+  CdlElementProtectionUsingSrvBefore() {
+    none() // TODO
+  }
+}
+
+class CdlElementProtectionUsingSrvOn extends CdlElementProtection {
+  CdlElementProtectionUsingSrvOn() {
+    none() // TODO
+  }
+}
+
+abstract class ConditionalStatement extends Stmt {
+  abstract Expr getAThenBranchExpr();
+
+  abstract Expr getAnElseBranchExpr();
+
+  abstract boolean getPolarity();
+}
+
+/* if (cond) { thenBranch } else { elseBranch } */
+private class IfConditionalStatement extends ConditionalStatement, IfStmt {
+  override Expr getAThenBranchExpr() {
+    result = this.getThen().getAChildStmt().(ExprStmt).getExpr()
+  }
+
+  override Expr getAnElseBranchExpr() {
+    result = this.getElse().getAChildStmt().(ExprStmt).getExpr()
+  }
+
+  override boolean getPolarity() {
+    exists(Expr condition | condition = this.getCondition() |
+      condition instanceof LogNotExpr and result = false
+      or
+      condition instanceof EqualityTest and
+      result = this.getCondition().(EqualityOperation).getPolarity()
+      or
+      not (condition instanceof LogNotExpr or condition instanceof EqualityTest) and
+      result = true
+    )
+  }
+}
+
+/* cond ? thenBranch : elseBranch */
+private class TernaryExprStatement extends ConditionalStatement, ExprStmt {
+  ConditionalExpr ternaryExpr;
+
+  TernaryExprStatement() {
+    /* cond ? thenBranch : elseBranch */
+    ternaryExpr = this.(ExprStmt).getExpr()
+  }
+
+  override Expr getAThenBranchExpr() { result = ternaryExpr.getConsequent() }
+
+  override Expr getAnElseBranchExpr() { result = ternaryExpr.getAlternate() }
+
+  override boolean getPolarity() {
+    exists(Expr condition | condition = ternaryExpr.getCondition() |
+      condition instanceof LogNotExpr and result = false
+      or
+      condition instanceof EqualityTest and
+      result = ternaryExpr.getCondition().(EqualityOperation).getPolarity()
+      or
+      not (condition instanceof LogNotExpr or condition instanceof EqualityTest) and
+      result = true
+    )
+  }
+}
+
+/*
+ * 1. cond && thenBranch || elseBranch;
+ * 2. cond && thenBranch;
+ * 3. cond || elseBranch;
+ */
+
+private class LogicalShortCircuitStatement extends ConditionalStatement, ExprStmt {
+  LogicalBinaryExpr binaryExpr;
+
+  LogicalShortCircuitStatement() {
+    binaryExpr = this.(ExprStmt).getExpr() and
+    (
+      /* 1. cond && thenBranch || elseBranch; */
+      binaryExpr instanceof LogicalOrExpr and
+      binaryExpr.getLeftOperand() instanceof LogicalAndExpr
+      or
+      /* 2. cond && thenBranch; */
+      binaryExpr instanceof LogicalAndExpr
+      or
+      /* 3. cond || elseBranch; */
+      binaryExpr instanceof LogicalOrExpr
+    )
+  }
+
+  /*
+   * Things to consider:
+   * 1. The rightmost operand to && is the thenBranchExpr.
+   * 2. Everything else is a part of the condition.
+   * 3. The righthand operand to || is the elseBranchExpr.
+   * e.g.1. Given this:
+   * ```js
+   * cond1 && cond2 && cond3 && thenBranch || elseBranchPart1 || elseBranchPart2
+   * ```
+   * - condition: cond1 && cond2 && cond3
+   * - thenBranchExpr: thenbranch
+   * - elseBranchExpr: elseBranchPart1 || elseBranchPart2
+   * e.g.2. Given below:
+   * ```js
+   * cond && (cond1 && thenBranch1 || elseBranch1) || elseBranch
+   * ```
+   * - condition: cond
+   * - thenBranchExpr: (cond1 && thenBranch1 || elseBranch1)
+   * - elseBranchExpr: elseBranch
+   */
+
+  override Expr getAThenBranchExpr() {
+    none() // TODO
+  }
+
+  override Expr getAnElseBranchExpr() {
+    none() // TODO
+  }
+
+  override boolean getPolarity() {
+    none() // TODO
+  }
+}

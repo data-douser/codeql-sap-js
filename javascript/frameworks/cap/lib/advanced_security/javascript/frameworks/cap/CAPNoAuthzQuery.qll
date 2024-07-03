@@ -30,3 +30,21 @@ class CdlActionWithoutCdsAuthn extends CdlElementWithoutCdsAuthn instanceof CdlA
 class CdlFunctionWithoutCdsAuthn extends CdlElementWithoutCdsAuthn instanceof CdlAction {
   CdlFunctionWithoutCdsAuthn() { this.belongsToServiceWithNoAuthn() }
 }
+
+abstract class CdlElementWithoutJsAuthn extends CdlElementWithoutAuthn instanceof CdlElement { }
+
+class CdlServiceWithoutJsAuthn extends CdlElementWithoutJsAuthn instanceof CdlService {
+  // TODO
+}
+
+class CdlEntityWithoutJsAuthn extends CdlElementWithoutJsAuthn instanceof CdlEntity {
+  // TODO
+}
+
+class CdlActionWithoutJsAuthn extends CdlElementWithoutJsAuthn instanceof CdlAction {
+  // TODO
+}
+
+class CdlFunctionWithoutJsAuthn extends CdlElementWithoutJsAuthn instanceof CdlFunction {
+  // TODO
+}
