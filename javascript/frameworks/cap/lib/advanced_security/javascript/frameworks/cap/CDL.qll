@@ -70,22 +70,18 @@ abstract class CdlElement extends JsonObject {
   RequiresAnnotation getRequiresAnnotation() { result = this.getAnnotation("requires") }
 
   predicate hasNoCdsAccessControl() {
-    /* ===== 1. There's no @restrict that limits to some certain role. ========== */
-    /* 1-1. There's no @restrict in the first place. */
+    /* 1. There's no @restrict or @requires in the first place. */
     not exists(RestrictAnnotation restrictAnnotation |
       restrictAnnotation = this.getRestrictAnnotation()
-    )
-    or
-    /* 1-2. The existing @restrict is useless. */
-    this.getRestrictAnnotation().getARestrictCondition().grantsToAnyone(_)
-    or
-    /* ===== 2. There's no @requires that limits to some certain role. */
-    /* 2-1. There's no @requires in the first place. */
+    ) and
     not exists(RequiresAnnotation requiresAnnotation |
       requiresAnnotation = this.getRequiresAnnotation()
     )
     or
-    /* 2-2. The existing @requires is useless. */
+    /* 2. The existing @restrict is useless. */
+    this.getRestrictAnnotation().getARestrictCondition().grantsToAnyone(_)
+    or
+    /* 3. The existing @requires is useless. */
     this.getRequiresAnnotation().getRequiredRole() = "any"
   }
 }

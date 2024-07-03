@@ -7,15 +7,16 @@ abstract class CdlElementWithoutAuthn instanceof CdlElement {
   Location getLocation() { result = super.getLocation() }
 }
 
-class CdlElementWithoutCdsAuthn extends CdlElementWithoutAuthn instanceof CdlElement {
-  CdlElementWithoutCdsAuthn() { super.hasNoCdsAccessControl() }
+abstract class CdlElementWithoutCdsAuthn extends CdlElementWithoutAuthn instanceof CdlElement {
+  CdlElementWithoutCdsAuthn() { this.hasNoCdsAccessControl() }
 }
 
 class CdlServiceWithoutCdsAuthn extends CdlElementWithoutCdsAuthn instanceof CdlService { }
 
 class CdlEntityWithoutCdsAuthn extends CdlElementWithoutCdsAuthn instanceof CdlEntity {
   CdlEntityWithoutCdsAuthn() {
-    this.belongsToServiceWithNoAuthn() or
+    this.belongsToServiceWithNoAuthn()
+    or
     exists(CdlEntityWithoutCdsAuthn otherCdlEntityWithoutCdsAuthn |
       this.inherits(otherCdlEntityWithoutCdsAuthn)
     )
