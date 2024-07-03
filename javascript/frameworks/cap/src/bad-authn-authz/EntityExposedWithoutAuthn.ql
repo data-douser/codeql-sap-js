@@ -12,5 +12,4 @@
 import advanced_security.javascript.frameworks.cap.CAPNoAuthzQuery
 
 from CdlElementWithoutAuthn cdlElementWithoutAuthn
-select cdlElementWithoutAuthn, "$@ is exposed without any authentication",
-  cdlElementWithoutAuthn, "This CDS definition"
+select cdlElementWithoutAuthn, "This CDS definition is exposed without any authentication."
