@@ -740,14 +740,30 @@ private class LogicalShortCircuitStatement extends ConditionalStatement, ExprStm
    * 1. If this is an ||, keep recursing on the lhs until it hits an &&:
    *   - If the lhs is another ||, recurse on the lhs.
    *   - If the lhs is a ParExpr, recurse on the inner expr.
-   * 2. Extract the lhs.
+   * 2. Extract the rhs of the lhs.
    */
 
   override Expr getAThenBranchExpr() {
     result = extractConditionAndThenBranch(binaryExpr).(LogicalAndExpr).getRightOperand()
   }
 
+  /*
+   * This predicate embodies this tree-walking algorithm:
+   * 1. If this is an ||, keep recursing on the rhs until it hits an &&:
+   *   - If the rhs is another ||, recurse on the rhs.
+   *   - If the rhs is a ParExpr, recurse on the inner expr.
+   * 2. Extract the rhs.
+   */
+
   override Expr getAnElseBranchExpr() { result = binaryExpr.(LogicalOrExpr).getRightOperand() }
+
+  /*
+   * This predicate embodies this tree-walking algorithm:
+   * 1. If this is an ||, keep recursing on the lhs until it hits an &&:
+   *   - If the lhs is another ||, recurse on the lhs.
+   *   - If the lhs is a ParExpr, recurse on the inner expr.
+   * 2. Extract the lhs of the lhs.
+   */
 
   private Expr getCondition() {
     exists(Expr condition | condition = extractConditionAndThenBranch(binaryExpr) |
