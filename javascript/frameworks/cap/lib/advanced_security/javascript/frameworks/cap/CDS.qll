@@ -678,6 +678,18 @@ private class TernaryExprStatement extends ConditionalStatement, ExprStmt {
   }
 }
 
+private Expr extractConditionAndThenBranchInner(Expr expr) {
+  result = expr.(VarAccess) or
+  result = expr.(LogicalAndExpr) or
+  result = expr.(LogicalNotExpr) or
+  result = extractConditionAndThenBranchInner(expr.(ParExpr).getExpression()) or
+  result = extractConditionAndThenBranchInner(expr.(LogicalOrExpr).getLeftOperand())
+}
+
+private Expr extractConditionAndThenBranch(Expr expr) {
+  result = extractConditionAndThenBranchInner(expr)
+}
+
 /*
  * 1. cond && thenBranch || elseBranch;
  * 2. cond && thenBranch;
@@ -731,21 +743,21 @@ private class LogicalShortCircuitStatement extends ConditionalStatement, ExprStm
    * 2. Extract the lhs.
    */
 
-  override Expr getAThenBranchExpr() { result = unpackLhsOfOr(binaryExpr).getRightOperand() }
+  override Expr getAThenBranchExpr() {
+    result = extractConditionAndThenBranch(binaryExpr).(LogicalAndExpr).getRightOperand()
+  }
 
-  override Expr getAnElseBranchExpr() {
-    none() // TODO
+  override Expr getAnElseBranchExpr() { result = binaryExpr.(LogicalOrExpr).getRightOperand() }
+
+  private Expr getCondition() {
+    exists(Expr condition | condition = extractConditionAndThenBranch(binaryExpr) |
+      if condition instanceof LogicalAndExpr
+      then result = condition.(LogicalAndExpr).getLeftOperand()
+      else result = condition
+    )
   }
 
   override boolean getPolarity() {
-    none() // TODO
+    if this.getCondition() instanceof LogicalNotExpr then result = false else result = true
   }
 }
-
-private Expr unpackLhsOfOrInner(Expr expr) {
-  result = expr.(LogicalAndExpr) or
-  result = unpackLhsOfOrInner(expr.(ParExpr).getExpression()) or
-  result = unpackLhsOfOrInner(expr.(LogicalOrExpr).getLeftOperand())
-}
-
-private LogicalAndExpr unpackLhsOfOr(LogicalOrExpr expr) { result = unpackLhsOfOrInner(expr) }
