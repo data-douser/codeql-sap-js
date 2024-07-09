@@ -70,7 +70,11 @@ class CdlElementProtectionWithHandlerRegistration instanceof HandlerRegistration
   string getAnEventName() { result = super.getAnEventName() }
 }
 
-abstract class CdlElementWithJsAuthn extends CdlElementWithoutAuthn instanceof CdlElement { }
+abstract class CdlElementWithJsAuthn instanceof CdlElement {
+  string toString() { result = super.toString() }
+
+  Location getLocation() { result = super.getLocation() }
+}
 
 class CdlServiceWithJsAuthn extends CdlElementWithJsAuthn instanceof CdlService {
   CdlServiceWithJsAuthn() {
