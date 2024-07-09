@@ -1,6 +1,8 @@
 import javascript
 
-abstract class ConditionalStatement extends Stmt {
+abstract class ConditionalExprOrStatement extends ExprOrStmt {
+  abstract Expr getConditionExpr();
+
   abstract Expr getAThenBranchExpr();
 
   abstract Expr getAnElseBranchExpr();
@@ -8,16 +10,14 @@ abstract class ConditionalStatement extends Stmt {
   abstract boolean getPolarity();
 }
 
-abstract class ConditionalExpression extends Expr {
-  abstract Expr getAThenBranchExpr();
+abstract class ConditionalStatement extends ConditionalExprOrStatement, Stmt { }
 
-  abstract Expr getAnElseBranchExpr();
-
-  abstract boolean getPolarity();
-}
+abstract class ConditionalExpression extends ConditionalExprOrStatement, Expr { }
 
 /* if (cond) { thenBranch } else { elseBranch } */
 private class IfConditionalStatement extends ConditionalStatement, IfStmt {
+  override Expr getConditionExpr() { result = this.getCondition() }
+
   override Expr getAThenBranchExpr() {
     result = this.getThen().getAChildStmt().(ExprStmt).getExpr()
   }
@@ -27,7 +27,7 @@ private class IfConditionalStatement extends ConditionalStatement, IfStmt {
   }
 
   override boolean getPolarity() {
-    exists(Expr condition | condition = this.getCondition() |
+    exists(Expr condition | condition = this.getConditionExpr() |
       condition instanceof LogNotExpr and result = false
       or
       condition instanceof EqualityTest and
@@ -41,12 +41,14 @@ private class IfConditionalStatement extends ConditionalStatement, IfStmt {
 
 /* cond ? thenBranch : elseBranch */
 private class TernaryExpr extends ConditionalExpression, ConditionalExpr {
+  override Expr getConditionExpr() { result = this.getCondition() }
+
   override Expr getAThenBranchExpr() { result = this.getConsequent() }
 
   override Expr getAnElseBranchExpr() { result = this.getAlternate() }
 
   override boolean getPolarity() {
-    exists(Expr condition | condition = this.getCondition() |
+    exists(Expr condition | condition = this.getConditionExpr() |
       condition instanceof LogNotExpr and result = false
       or
       condition instanceof EqualityTest and
@@ -63,6 +65,8 @@ private class TernaryExprStatement extends ConditionalStatement, ExprStmt {
   TernaryExpr ternaryExpr;
 
   TernaryExprStatement() { ternaryExpr = this.getExpr() }
+
+  override Expr getConditionExpr() { result = ternaryExpr.getConditionExpr() }
 
   override Expr getAThenBranchExpr() { result = ternaryExpr.getAThenBranchExpr() }
 
@@ -113,7 +117,7 @@ private class LogicalShortCircuitExpr extends ConditionalExpression, LogicalBina
    * 2. Extract the lhs of the lhs.
    */
 
-  private Expr getCondition() {
+  override Expr getConditionExpr() {
     exists(Expr condition | condition = extractConditionAndThenBranch(this) |
       if condition instanceof LogicalAndExpr
       then result = condition.(LogicalAndExpr).getLeftOperand()
@@ -144,7 +148,7 @@ private class LogicalShortCircuitExpr extends ConditionalExpression, LogicalBina
   override Expr getAnElseBranchExpr() { result = this.(LogicalOrExpr).getRightOperand() }
 
   override boolean getPolarity() {
-    if this.getCondition() instanceof LogicalNotExpr then result = false else result = true
+    if this.getConditionExpr() instanceof LogicalNotExpr then result = false else result = true
   }
 }
 
@@ -158,6 +162,8 @@ private class LogicalShortCircuitStatement extends ConditionalStatement, ExprStm
   LogicalShortCircuitExpr binaryExpr;
 
   LogicalShortCircuitStatement() { binaryExpr = this.getExpr() }
+
+  override Expr getConditionExpr() { result = binaryExpr.getConditionExpr() }
 
   override Expr getAThenBranchExpr() { result = binaryExpr.getAThenBranchExpr() }
 
