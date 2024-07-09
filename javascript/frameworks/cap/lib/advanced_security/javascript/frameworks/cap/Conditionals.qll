@@ -19,10 +19,12 @@ private class IfConditionalStatement extends ConditionalStatement, IfStmt {
   override Expr getConditionExpr() { result = this.getCondition() }
 
   override Expr getAThenBranchExpr() {
+    result = this.getThen().(ExprStmt).getExpr() or
     result = this.getThen().getAChildStmt().(ExprStmt).getExpr()
   }
 
   override Expr getAnElseBranchExpr() {
+    result = this.getElse().(ExprStmt).getExpr() or
     result = this.getElse().getAChildStmt().(ExprStmt).getExpr()
   }
 
@@ -76,11 +78,16 @@ private class TernaryExprStatement extends ConditionalStatement, ExprStmt {
 }
 
 private Expr extractConditionAndThenBranchInner(Expr expr) {
-  result = expr.(VarAccess) or
-  result = expr.(LogicalAndExpr) or
-  result = expr.(LogicalNotExpr) or
-  result = extractConditionAndThenBranchInner(expr.(ParExpr).getExpression()) or
-  result = extractConditionAndThenBranchInner(expr.(LogicalOrExpr).getLeftOperand())
+  // result = expr.(VarAccess) or
+  // result = expr.(LogicalAndExpr) or
+  // result = expr.(LogicalNotExpr) or
+  if not (expr instanceof ParExpr or expr instanceof LogicalOrExpr)
+  then result = expr
+  else (
+    result = extractConditionAndThenBranchInner(expr.(ParExpr).getExpression())
+    or
+    result = extractConditionAndThenBranchInner(expr.(LogicalOrExpr).getLeftOperand())
+  )
 }
 
 private Expr extractConditionAndThenBranch(Expr expr) {

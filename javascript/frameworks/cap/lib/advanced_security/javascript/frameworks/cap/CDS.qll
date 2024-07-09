@@ -197,6 +197,8 @@ class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstan
  * to do something with the incoming request or event as its parameter.
  */
 class HandlerRegistration extends MethodCallNode {
+  string methodName;
+
   HandlerRegistration() {
     exists(ServiceInstance srv |
       (
@@ -205,9 +207,8 @@ class HandlerRegistration extends MethodCallNode {
         srv = this.getReceiver()
       ) and
       (
-        this.getMethodName() = "before" or
-        this.getMethodName() = "on" or
-        this.getMethodName() = "after"
+        methodName = this.getMethodName() and
+        methodName = ["before", "on", "after"]
       )
     )
   }
@@ -230,6 +231,21 @@ class HandlerRegistration extends MethodCallNode {
    * Gets the handler that is being registrated to an event by this registering function call.
    */
   Handler getHandler() { result = this.getAnArgument() }
+
+  /**
+   * Holds if this is registering a handler to be run before some event.
+   */
+  predicate isBefore() { methodName = "before" }
+
+  /**
+   * Holds if this is registering a handler to be run on some event.
+   */
+  predicate isOn() { methodName = "on" }
+
+  /**
+   * Holds if this is registering a handler to be run after some event.
+   */
+  predicate isAfter() { methodName = "after" }
 }
 
 /**
@@ -240,14 +256,9 @@ class HandlerRegistration extends MethodCallNode {
  */
 class Handler extends FunctionNode {
   UserDefinedApplicationService srv;
-  string eventName;
+  HandlerRegistration handlerRegistration;
 
-  Handler() {
-    exists(HandlerRegistration handlerRegistration |
-      this = handlerRegistration.getAnArgument() and
-      eventName = handlerRegistration.getArgument(0).getStringValue()
-    )
-  }
+  Handler() { this = handlerRegistration.getAnArgument() }
 
   /**
    * Gets the service registering this handler.
@@ -257,7 +268,23 @@ class Handler extends FunctionNode {
   /**
    * Gets a name of one of the event this handler is registered for.
    */
-  string getAnEventName() { result = eventName }
+  string getAnEventName() { result = handlerRegistration.getAnEventName() }
+
+  /**
+   * Gets a name of the entity this handler is registered for.
+   */
+  string getEntityName() { result = handlerRegistration.getEntityName() }
+
+  /**
+   * Gets the request that this handler is registered for, as represented as its first parameter.
+   */
+  CdsRequest getRequest() { result = this.getParameter(0) }
+}
+
+class CdsRequest extends ParameterNode {
+  CdsRequest() { exists(Handler handler | this = handler.getParameter(0)) }
+
+  MethodCallNode getARejectCall() { result = this.getAMemberCall("reject") }
 }
 
 /**
@@ -600,23 +627,5 @@ class EntityReferenceFromDbOrCdsEntities extends EntityReferenceFromEntities {
 class EntityReferenceFromTemplateOrString extends EntityReference, ExprNode {
   EntityReferenceFromTemplateOrString() {
     exists(CqlClause cql | this = cql.getAccessingEntityReference())
-  }
-}
-
-class CdlElementProtection extends HandlerRegistration {
-  CdlElementProtection() {
-    none() // TODO
-  }
-}
-
-class CdlElementProtectionUsingSrvBefore extends CdlElementProtection {
-  CdlElementProtectionUsingSrvBefore() {
-    none() // TODO
-  }
-}
-
-class CdlElementProtectionUsingSrvOn extends CdlElementProtection {
-  CdlElementProtectionUsingSrvOn() {
-    none() // TODO
   }
 }
