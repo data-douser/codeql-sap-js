@@ -94,6 +94,11 @@ class CdlService extends CdlElement {
     this.getFile().getParentContainer() = this.getFile().getParentContainer()
   }
 
+  /**
+   * Gets a call to `cds.serve` which serves and possibly decorates this CDS definition.
+   */
+  CdsServeCall getCdsServeCall() { result.getServiceDefinition() = this.getImplementation() }
+
   CdlEntity getEntity(string entityName) {
     result.getName() = entityName and
     this.getName() = result.getName().splitAt(".", 0)

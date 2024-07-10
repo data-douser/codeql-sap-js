@@ -19,7 +19,34 @@ class CdsFacade extends API::Node {
  * A call to `serve` on a CDS facade.
  */
 class CdsServeCall extends DataFlow::CallNode {
-  CdsServeCall() { exists(CdsFacade cds | this = cds.getMember("serve").getACall()) }
+  Expr serviceRepresentation;
+
+  CdsServeCall() {
+    exists(CdsFacade cds | this = cds.getMember("serve").getACall()) and
+    serviceRepresentation = this.getArgument(0).asExpr()
+  }
+
+  Expr getServiceRepresentation() { result = serviceRepresentation }
+
+  UserDefinedApplicationService getServiceDefinition() {
+    /* 1. The argument to cds.serve is "all" */
+    this.getServiceRepresentation().getStringValue() = "all" and
+    result = any(UserDefinedApplicationService service)
+    or
+    /* 2. The argument to cds.serve is a name by which the service is required */
+    exists(RequiredService requiredService |
+      requiredService.getName() = this.getServiceRepresentation().getStringValue() and
+      result.getFile() = requiredService.getImplementationFile()
+    )
+    or
+    /* 3. The argument to cds.serve is a service instance */
+    exists(ServiceInstance serviceInstance |
+      this.getServiceRepresentation() = serviceInstance.asExpr() and
+      result = serviceInstance.getDefinition()
+    )
+  }
+
+  CdsServeWithCall getWithCall() { result = this.getAMemberCall("with") }
 }
 
 /**
@@ -163,32 +190,74 @@ class ServiceInstanceFromThisNode extends ServiceInstance {
   override MethodCallNode getASrvMethodCall() { result.getReceiver() = this }
 }
 
+class CdsServeWithCall extends MethodCallNode {
+  CdsServeCall cdsServe;
+
+  CdsServeWithCall() { this = cdsServe.getAMemberCall("with") }
+
+  Function getDecorator() { result = this.getArgument(0).(FunctionNode).getFunction() }
+
+  HandlerRegistration getAHandlerRegistration() {
+    result.getEnclosingFunction() = this.getDecorator()
+  }
+}
+
 /**
  * The parameter node representing the service being served, given to a
  * callback argument to the `cds.serve(...).with` call. e.g.
  * ```js
- * cds.serve('./srv/some-service').with ((srv) => {
- *   srv.on ('READ','SomeEntity', (req) => req.reply([...]))
+ * cds.serve('./srv/some-service1').with ((srv) => {  // Parameter `srv` is captured.
+ *   srv.on ('READ','SomeEntity1', (req) => req.reply([...]))
+ * })
+ *
+ * cds.serve('./srv/some-service2').with (function() {  // Parameter `this` is captured.
+ *   this.on ('READ','SomeEntity2', (req) => req.reply([...]))
  * })
  * ```
  * This is used to extend the given service's functionality.
  */
-class ServiceInstanceFromServeWithParameter extends ParameterNode, ServiceInstance {
+class ServiceInstanceFromServeWithParameter extends ServiceInstance {
+  CdsServeCall cdsServe;
+
   ServiceInstanceFromServeWithParameter() {
-    exists(MethodCallNode withCall, CdsServeCall cdsServe |
-      withCall.getMethodName() = "with" and
-      withCall.getReceiver() = cdsServe and
-      this = withCall.getArgument(0).(FunctionNode).getParameter(0)
+    exists(CdsServeWithCall cdsServeWith |
+      /*
+       * cds.serve('./srv/some-service1').with ((srv) => {  // Parameter `srv` is captured.
+       *   srv.on ('READ','SomeEntity1', (req) => req.reply([...]))
+       * })
+       */
+
+      this.(ThisNode).getBinder().asExpr() = cdsServeWith.getDecorator().(FunctionExpr)
+      or
+      /*
+       * cds.serve('./srv/some-service2').with (function() {  // Parameter `this` is captured.
+       *   this.on ('READ','SomeEntity2', (req) => req.reply([...]))
+       * })
+       */
+
+      this = cdsServeWith.getDecorator().(ArrowFunctionExpr).getParameter(0).flow()
     )
   }
 
   override UserDefinedApplicationService getDefinition() {
-    none() // TODO
+    /* 1. The argument to cds.serve is "all" */
+    cdsServe.getServiceRepresentation().getStringValue() = "all" and
+    result = any(UserDefinedApplicationService service)
+    or
+    /* 2. The argument to cds.serve is a name by which the service is required */
+    exists(RequiredService requiredService |
+      requiredService.getName() = cdsServe.getServiceRepresentation().getStringValue() and
+      result.getFile() = requiredService.getImplementationFile()
+    )
+    or
+    /* 3. The argument to cds.serve is a service instance */
+    exists(ServiceInstance serviceInstance |
+      cdsServe.getServiceRepresentation() = serviceInstance.asExpr() and
+      result = serviceInstance.getDefinition()
+    )
   }
 
-  override MethodCallNode getASrvMethodCall() {
-    none() // TODO
-  }
+  override MethodCallNode getASrvMethodCall() { result.getReceiver().getALocalSource() = this }
 }
 
 /**

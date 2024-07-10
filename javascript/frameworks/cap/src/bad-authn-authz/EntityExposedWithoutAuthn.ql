@@ -25,4 +25,5 @@ from CdlElement cdlElement
 where
   cdlElement instanceof CdlElementWithoutJsAuthn and
   cdlElement instanceof CdlElementWithoutCdsAuthn
-select cdlElement, "This $@ is exposed without any authentication.", cdlElement, getClickableText(cdlElement)
+select cdlElement, "This $@ is exposed without any authentication.", cdlElement,
+  getClickableText(cdlElement)

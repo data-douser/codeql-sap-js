@@ -79,7 +79,9 @@ abstract class CdlElementWithJsAuthn instanceof CdlElement {
 class CdlServiceWithJsAuthn extends CdlElementWithJsAuthn instanceof CdlService {
   CdlServiceWithJsAuthn() {
     exists(CdlElementProtectionWithHandlerRegistration beforeOrOn |
-      this.getImplementation().getAHandlerRegistration() = beforeOrOn and
+      this.getImplementation().getAHandlerRegistration() = beforeOrOn or
+      this.getCdsServeCall().getWithCall().getAHandlerRegistration() = beforeOrOn
+    |
       beforeOrOn.getAnEventName() = "*"
     )
   }
@@ -89,7 +91,10 @@ class CdlEntityWithJsAuthn extends CdlElementWithJsAuthn instanceof CdlEntity {
   CdlEntityWithJsAuthn() {
     exists(CdlService service, CdlElementProtectionWithHandlerRegistration beforeOrOn |
       this = service.getAnEntity() and
-      service.getImplementation().getAHandlerRegistration() = beforeOrOn and
+      (
+        service.getImplementation().getAHandlerRegistration() = beforeOrOn or
+        service.getCdsServeCall().getWithCall().getAHandlerRegistration() = beforeOrOn
+      ) and
       beforeOrOn.getEntityName() = this.getUnqualifiedName()
     )
   }
@@ -99,7 +104,10 @@ class CdlActionWithJsAuthn extends CdlElementWithJsAuthn instanceof CdlAction {
   CdlActionWithJsAuthn() {
     exists(CdlService service, CdlElementProtectionWithHandlerRegistration beforeOrOn |
       this = service.getAnAction() and
-      service.getImplementation().getAHandlerRegistration() = beforeOrOn and
+      (
+        service.getImplementation().getAHandlerRegistration() = beforeOrOn or
+        service.getCdsServeCall().getWithCall().getAHandlerRegistration() = beforeOrOn
+      ) and
       beforeOrOn.getAnEventName() = this.getUnqualifiedName()
     )
   }
@@ -109,7 +117,10 @@ class CdlFunctionWithJsAuthn extends CdlElementWithJsAuthn instanceof CdlFunctio
   CdlFunctionWithJsAuthn() {
     exists(CdlService service, CdlElementProtectionWithHandlerRegistration beforeOrOn |
       this = service.getAFunction() and
-      service.getImplementation().getAHandlerRegistration() = beforeOrOn and
+      (
+        service.getImplementation().getAHandlerRegistration() = beforeOrOn or
+        service.getCdsServeCall().getWithCall().getAHandlerRegistration() = beforeOrOn
+      ) and
       beforeOrOn.getAnEventName() = this.getUnqualifiedName()
     )
   }
