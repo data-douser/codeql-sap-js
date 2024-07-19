@@ -129,6 +129,35 @@ class CdlAttribute extends JsonObject {
   int getLength() { result = this.getPropValue("length").(JsonPrimitiveValue).getIntValue() }
 }
 
+/**
+ * any `JsonValue` that has a `PersonalData` like annotation above it
+ */
+class SensitiveAnnotatedElement extends JsonValue {
+  string annotationName;
+  string fieldOrEntityName;
+
+  SensitiveAnnotatedElement() {
+    exists(JsonValue annotationval, JsonValue entityOrField |
+      annotationval = this.getPropValue(annotationName) and
+      annotationName.matches("@PersonalData%") and
+      this = entityOrField.getPropValue(fieldOrEntityName)
+    )
+  }
+
+  /**
+   * Gets the name of this annotation, without the leading `@` character.
+   */
+  string getAnnotationName() { "@" + result = annotationName }
+
+  /**
+   * Gets the name of this field or entity that is annotated
+   */
+  string getEntityOrFieldName() { result = fieldOrEntityName }
+}
+
+/**
+ * CDL annotations specifically associated to `CdlElement`s
+ */
 abstract class CdlAnnotation extends JsonValue {
   string annotationName;
   CdlElement element;
