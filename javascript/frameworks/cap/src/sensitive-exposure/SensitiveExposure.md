@@ -44,4 +44,6 @@ class SampleVulnService extends cds.ApplicationService {
 ## References
 
 - OWASP 2021: [Security Logging and Monitoring Failures](https://owasp.org/Top10/A09_2021-Security_Logging_and_Monitoring_Failures/).
+- OWASP: [Logging Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html).
+- OWASP: [User Privacy Protection Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html).
 - SAP CAPire Documentation: [PersonalData Annotations](https://cap.cloud.sap/docs/guides/data-privacy/annotations).
