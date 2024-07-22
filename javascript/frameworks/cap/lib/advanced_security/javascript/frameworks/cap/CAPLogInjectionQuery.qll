@@ -37,7 +37,7 @@ class CdsLogSink extends DataFlow::Node {
       this = loggingMethod.getAnArgument() and
       loggingMethod.getMethodName() = ["trace", "debug", "info", "log", "warn", "error"] and
       not this.asExpr() instanceof Literal and
-      not exists(ConstantOnlyTemplateLiteral t | this.asExpr() = t) and
+      not this.asExpr() instanceof ConstantOnlyTemplateLiteral and
       loggingMethod.getReceiver().getALocalSource() = log
     )
   }
