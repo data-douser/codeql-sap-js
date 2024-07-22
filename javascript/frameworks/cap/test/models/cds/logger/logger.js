@@ -10,3 +10,6 @@ cds.log('nodejs').error(code0);
 const code0 = "some-name";
 const LOG = cds.log(code0);
 LOG.info(code1);
+
+LOG.info(`logging: ${code1}`);
+LOG.info(`not actually logging`);
