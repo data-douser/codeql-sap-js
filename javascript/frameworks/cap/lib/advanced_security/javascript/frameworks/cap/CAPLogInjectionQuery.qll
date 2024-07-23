@@ -22,6 +22,12 @@ class CdsLogger extends MethodCallNode {
   string getName() { result = name }
 }
 
+class ConstantOnlyTemplateLiteral extends TemplateLiteral {
+  ConstantOnlyTemplateLiteral() {
+    forall(Expr e | e = this.getAnElement() | e instanceof TemplateElement)
+  }
+}
+
 /**
  * Arguments of calls to `cds.log.{trace, debug, info, log, warn, error}`
  */
@@ -31,7 +37,7 @@ class CdsLogSink extends DataFlow::Node {
       this = loggingMethod.getAnArgument() and
       loggingMethod.getMethodName() = ["trace", "debug", "info", "log", "warn", "error"] and
       not this.asExpr() instanceof Literal and
-      not this.asExpr() instanceof TemplateLiteral and
+      not this.asExpr() instanceof ConstantOnlyTemplateLiteral and
       loggingMethod.getReceiver().getALocalSource() = log
     )
   }
