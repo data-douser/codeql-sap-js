@@ -1,4 +1,4 @@
- # CAP Insertion of Sensitive Information into Log File
+# CAP Insertion of Sensitive Information into Log File
 
 If sensitive information is written to a log entry using the CAP Node.js logging API, a malicious user may be able to gain access to user data.
 
@@ -37,7 +37,6 @@ class SampleVulnService extends cds.ApplicationService {
     init() {
         LOG.info("Received: ", Sample.name); // CAP log exposure alert
     }
-
 }
 ```
 
