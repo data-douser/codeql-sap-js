@@ -22,7 +22,7 @@ jobs:
 
       - name: Install QLT
         id: install-qlt
-        uses: ./.github/actions/install-qlt
+        uses: advanced-security/codeql-development-toolkit/install-qlt@main
         with:
           qlt-version: 'latest'
           add-to-path: true
@@ -47,7 +47,7 @@ jobs:
 
       - name: Install QLT
         id: install-qlt
-        uses: ./.github/actions/install-qlt
+        uses: advanced-security/codeql-development-toolkit/install-qlt@main
         with:
           qlt-version: 'latest'
           add-to-path: true
@@ -134,7 +134,7 @@ jobs:
 
       - name: Install QLT
         id: install-qlt
-        uses: ./.github/actions/install-qlt
+        uses:  advanced-security/codeql-development-toolkit/install-qlt@main
         with:
           qlt-version: 'latest'
           add-to-path: true
