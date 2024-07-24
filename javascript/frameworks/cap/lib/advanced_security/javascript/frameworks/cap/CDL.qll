@@ -33,6 +33,17 @@ abstract class CdlElement extends JsonObject {
   CdlAnnotation getAnAnnotation() { result = this.getAnnotation(_) }
 }
 
+class CdlEntityField extends CdlElement {
+  string name;
+  CdlKind kind;
+
+  CdlEntityField() { exists(CdlDefinition definition | this = definition.getElement(name)) }
+
+  override string getName() { result = name }
+
+  override CdlKind getKind() { result = kind }
+}
+
 class CdlService extends CdlElement {
   string name;
   CdlKind kind;
@@ -127,40 +138,46 @@ class CdlAttribute extends JsonObject {
   string getType() { result = this.getPropStringValue("type") }
 
   int getLength() { result = this.getPropValue("length").(JsonPrimitiveValue).getIntValue() }
+
+  string getName() { result = name }
 }
 
 /**
  * any `JsonValue` that has a `PersonalData` like annotation above it
  */
-class SensitiveAnnotatedElement extends JsonValue {
-  string annotationName;
-  string fieldOrEntityName;
+abstract class SensitiveAnnotatedElement extends JsonValue {
+  abstract string getName();
+}
 
-  SensitiveAnnotatedElement() {
-    exists(JsonValue annotationval, JsonValue entityOrField |
-      annotationval = this.getPropValue(annotationName) and
-      annotationName.matches("@PersonalData%") and
-      this = entityOrField.getPropValue(fieldOrEntityName)
-    )
+class SensitiveAnnotatedEntity extends SensitiveAnnotatedElement instanceof CdlEntity {
+  SensitiveAnnotatedEntity() { exists(PersonalDataAnnotation a | a.getQualifiedElement() = this) }
+
+  override string getName() { result = this.(CdlEntity).getName() }
+
+  string getShortName() { result = this.getName().regexpCapture(".*\\.([^\\.]+$)", 1) }
+}
+
+class SensitiveAnnotatedAttribute extends SensitiveAnnotatedElement instanceof CdlAttribute {
+  SensitiveAnnotatedAttribute() {
+    exists(PersonalDataAnnotation a | a.getQualifiedElement() = this)
   }
 
-  /**
-   * Gets the name of this annotation, without the leading `@` character.
-   */
-  string getAnnotationName() { "@" + result = annotationName }
+  override string getName() { result = this.(CdlAttribute).getName() }
+}
 
-  /**
-   * Gets the name of this field or entity that is annotated
-   */
-  string getEntityOrFieldName() { result = fieldOrEntityName }
+/**
+ * CDL annotations for PersonalData
+ */
+class PersonalDataAnnotation extends CdlAnnotation {
+  PersonalDataAnnotation() { this.getName().matches("PersonalData%") }
 }
 
 /**
  * CDL annotations specifically associated to `CdlElement`s
  */
-abstract class CdlAnnotation extends JsonValue {
+class CdlAnnotation extends JsonValue {
   string annotationName;
-  CdlElement element;
+  JsonValue element;
 
   CdlAnnotation() {
     this = element.getPropValue(annotationName) and
@@ -175,7 +192,7 @@ abstract class CdlAnnotation extends JsonValue {
   /**
    * Gets the CDL Element that this annotation is attached to.
    */
-  CdlElement getQualifiedElement() { result = element }
+  JsonValue getQualifiedElement() { result = element }
 }
 
 class ProtocolAnnotation extends CdlAnnotation {

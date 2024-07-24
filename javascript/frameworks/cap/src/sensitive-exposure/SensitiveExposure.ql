@@ -19,7 +19,7 @@ import DataFlow::PathGraph
 class SensitiveExposureSource extends DataFlow::Node {
   SensitiveExposureSource() {
     exists(PropRead p, SensitiveAnnotatedElement c |
-      p.getPropertyName() = c.getEntityOrFieldName() and
+      p.getPropertyName() = c.getName() and
       this = p
     )
   }
