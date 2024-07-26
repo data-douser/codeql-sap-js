@@ -1,0 +1,71 @@
+extensions:
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: typeModel
+    data:
+      # ========== 1. Web Request ==========
+      - [WebRequest, XsjsDollar, "Member[request]"]
+      - [WebRequest, XsjsDollar, "Member[request].Member[entities].Fuzzy"]
+
+      # ========== 1-1. Web Request Bodies ==========
+      - [WebRequestBody, WebRequest, "Member[body]"]
+
+      # ========== 1-2. Web Request Parameters ==========
+      - [WebRequestParameters, WebRequest, "Member[parameters]"]
+
+      # ========== 1-3. Web Request Headers ==========
+      - [WebRequestHeaders, WebRequest, "Member[headers]"]
+
+      # ========== 2. Web Response ==========
+      - [WebResponse, global, "Member[$].Member[response]"]
+      - [WebResponse, global, "Member[$].Member[response].Member[entities].Fuzzy"]
+
+      # ========== 2-1. Web Response Bodies ==========
+      - [WebResponseBody, global, "Member[body]"]
+
+      # ========== 3. Mail, SMTPConnection ==========
+      - [Mail, XsjsDollar, "Member[net].Member[Mail].Instance"]
+      - [SMTPConnection, XsjsDollar, "Member[net].Member[SMTPConnection].Instance"]
+
+      # ========== 4. Inbound Web Response ==========
+      - [InboundResponse, XsjsDollar, "Member[net].Member[http].Member[Client].Instance.Member[getResponse].ReturnValue"]
+
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: sourceModel
+    data:
+      # ========== 1. Retrieving Web Request Body ==========
+      - [WebRequestBody, "Member[asArrayBuffer].ReturnValue", remote]
+      - [WebRequestBody, "Member[asString].ReturnValue", remote]
+      - [WebRequestBody, "Member[asWebRequest].ReturnValue", remote]
+
+      # ========== 2. Retrieving Web Request Parameter Value ==========
+      - [WebRequestParameters, "Member[get].ReturnValue", remote]
+      - [WebRequestParameters, AnyMember, remote]
+
+      # ========== 3. Receiving Response through HTTPClient ==========
+      - [HTTPClient, "InboundResponse.Member[body]", remote]
+      - [HTTPClient, "InboundResponse.Member[body].Member[asArrayBuffer].ReturnValue", remote]
+      - [HTTPClient, "InboundResponse.Member[body].Member[asString].ReturnValue", remote]
+      - [HTTPClient, "InboundResponse.Member[body].Member[asWebRequest].ReturnValue", remote]
+      - [HTTPClient, "InboundResponse.Member[cacheControl]", remote]
+      - [HTTPClient, "InboundResponse.Member[contentType]", remote]
+      - [HTTPClient, "InboundResponse.Member[cookies]", remote]
+      - [HTTPClient, "InboundResponse.Member[entities]", remote]
+      - [HTTPClient, "InboundResponse.Member[headers]", remote]
+      - [HTTPClient, "InboundResponse.Member[status]", remote]
+
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: sinkModel
+    data:
+      - [WebResponse, "Member[setBody].Argument[0]", html-injection]
+      # - [Mail, "Member[send].Argument[this]", "???"]
+      # - [SMTPConnection, "Member[send].Argument[0]", "???"]
+      # - ["HTTPClient", "Member[request].Argument[0]", "???"]
+
+  - addsTo:
+      pack: codeql/javascript-all
+      extensible: summaryModel
+    data:
+      - [global, "Member[JSON].Member[parse]", "Argument[0]", "ReturnValue", taint]
