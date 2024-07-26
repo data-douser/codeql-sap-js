@@ -18,7 +18,7 @@ jobs:
       matrix: ${{ steps.export-unit-test-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install QLT
         id: install-qlt
@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install QLT
         id: install-qlt
@@ -104,7 +104,7 @@ jobs:
           CODEQL_STDLIB_IDENT: ${{matrix.codeql_standard_library_ident}}
           RUNNER_TMP: ${{ runner.temp }}
           LGTM_INDEX_XML_MODE: all
-          LGTM_INDEX_FILTERS: "include:**/*.json"
+          LGTM_INDEX_FILETYPES: ".json:JSON"
 
         shell: bash
         run: >
@@ -116,7 +116,7 @@ jobs:
           --work-dir $RUNNER_TMP
 
       - name: Upload test results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ runner.os }}-${{ matrix.codeql_cli }}-${{ matrix.codeql_standard_library_ident }}
           path: |
@@ -130,7 +130,7 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install QLT
         id: install-qlt
@@ -141,9 +141,10 @@ jobs:
 
 
       - name: Collect test results
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
 
       - name: Validate test results
         run: |
           qlt test run validate-unit-tests --pretty-print --results-directory . >> $GITHUB_STEP_SUMMARY
           qlt test run validate-unit-tests --results-directory .
+          

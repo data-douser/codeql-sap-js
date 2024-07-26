@@ -19,6 +19,6 @@ SELECT.from(entity).columns(column)
 
 ## References
 
-- OWASP: [Log Injection](https://owasp.org/www-community/attacks/Log_Injection).
-- OWASP: [Log Injection Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html).
+- OWASP: [SQL Injection](https://owasp.org/www-community/attacks/SQL_Injectionn).
+- OWASP: [SQL Injection Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html).
 - SAP CAPire Documentation: [Security Aspects](https://cap.cloud.sap/docs/guides/security/aspects#common-injection-attacks).
