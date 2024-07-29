@@ -60,6 +60,7 @@ class Service1 extends cds.ApplicationService {
      */
     this.on("send4", async (req) => {
       const Service2 = await cds.connect.to("service-2");
+      console.log(Service2);
       const { Service2Entity1 } = Service2.entities; // Service2Entity1 is undefined!
       console.log(Service2Entity1);
       return this.tx(
