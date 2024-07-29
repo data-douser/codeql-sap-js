@@ -341,6 +341,10 @@ class TaintedClause instanceof CqlClause {
   TaintedClause() { exists(StringConcatenation::getAnOperand(this.getArgument().flow())) }
 
   string toString() { result = super.toString() }
+
+  Expr getArgument() { result = super.getArgument() }
+
+  Expr asExpr() { result = super.asExpr() }
 }
 
 /**
