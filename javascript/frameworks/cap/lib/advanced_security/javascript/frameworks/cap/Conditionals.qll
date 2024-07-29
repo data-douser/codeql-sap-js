@@ -81,13 +81,9 @@ private Expr extractConditionAndThenBranchInner(Expr expr) {
   // result = expr.(VarAccess) or
   // result = expr.(LogicalAndExpr) or
   // result = expr.(LogicalNotExpr) or
-  if not (expr instanceof ParExpr or expr instanceof LogicalOrExpr)
+  if not expr instanceof LogicalOrExpr
   then result = expr
-  else (
-    result = extractConditionAndThenBranchInner(expr.(ParExpr).getExpression())
-    or
-    result = extractConditionAndThenBranchInner(expr.(LogicalOrExpr).getLeftOperand())
-  )
+  else result = extractConditionAndThenBranchInner(expr.(LogicalOrExpr).getLeftOperand())
 }
 
 private Expr extractConditionAndThenBranch(Expr expr) {
