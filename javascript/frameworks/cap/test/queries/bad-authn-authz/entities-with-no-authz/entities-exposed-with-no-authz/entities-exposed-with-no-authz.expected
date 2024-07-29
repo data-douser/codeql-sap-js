@@ -1,0 +1,6 @@
+| srv/service1.cds.json:3:17:7:5 | {\\n      ... "\\n    } | This $@ is exposed without any authentication. | srv/service1.cds.json:3:17:7:5 | {\\n      ... "\\n    } | CDS service |
+| srv/service1.cds.json:8:32:26:5 | {\\n      ... }\\n    } | This $@ is exposed without any authentication. | srv/service1.cds.json:8:32:26:5 | {\\n      ... }\\n    } | CDS entity |
+| srv/service1.cds.json:27:23:37:5 | {\\n      ... }\\n    } | This $@ is exposed without any authentication. | srv/service1.cds.json:27:23:37:5 | {\\n      ... }\\n    } | CDS action |
+| srv/service2.cds.json:3:17:7:5 | {\\n      ... "\\n    } | This $@ is exposed without any authentication. | srv/service2.cds.json:3:17:7:5 | {\\n      ... "\\n    } | CDS service |
+| srv/service2.cds.json:8:32:26:5 | {\\n      ... }\\n    } | This $@ is exposed without any authentication. | srv/service2.cds.json:8:32:26:5 | {\\n      ... }\\n    } | CDS entity |
+| srv/service2.cds.json:27:23:37:5 | {\\n      ... }\\n    } | This $@ is exposed without any authentication. | srv/service2.cds.json:27:23:37:5 | {\\n      ... }\\n    } | CDS action |
