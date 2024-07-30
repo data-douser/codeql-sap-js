@@ -5,3 +5,4 @@
 | logger.js:7:24:7:28 | code0 |
 | logger.js:8:25:8:29 | code0 |
 | logger.js:12:10:12:14 | code1 |
+| logger.js:14:10:14:28 | `logging: ${code1}` |
