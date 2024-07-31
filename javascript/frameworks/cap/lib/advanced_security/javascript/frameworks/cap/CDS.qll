@@ -138,7 +138,7 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance, SourceNode {
   /**
    * Gets a method call on this service instance.
    */
-  override MethodCallNode getASrvMethodCall() { result = this.getAMemberCall(_) }
+  override MethodCallNode getASrvMethodCall() { result = this.getAPropertyRead().getAMemberCall(_) }
 }
 
 class DBServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo {
