@@ -1,12 +1,12 @@
 /**
- * @name UI5 client-side Log injection
+ * @name UI5 Log injection in outbound network request
  * @description Building log entries from user-controlled sources is vulnerable to
  *              insertion of forged log entries by a malicious user.
  * @kind path-problem
- * @problem.severity recommendation
- * @security-severity 3.5
+ * @problem.severity warning
+ * @security-severity 6.5
  * @precision medium
- * @id js/ui5-log-injection
+ * @id js/ui5-log-injection-to-http
  * @tags security
  *       external/cwe/cwe-117
  */
@@ -20,7 +20,10 @@ class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfigurati
   override predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
 
   override predicate isSink(DataFlow::Node node) {
-    node = ModelOutput::getASinkNode("ui5-log-injection").asSink()
+    exists(ClientRequest req |
+      node = req.getUrl() or
+      node = req.getADataNode()
+    )
   }
 }
 
@@ -29,4 +32,5 @@ from
 where
   cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   primarySource = source.getAPrimarySource()
-select sink, primarySource, sink, "Log entry depends on a $@.", primarySource, "user-provided value"
+select sink, primarySource, sink, "Outbound network request depends on $@ log data.", primarySource,
+  "user-provided"
