@@ -5,7 +5,7 @@
 import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 
-newtype CdlKind =
+private newtype CdlKind =
   CdlServiceKind(string value) { value = "service" } or
   CdlEntityKind(string value) { value = "entity" } or
   CdlEventKind(string value) { value = "event" } or
@@ -215,11 +215,57 @@ class CdlAttribute extends JsonObject {
   string getType() { result = this.getPropStringValue("type") }
 
   int getLength() { result = this.getPropValue("length").(JsonPrimitiveValue).getIntValue() }
+
+  string getName() { result = name }
 }
 
+/**
+ * a `CdlEntity` that is declared in a namespace
+ */
+class NamespacedEntity extends JsonObject instanceof CdlEntity {
+  string namespace;
+
+  NamespacedEntity() { this.getParent+().getPropValue("namespace").getStringValue() = namespace }
+
+  string getNamespace() { result = namespace }
+}
+
+/**
+ * any `JsonValue` that has a `PersonalData` like annotation above it
+ */
+abstract class SensitiveAnnotatedElement extends JsonValue {
+  abstract string getName();
+}
+
+class SensitiveAnnotatedEntity extends SensitiveAnnotatedElement instanceof CdlEntity {
+  SensitiveAnnotatedEntity() { exists(PersonalDataAnnotation a | a.getQualifiedElement() = this) }
+
+  override string getName() { result = this.(CdlEntity).getName() }
+
+  string getShortName() { result = this.getName().regexpCapture(".*\\.([^\\.]+$)", 1) }
+}
+
+class SensitiveAnnotatedAttribute extends SensitiveAnnotatedElement instanceof CdlAttribute {
+  SensitiveAnnotatedAttribute() {
+    exists(PersonalDataAnnotation a | a.getQualifiedElement() = this)
+  }
+
+  override string getName() { result = this.(CdlAttribute).getName() }
+}
+
+/**
+ * CDL annotations for PersonalData
+ */
+class PersonalDataAnnotation extends CdlAnnotation {
+  PersonalDataAnnotation() { this.getName().matches("PersonalData%") }
+}
+
+/**
+ * CDL annotations specifically associated to `CdlElement`s
+ */
 class CdlAnnotation extends JsonValue {
   string annotationName;
-  CdlElement element;
+  JsonValue element;
 
   CdlAnnotation() {
     this = element.getPropValue(annotationName) and
@@ -234,7 +280,7 @@ class CdlAnnotation extends JsonValue {
   /**
    * Gets the CDL Element that this annotation is attached to.
    */
-  CdlElement getQualifiedElement() { result = element }
+  JsonValue getQualifiedElement() { result = element }
 }
 
 class ProtocolAnnotation extends CdlAnnotation {

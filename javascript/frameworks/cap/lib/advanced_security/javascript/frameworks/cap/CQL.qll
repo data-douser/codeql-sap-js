@@ -87,7 +87,7 @@ Expr getRootReceiver(Expr e) {
  * An aggregation type for the two ways to access the fluent API
  * provided by the module cds.ql
  */
-newtype TCqlClause =
+private newtype TCqlClause =
   TaggedTemplate(TaggedTemplateExpr taggedTemplateExpr) {
     exists(CqlQueryBase base | base = getRootReceiver(taggedTemplateExpr)) or
     exists(CqlQueryBaseCall call | call = getRootReceiver(taggedTemplateExpr))
