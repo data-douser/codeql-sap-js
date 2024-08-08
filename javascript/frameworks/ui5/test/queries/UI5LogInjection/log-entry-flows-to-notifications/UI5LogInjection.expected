@@ -1,4 +1,35 @@
 nodes
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/MapContainer.js:176:13:176:34 | rectZoom>/rectZoom |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/SceneTree.js:242:13:242:20 | name |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/SceneTree.js:244:16:244:23 | name |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Calibration.fragment.xml:6:3:12:4 | title={i18n>MEASUREMENTS_CALIBRATION_DIALOG_TITLE} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Calibration.fragment.xml:14:7:14:48 | text={/label} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Calibration.fragment.xml:16:9:16:172 | placeholder={i18n>MEASUREMENTS_CALIBRATION_INPUT_PLACEHOLDER} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Calibration.fragment.xml:16:9:16:172 | value={ path: "/distance", type: "sap.ui.model.type.Float" } |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Calibration.fragment.xml:17:9:17:188 | tooltip={i18n>MEASUREMENTS_CALIBRATION_RESET_BUTTON_TOOLTIP} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Calibration.fragment.xml:22:7:22:94 | text={i18n>MEASUREMENTS_CALIBRATION_OK_BUTTON} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Calibration.fragment.xml:25:7:25:106 | text={i18n>MEASUREMENTS_CALIBRATION_CANCEL_BUTTON} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:6:3:14:4 | title={i18n>MEASUREMENTS_SETTINGS_DIALOG_TITLE} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:16:7:16:85 | text={i18n>MEASUREMENTS_SETTINGS_PRECISIONS_LABEL} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:17:7:17:130 | selectedKey={ path: "settings>/precision", type: "sap.ui.model.type.Integer" } |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:26:7:26:108 | text={i18n>MEASUREMENTS_SETTINGS_UNITS_LABEL} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:27:7:27:77 | selectedKey={settings>/units} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:28:9:28:53 | text={i18n>UNITS_MM} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:29:9:29:53 | text={i18n>UNITS_CM} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:30:9:30:51 | text={i18n>UNITS_M} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:31:9:31:53 | text={i18n>UNITS_IN} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:32:9:32:53 | text={i18n>UNITS_FT} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:35:7:35:113 | text={i18n>MEASUREMENTS_SETTINGS_LINE_COLOR_LABEL} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:36:7:36:79 | selectedIndex={settings>/color} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:44:7:44:121 | text={i18n>MEASUREMENTS_SETTINGS_REFERENCE_FEATURES_TITLE} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:48:11:48:99 | text={i18n>MEASUREMENTS_SETTINGS_FEATURE_VERTEX} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:50:9:50:118 | state={settings>/featureVertex} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:55:11:55:97 | text={i18n>MEASUREMENTS_SETTINGS_FEATURE_EDGE} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:57:9:57:116 | state={settings>/featureEdge} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:62:11:62:97 | text={i18n>MEASUREMENTS_SETTINGS_FEATURE_FACE} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:64:9:64:116 | state={settings>/featureFace} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:67:7:67:106 | text={i18n>MEASUREMENTS_SETTINGS_REFERENCE_FEATURES_FOOTNOTE} |
+| node_modules/@sapui5/sap.ui.vk/src/sap/ui/vk/measurements/Settings.fragment.xml:71:7:75:9 | text={i18n>MEASUREMENTS_SETTINGS_CLOSE_BUTTON} |
 | webapp/controller/app.controller.js:9:17:9:27 | input: null |
 | webapp/controller/app.controller.js:15:17:15:52 | input |
 | webapp/controller/app.controller.js:15:25:15:52 | oModel. ... input') |
