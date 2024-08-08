@@ -1,0 +1,26 @@
+{
+  "namespace": "advanced_security.log_exposure.sample_entities",
+  "definitions": {
+    "advanced_security.log_exposure.sample_entities.Sample": {
+      "kind": "entity",
+      "@PersonalData.DataSubjectRole": "Sample",
+      "@PersonalData.EntitySemantics": "DataSubject",
+      "elements": {
+        "name": {
+          "@PersonalData.IsPotentiallySensitive": true,
+          "type": "cds.String",
+          "length": 111
+        },
+        "dateOfBirth": {
+          "@PersonalData.IsPotentiallyPersonal": true,
+          "type": "cds.Date"
+        }
+      }
+    }
+  },
+  "meta": {
+    "creator": "CDS Compiler v4.1.2",
+    "flavor": "inferred"
+  },
+  "$version": "2.0"
+}
