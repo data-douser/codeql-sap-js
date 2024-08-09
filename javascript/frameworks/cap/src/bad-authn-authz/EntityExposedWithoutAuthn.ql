@@ -1,6 +1,7 @@
 /**
  * @name Entity exposed without authentication
- * @description TODO
+ * @description Entities exposed to external protocols should require an
+ *              CDS-based or JS-based access control.
  * @kind problem
  * @problem.severity warning
  * @security-severity 6
