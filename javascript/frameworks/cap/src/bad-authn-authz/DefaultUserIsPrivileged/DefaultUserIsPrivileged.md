@@ -8,7 +8,7 @@ The user whose request cannot be verified as authenticated is represented as `cd
 
 It may be tempting to overwrite the `cds.User.default` as `cds.User.Privileged`, for ease of development. However, this may slip through production undeleted since the assignment to `cds.User.default` can be hard to detect because it may take various forms; e.g. the programmer may choose to store `cds.User` to a variable `v` and access `cds.User.default` by `v.default`.
 
-A safer and more elegant solution is to set up a development profile and opt in to use a non-production strategy such as basic, dummy, or mocked during its use. This can be done in `package.json` of the CAP application at its project root:
+A safer and more elegant solution is to set up a development profile and opt in to use a non-production strategy such as `"basic"`, `"dummy"`, or `"mocked"` during its use. This can be done in `package.json` of the CAP application at its project root:
 
 ``` json
 {
@@ -45,6 +45,6 @@ cds.serve("all").in(app);
 ## References
 
 - SAP CAPire Documentation: [cds.User.default](https://cap.cloud.sap/docs/node.js/authentication#default-user).
+- SAP CAPire Documentation: [cds.User.Privileged](https://cap.cloud.sap/docs/node.js/authentication#privileged-user).
 - SAP CAPire Documentation: [Authentication Strategies](https://cap.cloud.sap/docs/node.js/authentication#strategies).
-- Common Weakness Enumeration: [CWE-862](https://cwe.mitre.org/data/definitions/862.html).
-- Common Weakness Enumeration: [CWE-306](https://cwe.mitre.org/data/definitions/306.html).
+- Common Weakness Enumeration: [CWE-250](https://cwe.mitre.org/data/definitions/250.html).
