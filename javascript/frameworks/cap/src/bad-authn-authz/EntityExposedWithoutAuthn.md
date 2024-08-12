@@ -1,11 +1,13 @@
-# CAP Entities Exposed without Access Controls
+# CAP Definitions Exposed without Access Controls
+
+Although using a production-level authentication strategy such as `jwt` ensures that all entities and services require the user to be authenticated, this does not guarantee any further authorization. Furthermore, the lack of required authentication or authorization may imply a gap in the design of the system.
 
 ## Recommendation
 
 ### Use CDS-based authorization
 
 CDL provides two annotations to declare access controls `@requires` and `@restrict` with the latter providing more granularity than the former. For example, to check if a request is being made by an authenticated user to the CDL entity or service, annotate it with `@requires: 'authenticated-user'`. On the other hand, if it needs to be read only via a certain group of users where the user has level greater than 2, use `@restrict: { grant: 'READ', to: 'SomeUser', where: { $user.level > 2 } }` (note the leading `$`).
- 
+
 #### Check the original CDS entity it is derived from
 
 CDS entities may be derived from other entities by means of selection and projection. These derived definitions inherit its identical conditions for access control or can choose to override them. Therefore, in order to accurately determine what authorization an entity requires, the access control of the parent entity should be transitively inspected (that is, the inspection should go up the chain of derivation).
@@ -80,6 +82,6 @@ module.exports = class Service1 extends cds.ApplicationService {
 [@requires](https://cap.cloud.sap/docs/guides/security/authorization#requires).
 - SAP CAPire Documentation: [Protecting Certain Entries](https://cap.cloud.sap/docs/cds/common#protecting-certain-entries).
 - SAP CAPire Documentation: [Inheritance of Restrictions](https://cap.cloud.sap/docs/guides/security/authorization#inheritance-of-restrictions).
+- SAP CAPire Documentation: [Authentication Enforced in Production](https://cap.cloud.sap/docs/node.js/authentication#authentication-enforced-in-production).
 - Common Weakness Enumeration: [CWE-862](https://cwe.mitre.org/data/definitions/862.html).
-- Commoon Weakness Enumeration: [CWE-306](https://cwe.mitre.org/data/definitions/306.html).
-
+- Common Weakness Enumeration: [CWE-306](https://cwe.mitre.org/data/definitions/306.html).
