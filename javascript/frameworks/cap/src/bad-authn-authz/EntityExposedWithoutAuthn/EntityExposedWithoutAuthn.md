@@ -10,16 +10,16 @@ CDL provides two annotations to declare access controls `@requires` and `@restri
 
 #### Check the original CDS entity it is derived from
 
-CDS entities may be derived from other entities by means of selection and projection. These derived definitions inherit its identical conditions for access control or can choose to override them. Therefore, in order to accurately determine what authorization an entity requires, the access control of the parent entity should be transitively inspected (that is, the inspection should go up the chain of derivation).
+CDS entities may be derived from other entities by means of selection and projection. Derived definitions inherit access control conditions and optionally override them. In order to accurately determine what authorization an entity requires, the access control of the parent entity should be transitively inspected.
 
 ### Enforce authorization with JavaScript
 
-Access control may be enforced when a handler for requests to the relevant entity or service is registered to a service. Both `cds.Service.before` and `cds.Service.on` may be used to enforce it. For example, to restrict writing to and updating an entity to certain role satisfying some requirements, the below handler registrations may be used interchangably:
+Access control may be enforced when a request handler for the relevant entity or service is registered. Both `cds.Service.before` and `cds.Service.on` may be used for enforcement. For example, to restrict writing to and updating an entity to a user satisfying certain requirements, the below handler registrations may be used:
 
 ``` javascript
 /**
- * Intercept requests to SomeEntity before access and check if the request
- * is coming from a user with SomeRole and level greater than 3.
+ * Before serving a request to access SomeEntity, check if the request is coming from a user
+ * with SomeRole and level greater than 3.
  */
 this.before(["WRITE", "UPDATE"], "SomeEntity", (req) => {
   (req.user.is("SomeRole") && req.user.attr.level > 3) || req.reject(403);
@@ -38,7 +38,7 @@ this.on(["WRITE", "UPDATE"], "SomeEntity", (req) => {
 
 ## Examples
 
-The following CDS definition and its JavaScript implementation imposes no authorization on SomeEntity. Note that the `OriginalEntity` from which `DerivedEntity` derives from does not control access to it, either.
+The following CDS definition and its JavaScript implementation imposes no authorization on SomeEntity. Note that the `OriginalEntity` from which `DerivedEntity` derives from does not control the access either.
 
 ### db/schema.cds
 
