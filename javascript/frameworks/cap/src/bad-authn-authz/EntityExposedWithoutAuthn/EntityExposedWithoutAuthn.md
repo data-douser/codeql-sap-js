@@ -14,7 +14,7 @@ CDS entities may be derived from other entities by means of selection and projec
 
 ### Enforce authorization with JavaScript
 
-Access control may be enforced when a request handler for the relevant entity or service is registered. Both `cds.Service.before` and `cds.Service.on` may be used for enforcement. For example, to restrict writing to and updating an entity to a user satisfying certain requirements, the below handler registrations may be used:
+Access control may be enforced when a request handler for the relevant entity or service is registered. Both `cds.Service.before` and `cds.Service.on` may be used for enforcement. For example, to restrict writing to and updating an entity to a user satisfying certain requirements, either one of the below handler registrations may be used:
 
 ``` javascript
 /**
@@ -38,7 +38,7 @@ this.on(["WRITE", "UPDATE"], "SomeEntity", (req) => {
 
 ## Examples
 
-The following CDS definition and its JavaScript implementation imposes no authorization on SomeEntity. Note that the `OriginalEntity` from which `DerivedEntity` derives from does not control the access either.
+The following CDS definition and its JavaScript implementation imposes no authorization on `SomeEntity`. Note that the `OriginalEntity` from which `DerivedEntity` derives from does not control the access either.
 
 ### db/schema.cds
 
