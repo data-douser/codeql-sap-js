@@ -1,0 +1,5 @@
+{
+    "exposed": false,
+    "prevent_xsrf": false,
+    "authentication": null
+}

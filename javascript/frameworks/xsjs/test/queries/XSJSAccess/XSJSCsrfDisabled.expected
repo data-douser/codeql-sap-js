@@ -1,0 +1,2 @@
+| service/exposed/.xsaccess:3:21:3:25 | false | CSRF vulnerability due to protection being disabled. |
+| service/xs-app.json:14:31:14:35 | false | CSRF vulnerability due to protection being disabled. |
