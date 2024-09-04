@@ -21,6 +21,9 @@ The following `xs-app.json` fragment enables CSRF protection in XSJS.
     ...
   }
 ]
+    ...
+  }
+]
 ```
 
 ## References
