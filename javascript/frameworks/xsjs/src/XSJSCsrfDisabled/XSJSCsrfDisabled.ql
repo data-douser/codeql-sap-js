@@ -1,7 +1,6 @@
 /**
  * @name Disabled XSJS CSRF protection
- * @description Disabling CSRF protection makes the application vulnerable to
- *              a Cross-Site Request Forgery (CSRF) attack.
+ * @description Disabling CSRF protection makes the application vulnerable to a Cross-Site Request Forgery (CSRF) attack.
  * @kind problem
  * @problem.severity error
  * @security-severity 8.8

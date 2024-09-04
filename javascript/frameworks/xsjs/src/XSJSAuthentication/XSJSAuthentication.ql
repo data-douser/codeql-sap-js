@@ -1,7 +1,6 @@
 /**
  * @name Broken XSJS authentication
- * @description Disabling XSJS authentication makes the application vulnerable to
- *              unauthorized access.
+ * @description Disabling XSJS authentication makes the application vulnerable to unauthorized access.
  * @kind problem
  * @problem.severity warning
  * @security-severity 7.5
