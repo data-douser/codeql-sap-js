@@ -6,6 +6,8 @@ class ExposedServiceAccessSpec extends File {
     or
     // we are only interested in exposed services
     this.getBaseName() = ".xsaccess" and
-    any(JsonValue v | this = v.getJsonFile()).getPropValue("exposed").getBooleanValue() = false
+    exists(JsonValue v | this = v.getJsonFile() |
+      v.getPropValue("exposed").getBooleanValue() = false
+    )
   }
 }

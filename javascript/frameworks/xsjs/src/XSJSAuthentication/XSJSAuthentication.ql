@@ -8,6 +8,7 @@
  * @precision medium
  * @id js/xsjs-broken-authentication
  * @tags security
+ *       external/cwe/cwe-306
  */
 
 import javascript
@@ -32,7 +33,7 @@ where
     value.getJsonFile().getBaseName() = ".xsaccess" and
     not exists(JsonValue p |
       p.getJsonFile() = value.getJsonFile() and
-      p.getPropValue("authentication") = any(JsonValue v)
+      exists(p.getPropValue("authentication"))
     )
   )
 select value, msg

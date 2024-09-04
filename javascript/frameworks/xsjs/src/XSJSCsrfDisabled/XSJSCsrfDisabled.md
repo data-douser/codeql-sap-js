@@ -1,21 +1,26 @@
 # Disabled XSJS CSRF protection
 
-When you set up a web server to receive a request from a client without any mechanism for verifying that it was intentionally sent, then it is vulnerable to attack. An attacker can trick a client into making an unintended request to the web server that will be treated as an authentic request. This can be done via a URL, image load, XMLHttpRequest, etc. and can result in exposure of data or unintended code execution.
+A web server that receives a request from a client without verifying that it was intentionally sent might be vulnerable to Cross Site Request Forgery (CSRF). An attacker can trick a client into making an unintended request to the web server that will be treated as an authentic request. This can be done via a URL, image load, XMLHttpRequest, etc. and can result in exposure of data or unintended code execution.
 
 ## Recommendation
 
-When you use XSJS, Cross-Site Request Forgery (CSRF) protection is enabled by default. SAP’s recommendation is to use CSRF protection for any request that could be processed by a browser client by normal users.
+SAP’s recommendation is to use CSRF protection for any request that could be processed by a browser client by normal users. 
+- In `XS Advanced` CSRF protection is enabled by default and should not be disabled. 
+- In `XS Classic` CSRF protection should be enabled explicitly. 
 
 ## Example
 
 The following `xs-app.json` fragment enables CSRF protection in XSJS.
 
-``` javascript
+```json
 "routes": [
   {
     "source": "/bad/(.*)",
     "destination": "srv_api",
     "csrfProtection": true,
+    ...
+  }
+]
 ```
 
 ## References
