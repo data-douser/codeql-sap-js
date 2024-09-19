@@ -1,4 +1,4 @@
-library: false 
+library: false
 warnOnImplicitThis: false
 name: advanced-security/javascript-heuristic-models-tests
 version: 0.0.1

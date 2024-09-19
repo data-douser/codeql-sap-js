@@ -1,0 +1,24 @@
+{
+  "name": "@advanced-security/unnecessarily-granted-privileged-access-rights",
+  "version": "1.0.0",
+  "dependencies": {
+    "@sap/cds": "*",
+    "express": "^4.17.1",
+    "@cap-js/sqlite": "*"
+  },
+  "scripts": {
+    "start": "cds serve",
+    "watch": "cds watch"
+  },
+  "cds": {
+    "requires": {
+      "RemoteService": {
+        "kind": "odata",
+        "model": "@advanced-security/remote-service"
+      },
+      "auth": {
+        "impl": "srv/privileged-user.js"
+      }
+    }
+  }
+}

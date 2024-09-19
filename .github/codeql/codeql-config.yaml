@@ -2,12 +2,9 @@ name: "My CodeQL config"
 
 queries:
   - uses: security-extended
-  # for ui5/cap queries
   - uses: ./javascript/frameworks/ui5/src/codeql-suites/javascript-security-extended.qls
   - uses: ./javascript/frameworks/cap/src/codeql-suites/javascript-security-extended.qls
+  - uses: ./javascript/frameworks/xsjs/src/codeql-suites/javascript-security-extended.qls
 
-paths:
-  - "**/*.xml"
-  - "**/*.json"
 paths-ignore:
   - "**/frameworks/*/test/models"

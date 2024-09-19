@@ -1,0 +1,10 @@
+<mvc:View controllerName="codeql-sap-js.controller.app"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:vk="sap.ui.vk">
+    <Input placeholder="Enter Payload" 
+        description="Try: &lt;img src=x onerror=alert(&quot;XSS&quot;)&gt;" 
+        value="{/input}" />  <!--User input source sap.m.Input.value -->
+    <vk:Notifications/> <!-- js/ui5-unsafe-log-access -->
+</mvc:View>

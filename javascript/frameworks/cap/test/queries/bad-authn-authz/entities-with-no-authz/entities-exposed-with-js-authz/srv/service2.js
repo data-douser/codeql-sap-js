@@ -49,8 +49,10 @@ module.exports = cds.service.impl(function () {
    */
   this.on("fun2", (req) => {
     if (!req.user.is("authenticated")) {
+      req.reject(403);
+    } else {
       /* Do something */
-    } else req.reject(403);
+    }
   });
 
   this.on("send2", async (msg) => {
@@ -58,4 +60,6 @@ module.exports = cds.service.impl(function () {
     const doSomething = console.log;
     doSomething(messageToPass);
   });
+
+  super.init();
 });

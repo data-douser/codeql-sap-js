@@ -2,7 +2,8 @@ import javascript as stdlib
 
 signature class BindingStringReaderSig {
   string getBindingString();
-  stdlib::Location getLocation();
+
+  stdlib::DbLocation getLocation();
 
   // Get a dataflow node associated with the binding string, if any.
   // Note that not all location from which we can obtain a binding string
@@ -51,7 +52,8 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
       value = ":"
     } or
     MkNumberToken(int begin, int end, string value, BindingStringReader reader) {
-      value = reader.getBindingString().regexpFind("-?[1-9]\\d*(\\.\\d+)?((e|E)?(\\+|-)?\\d+)?", _, begin) and
+      value =
+        reader.getBindingString().regexpFind("-?[1-9]\\d*(\\.\\d+)?((e|E)?(\\+|-)?\\d+)?", _, begin) and
       begin + value.length() - 1 = end
     } or
     MkStringToken(int begin, int end, string value, BindingStringReader reader) {
@@ -95,9 +97,9 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
             .getBindingString()
             .regexpFind("(?:#|#@)?(?:[a-zA-Z][a-zA-Z0-9_]*|[a-zA-Z0-9][a-zA-Z0-9_]:[a-zA-Z0-9_]+)(?:\\([^\\)]*\\))?",
               _, begin) and
-      begin + value.length() - 1 = end
+      begin + value.length() - 1 = end and
       // exclude keyword
-      and not value in ["true", "false", "null"]
+      not value in ["true", "false", "null"]
     } or
     MkGreaterThanToken(int begin, int end, string value, BindingStringReader reader) {
       begin = reader.getBindingString().indexOf(">") and
@@ -846,7 +848,7 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
     )
   }
 
-  newtype TBindingPathComponentList =
+  private newtype TBindingPathComponentList =
     MkEmptyBindingPathComponentList() or
     MkConstBindingPathComponentList(NameToken headToken, BindingPathComponentList tail, Token source) {
       exists(Token nextToken | nextToken = getNextSkippingWhitespace(headToken) |
@@ -918,7 +920,7 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
     )
   }
 
-  newtype TBindingPath =
+  private newtype TBindingPath =
     MkAbsoluteBindingPath(BindingPathComponentList pathComponents, Token source) {
       source instanceof ForwardSlashToken and
       mkBindingPathComponentList(getNextSkippingWhitespace(source), pathComponents, _)
@@ -1036,7 +1038,7 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
     mkRelativeBindingPathWithModel(first, bindingPath, last)
   }
 
-  newtype TBinding =
+  private newtype TBinding =
     MkBindingPath(Token first, BindingPath bindingPath, Token last) {
       exists(
         LeftBracketToken leftBracketToken, RightBracketToken rightBracketToken,

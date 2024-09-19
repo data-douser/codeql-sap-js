@@ -7,7 +7,7 @@ private class DataFromRemoteControlReference extends RemoteFlowSource, MethodCal
   DataFromRemoteControlReference() {
     exists(UI5Control sourceControl, string typeAlias, ControlReference controlReference |
       ApiGraphModelsExtensions::typeModel(typeAlias, sourceControl.getImportPath(), _) and
-      ApiGraphModelsExtensions::sourceModel(typeAlias, _, "remote") and
+      ApiGraphModelsExtensions::sourceModel(typeAlias, _, "remote", _) and
       sourceControl.getAReference() = controlReference and
       controlReference.flowsTo(this.getReceiver()) and
       this.getMethodName() = "getValue"
