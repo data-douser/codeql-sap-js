@@ -48,6 +48,7 @@ jobs:
         CODEQL_ACTION_EXTRA_OPTIONS: '{"database":{"init":["--search-path","${{ github.workspace }}/extractors"]}}'
       with:
         languages: javascript
+        build-mode: autobuild
         config-file: ./.github/codeql/codeql-config.yaml
         tools: https://github.com/github/codeql-action/releases/download/${{env.BUNDLE_VERSION}}/codeql-bundle-linux64.tar.gz
         debug: true
