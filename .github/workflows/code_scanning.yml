@@ -48,8 +48,8 @@ jobs:
         CODEQL_ACTION_EXTRA_OPTIONS: '{"database":{"init":["--search-path","${{ github.workspace }}/extractors"]}}'
       with:
         languages: javascript
-        build-mode: autobuild
         config-file: ./.github/codeql/codeql-config.yaml
+        db-location: ${{ runner.temp }}/js-database
         tools: https://github.com/github/codeql-action/releases/download/${{env.BUNDLE_VERSION}}/codeql-bundle-linux64.tar.gz
         debug: true
     
@@ -57,6 +57,7 @@ jobs:
       shell: bash
       run: |
         export CODEQL_DIST="$(dirname "${{ steps.initialize-codeql.outputs.codeql-path }}")"
+        export CODEQL_EXTRACTOR_JS_WIP_DATABASE"="${{ runner.temp }}/js-database"
         ${{ github.workspace }}/scripts/compile-cds.sh
 
     - name: Perform CodeQL Analysis
