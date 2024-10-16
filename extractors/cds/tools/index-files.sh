@@ -61,6 +61,8 @@ fi
 # Enable extraction of the cds.json files only
 export LGTM_INDEX_FILTERS=$'exclude:**/*.*\ninclude:**/*cds.json'
 export LGTM_INDEX_TYPESCRIPT="NONE"
+# Configure to copy over the CDS files as well, by pretending they are JSON
+export LGTM_INDEX_FILETYPES: ".cds:JSON"
 
 echo "Extracting the cds.json files"
 

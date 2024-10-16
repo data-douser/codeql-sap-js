@@ -12,7 +12,6 @@ on:
 
 env:
   LGTM_INDEX_XML_MODE: all
-  LGTM_INDEX_FILETYPES: ".json:JSON\n.cds:JSON"
 
 jobs:
   analyze-javascript:
