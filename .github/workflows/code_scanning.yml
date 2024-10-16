@@ -41,6 +41,7 @@ jobs:
         echo "BUNDLE_VERSION=$(jq .CodeQLCLIBundle qlt.conf.json -r)" >> $GITHUB_ENV
             
     - name: Initialize CodeQL
+      id: initialize-codeql
       uses: github/codeql-action/init@v3
       env:
         # Add our custom extractor to the CodeQL search path
@@ -54,6 +55,7 @@ jobs:
     - name: Run CDS extractor
       shell: bash
       run: |
+        export CODEQL_DIST="$(dirname "${{ steps.initialize-codeql.outputs.codeql-path }}")"
         ${{ github.workspace }}/scripts/compile-cds.sh
 
     - name: Perform CodeQL Analysis
