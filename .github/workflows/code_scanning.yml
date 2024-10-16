@@ -57,7 +57,7 @@ jobs:
       shell: bash
       run: |
         export CODEQL_DIST="$(dirname "${{ steps.initialize-codeql.outputs.codeql-path }}")"
-        export CODEQL_EXTRACTOR_JS_WIP_DATABASE="${{ runner.temp }}/js-database"
+        export CODEQL_EXTRACTOR_JAVASCRIPT_WIP_DATABASE="${{ runner.temp }}/js-database"
         ${{ github.workspace }}/scripts/compile-cds.sh
 
     - name: Perform CodeQL Analysis
