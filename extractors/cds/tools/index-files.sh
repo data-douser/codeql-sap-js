@@ -20,16 +20,9 @@ fi
 # Ensure that we have the `cds` command
 if ! command -v cds &> /dev/null
 then
-    # Find all the directories containing a package.json with a dependency on @sap/cds, then install
-    # the cds development kit (@sap/cds-dk) in each directory, which makes the `cds` command usable
-    # from the npx command within that directory.
-    #
-    # Nested package.json files simply cause the package to be installed in the parent node_modules
-    # directory.
-    #
-    # We also ensure we skip node_modules, as we can end up in a recursive loop
-    find . -type d -name node_modules -prune -false -o -type f \( -iname 'package.json' \) -exec grep -l '@sap/cds' {} + -execdir bash -c "echo \"Installing @sap/cds-dk into \$(pwd) to enable CDS compilation.\"" \; -execdir npm install @sap/cds-dk \;
-    cds_command="npx cds"
+    # Use the npx command to dynamically install the cds development kit (@sap/cds-dk) package if necessary,
+    # which then provides the cds command line tool.
+    cds_command="npx -y --package @sap/cds-dk cds"
 else
     cds_command="cds"
 fi
@@ -62,7 +55,7 @@ fi
 export LGTM_INDEX_FILTERS=$'exclude:**/*.*\ninclude:**/*cds.json'
 export LGTM_INDEX_TYPESCRIPT="NONE"
 # Configure to copy over the CDS files as well, by pretending they are JSON
-export LGTM_INDEX_FILETYPES: ".cds:JSON"
+export LGTM_INDEX_FILETYPES=".cds:JSON"
 
 echo "Extracting the cds.json files"
 
