@@ -2,6 +2,8 @@
 
 set -eu
 
+echo "Indexing CDS files"
+
 # Check if the list of files is empty
 response_file="$1"
 
@@ -21,6 +23,8 @@ fi
 # in the appropriate directories
 if ! command -v cds &> /dev/null
 then
+    echo "Pre-installing cds compiler"
+
     # Find all the directories containing a package.json with a dependency on @sap/cds, where
     # the directory contains at least one of the files listed in the response file (e.g. the
     # cds files we want to extract).
@@ -44,9 +48,10 @@ fi
 
 echo "Processing CDS files to JSON"
 
-# Run the cds compile command on each file in the response file, outputting the JSON to a file with the same name
+# Run the cds compile command on each file in the response file, outputting the compiled JSON to a file with
+# the same name
 while IFS= read -r cds_file; do
-    $cds_command  --version
+    echo "Processing CDS file $cds_file to:"
     $cds_command compile "$cds_file" \
         -2 json \
         -o "$cds_file.json" \
