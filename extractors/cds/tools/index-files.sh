@@ -17,11 +17,26 @@ if [ ! -s "$response_file" ]; then
     exit 0
 fi
 
-# Ensure that we have the `cds` command
+# Determine if we have the cds command available, and if not, install the cds development kit
+# in the appropriate directories
 if ! command -v cds &> /dev/null
 then
+    # Find all the directories containing a package.json with a dependency on @sap/cds, where
+    # the directory contains at least one of the files listed in the response file (e.g. the
+    # cds files we want to extract).
+    #
+    # We then install the cds development kit (@sap/cds-dk) in each directory, which makes the
+    # `cds` command usable from the npx command within that directory.
+    #
+    # Nested package.json files simply cause the package to be installed in the parent node_modules
+    # directory.
+    #
+    # We also ensure we skip node_modules, as we can end up in a recursive loop
+    find . -type d -name node_modules -prune -false -o -type f \( -iname 'package.json' \) -exec grep -l '@sap/cds' {} + -execdir grep -q "^{}\(/\|$\)" "$response_file" + -execdir bash -c "echo \"Installing @sap/cds-dk into \$(pwd) to enable CDS compilation.\"" \; -execdir npm install @sap/cds-dk \;
+
     # Use the npx command to dynamically install the cds development kit (@sap/cds-dk) package if necessary,
-    # which then provides the cds command line tool.
+    # which then provides the cds command line tool in directories which are not covered by the package.json
+    # install command approach above
     cds_command="npx -y --package @sap/cds-dk cds"
 else
     cds_command="cds"
@@ -29,7 +44,9 @@ fi
 
 echo "Processing CDS files to JSON"
 
+# Run the cds compile command on each file in the response file, outputting the JSON to a file with the same name
 while IFS= read -r cds_file; do
+    $cds_command  --version
     $cds_command compile "$cds_file" \
         -2 json \
         -o "$cds_file.json" \
