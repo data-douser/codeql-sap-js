@@ -15,21 +15,24 @@ private newtype CdlKind =
   CdlFunctionKind(string value) { value = "function" }
 
 /**
- * Any CDL element, including entities, event, actions, and more.
+ * A list of CDL definitions, which can include entities, events, actions and more.
  */
-class CdlDefinition extends CdlObject {
-  CdlDefinition() { exists(JsonObject root | this = root.getPropValue("definitions")) }
+class CdlDefinitions extends CdlObject {
+  CdlDefinitions() { exists(JsonObject root | this = root.getPropValue("definitions")) }
 
   JsonObject getElement(string elementName) { result = this.getPropValue(elementName) }
 
   JsonObject getAnElement() { result = this.getElement(_) }
 }
 
+/**
+ * A CDL definition element.
+ */
 abstract class CdlElement extends CdlObject {
   CdlKind kind;
   string name;
 
-  CdlElement() { exists(CdlDefinition definition | this = definition.getElement(name)) }
+  CdlElement() { exists(CdlDefinitions definitions | this = definitions.getElement(name)) }
 
   predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
     // If the cds.json file has a $location property, then use that,
