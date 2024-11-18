@@ -73,11 +73,25 @@ if [ -z "${CODEQL_EXTRACTOR_JAVASCRIPT_ROOT:-}" ]; then
     export CODEQL_EXTRACTOR_JAVASCRIPT_SOURCE_ARCHIVE_DIR="$CODEQL_EXTRACTOR_CDS_SOURCE_ARCHIVE_DIR"
 fi
 
+# Check if LGTM_INDEX_FILTERS is already set
+# This typically happens if "paths" or "paths-ignore" are set in the LGTM.yml file
+if [ -z "${LGTM_INDEX_FILTERS:-}" ]; then
+    # If it is set, we will try to honour the paths-ignore filter
+    # Split by \n and find all the entries that start with exclude, excluding "exclude:**/*" and "exclude:**/*.*"
+    # and then join them back together with \n
+    exclude_filters="\n$(grep '^exclude' "$LGTM_INDEX_FILTERS" | grep -v 'exclude:**/\*\|exclude:**/\*\.\*')"
+else
+    exclude_filters=""
+fi
+
 # Enable extraction of the cds.json files only
-export LGTM_INDEX_FILTERS=$'exclude:**/*.*\ninclude:**/*.cds.json\ninclude:**/*.cds\nexclude:**/node_modules/**/*.*'
+export LGTM_INDEX_FILTERS=$'exclude:**/*.*\ninclude:**/*.cds.json\ninclude:**/*.cds\nexclude:**/node_modules/**/*.*'"$exclude_filters"
 export LGTM_INDEX_TYPESCRIPT="NONE"
 # Configure to copy over the CDS files as well, by pretending they are JSON
 export LGTM_INDEX_FILETYPES=".cds:JSON"
+# Ignore the LGTM_INDEX_INCLUDE variable for this purpose, as it may
+# refer explicitly to .ts or .js files
+unset LGTM_INDEX_INCLUDE
 
 echo "Extracting the cds.json files"
 
