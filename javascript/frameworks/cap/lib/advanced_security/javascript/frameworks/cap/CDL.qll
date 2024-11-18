@@ -5,7 +5,44 @@
 import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 
-abstract class CdlObject extends JsonObject { }
+abstract class CdlObject extends JsonObject {
+  predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
+    // If the cds.json file has a $location property, then use that,
+    // otherwise fall back to the cds.json file itself
+    if exists(this.getPropValue("$location"))
+    then
+      exists(Location loc, JsonValue locValue |
+        loc = this.getLocation() and
+        locValue = this.getPropValue("$location") and
+        path =
+          any(File f |
+            f.getAbsolutePath()
+                .matches("%" + locValue.getPropValue("file").getStringValue() + ".json")
+          ).getAbsolutePath().regexpReplaceAll("\\.json$", "") and
+        sl = locValue.getPropValue("line").getIntValue() and
+        sc = locValue.getPropValue("col").getIntValue() and
+        if exists(getObjectLocationName())
+        then
+          // Currently $locations does not provide an end location. However, we can
+          // automatically deduce the end location from the length of the name.
+          el = sl and
+          ec = sc + getObjectLocationName().length() - 1
+        else (
+          // We don't know where this entity ends, so mark the whole line
+          el = sl + 1 and
+          ec = 1
+        )
+      )
+    else super.getLocation().hasLocationInfo(path, sl, sc, el, ec)
+  }
+
+  /**
+   * The name of the object that should be highlighted as the location.
+   *
+   * This is used to deduce the length of the location.
+   */
+  string getObjectLocationName() { none() }
+}
 
 private newtype CdlKind =
   CdlServiceKind(string value) { value = "service" } or
@@ -34,28 +71,7 @@ abstract class CdlElement extends CdlObject {
 
   CdlElement() { exists(CdlDefinitions definitions | this = definitions.getElement(name)) }
 
-  predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
-    // If the cds.json file has a $location property, then use that,
-    // otherwise fall back to the cds.json file itself
-    if exists(this.getPropValue("$location"))
-    then
-      exists(Location loc, JsonValue locValue |
-        loc = this.getLocation() and
-        locValue = this.getPropValue("$location") and
-        path =
-          any(File f |
-            f.getAbsolutePath()
-                .matches("%" + locValue.getPropValue("file").getStringValue() + ".json")
-          ).getAbsolutePath().regexpReplaceAll("\\.json$", "") and
-        sl = locValue.getPropValue("line").getIntValue() and
-        sc = locValue.getPropValue("col").getIntValue() and
-        el = sl and
-        // Currently $locations does not provide an end location. However, we can
-        // automatically deduce the end location from the length of the name.
-        ec = sc + getUnqualifiedName().length() - 1
-      )
-    else super.getLocation().hasLocationInfo(path, sl, sc, el, ec)
-  }
+  override string getObjectLocationName() { result = getUnqualifiedName() }
 
   /**
    * Gets the name of this CDL element.
@@ -224,6 +240,8 @@ class CdlAttribute extends CdlObject {
   CdlAttribute() {
     exists(CdlElement entity | this = entity.getPropValue("elements").getPropValue(name))
   }
+
+  override string getObjectLocationName() { result = getName() }
 
   string getType() { result = this.getPropStringValue("type") }
 
