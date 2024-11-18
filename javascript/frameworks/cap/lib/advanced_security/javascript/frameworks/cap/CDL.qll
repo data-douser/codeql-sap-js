@@ -19,18 +19,35 @@ abstract class CdlObject extends JsonObject {
             f.getAbsolutePath()
                 .matches("%" + locValue.getPropValue("file").getStringValue() + ".json")
           ).getAbsolutePath().regexpReplaceAll("\\.json$", "") and
-        sl = locValue.getPropValue("line").getIntValue() and
-        sc = locValue.getPropValue("col").getIntValue() and
-        if exists(getObjectLocationName())
+        if
+          not exists(locValue.getPropValue("line")) and
+          not exists(locValue.getPropValue("col"))
         then
-          // Currently $locations does not provide an end location. However, we can
-          // automatically deduce the end location from the length of the name.
-          el = sl and
-          ec = sc + getObjectLocationName().length() - 1
+          // We don't know where this entity starts, so mark the whole file
+          sl = 0 and
+          sc = 0 and
+          el = 0 and
+          ec = 0
         else (
-          // We don't know where this entity ends, so mark the whole line
-          el = sl + 1 and
-          ec = 1
+          sl = locValue.getPropValue("line").getIntValue() and
+          (
+            if exists(locValue.getPropValue("col"))
+            then sc = locValue.getPropValue("col").getIntValue()
+            else
+              // We don't know where this entity starts, so mark the start of the line
+              sc = 0
+          ) and
+          el = sl and
+          (
+            if exists(getObjectLocationName())
+            then
+              // Currently $locations does not provide an end location. However, we can
+              // automatically deduce the end location from the length of the name.
+              ec = sc + getObjectLocationName().length() - 1
+            else
+              // Mark a single character if we cannot predicate the length
+              ec = sc + 1
+          )
         )
       )
     else super.getLocation().hasLocationInfo(path, sl, sc, el, ec)
