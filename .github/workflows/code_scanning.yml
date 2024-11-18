@@ -10,9 +10,6 @@ on:
     - cron: '39 12 * * 2'
   workflow_dispatch:
 
-env:
-  LGTM_INDEX_XML_MODE: all
-
 jobs:
   analyze-javascript:
     name: Analyze
@@ -63,6 +60,9 @@ jobs:
     - name: Perform CodeQL Analysis
       id: analyze
       uses: github/codeql-action/analyze@v3
+      env:
+        LGTM_INDEX_XML_MODE: all
+        LGTM_INDEX_FILETYPES: ".json:JSON"
 
     - name: Setup Python
       uses: actions/setup-python@v5
