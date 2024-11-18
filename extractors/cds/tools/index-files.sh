@@ -76,12 +76,12 @@ fi
 # Check if LGTM_INDEX_FILTERS is already set
 # This typically happens if "paths" or "paths-ignore" are set in the LGTM.yml file
 if [ -z "${LGTM_INDEX_FILTERS:-}" ]; then
+    exclude_filters=""
+else
     # If it is set, we will try to honour the paths-ignore filter
     # Split by \n and find all the entries that start with exclude, excluding "exclude:**/*" and "exclude:**/*.*"
     # and then join them back together with \n
     exclude_filters="\n$(grep '^exclude' "$LGTM_INDEX_FILTERS" | grep -v 'exclude:**/\*\|exclude:**/\*\.\*')"
-else
-    exclude_filters=""
 fi
 
 # Enable extraction of the cds.json files only
