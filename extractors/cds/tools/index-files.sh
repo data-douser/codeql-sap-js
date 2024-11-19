@@ -78,11 +78,11 @@ fi
 if [ -z "${LGTM_INDEX_FILTERS:-}" ]; then
     exclude_filters=""
 else
-    echo "Found \$LGTM_INDEX_FILTERS already set to:\n$LGTM_INDEX_FILTERS"
+    echo $'Found \$LGTM_INDEX_FILTERS already set to:\n'"$LGTM_INDEX_FILTERS"
     # If it is set, we will try to honour the paths-ignore filter
     # Split by \n and find all the entries that start with exclude, excluding "exclude:**/*" and "exclude:**/*.*"
     # and then join them back together with \n
-    exclude_filters="\n$(echo "$LGTM_INDEX_FILTERS" | grep '^exclude' | grep -v 'exclude:\*\*/\*\|exclude:\*\*/\*\.\*')"
+    exclude_filters=$'\n'"$(echo "$LGTM_INDEX_FILTERS" | grep '^exclude' | grep -v 'exclude:\*\*/\*\|exclude:\*\*/\*\.\*')"
 fi
 
 # Enable extraction of the cds.json files only
