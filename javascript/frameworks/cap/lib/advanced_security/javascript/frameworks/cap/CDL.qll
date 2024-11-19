@@ -5,6 +5,62 @@
 import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 
+abstract class CdlObject extends JsonObject {
+  predicate hasLocationInfo(string path, int sl, int sc, int el, int ec) {
+    // If the cds.json file has a $location property, then use that,
+    // otherwise fall back to the cds.json file itself
+    if exists(this.getPropValue("$location"))
+    then
+      exists(Location loc, JsonValue locValue |
+        loc = this.getLocation() and
+        locValue = this.getPropValue("$location") and
+        path =
+          any(File f |
+            f.getAbsolutePath()
+                .matches("%" + locValue.getPropValue("file").getStringValue() + ".json")
+          ).getAbsolutePath().regexpReplaceAll("\\.json$", "") and
+        if
+          not exists(locValue.getPropValue("line")) and
+          not exists(locValue.getPropValue("col"))
+        then
+          // We don't know where this entity starts, so mark the whole file
+          sl = 0 and
+          sc = 0 and
+          el = 0 and
+          ec = 0
+        else (
+          sl = locValue.getPropValue("line").getIntValue() and
+          (
+            if exists(locValue.getPropValue("col"))
+            then sc = locValue.getPropValue("col").getIntValue()
+            else
+              // We don't know where this entity starts, so mark the start of the line
+              sc = 0
+          ) and
+          el = sl and
+          (
+            if exists(getObjectLocationName())
+            then
+              // Currently $locations does not provide an end location. However, we can
+              // automatically deduce the end location from the length of the name.
+              ec = sc + getObjectLocationName().length() - 1
+            else
+              // Mark a single character if we cannot predicate the length
+              ec = sc + 1
+          )
+        )
+      )
+    else super.getLocation().hasLocationInfo(path, sl, sc, el, ec)
+  }
+
+  /**
+   * The name of the object that should be highlighted as the location.
+   *
+   * This is used to deduce the length of the location.
+   */
+  string getObjectLocationName() { none() }
+}
+
 private newtype CdlKind =
   CdlServiceKind(string value) { value = "service" } or
   CdlEntityKind(string value) { value = "entity" } or
@@ -13,21 +69,26 @@ private newtype CdlKind =
   CdlFunctionKind(string value) { value = "function" }
 
 /**
- * Any CDL element, including entities, event, actions, and more.
+ * A list of CDL definitions, which can include entities, events, actions and more.
  */
-class CdlDefinition extends JsonObject {
-  CdlDefinition() { exists(JsonObject root | this = root.getPropValue("definitions")) }
+class CdlDefinitions extends CdlObject {
+  CdlDefinitions() { exists(JsonObject root | this = root.getPropValue("definitions")) }
 
   JsonObject getElement(string elementName) { result = this.getPropValue(elementName) }
 
   JsonObject getAnElement() { result = this.getElement(_) }
 }
 
-abstract class CdlElement extends JsonObject {
+/**
+ * A CDL definition element.
+ */
+abstract class CdlElement extends CdlObject {
   CdlKind kind;
   string name;
 
-  CdlElement() { exists(CdlDefinition definition | this = definition.getElement(name)) }
+  CdlElement() { exists(CdlDefinitions definitions | this = definitions.getElement(name)) }
+
+  override string getObjectLocationName() { result = getUnqualifiedName() }
 
   /**
    * Gets the name of this CDL element.
@@ -190,12 +251,14 @@ class CdlFunction extends CdlElement {
   }
 }
 
-class CdlAttribute extends JsonObject {
+class CdlAttribute extends CdlObject {
   string name;
 
   CdlAttribute() {
     exists(CdlElement entity | this = entity.getPropValue("elements").getPropValue(name))
   }
+
+  override string getObjectLocationName() { result = getName() }
 
   string getType() { result = this.getPropStringValue("type") }
 
@@ -207,7 +270,7 @@ class CdlAttribute extends JsonObject {
 /**
  * a `CdlEntity` that is declared in a namespace
  */
-class NamespacedEntity extends JsonObject instanceof CdlEntity {
+class NamespacedEntity extends CdlObject instanceof CdlEntity {
   string namespace;
 
   NamespacedEntity() { this.getParent+().getPropValue("namespace").getStringValue() = namespace }
@@ -218,7 +281,7 @@ class NamespacedEntity extends JsonObject instanceof CdlEntity {
 /**
  * any `JsonValue` that has a `PersonalData` like annotation above it
  */
-abstract class SensitiveAnnotatedElement extends JsonValue {
+abstract class SensitiveAnnotatedElement extends CdlObject {
   abstract string getName();
 }
 
@@ -295,7 +358,7 @@ class RestrictAnnotation extends CdlAnnotation, JsonArray {
   RestrictCondition getARestrictCondition() { result = this.getElementValue(_) }
 }
 
-class RestrictCondition extends JsonObject {
+class RestrictCondition extends CdlObject {
   RestrictCondition() { exists(RestrictAnnotation restrict | this = restrict.getElementValue(_)) }
 
   predicate grants(string eventName) {
