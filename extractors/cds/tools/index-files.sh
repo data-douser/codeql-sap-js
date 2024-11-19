@@ -78,14 +78,16 @@ fi
 if [ -z "${LGTM_INDEX_FILTERS:-}" ]; then
     exclude_filters=""
 else
+    echo "Found \$LGTM_INDEX_FILTERS already set to:\n$LGTM_INDEX_FILTERS"
     # If it is set, we will try to honour the paths-ignore filter
     # Split by \n and find all the entries that start with exclude, excluding "exclude:**/*" and "exclude:**/*.*"
     # and then join them back together with \n
-    exclude_filters="\n$(echo "$LGTM_INDEX_FILTERS" | grep '^exclude' | grep -v 'exclude:**/\*\|exclude:**/\*\.\*')"
+    exclude_filters="\n$(echo "$LGTM_INDEX_FILTERS" | grep '^exclude' | grep -v 'exclude:\*\*/\*\|exclude:\*\*/\*\.\*')"
 fi
 
 # Enable extraction of the cds.json files only
 export LGTM_INDEX_FILTERS=$'exclude:**/*.*\ninclude:**/*.cds.json\ninclude:**/*.cds\nexclude:**/node_modules/**/*.*'"$exclude_filters"
+echo "Setting \$LGTM_INDEX_FILTERS to:\n$LGTM_INDEX_FILTERS"
 export LGTM_INDEX_TYPESCRIPT="NONE"
 # Configure to copy over the CDS files as well, by pretending they are JSON
 export LGTM_INDEX_FILETYPES=".cds:JSON"
