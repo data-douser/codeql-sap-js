@@ -41,6 +41,9 @@ jobs:
     - name: Perform CodeQL Analysis
       id: analyze
       uses: github/codeql-action/analyze@v3
+      env:
+        LGTM_INDEX_XML_MODE: all
+        LGTM_INDEX_FILETYPES: ".json:JSON\n.cds:JSON"
 ```
 Example configuration file:
 ```yaml
@@ -50,7 +53,7 @@ packs:
   # Use these packs for JavaScript and TypeScript analysis
   javascript:
     - codeql/javascript-queries:codeql-suites/javascript-security-extended.qls
-    - advanced-security/javascript-sap-async-xsjs-queries:codeql-suites/javascript-security-extended.qls
+    - advanced-security/javascript-sap-xsjs-queries:codeql-suites/javascript-security-extended.qls
     - advanced-security/javascript-sap-cap-queries:codeql-suites/javascript-security-extended.qls
     - advanced-security/javascript-sap-ui5-queries:codeql-suites/javascript-security-extended.qls
 
@@ -84,7 +87,7 @@ codeql database create <DB_NAME> --language=javascript
 codeql database analyze <DB_NAME> --format=sarif-latest --output=<OUTPUT_FILE> \
   --download advanced-security/javascript-sap-cap-queries \
              advanced-security/javascript-sap-ui5-queries \
-             advanced-security/javascript-sap-async-xsjs-queries
+             advanced-security/javascript-sap-xsjs-queries
 ```
 
 ## License 

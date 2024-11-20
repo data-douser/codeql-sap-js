@@ -1,6 +1,6 @@
 ---
 library: true
-name: advanced-security/javascript-sap-async-xsjs-models
+name: advanced-security/javascript-sap-xsjs-models
 version: 0.1.0
 extensionTargets:
   codeql/javascript-all: "^2.0.0"
