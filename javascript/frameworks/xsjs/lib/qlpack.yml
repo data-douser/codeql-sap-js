@@ -1,6 +1,6 @@
 ---
 library: true
-name: advanced-security/javascript-sap-async-xsjs-lib
+name: advanced-security/javascript-sap-xsjs-lib
 version: 0.1.0
 suites: codeql-suites
 extractor: javascript
