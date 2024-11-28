@@ -17,7 +17,7 @@ private class ContextBindingAttribute extends XmlAttribute {
 private newtype TBindingString =
   TBindingStringFromLiteral(StringLiteral stringLiteral) { stringLiteral.getValue().matches("{%}") } or
   TBindingStringFromXmlAttribute(XmlAttribute attribute) {
-    attribute.getLocation().getFile() instanceof XmlView and
+    attribute.getLocation().getFile() instanceof UI5View and
     attribute.getValue().matches("{%}")
   } or
   TBindingStringFromJsonProperty(JsonObject object, string propertyName) {
