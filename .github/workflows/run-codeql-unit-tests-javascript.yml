@@ -87,13 +87,20 @@ jobs:
       # Compile .cds files to .cds.json files.
       - name: Compile CAP CDS files
         run: |
-          for cds_file in $(find . -type f \( -iname '*.cds' \) -print)
+          for test_dir in $(find . -type f -name '*.expected' -exec dirname {} \;);
           do
-            echo "I am compiling $cds_file"
-            cds compile $cds_file \
-              -2 json \
-              -o "$cds_file.json" \
-              --locations
+            # The CDS compiler produces locations relative to the working directory
+            # so we switch to the test directory before running the compiler.
+            pushd $test_dir
+            for cds_file in $(find . -type f \( -iname '*.cds' \) -print)
+            do
+              echo "I am compiling $cds_file"
+              cds compile $cds_file \
+                -2 json \
+                -o "$cds_file.json" \
+                --locations
+            done
+            popd
           done
 
       - name: Run test suites
@@ -105,7 +112,7 @@ jobs:
           CODEQL_STDLIB_IDENT: ${{matrix.codeql_standard_library_ident}}
           RUNNER_TMP: ${{ runner.temp }}
           LGTM_INDEX_XML_MODE: all
-          LGTM_INDEX_FILETYPES: ".json:JSON"
+          LGTM_INDEX_FILETYPES: ".json:JSON\n.cds:JSON"
 
         shell: bash
         run: >
