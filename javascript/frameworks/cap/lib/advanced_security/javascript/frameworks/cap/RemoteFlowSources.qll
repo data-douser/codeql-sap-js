@@ -12,11 +12,11 @@ import advanced_security.javascript.frameworks.cap.CDS
  * All the parameters named `req` and `msg` are captured in the above example.
  */
 class HandlerParameter extends ParameterNode, RemoteFlowSource {
+  Handler handler;
+  HandlerRegistration handlerRegistration;
+
   HandlerParameter() {
-    exists(
-      Handler handler, HandlerRegistration handlerRegistration,
-      UserDefinedApplicationService service
-    |
+    exists(UserDefinedApplicationService service |
       handler = handlerRegistration.getHandler() and
       this = handler.getParameter(0) and
       service.getAHandlerRegistration() = handlerRegistration and
@@ -27,6 +27,16 @@ class HandlerParameter extends ParameterNode, RemoteFlowSource {
   override string getSourceType() {
     result = "Parameter of an event handler belonging to an exposed service"
   }
+
+  /**
+   * Gets the handler this is a parameter of.
+   */
+  Handler getHandler() { result = handler }
+
+  /**
+   * Gets the handler registration registering the handler it is a parameter of.
+   */
+  HandlerRegistration getHandlerRegistration() { result = handlerRegistration }
 }
 
 /**
