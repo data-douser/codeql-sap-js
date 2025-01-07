@@ -43,7 +43,10 @@ class HandlerParameter extends ParameterNode, RemoteFlowSource {
  * A service may be described only in a CDS file, but event handlers may still be registered in a format such as:
  * ```javascript
  * module.exports = srv => {
- * srv.before('CREATE', 'Media', req => { //an entity name is used to describe which to register this handler to
+ *   srv.before('CREATE', 'Media', req => { // an entity name is used to describe which to register this handler to.
+ *     ...
+ *   });
+ * }
  * ```
  * parameters named `req` are captured in the above example.
  */
