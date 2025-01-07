@@ -2,9 +2,10 @@
     "name": "@advanced-security/log-injection",
     "version": "1.0.0",
     "dependencies": {
-        "@sap/cds": "^7",
-        "express": "^4.17.1",
-        "@cap-js/sqlite": "*"
+        "@cap-js/sqlite": "*",
+        "@sap/cds": "^7.9.5",
+        "@sap/cds-dk": "^8.6.1",
+        "express": "^4.17.1"
     },
     "scripts": {
         "start": "cds-serve",
