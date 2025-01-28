@@ -21,6 +21,7 @@ then
 fi
 
 _response_file_path="$1"
+_script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 echo "Checking response file for CDS files to index"
 
@@ -35,6 +36,11 @@ then
     exit 0
 fi
 
-echo "Installing node package dependencies and running the 'index-files.js' script"
+# Change to the directory of this script to ensure that npm looks up
+# the package.json file in the correct directory and installs the
+# dependencies (i.e. node_modules) relative to this directory.
+cd "$_script_dir" && \
+echo "Installing node package dependencies" && \
 npm install --quiet --no-audit --no-fund --no-package-json && \
+echo "Running the 'index-files.js' script" && \
 node "$(dirname "$0")/index-files.js" "$_response_file_path"
