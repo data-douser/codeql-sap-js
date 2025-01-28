@@ -21,6 +21,7 @@ if (!existsSync(responseFile)) {
     process.exit(0);
 }
 
+// Read the response file and split it into lines, removing (filter(Boolean)) empty lines.
 const responseFiles = readFileSync(responseFile, 'utf-8').split('\n').filter(Boolean);
 // If the response file is empty, terminate.
 if (statSync(responseFile).size === 0 || !responseFiles) {
