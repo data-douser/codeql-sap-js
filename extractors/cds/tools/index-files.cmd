@@ -18,6 +18,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 set "_response_file_path=%~1"
+set "_script_dir=%~dp0"
 
 echo Checking response file for CDS files to index
 
@@ -26,8 +27,12 @@ if not exist "%_response_file_path%" (
     exit /b 0
 )
 
-echo Installing node package dependencies and running the 'index-files.js' script
+REM Change to the directory of this script to ensure that npm looks up
+REM the package.json file in the correct directory and installs the
+REM dependencies (i.e. node_modules) relative to this directory.
+cd /d "%_script_dir%" && ^
+echo Installing node package dependencies and running the 'index-files.js' script && ^
 npm install --quiet --no-audit --no-fund --no-package-json && ^
-node "%~dp0index-files.js" "%_response_file_path%"
+node "%_script_dir%index-files.js" "%_response_file_path%"
 
 exit /b %ERRORLEVEL%
