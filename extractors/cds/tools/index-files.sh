@@ -41,6 +41,6 @@ fi
 # dependencies (i.e. node_modules) relative to this directory.
 cd "$_script_dir" && \
 echo "Installing node package dependencies" && \
-npm install --quiet --no-audit --no-fund --no-package-json && \
+npm install --quiet --no-audit --no-fund && \
 echo "Running the 'index-files.js' script" && \
 node "$(dirname "$0")/index-files.js" "$_response_file_path"

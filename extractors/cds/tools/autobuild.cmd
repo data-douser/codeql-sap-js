@@ -1,6 +1,6 @@
 @echo off
 
-type NUL && "%CODEQL_DIST%\codeql" database index-files ^
+type NUL && "%CODEQL_DIST%\codeql.exe" database index-files ^
     --include-extension=.cds ^
     --language cds ^
     --prune **\node_modules\**\* ^
