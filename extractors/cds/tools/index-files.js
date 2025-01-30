@@ -11,12 +11,43 @@ const responseFile = process.argv[2];
 const osPlatform = platform();
 const osPlatformArch = arch();
 console.log(`Detected OS platform=${osPlatform} : arch=${osPlatformArch}`);
-const autobuildScriptName = osPlatform === 'win32' ? 'autobuild.cmd' : 'autobuild.sh';
-const autobuildScriptPath = join(
-    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT, 'tools', autobuildScriptName
-);
 const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
 const codeqlExePath = join(quote([process.env.CODEQL_DIST]), codeqlExe);
+
+let CODEQL_EXTRACTOR_JAVASCRIPT_ROOT = process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT
+    ? quote([process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT])
+    : undefined;
+// Check if the (JavaScript) JS extractor variables are set, and set them if not.
+if (!CODEQL_EXTRACTOR_JAVASCRIPT_ROOT) {
+    // Find the JS extractor location.
+    CODEQL_EXTRACTOR_JAVASCRIPT_ROOT = execFileSync(
+        codeqlExePath,
+        ['resolve', 'extractor', '--language=javascript']
+    ).toString().trim();
+    // Terminate early if the CODEQL_EXTRACTOR_JAVASCRIPT_ROOT environment
+    // variable was not already set and could not be resolved via CLI.
+    if (!CODEQL_EXTRACTOR_JAVASCRIPT_ROOT) {
+        console.warn(
+            `'${codeqlExe} database index-files --language cds' terminated early as CODEQL_EXTRACTOR_JAVASCRIPT_ROOT environment variable is not set.`
+        );
+        process.exit(0);
+    }
+    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT = CODEQL_EXTRACTOR_JAVASCRIPT_ROOT;
+    // Set the JAVASCRIPT extractor environment variables to the same as the CDS
+    // extractor environment variables so that the JS extractor will write to the
+    // CDS database.
+    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_WIP_DATABASE = process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE;
+    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_DIAGNOSTIC_DIR = process.env.CODEQL_EXTRACTOR_CDS_DIAGNOSTIC_DIR;
+    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_LOG_DIR = process.env.CODEQL_EXTRACTOR_CDS_LOG_DIR;
+    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_SCRATCH_DIR = process.env.CODEQL_EXTRACTOR_CDS_SCRATCH_DIR;
+    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_TRAP_DIR = process.env.CODEQL_EXTRACTOR_CDS_TRAP_DIR;
+    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_SOURCE_ARCHIVE_DIR = process.env.CODEQL_EXTRACTOR_CDS_SOURCE_ARCHIVE_DIR;
+}
+
+const autobuildScriptName = osPlatform === 'win32' ? 'autobuild.cmd' : 'autobuild.sh';
+const autobuildScriptPath = join(
+    CODEQL_EXTRACTOR_JAVASCRIPT_ROOT, 'tools', autobuildScriptName
+);
 
 /**
  * Terminate early if:
@@ -108,7 +139,7 @@ try {
     });
 
     // TODO : revise this check as the equality is probably not guaranteed.
-    if (responseFiles.length !== packageJsonDirs.length) {
+    if (responseFiles.length !== packageJsonDirs.size) {
         console.warn(
             `WARN: mismatch between number of response files (${responseFiles.length}) and package.json directories (${packageJsonDirs.length})`
         );
@@ -169,24 +200,6 @@ responseFiles.forEach(rawCdsFilePath => {
         );
     }
 });
-
-// Check if the (JavaScript) JS extractor variables are set, and set them if not.
-if (!process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT) {
-    // Find the JS extractor location.
-    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT = execFileSync(
-        codeqlExePath,
-        ['resolve', 'extractor', '--language=javascript']
-    ).toString().trim();
-    // Set the JAVASCRIPT extractor environment variables to the same as the CDS
-    // extractor environment variables so that the JS extractor will write to the
-    // CDS database.
-    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_WIP_DATABASE = process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE;
-    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_DIAGNOSTIC_DIR = process.env.CODEQL_EXTRACTOR_CDS_DIAGNOSTIC_DIR;
-    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_LOG_DIR = process.env.CODEQL_EXTRACTOR_CDS_LOG_DIR;
-    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_SCRATCH_DIR = process.env.CODEQL_EXTRACTOR_CDS_SCRATCH_DIR;
-    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_TRAP_DIR = process.env.CODEQL_EXTRACTOR_CDS_TRAP_DIR;
-    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_SOURCE_ARCHIVE_DIR = process.env.CODEQL_EXTRACTOR_CDS_SOURCE_ARCHIVE_DIR;
-}
 
 let excludeFilters = '';
 /**
