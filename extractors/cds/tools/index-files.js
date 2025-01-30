@@ -1,4 +1,4 @@
-const { execFileSync, execSync, spawnSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const { existsSync, readFileSync, statSync } = require('fs');
 const { arch, platform } = require('os');
 const { dirname, join, resolve } = require('path');
@@ -13,6 +13,12 @@ const osPlatformArch = arch();
 console.log(`Detected OS platform=${osPlatform} : arch=${osPlatformArch}`);
 const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
 const codeqlExePath = join(quote([process.env.CODEQL_DIST]), codeqlExe);
+const projectRootDir = resolve(`${dirname(__filename)}/../../..`);
+
+if (!existsSync(projectRootDir)) {
+    console.warn(`'${codeqlExe} database index-files --language cds' terminated early due to internal error: could not find project root directory '${projectRootDir}'.`);
+    process.exit(0);
+}
 
 let CODEQL_EXTRACTOR_JAVASCRIPT_ROOT = process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT
     ? quote([process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT])
@@ -122,11 +128,7 @@ try {
                     typeof packageJsonData.dependencies === 'object'
                 ) {
                     const dependencyNames = Object.keys(packageJsonData.dependencies);
-                    if (
-                        dependencyNames.includes('@sap/cds')
-                        &&
-                        dependencyNames.includes('@sap/cds-dk')
-                    ) {
+                    if (dependencyNames.includes('@sap/cds')) {
                         packageJsonDirs.add(dir);
                         break;
                     }
@@ -138,14 +140,20 @@ try {
         }
     });
 
-    // TODO : revise this check as the equality is probably not guaranteed.
-    if (responseFiles.length !== packageJsonDirs.size) {
-        console.warn(
-            `WARN: mismatch between number of response files (${responseFiles.length}) and package.json directories (${packageJsonDirs.length})`
-        );
+    // Sanity check that we found at least one package.json directory from which the CDS
+    // compiler dependencies may be installed.
+    if (packageJsonDirs.size === 0) {
+        console.warn('WARN:  failed to detect any package.json directories for cds compiler installation.');
+        exit(0);
     }
 
     packageJsonDirs.forEach((dir) => {
+        console.log(`Installing '@sap/cds-dk' into ${dir} to enable CDS compilation.`);
+        execFileSync(
+            'npm',
+            ['install', '--quiet', '--no-audit', '--no-fund', '@sap/cds-dk'],
+            { cwd: dir, stdio: 'inherit' }
+        );
         console.log(`Installing node packages into ${dir} to enable CDS compilation.`);
         execFileSync(
             'npm',
@@ -244,9 +252,10 @@ process.env.LGTM_INDEX_FILETYPES = '.cds:JSON';
 // refer to .js or .ts files.
 delete process.env.LGTM_INDEX_INCLUDE;
 
-console.log('Extracting the .cds.json files');
-
-console.log(`Running 'javascript' extractor autobuild script: ${autobuildScriptPath}`);
+console.log(
+    `Extracting the .cds.json files by running the 'javascript' extractor autobuild script:
+    ${autobuildScriptPath}`
+);
 /**
  * Invoke the javascript autobuilder to index the .cds.json files only.
  *
@@ -254,9 +263,15 @@ console.log(`Running 'javascript' extractor autobuild script: ${autobuildScriptP
  * process that invokes the autobuild script, otherwise the CDS autobuild.sh
  * script will not be invoked by the autobuild script built into the
  * 'javascript' extractor.
+ *
+ * IMPORTANT: The JavaScript extractor autobuild script must be invoked with
+ * the current working directory set to the project root directory because it
+ * assumes it is running from there. Without the `cwd` property set to the
+ * project root directory, the autobuild script will not detect the .cds.json
+ * files as being in the project and will not index them.
  */
 spawnSync(
     autobuildScriptPath,
     [],
-    { env: process.env, shell: true, stdio: 'inherit' }
+    { cwd: projectRootDir, env: process.env, shell: true, stdio: 'inherit' }
 );
