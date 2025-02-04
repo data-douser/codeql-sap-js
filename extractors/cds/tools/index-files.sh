@@ -20,6 +20,7 @@ then
     exit 3
 fi
 
+_cwd="$PWD"
 _response_file_path="$1"
 _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -36,11 +37,22 @@ then
     exit 0
 fi
 
-# Change to the directory of this script to ensure that npm looks up
-# the package.json file in the correct directory and installs the
-# dependencies (i.e. node_modules) relative to this directory.
+# Change to the directory of this script to ensure that npm looks up the
+# package.json file in the correct directory and installs the dependencies
+# (i.e. node_modules) relative to this directory. This is technically a
+# violation of the assumption that extractor scripts will be run with the
+# current working directory set to the root of the project source, but we
+# also need node_modules to be installed here and not in the project source
+# root, so we make a compromise of:
+#  1. changing to this script's directory;
+#  2. installing node dependencies here;
+#  3. passing the original working directory as a parameter to the
+#     index-files.js script;
+#  4. expecting the index-files.js script to immediately change back to
+#     the original working (aka the project source root) directory.
+
 cd "$_script_dir" && \
 echo "Installing node package dependencies" && \
 npm install --quiet --no-audit --no-fund && \
 echo "Running the 'index-files.js' script" && \
-node "$(dirname "$0")/index-files.js" "$_response_file_path"
+node "$(dirname "$0")/index-files.js" "$_response_file_path" "${_cwd}"
