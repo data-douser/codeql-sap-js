@@ -4,19 +4,29 @@ const { arch, platform } = require('os');
 const { dirname, join, resolve } = require('path');
 const { quote } = require('shell-quote');
 
-console.log('Indexing CDS files');
+// Terminate early if this script is not invoked with the required arguments.
+if (process.argv.length !== 4) {
+    console.warn(`Usage: node index-files.js <response-file> <source-root>`);
+    process.exit(0);
+}
 
 const responseFile = process.argv[2];
+const sourceRoot = process.argv[3];
+
+// Force this script, and any process it spawns, to use the project (source)
+// root directory as the current working directory.
+process.chdir(sourceRoot);
+
+console.log(`Indexing CDS files in project source directory: ${sourceRoot}`);
 
 const osPlatform = platform();
 const osPlatformArch = arch();
 console.log(`Detected OS platform=${osPlatform} : arch=${osPlatformArch}`);
 const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
 const codeqlExePath = join(quote([process.env.CODEQL_DIST]), codeqlExe);
-const projectRootDir = resolve(`${dirname(__filename)}/../../..`);
 
-if (!existsSync(projectRootDir)) {
-    console.warn(`'${codeqlExe} database index-files --language cds' terminated early due to internal error: could not find project root directory '${projectRootDir}'.`);
+if (!existsSync(sourceRoot)) {
+    console.warn(`'${codeqlExe} database index-files --language cds' terminated early due to internal error: could not find project root directory '${sourceRoot}'.`);
     process.exit(0);
 }
 
@@ -265,13 +275,15 @@ console.log(
  * 'javascript' extractor.
  *
  * IMPORTANT: The JavaScript extractor autobuild script must be invoked with
- * the current working directory set to the project root directory because it
- * assumes it is running from there. Without the `cwd` property set to the
- * project root directory, the autobuild script will not detect the .cds.json
- * files as being in the project and will not index them.
+ * the current working directory set to the project (source) root directory
+ * because it assumes it is running from there. The JavaScript extractor will
+ * only find the .cds files to index (to the database) if those file are
+ * relative to where the autobuild script is invoked from, which should be the
+ * same as the `--source-root` argument passed to the `codeql database create`
+ * command.
  */
 spawnSync(
     autobuildScriptPath,
     [],
-    { cwd: projectRootDir, env: process.env, shell: true, stdio: 'inherit' }
+    { cwd: sourceRoot, env: process.env, shell: true, stdio: 'inherit' }
 );

@@ -2,12 +2,6 @@
 
 set -eu
 
-# NOTE: the code below is copied in three places:
-#  - scripts/compile-cds.sh
-#  - extractors/cds/tools/autobuild.sh (here)
-#  - extractors/javascript/tools/pre-finalize.sh
-# Any changes should be synchronized between these three places.
-
 exec "${CODEQL_DIST}/codeql" database index-files \
     --include-extension=.cds \
     --language cds \

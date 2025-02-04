@@ -2,14 +2,7 @@
 
 set -eu
 
-# NOTE: the code below is copied in three places:
-#  - scripts/compile-cds.sh
-#  - extractors/cds/tools/autobuild.sh
-#  - extractors/javascript/tools/pre-finalize.sh (here)
-# Any changes should be synchronized between these three places.
-
-# Do not extract CDS files if the
-#  CODEQL_EXTRACTOR_CDS_SKIP_EXTRACTION
+# Do not extract CDS files if the CODEQL_EXTRACTOR_CDS_SKIP_EXTRACTION
 # environment variable is set.
 if [ -z "${CODEQL_EXTRACTOR_CDS_SKIP_EXTRACTION:-}" ]; then
     # Call the index-files command with the CDS extractor
