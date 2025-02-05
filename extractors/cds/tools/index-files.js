@@ -119,9 +119,12 @@ try {
      * Nested package.json files simply cause the package to be installed in the parent
      * node_modules directory.
      *
-     * TODO : fix implementation or change ^comment^ to reflect the actual implementation.
-     *
      * We also ensure we skip node_modules, as we can end up in a recursive loop.
+     *
+     * NOTE: The original (sh-based) implementation of this extractor would also capture
+     * "grandfathered" package.json files, which are package.json files that exist in a
+     * parent directory of the first package.json file found. This (js-based) implementation
+     * removes this behavior as it seems unnecessary and potentially problematic.
      */
     responseFiles.forEach(file => {
         let dir = dirname(quote([file]));
