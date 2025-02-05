@@ -1,7 +1,7 @@
 const { execFileSync, spawnSync } = require('child_process');
-const { existsSync, readFileSync, statSync } = require('fs');
+const { existsSync, readFileSync, statSync, writeFileSync } = require('fs');
 const { arch, platform } = require('os');
-const { dirname, join, resolve } = require('path');
+const { basename, dirname, join, resolve } = require('path');
 const { quote } = require('shell-quote');
 
 // Terminate early if this script is not invoked with the required arguments.
@@ -23,7 +23,7 @@ const osPlatform = platform();
 const osPlatformArch = arch();
 console.log(`Detected OS platform=${osPlatform} : arch=${osPlatformArch}`);
 const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
-const codeqlExePath = join(quote([process.env.CODEQL_DIST]), codeqlExe);
+const codeqlExePath = resolve(join(quote([process.env.CODEQL_DIST]), codeqlExe));
 
 if (!existsSync(sourceRoot)) {
     console.warn(`'${codeqlExe} database index-files --language cds' terminated early due to internal error: could not find project root directory '${sourceRoot}'.`);
@@ -61,9 +61,9 @@ if (!CODEQL_EXTRACTOR_JAVASCRIPT_ROOT) {
 }
 
 const autobuildScriptName = osPlatform === 'win32' ? 'autobuild.cmd' : 'autobuild.sh';
-const autobuildScriptPath = join(
+const autobuildScriptPath = resolve(join(
     CODEQL_EXTRACTOR_JAVASCRIPT_ROOT, 'tools', autobuildScriptName
-);
+));
 
 /**
  * Terminate early if:
@@ -104,7 +104,7 @@ let cdsCommand = 'cds';
 try {
     execFileSync('cds', ['--version'], { stdio: 'ignore' });
 } catch {
-    console.log('Pre-installing cds compiler');
+    console.log('Pre-installing cds compiler ...');
 
     // Use a JS `Set` to avoid duplicate processing of the same directory.
     const packageJsonDirs = new Set();
@@ -156,18 +156,18 @@ try {
     // Sanity check that we found at least one package.json directory from which the CDS
     // compiler dependencies may be installed.
     if (packageJsonDirs.size === 0) {
-        console.warn('WARN:  failed to detect any package.json directories for cds compiler installation.');
+        console.warn('WARN: failed to detect any package.json directories for cds compiler installation.');
         exit(0);
     }
 
     packageJsonDirs.forEach((dir) => {
-        console.log(`Installing '@sap/cds-dk' into ${dir} to enable CDS compilation.`);
+        console.log(`Installing '@sap/cds-dk' into ${dir} to enable CDS compilation ...`);
         execFileSync(
             'npm',
-            ['install', '--quiet', '--no-audit', '--no-fund', '@sap/cds-dk'],
+            ['install', '--quiet', '--no-audit', '--no-fund', '--no-save', '@sap/cds-dk'],
             { cwd: dir, stdio: 'inherit' }
         );
-        console.log(`Installing node packages into ${dir} to enable CDS compilation.`);
+        console.log(`Installing node packages into ${dir} to enable CDS compilation ...`);
         execFileSync(
             'npm',
             ['install', '--quiet', '--no-audit', '--no-fund'],
@@ -183,7 +183,7 @@ try {
     cdsCommand = 'npx -y --package @sap/cds-dk cds';
 }
 
-console.log('Processing CDS files to JSON');
+console.log('Processing CDS files to JSON ...');
 
 /**
  * Run the cds compile command on each file in the response files list, outputting the
@@ -192,33 +192,44 @@ console.log('Processing CDS files to JSON');
 responseFiles.forEach(rawCdsFilePath => {
     const cdsFilePath = quote([rawCdsFilePath]);
     const cdsJsonFilePath = `${cdsFilePath}.json`;
-    console.log(`Processing CDS file ${cdsFilePath} to: ${cdsJsonFilePath}`);
+    console.log(`Processing CDS file ${cdsFilePath} to ${cdsJsonFilePath} ...`);
     const result = spawnSync(
         cdsCommand,
-        ['compile', cdsFilePath, '-2', 'json', '-o', cdsJsonFilePath, '--locations'],
-        { shell: true }
+        [
+            'compile', cdsFilePath,
+            '-2', 'json',
+            '--locations',
+            '--log-level', 'warn'
+        ],
+        { cwd: dirname(cdsFilePath), shell: true, stdio: 'pipe' }
     );
-    if (result.error || result.status !== 0) {
-        const stderrTruncated = result.stderr.toString().split('\n').filter(line => line.startsWith('[ERROR]')).slice(-4).join('\n');
-        const errorMessage = `Could not compile the file ${cdsFilePath}.\nReported error(s):\n\`\`\`\n${stderrTruncated}\n\`\`\``;
+    if (result.error || result.status !== 0 || !result.stdout) {
+        const errorMessage = `Could not compile the file ${cdsFilePath}.\nReported error(s):\n\`\`\`\n${result.stderr.toString()}\n\`\`\``;
         console.log(errorMessage);
-        execFileSync(
-            codeqlExePath,
-            [
-                'database',
-                'add-diagnostic',
-                '--extractor-name=cds',
-                '--ready-for-status-page',
-                '--source-id=cds/compilation-failure',
-                '--source-name="Failure to compile one or more SAP CAP CDS files"',
-                '--severity=error',
-                `--markdown-message="${errorMessage}"`,
-                `--file-path="${cdsFilePath}"`,
-                '--',
-                `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE}`
-            ],
-        );
+        try {
+            execFileSync(
+                codeqlExePath,
+                [
+                    'database',
+                    'add-diagnostic',
+                    '--extractor-name=cds',
+                    '--ready-for-status-page',
+                    '--source-id=cds/compilation-failure',
+                    '--source-name="Failure to compile one or more SAP CAP CDS files"',
+                    '--severity=error',
+                    `--markdown-message="${errorMessage}"`,
+                    `--file-path="${cdsFilePath}"`,
+                    '--',
+                    `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE}`
+                ],
+            );
+            console.log(`Added error diagnostic for source file: ${cdsFilePath}`);
+        } catch (err) {
+            console.error(`Failed to add error diagnostic for source file=${cdsFilePath} : ${err}`);
+        }
     }
+    // Write the compiled JSON result to cdsJsonFilePath.
+    writeFileSync(cdsJsonFilePath, result.stdout);
 });
 
 let excludeFilters = '';
