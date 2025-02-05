@@ -1,7 +1,7 @@
 const { execFileSync, spawnSync } = require('child_process');
 const { existsSync, readFileSync, statSync, writeFileSync } = require('fs');
 const { arch, platform } = require('os');
-const { basename, dirname, join, resolve } = require('path');
+const { dirname, join, resolve } = require('path');
 const { quote } = require('shell-quote');
 
 // Terminate early if this script is not invoked with the required arguments.
@@ -161,16 +161,19 @@ try {
     }
 
     packageJsonDirs.forEach((dir) => {
+        console.log(`Installing node dependencies from ${dir}/package.json ...`);
+        execFileSync(
+            'npm',
+            ['install', '--quiet', '--no-audit', '--no-fund'],
+            { cwd: dir, stdio: 'inherit' }
+        );
+        // Order is important here. Install dependencies from package.json in the directory,
+        // then install the CDS development kit (`@sap/cds-dk`) in the directory. Reversing
+        // this order causes cyclic install-remove behavior.
         console.log(`Installing '@sap/cds-dk' into ${dir} to enable CDS compilation ...`);
         execFileSync(
             'npm',
             ['install', '--quiet', '--no-audit', '--no-fund', '--no-save', '@sap/cds-dk'],
-            { cwd: dir, stdio: 'inherit' }
-        );
-        console.log(`Installing node packages into ${dir} to enable CDS compilation ...`);
-        execFileSync(
-            'npm',
-            ['install', '--quiet', '--no-audit', '--no-fund'],
             { cwd: dir, stdio: 'inherit' }
         );
     });
@@ -201,7 +204,7 @@ responseFiles.forEach(rawCdsFilePath => {
             '--locations',
             '--log-level', 'warn'
         ],
-        { cwd: dirname(cdsFilePath), shell: true, stdio: 'pipe' }
+        { shell: true, stdio: 'pipe' }
     );
     if (result.error || result.status !== 0 || !result.stdout) {
         const errorMessage = `Could not compile the file ${cdsFilePath}.\nReported error(s):\n\`\`\`\n${result.stderr.toString()}\n\`\`\``;
