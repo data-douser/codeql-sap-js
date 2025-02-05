@@ -199,8 +199,7 @@ responseFiles.forEach(rawCdsFilePath => {
         { shell: true }
     );
     if (result.error || result.status !== 0) {
-        const stderrTruncated = quote(
-            result.stderr.toString().split('\n').filter(line => line.startsWith('[ERROR]')).slice(-4).join('\n'));
+        const stderrTruncated = result.stderr.toString().split('\n').filter(line => line.startsWith('[ERROR]')).slice(-4).join('\n');
         const errorMessage = `Could not compile the file ${cdsFilePath}.\nReported error(s):\n\`\`\`\n${stderrTruncated}\n\`\`\``;
         console.log(errorMessage);
         execFileSync(
