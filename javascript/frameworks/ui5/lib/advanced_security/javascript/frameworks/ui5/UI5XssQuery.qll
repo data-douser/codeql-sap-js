@@ -40,10 +40,10 @@ class Configuration extends DomBasedXss::Configuration {
     node = any(PropertyMetadata m | not m.isUnrestrictedStringType())
     or
     /* 3-1. Sanitizers provided by `sap.base.security` */
-    exists(SapAmdModuleDefinition d, DataFlow::ParameterNode par |
+    exists(SapDefineModule d, DataFlow::ParameterNode par |
       node = par.getACall() and
-      par.getParameter() =
-        d.getDependencyParameter("sap/base/security/" +
+      par =
+        d.getRequiredObject("sap/base/security/" +
             ["encodeCSS", "encodeJS", "encodeURL", "encodeURLParameters", "encodeXML"])
     )
     or
