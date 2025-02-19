@@ -36,7 +36,7 @@ then
     # directory.
     #
     # We also ensure we skip node_modules, as we can end up in a recursive loop
-    find . -type d -name node_modules -prune -false -o -type f \( -iname 'package.json' \) -exec grep -ql '@sap/cds' {} \; -execdir bash -c "grep -q \"^\$(pwd)\(/\|$\)\" \"$response_file\"" \; -execdir bash -c "echo \"Installing @sap/cds-dk into \$(pwd) to enable CDS compilation.\"" \; -execdir npm install --silent @sap/cds-dk \; -execdir npm install --silent \;
+    find . -type d -name node_modules -prune -false -o -type f \( -iname 'package.json' \) -exec grep -ql '@sap/cds' {} \; -execdir bash -c "grep -q \"^\$(pwd)\(/\|$\)\" \"$response_file\"" \; -execdir bash -c "echo \"Installing @sap/cds-dk into \$(pwd) to enable CDS compilation.\"" \; -execdir npm install --silent @sap/cds-dk@8.6.1 \; -execdir npm install --silent \;
 
     # Use the npx command to dynamically install the cds development kit (@sap/cds-dk) package if necessary,
     # which then provides the cds command line tool in directories which are not covered by the package.json
@@ -52,7 +52,7 @@ echo "Processing CDS files to JSON"
 # the same name
 while IFS= read -r cds_file; do
     echo "Processing CDS file $cds_file to:"
-    if ! $cds_command compile "$cds_file" -2 json -o "$cds_file.json" --locations 2> "$cds_file.err"; then
+    if ! $cds_command compile "$cds_file" -2 json --locations > "$cds_file.json" 2> "$cds_file.err"; then
         stderr_truncated=`grep "^\[ERROR\]" "$cds_file.err" | tail -n 4`
         error_message=$'Could not compile the file '"$cds_file"$'.\nReported error(s):\n```\n'"$stderr_truncated"$'\n```'
         echo "$error_message"
