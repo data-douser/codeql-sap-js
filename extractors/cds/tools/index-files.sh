@@ -52,7 +52,7 @@ echo "Processing CDS files to JSON"
 # the same name
 while IFS= read -r cds_file; do
     echo "Processing CDS file $cds_file to:"
-    if ! $cds_command compile "$cds_file" -2 json -o "$cds_file.json" --locations 2> "$cds_file.err"; then
+    if ! $cds_command compile "$cds_file" -2 json --locations > "$cds_file.json" 2> "$cds_file.err"; then
         stderr_truncated=`grep "^\[ERROR\]" "$cds_file.err" | tail -n 4`
         error_message=$'Could not compile the file '"$cds_file"$'.\nReported error(s):\n```\n'"$stderr_truncated"$'\n```'
         echo "$error_message"
