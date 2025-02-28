@@ -442,13 +442,7 @@ abstract class UserDefinedApplicationService extends UserDefinedService {
   /**
    * Gets the CDS definition of this service.
    */
-  CdlService getCdsDeclaration() {
-    exists(CdsFile cdsFile |
-      cdsFile.getStem() = this.getFile().getStem() + ".cds" and
-      cdsFile.getParentContainer() = this.getFile().getParentContainer() and
-      result.getFile() = cdsFile
-    )
-  }
+  CdlService getCdsDeclaration() { result.getImplementation() = this }
 
   /**
    * Gets the name of this service.
