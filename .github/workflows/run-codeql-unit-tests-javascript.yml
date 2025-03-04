@@ -96,10 +96,26 @@ jobs:
             for cds_file in $(find . -type f \( -iname '*.cds' \) -print)
             do
               echo "I am compiling $cds_file"
+              _out_path="${cds_file}.json"
               cds compile $cds_file \
-                -2 json \
                 --locations \
-                > "$cds_file.json" 2> "$cds_file.err"
+                --to json \
+                --dest "$_out_path" \
+                2> "$cds_file.err"
+              # Check if the output is a regular file or a (sub)directory, where
+              # files generated in an output directory will need to have the file
+              # extension changed from '.json' to '.cds.json', but we don't need
+              # to rename anything if the cds compiler just generated a single
+              # '.cds.json' file.
+              if [ -d "$_out_path" ]
+              then
+                for json_file in $(find "$_out_path" -type f \( -iname '*.json' \) -print)
+                do
+                  _new_path="${json_file%.json}.cds.json"
+                  echo "Renaming CDS compiler generated JSON file $json_file to $_new_path"
+                  mv "$json_file" "$_new_path"
+                done
+              fi
             done
             popd
           done
