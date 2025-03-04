@@ -1,7 +1,7 @@
 const { execFileSync, spawnSync } = require('child_process');
-const { existsSync, readFileSync, statSync, writeFileSync } = require('fs');
+const { existsSync, readdirSync, readFileSync, renameSync, statSync } = require('fs');
 const { arch, platform } = require('os');
-const { dirname, join, resolve } = require('path');
+const { dirname, format, join, parse, resolve } = require('path');
 const { quote } = require('shell-quote');
 
 // Terminate early if this script is not invoked with the required arguments.
@@ -186,29 +186,96 @@ try {
     cdsCommand = 'npx -y --package @sap/cds-dk cds';
 }
 
+/**
+ * Recursively renames all .json files to .cds.json in the given directory and
+ * its subdirectories, except for those that already have .cds.json extension.
+ *
+ * @param {string} dirPath - The directory path to start recursion from
+ */
+function recursivelyRenameJsonFiles(dirPath) {
+    // Make sure the directory exists
+    if (!existsSync(dirPath) || !statSync(dirPath).isDirectory()) {
+        console.log(`Directory not found or not a directory: ${dirPath}`);
+        return;
+    }
+    console.log(`Processing JSON files in output directory: ${dirPath}`);
+    // Get all entries in the directory
+    const entries = readdirSync(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+        const fullPath = join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+            // Recursively process subdirectories
+            recursivelyRenameJsonFiles(fullPath);
+        } else if (
+            entry.isFile() &&
+            entry.name.endsWith('.json') &&
+            !entry.name.endsWith('.cds.json')
+        ) {
+            // Rename .json files to .cds.json
+            const newPath = format({ ...parse(fullPath), base: '', ext: '.cds.json' });
+            renameSync(fullPath, newPath);
+            console.log(`Renamed CDS output file from ${fullPath} to ${newPath}`);
+        }
+    }
+}
+
 console.log('Processing CDS files to JSON ...');
 
 /**
  * Run the cds compile command on each file in the response files list, outputting the
  * compiled JSON to a file with the same name but with a .json extension appended.
  */
-responseFiles.forEach(rawCdsFilePath => {
-    const cdsFilePath = quote([rawCdsFilePath]);
-    const cdsJsonFilePath = `${cdsFilePath}.json`;
-    console.log(`Processing CDS file ${cdsFilePath} to ${cdsJsonFilePath} ...`);
-    const result = spawnSync(
-        cdsCommand,
-        [
-            'compile', cdsFilePath,
-            '-2', 'json',
-            '--locations',
-            '--log-level', 'warn'
-        ],
-        { shell: true, stdio: 'pipe' }
-    );
-    if (result.error || result.status !== 0 || !result.stdout) {
-        const errorMessage = `Could not compile the file ${cdsFilePath}.\nReported error(s):\n\`\`\`\n${result.stderr.toString()}\n\`\`\``;
-        console.log(errorMessage);
+for (const rawCdsFilePath of responseFiles) {
+    const cdsFilePath = resolve(quote([rawCdsFilePath]));
+    try {
+        if (!existsSync(cdsFilePath)) {
+            throw new Error(`Expected CDS file '${cdsFilePath}' does not exist.`);
+        }
+        const cdsJsonOutPath = `${cdsFilePath}.json`;
+        console.log(`Processing CDS file ${cdsFilePath} to ${cdsJsonOutPath} ...`);
+        const result = spawnSync(
+            cdsCommand,
+            [
+                'compile', cdsFilePath,
+                '--to', 'json',
+                '--dest', cdsJsonOutPath,
+                '--locations',
+                '--log-level', 'warn'
+            ],
+            { cwd: sourceRoot, shell: true, stdio: 'pipe' }
+        );
+        if (result.error || result.status !== 0) {
+            throw new Error(
+                `Could not compile the file ${cdsFilePath}.\nReported error(s):\n\`\`\`\n${result.stderr.toString()}\n\`\`\``
+            );
+        }
+        /**
+         * The `cds compile` command chooses how it outputs the JSON. If it creates the
+         * output files in a directory (at cdsJsonOutPath), then it will create the
+         * directory when it runs and will choose the file names within that directory.
+         * If it creates the output as a single file (at cdsJsonOutPath), then there is
+         * nothing more to do as we create the output path by simple appending `.json` to
+         * the input file path/name, where the input path should already end with `.cds`
+         * (or else it shouldn't be in the response file).
+         *
+         * Therefore, if the output is a directory, we need to rename the output files
+         * to have a `.cds.json` extension, not just `.json`, so that the JS extractor
+         * recognizes them as CDS files to be indexed.
+         */
+        if (!existsSync(cdsJsonOutPath) || (!statSync(cdsJsonOutPath).isFile() && !statSync(cdsJsonOutPath).isDirectory())) {
+            throw new Error(
+                `CDS source file '${cdsFilePath}' was not compiled to JSON. This is likely because the file does not exist or is not a valid CDS file.`
+            );
+        }
+        if (statSync(cdsJsonOutPath).isDirectory()) {
+            console.log(`CDS compiler generated JSON to output directory: ${cdsJsonOutPath}`);
+            // Recursively rename all .json files to have a .cds.json extension
+            recursivelyRenameJsonFiles(cdsJsonOutPath);
+        } else {
+            console.log(`CDS compiler generated JSON to file: ${cdsJsonOutPath}`);
+        }
+    } catch (errorMessage) {
+        console.error(`ERROR: adding diagnostic for source file=${cdsFilePath} : ${errorMessage} ...`);
         try {
             execFileSync(
                 codeqlExePath,
@@ -228,12 +295,10 @@ responseFiles.forEach(rawCdsFilePath => {
             );
             console.log(`Added error diagnostic for source file: ${cdsFilePath}`);
         } catch (err) {
-            console.error(`Failed to add error diagnostic for source file=${cdsFilePath} : ${err}`);
+            console.error(`ERROR: Failed to add error diagnostic for source file=${cdsFilePath} : ${err}`);
         }
     }
-    // Write the compiled JSON result to cdsJsonFilePath.
-    writeFileSync(cdsJsonFilePath, result.stdout);
-});
+}
 
 let excludeFilters = '';
 /**
@@ -274,9 +339,6 @@ console.log(`Set $LGTM_INDEX_FILTERS to:\n${process.env.LGTM_INDEX_FILTERS}`);
 process.env.LGTM_INDEX_TYPESCRIPT = 'NONE';
 // Configure to copy over the .cds files as well, by pretending they are JSON.
 process.env.LGTM_INDEX_FILETYPES = '.cds:JSON';
-// Ignore the LGTM_INDEX_INCLUDE variable for this purpose as it may explicitly
-// refer to .js or .ts files.
-delete process.env.LGTM_INDEX_INCLUDE;
 
 console.log(
     `Extracting the .cds.json files by running the 'javascript' extractor autobuild script:
