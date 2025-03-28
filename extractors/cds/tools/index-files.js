@@ -365,3 +365,5 @@ spawnSync(
     [],
     { cwd: sourceRoot, env: process.env, shell: true, stdio: 'inherit' }
 );
+
+console.log(`Completed run of index-files.js script for CDS extractor.`);
