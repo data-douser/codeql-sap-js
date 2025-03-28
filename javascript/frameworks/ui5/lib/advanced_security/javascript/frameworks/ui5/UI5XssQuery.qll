@@ -2,11 +2,14 @@ import javascript
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow as UI5DataFlow
 import advanced_security.javascript.frameworks.ui5.UI5View
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
-import semmle.javascript.security.dataflow.ClientSideUrlRedirectCustomizations::ClientSideUrlRedirect as UrlRedirect
 
-class Configuration extends DomBasedXss::Configuration {
+class Configuration extends TaintTracking::Configuration {
+  Configuration() { this = "UI5 HTML Injection" }
+
   override predicate isSource(DataFlow::Node start) {
-    super.isSource(start)
+    exists(DomBasedXss::Configuration domBasedXssConfiguration |
+      domBasedXssConfiguration.isSource(start)
+    )
     or
     start instanceof RemoteFlowSource
   }
@@ -16,7 +19,9 @@ class Configuration extends DomBasedXss::Configuration {
     DataFlow::FlowLabel outLabel
   ) {
     /* Already an additional flow step defined in `DomBasedXssQuery::Configuration` */
-    super.isAdditionalFlowStep(start, end, inLabel, outLabel)
+    exists(DomBasedXss::Configuration domBasedXssConfiguration |
+      domBasedXssConfiguration.isAdditionalFlowStep(start, end, inLabel, outLabel)
+    )
     or
     /* TODO: Legacy code */
     /* Handler argument node to handler parameter */
@@ -34,7 +39,9 @@ class Configuration extends DomBasedXss::Configuration {
 
   override predicate isBarrier(DataFlow::Node node) {
     /* 1. Already a sanitizer defined in `DomBasedXssQuery::Configuration` */
-    super.isSanitizer(node)
+    exists(DomBasedXss::Configuration domBasedXssConfiguration |
+      domBasedXssConfiguration.isSanitizer(node)
+    )
     or
     /* 2. Value read from a non-string control property */
     exists(PropertyMetadata m | not m.isUnrestrictedStringType() | node = m)
@@ -56,7 +63,6 @@ class Configuration extends DomBasedXss::Configuration {
 
   override predicate isSink(DataFlow::Node node) {
     node instanceof UI5ExtHtmlISink or
-    node instanceof UrlRedirect::LocationSink or
     node instanceof UI5ModelHtmlISink
   }
 }
@@ -64,13 +70,13 @@ class Configuration extends DomBasedXss::Configuration {
 /**
  * An HTML injection sink associated with a `UI5BoundNode`, typically for library controls acting as sinks.
  */
-class UI5ModelHtmlISink extends DomBasedXss::Sink {
+class UI5ModelHtmlISink extends DataFlow::Node {
   UI5ModelHtmlISink() { exists(UI5View view | view.getAnHtmlISink().getNode() = this) }
 }
 
 /**
  * An HTML injection sink typically for custom controls whose RenderManager calls acting as sinks.
  */
-private class UI5ExtHtmlISink extends DomBasedXss::Sink {
+private class UI5ExtHtmlISink extends DataFlow::Node {
   UI5ExtHtmlISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
 }

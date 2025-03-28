@@ -17,13 +17,13 @@ class Configuration extends TaintTracking::Configuration {
   Configuration() { this = "XSJS Reflected XSS Query" }
 
   override predicate isSource(DataFlow::Node start) {
-    super.isSource(start) or
+    exists(DomBasedXss::Configuration domBasedXssConfiguration |
+      domBasedXssConfiguration.isSource(start)
+    ) or
     start instanceof RemoteFlowSource
   }
 
   override predicate isSink(DataFlow::Node end) {
-    super.isSink(end)
-    or
     exists(XSJSResponseSetBodyCall setBody, XSJSResponse thisOrAnotherXSJSResponse |
       thisOrAnotherXSJSResponse = setBody.getParentXSJSResponse() or
       thisOrAnotherXSJSResponse = setBody.getParentXSJSResponse().getAPredOrSuccResponse()

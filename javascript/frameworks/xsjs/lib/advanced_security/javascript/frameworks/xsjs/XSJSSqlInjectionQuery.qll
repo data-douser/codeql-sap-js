@@ -16,12 +16,13 @@ class Configuration extends TaintTracking::Configuration {
   Configuration() { this = "XSJS SQL Injection Query" }
 
   override predicate isSource(DataFlow::Node start) {
-    super.isSource(start) or
+    exists(SqlInjection::Configuration sqlInjectionConfiguration |
+      sqlInjectionConfiguration.isSource(start)
+    ) or
     start instanceof RemoteFlowSource
   }
 
   override predicate isSink(DataFlow::Node end) {
-    super.isSink(end) or
     end.(XSJSDBConnectionPrepareStatementArgument).isConcatenated()
   }
 }
