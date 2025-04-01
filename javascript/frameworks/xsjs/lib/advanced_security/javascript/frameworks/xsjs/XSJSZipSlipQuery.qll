@@ -1,6 +1,5 @@
 import javascript
 import advanced_security.javascript.frameworks.xsjs.AsyncXSJS
-import advanced_security.javascript.frameworks.xsjs.RemoteFlowSources
 import semmle.javascript.security.dataflow.ZipSlipQuery as ZipSlip
 import semmle.javascript.security.dataflow.TaintedPathCustomizations::TaintedPath as TaintedPath
 
