@@ -424,6 +424,13 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
       )
     }
 
+    /**
+     * The token `t` is completely contained within this outer token.
+     */
+    predicate strictContains(Token t) {
+      this.contains(t) and t.getBegin() > this.getBegin() and t.getEnd() < this.getEnd()
+    }
+
     stdlib::Location getLocation() { result = getReader().getLocation() }
   }
 
@@ -435,12 +442,7 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
    * `position + count(tokens_with_current_position)`.
    */
   private predicate tokenOrdering(BindingStringReader reader, Token t, int position) {
-    t =
-      rank[position](Token token |
-        token.getReader() = reader
-      |
-        token order by token.getBegin(), token.getEnd()
-      )
+    t = rank[position](Token token | token.getReader() = reader | token order by token.getBegin())
   }
 
   /**
@@ -684,15 +686,15 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
   private newtype TValue =
     MkNumber(float n, Token source) {
       exists(NumberToken t | t.getValue().toFloat() = n and source = t |
-        not any(StringToken str).contains(t) and
-        not any(NameToken name).contains(t)
+        not any(StringToken str).strictContains(t) and
+        not any(NameToken name).strictContains(t)
       )
     } or
     MkString(string s, Token source) {
       exists(StringToken t |
         t.(Token).getValue() = s and
         t = source and
-        not any(NameToken nameToken).contains(t)
+        not any(NameToken nameToken).strictContains(t)
       )
     } or
     MkObject(MemberList members, Token source) {
@@ -721,27 +723,27 @@ module BindingStringParser<BindingStringReaderSig BindingStringReader> {
     } or
     MkTrue(Token source) {
       exists(TrueToken t |
-        not any(StringToken str).contains(t) and
-        not any(NameToken nameToken).contains(t) and
+        not any(StringToken str).strictContains(t) and
+        not any(NameToken nameToken).strictContains(t) and
         source = t
       )
     } or
     MkFalse(Token source) {
       exists(FalseToken t |
-        not any(StringToken str).contains(t) and
-        not any(NameToken nameToken).contains(t) and
+        not any(StringToken str).strictContains(t) and
+        not any(NameToken nameToken).strictContains(t) and
         source = t
       )
     } or
     MkNull(Token source) {
       exists(NullToken t |
-        not any(StringToken str).contains(t) and
-        not any(NameToken nameToken).contains(t) and
+        not any(StringToken str).strictContains(t) and
+        not any(NameToken nameToken).strictContains(t) and
         source = t
       )
     } or
     MkName(Token source) {
-      exists(NameToken t | not any(StringToken str).contains(t) and source = t)
+      exists(NameToken t | not any(StringToken str).strictContains(t) and source = t)
     } or
     MkIdent(Token source) {
       exists(IdentToken t | source = t and getNextSkippingWhitespace(t) instanceof ColonToken)
