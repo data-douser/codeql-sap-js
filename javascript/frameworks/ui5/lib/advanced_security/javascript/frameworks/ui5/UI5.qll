@@ -78,6 +78,8 @@ class WebAppManifest extends File {
   WebApp getWebapp() { result = webapp }
 }
 
+bindingset[f1, f2]
+pragma[inline_late]
 predicate inSameWebApp(File f1, File f2) {
   exists(WebApp webApp | webApp.getAResource() = f1 and webApp.getAResource() = f2)
 }
