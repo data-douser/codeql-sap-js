@@ -12,13 +12,12 @@ class XSJSDBConnectionPrepareStatementArgument extends DataFlow::ValueNode {
   predicate isConcatenated() { this.getAPredecessor+() instanceof StringOps::ConcatenationNode }
 }
 
-class Configuration extends TaintTracking::Configuration {
+class Configuration extends SqlInjection::Configuration {
   Configuration() { this = "XSJS SQL Injection Query" }
 
   override predicate isSource(DataFlow::Node start) {
-    exists(SqlInjection::Configuration sqlInjectionConfiguration |
-      sqlInjectionConfiguration.isSource(start)
-    ) or
+    super.isSource(start)
+    or
     start instanceof RemoteFlowSource
   }
 

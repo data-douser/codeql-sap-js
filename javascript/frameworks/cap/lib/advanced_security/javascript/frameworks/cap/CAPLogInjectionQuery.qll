@@ -43,13 +43,11 @@ class CdsLogSink extends DataFlow::Node {
   }
 }
 
-class CAPLogInjectionConfiguration extends TaintTracking::Configuration {
+class CAPLogInjectionConfiguration extends LogInjectionConfiguration {
   CAPLogInjectionConfiguration() { this = "CAP Log Injection" }
 
   override predicate isSource(DataFlow::Node start) {
-    exists(LogInjectionConfiguration logInjectionConfiguration |
-      logInjectionConfiguration.isSource(start)
-    )
+    super.isSource(start)
     or
     start instanceof RemoteFlowSource
   }

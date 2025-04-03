@@ -13,13 +13,11 @@ class XSJSResponseSetBodyCall extends MethodCallNode {
   XSJSResponse getParentXSJSResponse() { result = response }
 }
 
-class Configuration extends TaintTracking::Configuration {
+class Configuration extends DomBasedXss::Configuration {
   Configuration() { this = "XSJS Reflected XSS Query" }
 
   override predicate isSource(DataFlow::Node start) {
-    exists(DomBasedXss::Configuration domBasedXssConfiguration |
-      domBasedXssConfiguration.isSource(start)
-    ) or
+    super.isSource(start) or
     start instanceof RemoteFlowSource
   }
 

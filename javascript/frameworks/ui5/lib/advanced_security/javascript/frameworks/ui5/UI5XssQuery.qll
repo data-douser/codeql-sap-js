@@ -3,13 +3,11 @@ import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow as UI5DataF
 import advanced_security.javascript.frameworks.ui5.UI5View
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
 
-class Configuration extends TaintTracking::Configuration {
+class Configuration extends DomBasedXss::Configuration {
   Configuration() { this = "UI5 HTML Injection" }
 
   override predicate isSource(DataFlow::Node start) {
-    exists(DomBasedXss::Configuration domBasedXssConfiguration |
-      domBasedXssConfiguration.isSource(start)
-    )
+    super.isSource(start)
     or
     start instanceof RemoteFlowSource
   }
@@ -19,9 +17,7 @@ class Configuration extends TaintTracking::Configuration {
     DataFlow::FlowLabel outLabel
   ) {
     /* Already an additional flow step defined in `DomBasedXssQuery::Configuration` */
-    exists(DomBasedXss::Configuration domBasedXssConfiguration |
-      domBasedXssConfiguration.isAdditionalFlowStep(start, end, inLabel, outLabel)
-    )
+    super.isAdditionalFlowStep(start, end, inLabel, outLabel)
     or
     /* TODO: Legacy code */
     /* Handler argument node to handler parameter */
@@ -39,9 +35,7 @@ class Configuration extends TaintTracking::Configuration {
 
   override predicate isBarrier(DataFlow::Node node) {
     /* 1. Already a sanitizer defined in `DomBasedXssQuery::Configuration` */
-    exists(DomBasedXss::Configuration domBasedXssConfiguration |
-      domBasedXssConfiguration.isSanitizer(node)
-    )
+    super.isSanitizer(node)
     or
     /* 2. Value read from a non-string control property */
     exists(PropertyMetadata m | not m.isUnrestrictedStringType() | node = m)
