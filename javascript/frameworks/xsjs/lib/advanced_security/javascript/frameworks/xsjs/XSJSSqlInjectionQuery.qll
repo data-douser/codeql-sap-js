@@ -13,8 +13,6 @@ class XSJSDBConnectionPrepareStatementArgument extends DataFlow::ValueNode {
 }
 
 class Configuration extends SqlInjection::Configuration {
-  Configuration() { this = "XSJS SQL Injection Query" }
-
   override predicate isSource(DataFlow::Node start) {
     super.isSource(start)
     or

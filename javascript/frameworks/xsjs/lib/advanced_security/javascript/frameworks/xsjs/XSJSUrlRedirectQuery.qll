@@ -3,8 +3,6 @@ import advanced_security.javascript.frameworks.xsjs.AsyncXSJS
 import semmle.javascript.security.dataflow.ServerSideUrlRedirectQuery as UrlRedirect
 
 class Configuration extends UrlRedirect::Configuration {
-  Configuration() { this = "XSJS URL Redirect Query" }
-
   override predicate isSource(DataFlow::Node start) {
     super.isSource(start)
     or

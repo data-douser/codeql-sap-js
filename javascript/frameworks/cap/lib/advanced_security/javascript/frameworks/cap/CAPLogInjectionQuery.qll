@@ -44,8 +44,6 @@ class CdsLogSink extends DataFlow::Node {
 }
 
 class CAPLogInjectionConfiguration extends LogInjectionConfiguration {
-  CAPLogInjectionConfiguration() { this = "CAP Log Injection" }
-
   override predicate isSource(DataFlow::Node start) {
     super.isSource(start)
     or

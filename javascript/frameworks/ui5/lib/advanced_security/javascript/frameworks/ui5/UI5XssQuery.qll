@@ -4,8 +4,6 @@ import advanced_security.javascript.frameworks.ui5.UI5View
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
 
 class Configuration extends DomBasedXss::Configuration {
-  Configuration() { this = "UI5 HTML Injection" }
-
   override predicate isSource(DataFlow::Node start) {
     super.isSource(start)
     or
