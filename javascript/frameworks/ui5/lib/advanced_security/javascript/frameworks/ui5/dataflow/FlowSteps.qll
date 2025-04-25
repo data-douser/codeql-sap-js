@@ -348,13 +348,18 @@ class ResourceBundleGetTextCallArgToReturnValueStep extends DataFlow::SharedFlow
  * method of a custom log listener in the same application.
  */
 class LogArgumentToListener extends DataFlow::SharedFlowStep {
-  override predicate step(DataFlow::Node start, DataFlow::Node end) {
+  deprecated override predicate step(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel preLabel,
+    DataFlow::FlowLabel postLabel
+  ) {
     inSameWebApp(start.getFile(), end.getFile()) and
     start =
       ModelOutput::getATypeNode("SapLogger")
           .getMember(["debug", "error", "fatal", "info", "trace", "warning"])
           .getACall()
           .getAnArgument() and
-    end = ModelOutput::getATypeNode("SapLogEntries").asSource()
+    end = ModelOutput::getATypeNode("SapLogEntries").asSource() and
+    preLabel = "logged" and
+    postLabel = "accessed"
   }
 }

@@ -13,16 +13,16 @@
 
 import javascript
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow
+import semmle.javascript.frameworks.data.internal.ApiGraphModels
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow::UI5PathGraph
+import advanced_security.javascript.frameworks.ui5.UI5LogInjectionQuery
 import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjection
 
-class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfiguration {
-  override predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
-
-  override predicate isSink(DataFlow::Node node) {
+class ClientRequestInjectionVector extends DataFlow::Node {
+  ClientRequestInjectionVector() {
     exists(ClientRequest req |
-      node = req.getUrl() or
-      node = req.getADataNode()
+      this = req.getUrl() or
+      this = req.getADataNode()
     )
   }
 }
@@ -49,6 +49,14 @@ private predicate test(MethodCallNode call, Node receiver, SourceNode receiverSo
   receiverSource = receiver.getALocalSource()
 }
 
+class SapLogger extends DataFlow::Node {
+  SapLogger() { this = ModelOutput::getATypeNode("SapLogger").getInducingNode() }
+}
+
+class SapLogEntries extends SourceNode {
+  SapLogEntries() { this = ModelOutput::getATypeNode("SapLogEntries").asSource() }
+}
+
 SourceNode isLogListener(TypeBackTracker t) {
   t.start() and
   exists(UI5Logger log | result = log.getALogListener())
@@ -68,8 +76,48 @@ class LogListener extends DataFlow::Node {
   }
 }
 
-from
-  UI5LogInjectionConfiguration cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
+class UI5LogEntryToHttp extends LogInjection::LogInjectionConfiguration {
+  override predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
+
+  /*
+   * !!!!!!!!!! NOTE !!!!!!!!!!
+   *
+   * The `DataFlow::FlowLabel` class became deprecated along with the deprecation
+   * of `DataFlow::Configuration` and `TaintTracking::Configuration`.
+   *
+   * There is now no standard library taking advantage of `DataFlow::FlowLabel`
+   * specifically, so we shouldn't expect our pre-labels and post-labels to
+   * be propagated along with `LogInjection::Configuration.isAdditionalFlowStep`!
+   */
+
+  override predicate isAdditionalFlowStep(
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel preLabel,
+    DataFlow::FlowLabel postLabel
+  ) {
+    /* 1. From a remote flow source to a logging function. */
+    exists(UI5LogInjectionConfiguration config |
+      config.isAdditionalFlowStep(start, end) and
+      preLabel = "not-logged" and
+      postLabel = "logged"
+    )
+    or
+    /*
+     * 2. From a logging function to a log entry: a shared flow step
+     * `LogArgumentToListener` in FlowSteps.qll, implemented as a
+     * `DataFlow::SharedFlowStep`.
+     */
+
+    /*
+     * 3. From a log entry to an HTTP sending function.
+     */
+
+    exists() // TODO
+  }
+
+  override predicate isSink(DataFlow::Node node) { node instanceof ClientRequestInjectionVector }
+}
+
+from UI5LogEntryToHttp cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
 where
   cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
   primarySource = source.getAPrimarySource()
