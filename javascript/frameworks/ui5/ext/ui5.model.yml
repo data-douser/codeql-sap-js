@@ -23,8 +23,6 @@ extensions:
       - ["SapLogger", "sap/base/Log", ""]
       - ["SapLogger", "global", "Member[sap].Member[base].Member[Log]"]
       - ["SapLogger", "global", "Member[jQuery].Member[sap].Member[log]"]
-      # Logging functions as well as `getLogger` also serves as a constructor
-      - ["SapLogger", "SapLogger", "Member[debug,error,fatal,info,setLevel,trace,warning,getLogger].ReturnValue"]
       - ["SapLogEntries", "SapLogger", "Member[addLogListener].Parameter[0].Member[onLogEntry].Argument[0]"]
       - ["SapLogEntries", "SapLogger", "Member[getLogEntries].ReturnValue"]
       - ["ResourceBundle", "ResourceBundle", "Instance"]
