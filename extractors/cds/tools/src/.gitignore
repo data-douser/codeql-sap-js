@@ -1,3 +1,0 @@
-# Ignore .js and .js.map files generated when compiling TypeScript for this project.
-*.js*
-

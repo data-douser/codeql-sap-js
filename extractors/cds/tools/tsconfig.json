@@ -3,8 +3,8 @@
     "target": "ES2018",
     "module": "commonjs",
     "lib": ["ES2018"],
-    "outDir": "./",
-    "rootDir": "./",
+    "outDir": "./out",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -21,10 +21,12 @@
     "allowSyntheticDefaultImports": true
   },
   "include": [
-    "./**/*.ts"
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "*.ts"
   ],
   "exclude": [
     "node_modules",
-    "test"
+    "out"
   ]
 }

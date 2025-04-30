@@ -20,6 +20,8 @@ if %ERRORLEVEL% neq 0 (
 set "_response_file_path=%~1"
 set "_script_dir=%~dp0"
 REM Set _cwd before changing the working directory to the script directory.
+REM We assume this script is called from the source root directory of the
+REM to be scanned project.
 set "_cwd=%CD%"
 
 echo Checking response file for CDS files to index
@@ -48,7 +50,9 @@ REM     the original working (aka the project source root) directory.
 cd /d "%_script_dir%" && ^
 echo Installing node package dependencies && ^
 npm install --quiet --no-audit --no-fund && ^
+echo Building TypeScript code && ^
+npm run build && ^
 echo Running the 'index-files.js' script && ^
-node "%_script_dir%index-files.js" "%_response_file_path%" "%_cwd%"
+node "%_script_dir%out\index-files.js" "%_response_file_path%" "%_cwd%"
 
 exit /b %ERRORLEVEL%

@@ -19,9 +19,9 @@ module.exports = {
     es2018: true
   },
   ignorePatterns: [
-    'index-files.js*',
+    'out/**',
     'node_modules',
-    '*.js.map',
+    'coverage',
     '*.d.ts'
   ],
   rules: {
@@ -73,7 +73,9 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2018,
     sourceType: 'module',
-    project: './tsconfig.json'
+    project: './tsconfig.json',
+    tsconfigRootDir: __dirname,
+    createDefaultProgram: true // This helps with files not directly included in the tsconfig
   },
   settings: {
     'import/resolver': {
@@ -85,5 +87,27 @@ module.exports = {
         'extensions': ['.js', '.jsx', '.ts', '.tsx']
       }
     }
-  }
+  },
+  overrides: [
+    {
+      files: ['*.ts'],
+      parserOptions: {
+        project: './tsconfig.json',
+        tsconfigRootDir: __dirname
+      }
+    },
+    {
+      files: ['*.test.ts', 'test/**/*.ts', 'index-files.ts'],
+      parserOptions: {
+        project: './tsconfig.json',
+        tsconfigRootDir: __dirname
+      },
+      rules: {
+        '@typescript-eslint/explicit-function-return-type': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off'
+      }
+    }
+  ]
 }
