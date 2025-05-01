@@ -1,6 +1,8 @@
 import { execFileSync, spawnSync, SpawnSyncReturns } from 'child_process';
 import { resolve } from 'path';
 
+import * as shellQuote from 'shell-quote';
+
 import { fileExists, dirExists, recursivelyRenameJsonFiles } from './filesystem';
 
 /**
@@ -115,8 +117,8 @@ export function addCompilationDiagnostic(
   codeqlExePath: string,
 ): boolean {
   try {
-    // Escape the error message for safe command line usage
-    const escapedErrorMessage = errorMessage.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    // Use shell-quote to safely escape the error message
+    const escapedErrorMessage = shellQuote.quote([errorMessage]);
 
     execFileSync(codeqlExePath, [
       'database',
@@ -126,7 +128,7 @@ export function addCompilationDiagnostic(
       '--source-id=cds/compilation-failure',
       '--source-name=Failure to compile one or more SAP CAP CDS files',
       '--severity=error',
-      `--markdown-message=${escapedErrorMessage}`,
+      `--markdown-message=${escapedErrorMessage.slice(1, -1)}`, // Remove the added quotes from shell-quote
       `--file-path=${resolve(cdsFilePath)}`,
       '--',
       `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE ?? ''}`,
