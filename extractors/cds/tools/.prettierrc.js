@@ -5,7 +5,5 @@ module.exports = {
   printWidth: 100,
   tabWidth: 2,
   endOfLine: 'auto',
-  arrowParens: 'avoid',
-  // Explicitly handle trailing whitespace
-  trailingSpaces: false,
+  arrowParens: 'avoid'
 };
