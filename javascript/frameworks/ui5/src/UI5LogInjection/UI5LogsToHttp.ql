@@ -25,49 +25,6 @@ class ClientRequestInjectionVector extends DataFlow::Node {
   }
 }
 
-class UI5Logger extends RequiredObject {
-  UI5Logger() { this.getDependency() = "sap/base/Log" }
-
-  DataFlow::Node getALogListener() {
-    exists(MethodCallNode addLogListenerCall |
-      addLogListenerCall.getCalleeName() = "addLogListener" and
-      result = addLogListenerCall.getArgument(0)
-    )
-  }
-
-  MethodCallNode getLogEntriesCall() {
-    result.getReceiver().getALocalSource() = this.asSourceNode() and
-    result.getMethodName() = "getLogEntries"
-  }
-}
-
-class SapLogger extends DataFlow::Node {
-  SapLogger() { this = ModelOutput::getATypeNode("SapLogger").getInducingNode() }
-}
-
-class SapLogEntries extends SourceNode {
-  SapLogEntries() { this = ModelOutput::getATypeNode("SapLogEntries").asSource() }
-}
-
-SourceNode isLogListener(TypeBackTracker t) {
-  t.start() and
-  exists(UI5Logger log | result = log.getALogListener())
-  or
-  exists(DataFlow::TypeBackTracker t2 | result = isLogListener(t2).backtrack(t2, t))
-}
-
-SourceNode isLogListener() { result = isLogListener(TypeBackTracker::end()) }
-
-class LogListener extends DataFlow::Node {
-  LogListener() { this = isLogListener() }
-
-  FunctionNode getOnLogEntryMethod() {
-    exists(DataFlow::PropWrite onLogEntryProp | onLogEntryProp.getPropertyName() = "onLogEntry" |
-      result = onLogEntryProp.getRhs()
-    )
-  }
-}
-
 class UI5LogEntryFlowState extends DataFlow::FlowLabel {
   UI5LogEntryFlowState() {
     this = ["not-logged-not-accessed", "logged-not-accessed", "logged-and-accessed"]
