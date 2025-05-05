@@ -13,6 +13,7 @@
 
 import javascript
 import advanced_security.javascript.frameworks.ui5.UI5LogInjectionQuery
+import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow::UI5PathGraph
 
 from
   UI5LogInjectionConfiguration cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
