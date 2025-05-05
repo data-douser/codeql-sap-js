@@ -76,18 +76,23 @@ class LogListener extends DataFlow::Node {
   }
 }
 
-class UI5LogEntryToHttp extends LogInjection::LogInjectionConfiguration {
-  override predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
+class UI5LogEntryToHttp extends TaintTracking::Configuration {
+  UI5LogEntryToHttp() { this = "UI5 log entries being passed to outbound HTTP requests" }
+
+  override predicate isSource(DataFlow::Node node, DataFlow::FlowLabel label) {
+    node instanceof RemoteFlowSource and
+    label = "not-logged"
+  }
 
   /*
    * !!!!!!!!!! NOTE !!!!!!!!!!
    *
-   * The `DataFlow::FlowLabel` class became deprecated along with the deprecation
-   * of `DataFlow::Configuration` and `TaintTracking::Configuration`.
+   * The `DataFlow::FlowLabel` class became deprecated together with
+   * `DataFlow::Configuration` and `TaintTracking::Configuration`.
    *
    * There is now no standard library taking advantage of `DataFlow::FlowLabel`
    * specifically, so we shouldn't expect our pre-labels and post-labels to
-   * be propagated along with `LogInjection::Configuration.isAdditionalFlowStep`!
+   * be propagated along with steps in `LogInjection::Configuration.isAdditionalFlowStep`!
    */
 
   override predicate isAdditionalFlowStep(
@@ -100,7 +105,6 @@ class UI5LogEntryToHttp extends LogInjection::LogInjectionConfiguration {
       preLabel = "not-logged" and
       postLabel = "logged"
     )
-    or
     /*
      * 2. From a logging function to a log entry: a shared flow step
      * `LogArgumentToListener` in FlowSteps.qll, implemented as a
@@ -111,10 +115,12 @@ class UI5LogEntryToHttp extends LogInjection::LogInjectionConfiguration {
      * 3. From a log entry to an HTTP sending function.
      */
 
-    exists() // TODO
-  }
+    }
 
-  override predicate isSink(DataFlow::Node node) { node instanceof ClientRequestInjectionVector }
+  override predicate isSink(DataFlow::Node node, DataFlow::FlowLabel label) {
+    node instanceof ClientRequestInjectionVector and
+    label = "accessed"
+  }
 }
 
 from UI5LogEntryToHttp cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
@@ -123,3 +129,8 @@ where
   primarySource = source.getAPrimarySource()
 select sink, primarySource, sink, "Outbound network request depends on $@ log data.", primarySource,
   "user-provided"
+// import DataFlow::PathGraph
+// from UI5LogEntryToHttp cfg, DataFlow::PathNode source, DataFlow::PathNode sink
+// where cfg.hasFlowPath(source, sink)
+// select sink, source, sink, "Outbound network request depends on $@ log data.", source,
+//   "user-provided"
