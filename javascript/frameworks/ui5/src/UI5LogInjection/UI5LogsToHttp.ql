@@ -15,6 +15,7 @@ import javascript
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow
 import semmle.javascript.frameworks.data.internal.ApiGraphModels
 import advanced_security.javascript.frameworks.ui5.UI5LogInjectionQuery
+import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow::UI5PathGraph
 
 class ClientRequestInjectionVector extends DataFlow::Node {
   ClientRequestInjectionVector() {
@@ -84,9 +85,9 @@ module UI5LogEntryToHttp implements DataFlow::ConfigSig {
   predicate isSink(DataFlow::Node node) { node instanceof ClientRequestInjectionVector }
 }
 
-import DataFlow::PathGraph
-
-from UI5LogEntryToHttp cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
-select sink, source, sink, "Outbound network request depends on $@ log data.", source,
+from UI5LogEntryToHttp cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
+where
+  cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
+  primarySource = source.getAPrimarySource()
+select sink, primarySource, sink, "Outbound network request depends on $@ log data.", primarySource,
   "user-provided"
