@@ -69,7 +69,9 @@ class LogListener extends DataFlow::Node {
 }
 
 class UI5LogEntryFlowState extends DataFlow::FlowLabel {
-  UI5LogEntryFlowState() { this = ["not-logged-not-accessed", "logged-and-accessed"] }
+  UI5LogEntryFlowState() {
+    this = ["not-logged-not-accessed", "logged-not-accessed", "logged-and-accessed"]
+  }
 }
 
 class UI5LogEntryToHttp extends TaintTracking::Configuration {
@@ -84,6 +86,12 @@ class UI5LogEntryToHttp extends TaintTracking::Configuration {
     DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel preState,
     DataFlow::FlowLabel postState
   ) {
+    exists(UI5LogInjectionConfiguration cfg |
+      cfg.isAdditionalFlowStep(start, end) and
+      preState = "not-logged-not-accessed" and
+      postState = "logged-not-accessed"
+    )
+    or
     inSameWebApp(start.getFile(), end.getFile()) and
     start =
       ModelOutput::getATypeNode("SapLogger")
@@ -91,7 +99,7 @@ class UI5LogEntryToHttp extends TaintTracking::Configuration {
           .getACall()
           .getAnArgument() and
     end = ModelOutput::getATypeNode("SapLogEntries").asSource() and
-    preState = "not-logged-not-accessed" and
+    preState = "logged-not-accessed" and
     postState = "logged-and-accessed"
   }
 
