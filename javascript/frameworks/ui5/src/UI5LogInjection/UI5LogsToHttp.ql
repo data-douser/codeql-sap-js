@@ -88,8 +88,7 @@ class UI5LogEntryToHttp extends TaintTracking::Configuration {
   ) {
     exists(UI5LogInjectionConfiguration cfg |
       cfg.isAdditionalFlowStep(start, end) and
-      preState = "not-logged-not-accessed" and
-      postState = "logged-not-accessed"
+      preState = postState
     )
     or
     inSameWebApp(start.getFile(), end.getFile()) and
@@ -99,7 +98,7 @@ class UI5LogEntryToHttp extends TaintTracking::Configuration {
           .getACall()
           .getAnArgument() and
     end = ModelOutput::getATypeNode("SapLogEntries").asSource() and
-    preState = "logged-not-accessed" and
+    preState = "not-logged-not-accessed" and
     postState = "logged-and-accessed"
   }
 
@@ -130,14 +129,7 @@ module UI5LogEntryToHttp implements DataFlow::ConfigSig {
 
 import DataFlow::PathGraph
 
-// import UI5LogEntryToHttpFlow::PathGraph
-module UI5LogEntryToHttpFlow = TaintTracking::Global<UI5LogEntryToHttp>;
-
 from UI5LogEntryToHttp cfg, DataFlow::PathNode source, DataFlow::PathNode sink
 where cfg.hasFlowPath(source, sink)
 select sink, source, sink, "Outbound network request depends on $@ log data.", source,
   "user-provided"
-// from UI5LogEntryToHttpFlow::PathNode source, UI5LogEntryToHttpFlow::PathNode sink
-// where UI5LogEntryToHttpFlow::flowPath(source, sink)
-// select sink, source, sink, "Outbound network request depends on $@ log data.", source,
-//   "user-provided"
