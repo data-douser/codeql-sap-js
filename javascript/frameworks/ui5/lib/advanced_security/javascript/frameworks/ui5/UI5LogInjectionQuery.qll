@@ -1,6 +1,6 @@
 import javascript
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow
-import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow::UI5PathGraph
+private import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow::UI5PathGraph
 import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjection
 
 class UI5LogInjectionConfiguration extends LogInjection::LogInjectionConfiguration {

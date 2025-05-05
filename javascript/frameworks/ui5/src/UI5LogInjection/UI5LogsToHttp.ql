@@ -14,9 +14,7 @@
 import javascript
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow
 import semmle.javascript.frameworks.data.internal.ApiGraphModels
-import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow::UI5PathGraph
 import advanced_security.javascript.frameworks.ui5.UI5LogInjectionQuery
-import semmle.javascript.security.dataflow.LogInjectionQuery as LogInjection
 
 class ClientRequestInjectionVector extends DataFlow::Node {
   ClientRequestInjectionVector() {
@@ -43,12 +41,6 @@ class UI5Logger extends RequiredObject {
   }
 }
 
-private predicate test(MethodCallNode call, Node receiver, SourceNode receiverSource) {
-  call.getMethodName() = "getLogEntries" and
-  receiver = call.getReceiver() and
-  receiverSource = receiver.getALocalSource()
-}
-
 class SapLogger extends DataFlow::Node {
   SapLogger() { this = ModelOutput::getATypeNode("SapLogger").getInducingNode() }
 }
@@ -70,67 +62,74 @@ class LogListener extends DataFlow::Node {
   LogListener() { this = isLogListener() }
 
   FunctionNode getOnLogEntryMethod() {
-    exists(DataFlow::PropWrite propWrite | propWrite.getPropertyName() = "onLogEntry" |
-      result = propWrite.getRhs()
+    exists(DataFlow::PropWrite onLogEntryProp | onLogEntryProp.getPropertyName() = "onLogEntry" |
+      result = onLogEntryProp.getRhs()
     )
   }
+}
+
+class UI5LogEntryFlowState extends DataFlow::FlowLabel {
+  UI5LogEntryFlowState() { this = ["not-logged-not-accessed", "logged-and-accessed"] }
 }
 
 class UI5LogEntryToHttp extends TaintTracking::Configuration {
-  UI5LogEntryToHttp() { this = "UI5 log entries being passed to outbound HTTP requests" }
+  UI5LogEntryToHttp() { this = "UI5 Log Entry included in an outbound HTTP request" }
 
-  override predicate isSource(DataFlow::Node node, DataFlow::FlowLabel label) {
+  override predicate isSource(DataFlow::Node node, DataFlow::FlowLabel state) {
     node instanceof RemoteFlowSource and
-    label = "not-logged"
+    state = "not-logged-not-accessed"
   }
 
-  /*
-   * !!!!!!!!!! NOTE !!!!!!!!!!
-   *
-   * The `DataFlow::FlowLabel` class became deprecated together with
-   * `DataFlow::Configuration` and `TaintTracking::Configuration`.
-   *
-   * There is now no standard library taking advantage of `DataFlow::FlowLabel`
-   * specifically, so we shouldn't expect our pre-labels and post-labels to
-   * be propagated along with steps in `LogInjection::Configuration.isAdditionalFlowStep`!
-   */
-
   override predicate isAdditionalFlowStep(
-    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel preLabel,
-    DataFlow::FlowLabel postLabel
+    DataFlow::Node start, DataFlow::Node end, DataFlow::FlowLabel preState,
+    DataFlow::FlowLabel postState
   ) {
-    /* 1. From a remote flow source to a logging function. */
-    exists(UI5LogInjectionConfiguration config |
-      config.isAdditionalFlowStep(start, end) and
-      preLabel = "not-logged" and
-      postLabel = "logged"
-    )
-    /*
-     * 2. From a logging function to a log entry: a shared flow step
-     * `LogArgumentToListener` in FlowSteps.qll, implemented as a
-     * `DataFlow::SharedFlowStep`.
-     */
+    inSameWebApp(start.getFile(), end.getFile()) and
+    start =
+      ModelOutput::getATypeNode("SapLogger")
+          .getMember(["debug", "error", "fatal", "info", "trace", "warning"])
+          .getACall()
+          .getAnArgument() and
+    end = ModelOutput::getATypeNode("SapLogEntries").asSource() and
+    preState = "not-logged-not-accessed" and
+    postState = "logged-and-accessed"
+  }
 
-    /*
-     * 3. From a log entry to an HTTP sending function.
-     */
-
-    }
-
-  override predicate isSink(DataFlow::Node node, DataFlow::FlowLabel label) {
+  override predicate isSink(DataFlow::Node node, DataFlow::FlowLabel state) {
     node instanceof ClientRequestInjectionVector and
-    label = "accessed"
+    state = "logged-and-accessed"
   }
 }
 
-from UI5LogEntryToHttp cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
-where
-  cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
-  primarySource = source.getAPrimarySource()
-select sink, primarySource, sink, "Outbound network request depends on $@ log data.", primarySource,
+/**
+ * Config without states for sanity check
+ */
+module UI5LogEntryToHttp implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
+
+  predicate isAdditionalFlowStep(DataFlow::Node start, DataFlow::Node end) {
+    inSameWebApp(start.getFile(), end.getFile()) and
+    start =
+      ModelOutput::getATypeNode("SapLogger")
+          .getMember(["debug", "error", "fatal", "info", "trace", "warning"])
+          .getACall()
+          .getAnArgument() and
+    end = ModelOutput::getATypeNode("SapLogEntries").asSource()
+  }
+
+  predicate isSink(DataFlow::Node node) { node instanceof ClientRequestInjectionVector }
+}
+
+import DataFlow::PathGraph
+
+// import UI5LogEntryToHttpFlow::PathGraph
+module UI5LogEntryToHttpFlow = TaintTracking::Global<UI5LogEntryToHttp>;
+
+from UI5LogEntryToHttp cfg, DataFlow::PathNode source, DataFlow::PathNode sink
+where cfg.hasFlowPath(source, sink)
+select sink, source, sink, "Outbound network request depends on $@ log data.", source,
   "user-provided"
-// import DataFlow::PathGraph
-// from UI5LogEntryToHttp cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-// where cfg.hasFlowPath(source, sink)
+// from UI5LogEntryToHttpFlow::PathNode source, UI5LogEntryToHttpFlow::PathNode sink
+// where UI5LogEntryToHttpFlow::flowPath(source, sink)
 // select sink, source, sink, "Outbound network request depends on $@ log data.", source,
 //   "user-provided"
