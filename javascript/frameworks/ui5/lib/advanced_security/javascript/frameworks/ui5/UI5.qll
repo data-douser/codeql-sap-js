@@ -239,7 +239,7 @@ class Renderer extends SapExtendCall {
 class CustomControl extends SapExtendCall {
   CustomControl() {
     this.getReceiver().getALocalSource() =
-      TypeTrackers::hasDependency(["sap/ui/core/mvc/Controller", "sap.ui.core.mvc.Controller"]) or
+      TypeTrackers::hasDependency(["sap/ui/core/Control", "sap.ui.core.Control"]) or
     exists(SapDefineModule sapModule | this.getDefine() = sapModule.getExtendingModule())
   }
 
