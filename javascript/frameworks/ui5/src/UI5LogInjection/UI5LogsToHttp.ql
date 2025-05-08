@@ -49,6 +49,14 @@ class UI5LogEntryToHttp extends TaintTracking::Configuration {
       preState = postState
     )
     or
+    /*
+     * NOTE: This disjunct is a labeled version of LogArgumentToListener in
+     * FlowSteps.qll, a DataFlow::SharedFlowStep. As the class is considered
+     * legacy on version 2.4.0, we leave the two here (labeled) and there
+     * (unlabeled). This is something we should also tidy up when we migrate
+     * to the newer APIs.
+     */
+
     inSameWebApp(start.getFile(), end.getFile()) and
     start =
       ModelOutput::getATypeNode("SapLogger")
