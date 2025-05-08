@@ -3,7 +3,7 @@ WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5L
 WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:38,52-71)
 WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:44,47-66)
 WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:45,5-24)
-WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:63,50-69)
+WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:71,50-69)
 nodes
 | webapp/controller/app.controller.js:11:11:11:21 | input: null |
 | webapp/controller/app.controller.js:17:13:17:48 | input |
