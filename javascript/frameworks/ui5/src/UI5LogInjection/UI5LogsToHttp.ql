@@ -74,25 +74,6 @@ class UI5LogEntryToHttp extends TaintTracking::Configuration {
   }
 }
 
-/**
- * Config without states for sanity check
- */
-module UI5LogEntryToHttp implements DataFlow::ConfigSig {
-  predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
-
-  predicate isAdditionalFlowStep(DataFlow::Node start, DataFlow::Node end) {
-    inSameWebApp(start.getFile(), end.getFile()) and
-    start =
-      ModelOutput::getATypeNode("SapLogger")
-          .getMember(["debug", "error", "fatal", "info", "trace", "warning"])
-          .getACall()
-          .getAnArgument() and
-    end = ModelOutput::getATypeNode("SapLogEntries").asSource()
-  }
-
-  predicate isSink(DataFlow::Node node) { node instanceof ClientRequestInjectionVector }
-}
-
 from UI5LogEntryToHttp cfg, UI5PathNode source, UI5PathNode sink, UI5PathNode primarySource
 where
   cfg.hasFlowPath(source.getPathNode(), sink.getPathNode()) and
