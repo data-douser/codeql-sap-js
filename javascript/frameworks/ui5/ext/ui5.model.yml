@@ -22,6 +22,7 @@ extensions:
       - ["Assert", "global", "Member[jQuery].Member[sap].Member[assert]"]
       - ["SapLogger", "sap/base/Log", ""]
       - ["SapLogger", "global", "Member[sap].Member[base].Member[Log]"]
+      - ["SapLogger", "SapLogger", "Member[getLogger].ReturnValue"]
       - ["SapLogger", "global", "Member[jQuery].Member[sap].Member[log]"]
       - ["SapLogEntries", "SapLogger", "Member[addLogListener].Argument[0].Member[onLogEntry].Parameter[0]"]
       - ["SapLogEntries", "SapLogger", "Member[getLogEntries].ReturnValue"]
