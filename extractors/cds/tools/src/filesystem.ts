@@ -2,6 +2,15 @@ import { existsSync, readdirSync, readFileSync, renameSync, statSync } from 'fs'
 import { format, join, parse } from 'path';
 
 /**
+ * Check if a directory exists
+ * @param dirPath Path to the directory to check
+ * @returns True if the directory exists, false otherwise
+ */
+export function dirExists(dirPath: string): boolean {
+  return existsSync(dirPath) && statSync(dirPath).isDirectory();
+}
+
+/**
  * Check if a file exists and can be read
  * @param filePath Path to the file to check
  * @returns True if the file exists and can be read, false otherwise
@@ -11,12 +20,59 @@ export function fileExists(filePath: string): boolean {
 }
 
 /**
- * Check if a directory exists
- * @param dirPath Path to the directory to check
- * @returns True if the directory exists, false otherwise
+ * Read and validate a response file to get the list of CDS files to process
+ * @param responseFile Path to the response file
+ * @param platformInfo Platform information object with isWindows property
+ * @returns Object containing success status, CDS file paths to process, and error message if any
  */
-export function dirExists(dirPath: string): boolean {
-  return existsSync(dirPath) && statSync(dirPath).isDirectory();
+export function getCdsFilePathsToProcess(
+  responseFile: string,
+  platformInfo: { isWindows: boolean },
+): {
+  success: boolean;
+  cdsFilePaths: string[];
+  errorMessage?: string;
+} {
+  // First validate the response file exists
+  const responseFileValidation = validateResponseFile(responseFile);
+  if (!responseFileValidation.success) {
+    return {
+      success: false,
+      cdsFilePaths: [],
+      errorMessage: `'${
+        platformInfo.isWindows ? 'codeql.exe' : 'codeql'
+      } database index-files --language cds' terminated early as ${responseFileValidation.errorMessage}`,
+    };
+  }
+
+  // Now read the file paths from the response file
+  try {
+    const cdsFilePathsToProcess = readResponseFile(responseFile);
+
+    // Check if there are any file paths to process
+    if (!cdsFilePathsToProcess.length) {
+      return {
+        success: false,
+        cdsFilePaths: [],
+        errorMessage: `'${
+          platformInfo.isWindows ? 'codeql.exe' : 'codeql'
+        } database index-files --language cds' terminated early as response file '${responseFile}' is empty. This is because no CDS files were selected or found.`,
+      };
+    }
+
+    return {
+      success: true,
+      cdsFilePaths: cdsFilePathsToProcess,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      cdsFilePaths: [],
+      errorMessage: `'${
+        platformInfo.isWindows ? 'codeql.exe' : 'codeql'
+      } database index-files --language cds' terminated early as response file '${responseFile}' could not be read due to an error: ${String(err)}`,
+    };
+  }
 }
 
 /**
@@ -71,4 +127,22 @@ export function recursivelyRenameJsonFiles(dirPath: string): void {
       console.log(`Renamed CDS output file from ${fullPath} to ${newPath}`);
     }
   }
+}
+
+/**
+ * Validate a response file exists and can be read
+ * @param responseFile Path to the response file
+ * @returns Object containing success status and error message if any
+ */
+export function validateResponseFile(responseFile: string): {
+  success: boolean;
+  errorMessage?: string;
+} {
+  if (!fileExists(responseFile)) {
+    return {
+      success: false,
+      errorMessage: `response file '${responseFile}' does not exist. This is because no CDS files were selected or found`,
+    };
+  }
+  return { success: true };
 }

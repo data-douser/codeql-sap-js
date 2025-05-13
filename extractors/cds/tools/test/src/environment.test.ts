@@ -9,12 +9,17 @@ import {
   setupJavaScriptExtractorEnv,
   getAutobuildScriptPath,
   configureLgtmIndexFilters,
+  setupAndValidateEnvironment,
 } from '../../src/environment';
 
 // Mock modules
 jest.mock('child_process');
 jest.mock('os');
 jest.mock('path');
+jest.mock('../../src/filesystem', () => ({
+  dirExists: jest.fn(),
+  fileExists: jest.fn(),
+}));
 
 describe('environment', () => {
   // Save original environment
@@ -307,6 +312,82 @@ describe('environment', () => {
 
       expect(process.env.LGTM_INDEX_TYPESCRIPT).toBe('NONE');
       expect(process.env.LGTM_INDEX_FILETYPES).toBe('.cds:JSON');
+    });
+  });
+
+  describe('setupAndValidateEnvironment', () => {
+    // Get mocked filesystem module using jest.requireMock
+    const filesystem = jest.requireMock('../../src/filesystem');
+
+    beforeEach(() => {
+      // Reset mocks
+      jest.clearAllMocks();
+
+      // Mock platform info
+      (os.platform as jest.Mock).mockReturnValue('linux');
+      (os.arch as jest.Mock).mockReturnValue('x64');
+
+      // Mock path functions
+      (path.resolve as jest.Mock).mockImplementation((...paths) => paths.join('/'));
+      (path.join as jest.Mock).mockImplementation((...paths) => paths.join('/'));
+
+      // Default mock for execFileSync
+      (execFileSync as jest.Mock).mockReturnValue(Buffer.from('/path/to/js/extractor\n'));
+
+      // Default mock for filesystem functions
+      (filesystem.dirExists as jest.Mock).mockReturnValue(true);
+      (filesystem.fileExists as jest.Mock).mockReturnValue(true);
+
+      // Set environment variables
+      process.env.CODEQL_DIST = '/path/to/codeql';
+    });
+
+    it('should return success when all validations pass', () => {
+      const result = setupAndValidateEnvironment('/path/to/source');
+
+      expect(result.success).toBe(true);
+      expect(result.errorMessages).toHaveLength(0);
+      expect(result.codeqlExePath).toBe('/path/to/codeql/codeql');
+      expect(result.jsExtractorRoot).toBe('/path/to/js/extractor');
+      expect(result.autobuildScriptPath).toBe('/path/to/js/extractor/tools/autobuild.sh');
+      expect(result.platformInfo.platform).toBe('linux');
+    });
+
+    it('should report error when source root does not exist', () => {
+      (filesystem.dirExists as jest.Mock).mockReturnValue(false);
+
+      const result = setupAndValidateEnvironment('/path/to/source');
+
+      expect(result.success).toBe(false);
+      expect(result.errorMessages).toContain(
+        "project root directory '/path/to/source' does not exist",
+      );
+    });
+
+    it('should report error when JavaScript extractor root cannot be resolved', () => {
+      (execFileSync as jest.Mock).mockImplementation(() => {
+        throw new Error('Command failed');
+      });
+
+      const result = setupAndValidateEnvironment('/path/to/source');
+
+      expect(result.success).toBe(false);
+      expect(result.errorMessages).toContain(
+        'CODEQL_EXTRACTOR_JAVASCRIPT_ROOT environment variable is not set',
+      );
+    });
+
+    it('should set up environment variables when validations pass', () => {
+      // Set CDS environment variables
+      process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE = 'cds-db';
+      process.env.CODEQL_EXTRACTOR_CDS_DIAGNOSTIC_DIR = 'cds-diag';
+
+      const result = setupAndValidateEnvironment('/path/to/source');
+
+      expect(result.success).toBe(true);
+      expect(process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT).toBe('/path/to/js/extractor');
+      expect(process.env.CODEQL_EXTRACTOR_JAVASCRIPT_WIP_DATABASE).toBe('cds-db');
+      expect(process.env.CODEQL_EXTRACTOR_JAVASCRIPT_DIAGNOSTIC_DIR).toBe('cds-diag');
     });
   });
 });

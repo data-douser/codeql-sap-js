@@ -2,6 +2,8 @@ import { execFileSync } from 'child_process';
 import { arch, platform } from 'os';
 import { join, resolve } from 'path';
 
+import { dirExists } from './filesystem';
+
 /**
  * Interface for platform information
  */
@@ -10,6 +12,18 @@ export interface PlatformInfo {
   arch: string;
   isWindows: boolean;
   exeExtension: string;
+}
+
+/**
+ * Interface for environment validation results
+ */
+export interface EnvironmentSetupResult {
+  success: boolean;
+  errorMessages: string[];
+  codeqlExePath: string;
+  jsExtractorRoot: string;
+  autobuildScriptPath: string;
+  platformInfo: PlatformInfo;
 }
 
 /**
@@ -129,4 +143,46 @@ export function configureLgtmIndexFilters(): void {
   process.env.LGTM_INDEX_TYPESCRIPT = 'NONE';
   // Configure to copy over the .cds files as well, by pretending they are JSON.
   process.env.LGTM_INDEX_FILETYPES = '.cds:JSON';
+}
+
+/**
+ * Sets up the environment and validates key components for CDS extractor
+ * @param sourceRoot The source root directory
+ * @returns The environment setup result
+ */
+export function setupAndValidateEnvironment(sourceRoot: string): EnvironmentSetupResult {
+  const errorMessages: string[] = [];
+  const platformInfo = getPlatformInfo();
+
+  // Get the CodeQL executable path
+  const codeqlExePath = getCodeQLExePath();
+
+  // Validate that the required source root directory exists
+  if (!dirExists(sourceRoot)) {
+    errorMessages.push(`project root directory '${sourceRoot}' does not exist`);
+  }
+
+  // Setup JavaScript extractor environment
+  const jsExtractorRoot = getJavaScriptExtractorRoot(codeqlExePath);
+  if (!jsExtractorRoot) {
+    errorMessages.push(`CODEQL_EXTRACTOR_JAVASCRIPT_ROOT environment variable is not set`);
+  }
+
+  // Set environment variables for JavaScript extractor
+  if (jsExtractorRoot) {
+    process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT = jsExtractorRoot;
+    setupJavaScriptExtractorEnv();
+  }
+
+  // Get autobuild script path
+  const autobuildScriptPath = jsExtractorRoot ? getAutobuildScriptPath(jsExtractorRoot) : '';
+
+  return {
+    success: errorMessages.length === 0,
+    errorMessages,
+    codeqlExePath,
+    jsExtractorRoot,
+    autobuildScriptPath,
+    platformInfo,
+  };
 }

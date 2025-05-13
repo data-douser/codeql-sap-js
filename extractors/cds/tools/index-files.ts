@@ -1,20 +1,14 @@
 import { addCompilationDiagnostic, compileCdsToJson, determineCdsCommand } from './src/cdsCompiler';
-import { runJavaScriptExtractor, validateRequirements } from './src/codeql';
-import {
-  configureLgtmIndexFilters,
-  getAutobuildScriptPath,
-  getCodeQLExePath,
-  getJavaScriptExtractorRoot,
-  getPlatformInfo,
-  setupJavaScriptExtractorEnv,
-} from './src/environment';
-import { dirExists, readResponseFile } from './src/filesystem';
+import { runJavaScriptExtractor } from './src/codeql';
+import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
+import { getCdsFilePathsToProcess } from './src/filesystem';
 import { findPackageJsonDirs, installDependencies } from './src/packageManager';
 import { validateArguments } from './src/utils';
 
 // Validate arguments to this script.
 if (!validateArguments(process.argv, 4)) {
-  process.exit(0);
+  // Exit with an error code on invalid use of this script.
+  process.exit(1);
 }
 
 // Get command-line (CLI) arguments and store them in named variables for clarity.
@@ -26,73 +20,37 @@ const sourceRoot: string = process.argv[3];
 process.chdir(sourceRoot);
 
 console.log(`Indexing CDS files in project source directory: ${sourceRoot}`);
-const { platform: osPlatform, arch: osPlatformArch } = getPlatformInfo();
-console.log(`Detected OS platform=${osPlatform} : arch=${osPlatformArch}`);
 
-// Get the `codeql` (CLI) executable path as this is needed to lookup information
-// about the JavaScript extractor (root directory), and to run CodeQL's JavaScript
-// extractor via its autobuild script.
-const codeqlExePath = getCodeQLExePath();
+// Setup the environment and validate all requirements.
+const {
+  success: envSetupSuccess,
+  errorMessages,
+  codeqlExePath,
+  autobuildScriptPath,
+  platformInfo,
+} = setupAndValidateEnvironment(sourceRoot);
 
-// Validate that source (code) root directory exists.
-if (!dirExists(sourceRoot)) {
-  const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
+if (!envSetupSuccess) {
+  const codeqlExe = platformInfo.isWindows ? 'codeql.exe' : 'codeql';
   console.warn(
-    `'${codeqlExe} database index-files --language cds' terminated early due to internal error: could not find project root directory '${sourceRoot}'.`,
+    `'${codeqlExe} database index-files --language cds' terminated early due to: ${errorMessages.join(
+      ', ',
+    )}.`,
   );
-  process.exit(0);
+  // Exit with an error code when environment setup fails.
+  process.exit(1);
 }
 
-// Setup JavaScript extractor environment.
-const jsExtractorRoot = getJavaScriptExtractorRoot(codeqlExePath);
-if (!jsExtractorRoot) {
-  const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
-  console.warn(
-    `'${codeqlExe} database index-files --language cds' terminated early as CODEQL_EXTRACTOR_JAVASCRIPT_ROOT environment variable is not set.`,
-  );
-  process.exit(0);
+// Validate response file and get the fully paths of CDS files to process.
+const filePathsResult = getCdsFilePathsToProcess(responseFile, platformInfo);
+if (!filePathsResult.success) {
+  console.warn(filePathsResult.errorMessage);
+  // Exit with an error if unable to get a list of `.cds` file paths to process.
+  process.exit(1);
 }
 
-// Set environment variables for JavaScript extractor.
-process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT = jsExtractorRoot;
-setupJavaScriptExtractorEnv();
-
-// Get autobuild script path.
-const autobuildScriptPath = getAutobuildScriptPath(jsExtractorRoot);
-
-// Validate all required components.
-if (
-  !validateRequirements(
-    sourceRoot,
-    codeqlExePath,
-    responseFile,
-    autobuildScriptPath,
-    jsExtractorRoot,
-  )
-) {
-  process.exit(0);
-}
-
-// Read and validate response files.
-let cdsFilePathsToProcess: string[] = [];
-try {
-  cdsFilePathsToProcess = readResponseFile(responseFile);
-  if (!cdsFilePathsToProcess.length) {
-    const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
-    console.warn(
-      `'${codeqlExe} database index-files --language cds' terminated early as response file '${responseFile}' is empty. This is because no CDS files were selected or found.`,
-    );
-    process.exit(0);
-  }
-} catch (err) {
-  const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
-  console.warn(
-    `'${codeqlExe} database index-files --language cds' terminated early as response file '${responseFile}' could not be read due to an error: ${String(
-      err,
-    )}`,
-  );
-  process.exit(0);
-}
+// Get the validated list of CDS files to process
+const cdsFilePathsToProcess = filePathsResult.cdsFilePaths;
 
 // Find all package.json directories that have a `@sap/cds` node dependency.
 const packageJsonDirs = findPackageJsonDirs(cdsFilePathsToProcess);
@@ -106,7 +64,7 @@ const cdsCommand = determineCdsCommand();
 
 console.log('Processing CDS files to JSON ...');
 
-// Compile each CDS file to JSON
+// Compile each `.cds` file to create a `.cds.json` file.
 for (const rawCdsFilePath of cdsFilePathsToProcess) {
   try {
     // Use resolved path directly instead of passing through getArg
