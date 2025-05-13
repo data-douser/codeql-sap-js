@@ -74,10 +74,10 @@ if (
 }
 
 // Read and validate response files.
-let responseFiles: string[] = [];
+let cdsFilePathsToProcess: string[] = [];
 try {
-  responseFiles = readResponseFile(responseFile);
-  if (!responseFiles.length) {
+  cdsFilePathsToProcess = readResponseFile(responseFile);
+  if (!cdsFilePathsToProcess.length) {
     const codeqlExe = osPlatform === 'win32' ? 'codeql.exe' : 'codeql';
     console.warn(
       `'${codeqlExe} database index-files --language cds' terminated early as response file '${responseFile}' is empty. This is because no CDS files were selected or found.`,
@@ -95,7 +95,7 @@ try {
 }
 
 // Find all package.json directories that have a `@sap/cds` node dependency.
-const packageJsonDirs = findPackageJsonDirs(responseFiles);
+const packageJsonDirs = findPackageJsonDirs(cdsFilePathsToProcess);
 
 // Install node dependencies in each directory.
 console.log('Pre-installing required CDS compiler versions ...');
@@ -107,7 +107,7 @@ const cdsCommand = determineCdsCommand();
 console.log('Processing CDS files to JSON ...');
 
 // Compile each CDS file to JSON
-for (const rawCdsFilePath of responseFiles) {
+for (const rawCdsFilePath of cdsFilePathsToProcess) {
   try {
     // Use resolved path directly instead of passing through getArg
     const compilationResult = compileCdsToJson(rawCdsFilePath, sourceRoot, cdsCommand);

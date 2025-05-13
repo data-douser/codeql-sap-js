@@ -21,7 +21,7 @@ then
 fi
 
 # Set the _cwd variable to the present working directory (PWD) as the directory
-# from which this script was called, which we assume is the "sourc rooot" directory
+# from which this script was called, which we assume is the "source root" directory
 # of the project that to be scanned / indexed.
 _cwd="$PWD"
 _response_file_path="$1"

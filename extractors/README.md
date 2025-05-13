@@ -2,9 +2,10 @@
 
 ## CodeQL CDS Extractor : Overview
 
-The CodeQL CDS Extractor is a specialized component designed to process and analyze Core Data Services (CDS) files used in SAP Cloud Application Programming (CAP) model applications. This extractor enables CodeQL's static analysis capabilities to detect security vulnerabilities, bugs, and quality issues in CDS files.
+The CodeQL CDS Extractor is a specialized component designed to process and analyze Core Data Services (CDS) files used in SAP Cloud Application Programming (CAP) model applications. This extractor expands CodeQL's static analysis capabilities to detect security vulnerabilities, bugs, and quality issues in CDS files.
 
 Key capabilities of the extractor include:
+
 - Compiling `.cds` files to an intermediate JSON representation
 - Handling SAP CAP dependencies and managing compiler versions
 - Integrating with the JavaScript extractor for comprehensive analysis
