@@ -2,6 +2,8 @@ import { execFileSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 
+import { addDependencyDiagnostic, addPackageJsonParsingDiagnostic } from './diagnostics';
+
 /**
  * Interface for package.json structure
  */
@@ -14,9 +16,10 @@ export interface PackageJson {
 /**
  * Find directories containing package.json with @sap/cds dependency
  * @param filePaths List of CDS file paths to check
+ * @param codeqlExePath Path to the CodeQL executable (optional)
  * @returns Set of directories containing relevant package.json files
  */
-export function findPackageJsonDirs(filePaths: string[]): Set<string> {
+export function findPackageJsonDirs(filePaths: string[], codeqlExePath?: string): Set<string> {
   const packageJsonDirs = new Set<string>();
 
   filePaths.forEach(file => {
@@ -41,9 +44,12 @@ export function findPackageJsonDirs(filePaths: string[]): Set<string> {
             break;
           }
         } catch (error) {
-          console.warn(
-            `Warning: Failed to parse package.json at ${packageJsonPath}: ${String(error)}`,
-          );
+          const errorMessage = `Failed to parse package.json at ${packageJsonPath}: ${String(error)}`;
+          console.warn(`WARN: ${errorMessage}`);
+
+          if (codeqlExePath) {
+            addPackageJsonParsingDiagnostic(packageJsonPath, errorMessage, codeqlExePath);
+          }
         }
       }
       // Move up one directory level
@@ -62,8 +68,9 @@ export function findPackageJsonDirs(filePaths: string[]): Set<string> {
 /**
  * Install dependencies in the package.json directories
  * @param packageJsonDirs Set of directories containing package.json files
+ * @param codeqlExePath Path to the CodeQL executable (optional)
  */
-export function installDependencies(packageJsonDirs: Set<string>): void {
+export function installDependencies(packageJsonDirs: Set<string>, codeqlExePath?: string): void {
   // Sanity check that we found at least one package.json directory
   if (packageJsonDirs.size === 0) {
     console.warn(
@@ -88,8 +95,13 @@ export function installDependencies(packageJsonDirs: Set<string>): void {
         ['install', '--quiet', '--no-audit', '--no-fund', '--no-save', '@sap/cds-dk'],
         { cwd: dir, stdio: 'inherit' },
       );
-    } catch (error) {
-      console.error(`Failed to install dependencies in ${dir}: ${String(error)}`);
+    } catch (err) {
+      const errorMessage = `Failed to install dependencies in ${dir}: ${err instanceof Error ? err.message : String(err)}`;
+      console.error(errorMessage);
+      if (codeqlExePath) {
+        const packageJsonPath = join(dir, 'package.json');
+        addDependencyDiagnostic(packageJsonPath, errorMessage, codeqlExePath);
+      }
     }
   });
 }

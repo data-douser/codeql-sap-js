@@ -2,6 +2,7 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { addDependencyDiagnostic, addPackageJsonParsingDiagnostic } from '../../src/diagnostics';
 import { findPackageJsonDirs, installDependencies } from '../../src/packageManager';
 
 // Mock dependencies
@@ -19,6 +20,11 @@ jest.mock('path', () => ({
 
 jest.mock('child_process', () => ({
   execFileSync: jest.fn(),
+}));
+
+jest.mock('../../src/diagnostics', () => ({
+  addDependencyDiagnostic: jest.fn(),
+  addPackageJsonParsingDiagnostic: jest.fn(),
 }));
 
 describe('packageManager', () => {
@@ -79,7 +85,7 @@ describe('packageManager', () => {
         return p; // Return the same path to stop traversal
       });
 
-      const result = findPackageJsonDirs(filePaths);
+      const result = findPackageJsonDirs(filePaths, '/mock/codeql');
 
       expect(result.size).toBe(2); // Should find package.json for both files
       expect(Array.from(result).sort()).toEqual(
@@ -100,7 +106,7 @@ describe('packageManager', () => {
         }),
       );
 
-      const result = findPackageJsonDirs(filePaths);
+      const result = findPackageJsonDirs(filePaths, '/mock/codeql');
 
       expect(result.size).toBe(0);
     });
@@ -117,10 +123,16 @@ describe('packageManager', () => {
       const originalConsoleWarn = console.warn;
       console.warn = jest.fn();
 
-      const result = findPackageJsonDirs(filePaths);
+      const mockCodeqlPath = '/mock/codeql';
+      const result = findPackageJsonDirs(filePaths, mockCodeqlPath);
 
       expect(result.size).toBe(0);
       expect(console.warn).toHaveBeenCalled();
+      expect(addPackageJsonParsingDiagnostic).toHaveBeenCalledWith(
+        expect.stringContaining('/package.json'),
+        expect.any(String),
+        mockCodeqlPath,
+      );
 
       // Restore console.warn
       console.warn = originalConsoleWarn;
@@ -130,8 +142,9 @@ describe('packageManager', () => {
   describe('installDependencies', () => {
     it('should install dependencies for each directory', () => {
       const packageJsonDirs = new Set(['/project1', '/project2']);
+      const mockCodeqlPath = '/mock/codeql';
 
-      installDependencies(packageJsonDirs);
+      installDependencies(packageJsonDirs, mockCodeqlPath);
 
       // Check npm install was called for each directory
       expect(childProcess.execFileSync).toHaveBeenCalledTimes(4); // 2 directories x 2 calls per directory
@@ -160,7 +173,7 @@ describe('packageManager', () => {
       const originalConsoleWarn = console.warn;
       console.warn = jest.fn();
 
-      installDependencies(packageJsonDirs);
+      installDependencies(packageJsonDirs, '/mock/codeql');
 
       expect(childProcess.execFileSync).not.toHaveBeenCalled();
       expect(console.warn).toHaveBeenCalledWith(
@@ -169,6 +182,34 @@ describe('packageManager', () => {
 
       // Restore console.warn
       console.warn = originalConsoleWarn;
+    });
+
+    it('should add diagnostic when npm install fails', () => {
+      const packageJsonDirs = new Set(['/project-error']);
+      const mockCodeqlPath = '/mock/codeql';
+
+      // Mock error for execFileSync
+      (childProcess.execFileSync as jest.Mock).mockImplementation(() => {
+        throw new Error('npm install failed');
+      });
+
+      // Mock console.error
+      const originalConsoleError = console.error;
+      console.error = jest.fn();
+
+      // Mock path.join
+      (path.join as jest.Mock).mockImplementation((dir, file) => `${dir}/${file}`);
+
+      installDependencies(packageJsonDirs, mockCodeqlPath);
+
+      expect(addDependencyDiagnostic).toHaveBeenCalledWith(
+        '/project-error/package.json',
+        expect.stringContaining('npm install failed'),
+        mockCodeqlPath,
+      );
+
+      // Restore console.error
+      console.error = originalConsoleError;
     });
   });
 });

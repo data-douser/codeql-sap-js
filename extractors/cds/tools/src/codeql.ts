@@ -1,17 +1,20 @@
 import { spawnSync, SpawnSyncReturns } from 'child_process';
 import { existsSync } from 'fs';
 
+import { addJavaScriptExtractorDiagnostic } from './diagnostics';
 import { getPlatformInfo } from './environment';
 
 /**
  * Run the JavaScript extractor autobuild script
  * @param sourceRoot The source root directory
  * @param autobuildScriptPath Path to the autobuild script
+ * @param codeqlExePath Path to the CodeQL executable (optional)
  * @returns Success status and any error message
  */
 export function runJavaScriptExtractor(
   sourceRoot: string,
   autobuildScriptPath: string,
+  codeqlExePath?: string,
 ): { success: boolean; error?: string } {
   console.log(
     `Extracting the .cds.json files by running the 'javascript' extractor autobuild script:
@@ -38,16 +41,24 @@ export function runJavaScriptExtractor(
   });
 
   if (result.error) {
+    const errorMessage = `Error executing JavaScript extractor: ${result.error.message}`;
+    if (codeqlExePath) {
+      addJavaScriptExtractorDiagnostic(sourceRoot, errorMessage, codeqlExePath);
+    }
     return {
       success: false,
-      error: `Error executing JavaScript extractor: ${result.error.message}`,
+      error: errorMessage,
     };
   }
 
   if (result.status !== 0) {
+    const errorMessage = `JavaScript extractor failed with exit code: ${String(result.status)}`;
+    if (codeqlExePath) {
+      addJavaScriptExtractorDiagnostic(sourceRoot, errorMessage, codeqlExePath);
+    }
     return {
       success: false,
-      error: `JavaScript extractor failed with exit code: ${String(result.status)}`,
+      error: errorMessage,
     };
   }
 

@@ -1,8 +1,6 @@
 import { execFileSync, spawnSync, SpawnSyncReturns } from 'child_process';
 import { resolve } from 'path';
 
-import * as shellQuote from 'shell-quote';
-
 import { fileExists, dirExists, recursivelyRenameJsonFiles } from './filesystem';
 
 /**
@@ -12,39 +10,6 @@ export interface CdsCompilationResult {
   success: boolean;
   message?: string;
   outputPath?: string;
-}
-
-/**
- * Determine the `cds` command to use based on the environment.
- * @returns A string representing the CLI command to run to invoke the
- * CDS compiler.
- */
-export function determineCdsCommand(): string {
-  let cdsCommand = 'cds';
-  // TODO : create a mapping of project sub-directories to the correct
-  // cds command to use, which will also determine the version of the cds
-  // compiler that will be used for compiling `.cds` files to `.cds.json`
-  // files for that sub-directory / project.
-  try {
-    execFileSync('cds', ['--version'], { stdio: 'ignore' });
-  } catch (error) {
-    // Check if the error is specifically about the command not being found
-    const errorMsg = String(error);
-    if (errorMsg.includes('command not found')) {
-      // If 'cds' command is not available, use npx to run it
-      console.log('CDS command not found, falling back to npx...');
-    } else if (errorMsg.includes('ENOENT') || errorMsg.includes('not recognized')) {
-      // If the error is related to the command not being recognized, use npx
-      console.log('CDS command not recognized, falling back to npx...');
-    } else {
-      // For other errors, log them but still fall back to npx
-      console.warn(
-        `WARN: determining CDS command failed with error: ${errorMsg}. Falling back to npx...`,
-      );
-    }
-    cdsCommand = 'npx -y --package @sap/cds-dk cds';
-  }
-  return cdsCommand;
 }
 
 /**
@@ -116,42 +81,35 @@ export function compileCdsToJson(
     return { success: false, message: String(error) };
   }
 }
-
 /**
- * Add a diagnostic error to the CodeQL database for a failed CDS compilation
- * @param cdsFilePath Path to the CDS file that failed to compile
- * @param errorMessage The error message from the compilation
- * @param codeqlExePath Path to the CodeQL executable
- * @returns True if the diagnostic was added, false otherwise
+ * Determine the `cds` command to use based on the environment.
+ * @returns A string representing the CLI command to run to invoke the
+ * CDS compiler.
  */
-export function addCompilationDiagnostic(
-  cdsFilePath: string,
-  errorMessage: string,
-  codeqlExePath: string,
-): boolean {
+export function determineCdsCommand(): string {
+  let cdsCommand = 'cds';
+  // TODO : create a mapping of project sub-directories to the correct
+  // cds command to use, which will also determine the version of the cds
+  // compiler that will be used for compiling `.cds` files to `.cds.json`
+  // files for that sub-directory / project.
   try {
-    // Use shell-quote to safely escape the error message
-    const escapedErrorMessage = shellQuote.quote([errorMessage]);
-
-    execFileSync(codeqlExePath, [
-      'database',
-      'add-diagnostic',
-      '--extractor-name=cds',
-      '--ready-for-status-page',
-      '--source-id=cds/compilation-failure',
-      '--source-name=Failure to compile one or more SAP CAP CDS files',
-      '--severity=error',
-      `--markdown-message=${escapedErrorMessage.slice(1, -1)}`, // Remove the added quotes from shell-quote
-      `--file-path=${resolve(cdsFilePath)}`,
-      '--',
-      `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE ?? ''}`,
-    ]);
-    console.log(`Added error diagnostic for source file: ${cdsFilePath}`);
-    return true;
-  } catch (err) {
-    console.error(
-      `ERROR: Failed to add error diagnostic for source file=${cdsFilePath} : ${String(err)}`,
-    );
-    return false;
+    execFileSync('cds', ['--version'], { stdio: 'ignore' });
+  } catch (error) {
+    // Check if the error is specifically about the command not being found
+    const errorMsg = String(error);
+    if (errorMsg.includes('command not found')) {
+      // If 'cds' command is not available, use npx to run it
+      console.log('CDS command not found, falling back to npx...');
+    } else if (errorMsg.includes('ENOENT') || errorMsg.includes('not recognized')) {
+      // If the error is related to the command not being recognized, use npx
+      console.log('CDS command not recognized, falling back to npx...');
+    } else {
+      // For other errors, log them but still fall back to npx
+      console.warn(
+        `WARN: determining CDS command failed with error: ${errorMsg}. Falling back to npx...`,
+      );
+    }
+    cdsCommand = 'npx -y --package @sap/cds-dk cds';
   }
+  return cdsCommand;
 }

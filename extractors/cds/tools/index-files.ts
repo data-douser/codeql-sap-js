@@ -1,5 +1,6 @@
-import { addCompilationDiagnostic, compileCdsToJson, determineCdsCommand } from './src/cdsCompiler';
+import { compileCdsToJson, determineCdsCommand } from './src/cdsCompiler';
 import { runJavaScriptExtractor } from './src/codeql';
+import { addCompilationDiagnostic } from './src/diagnostics';
 import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
 import { getCdsFilePathsToProcess } from './src/filesystem';
 import { findPackageJsonDirs, installDependencies } from './src/packageManager';
@@ -53,11 +54,11 @@ if (!filePathsResult.success) {
 const cdsFilePathsToProcess = filePathsResult.cdsFilePaths;
 
 // Find all package.json directories that have a `@sap/cds` node dependency.
-const packageJsonDirs = findPackageJsonDirs(cdsFilePathsToProcess);
+const packageJsonDirs = findPackageJsonDirs(cdsFilePathsToProcess, codeqlExePath);
 
 // Install node dependencies in each directory.
 console.log('Pre-installing required CDS compiler versions ...');
-installDependencies(packageJsonDirs);
+installDependencies(packageJsonDirs, codeqlExePath);
 
 // Determine the CDS command to use.
 const cdsCommand = determineCdsCommand();
@@ -88,7 +89,7 @@ for (const rawCdsFilePath of cdsFilePathsToProcess) {
 configureLgtmIndexFilters();
 
 // Run CodeQL's JavaScript extractor to process the compiled JSON files.
-const extractorResult = runJavaScriptExtractor(sourceRoot, autobuildScriptPath);
+const extractorResult = runJavaScriptExtractor(sourceRoot, autobuildScriptPath, codeqlExePath);
 if (!extractorResult.success && extractorResult.error) {
   console.error(`Error running JavaScript extractor: ${extractorResult.error}`);
 }
