@@ -20,6 +20,9 @@ then
     exit 3
 fi
 
+# Set the _cwd variable to the present working directory (PWD) as the directory
+# from which this script was called, which we assume is the "source root" directory
+# of the project that to be scanned / indexed.
 _cwd="$PWD"
 _response_file_path="$1"
 _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -49,10 +52,12 @@ fi
 #  3. passing the original working directory as a parameter to the
 #     index-files.js script;
 #  4. expecting the index-files.js script to immediately change back to
-#     the original working (aka the project source root) directory.
+#     original working (aka the project source root) directory.
 
 cd "$_script_dir" && \
 echo "Installing node package dependencies" && \
 npm install --quiet --no-audit --no-fund && \
+echo "Building TypeScript code" && \
+npm run build && \
 echo "Running the 'index-files.js' script" && \
-node "$(dirname "$0")/index-files.js" "$_response_file_path" "${_cwd}"
+node "$(dirname "$0")/out/index-files.js" "$_response_file_path" "${_cwd}"
