@@ -1,4 +1,4 @@
-import { compileCdsToJson, determineCdsCommand } from './src/cdsCompiler';
+import { compileCdsToJson, determineCdsCommand } from './src/cds';
 import { runJavaScriptExtractor } from './src/codeql';
 import { addCompilationDiagnostic } from './src/diagnostics';
 import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
