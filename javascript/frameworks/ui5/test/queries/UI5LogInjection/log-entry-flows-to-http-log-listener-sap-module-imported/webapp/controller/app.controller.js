@@ -2,8 +2,10 @@ sap.ui.define(
   [
     "sap/ui/core/mvc/Controller",
     "sap/ui/model/json/JSONModel",
+    "sap/base/Log",
+    "codeql-sap-js/log/CustomLogListener",
   ],
-  function (Controller, JSONModel) {
+  function (Controller, JSONModel, Log, CustomLogListener) {
     "use strict";
     return Controller.extend("codeql-sap-js.controller.app", {
       onInit: function () {
@@ -15,7 +17,11 @@ sap.ui.define(
         this.getView().setModel(oModel);
 
         var input = oModel.getProperty("/input");
-        jQuery.sap.log.debug(input); //log-injection sink
+
+        /* 1. Log the remote input. */
+        Log.debug(input); //
+        /* 2. Create a JS object that implements Log.Listener on-the-fly. */
+        Log.addLogListener(CustomLogListener);
       },
     });
   },
