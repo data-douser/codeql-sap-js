@@ -42,7 +42,7 @@ if (!envSetupSuccess) {
   process.exit(1);
 }
 
-// Validate response file and get the fully paths of CDS files to process.
+// Validate response file and get the full paths of CDS files to process.
 const filePathsResult = getCdsFilePathsToProcess(responseFile, platformInfo);
 if (!filePathsResult.success) {
   console.warn(filePathsResult.errorMessage);
@@ -54,7 +54,8 @@ if (!filePathsResult.success) {
 const cdsFilePathsToProcess = filePathsResult.cdsFilePaths;
 
 // Find all package.json directories that have a `@sap/cds` node dependency.
-const packageJsonDirs = findPackageJsonDirs(cdsFilePathsToProcess, codeqlExePath);
+// Pass the source root to prevent searching above it
+const packageJsonDirs = findPackageJsonDirs(cdsFilePathsToProcess, codeqlExePath, sourceRoot);
 
 // Install node dependencies in each directory.
 console.log('Pre-installing required CDS compiler versions ...');
