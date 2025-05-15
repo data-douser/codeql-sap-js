@@ -27,9 +27,7 @@ class ClientRequestInjectionVector extends DataFlow::Node {
 }
 
 class UI5LogEntryFlowState extends DataFlow::FlowLabel {
-  UI5LogEntryFlowState() {
-    this = ["not-logged-not-accessed", "logged-not-accessed", "logged-and-accessed"]
-  }
+  UI5LogEntryFlowState() { this = ["not-logged-not-accessed", "logged-and-accessed"] }
 }
 
 class UI5LogEntryToHttp extends TaintTracking::Configuration {

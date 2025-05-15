@@ -1,9 +1,9 @@
-WARNING: type 'Configuration' has been deprecated and may be removed in future (UI5LogsToHttp.ql:35,33-61)
+WARNING: type 'Configuration' has been deprecated and may be removed in future (UI5LogsToHttp.ql:33,33-61)
 WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:29,36-55)
-WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:38,52-71)
-WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:44,47-66)
-WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:45,5-24)
-WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:71,50-69)
+WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:36,52-71)
+WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:42,47-66)
+WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:43,5-24)
+WARNING: type 'FlowLabel' has been deprecated and may be removed in future (UI5LogsToHttp.ql:69,50-69)
 nodes
 | webapp/controller/app.controller.js:11:11:11:21 | input: null |
 | webapp/controller/app.controller.js:17:13:17:48 | input |
