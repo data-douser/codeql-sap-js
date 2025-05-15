@@ -1,7 +1,7 @@
 import * as childProcess from 'child_process';
 
-import { determineCdsCommand, compileCdsToJson } from '../../src/cdsCompiler';
-import * as filesystem from '../../src/filesystem';
+import { determineCdsCommand, compileCdsToJson } from '../../../src/cds/compiler';
+import * as filesystem from '../../../src/filesystem';
 
 // Mock dependencies
 jest.mock('child_process', () => ({
@@ -13,7 +13,7 @@ jest.mock('fs', () => ({
   existsSync: jest.fn(),
 }));
 
-jest.mock('../../src/filesystem', () => ({
+jest.mock('../../../src/filesystem', () => ({
   fileExists: jest.fn(),
   dirExists: jest.fn(),
   recursivelyRenameJsonFiles: jest.fn(),
