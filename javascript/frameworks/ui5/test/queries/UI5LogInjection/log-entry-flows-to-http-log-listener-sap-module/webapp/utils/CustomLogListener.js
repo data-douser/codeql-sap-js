@@ -6,14 +6,11 @@ sap.ui.define(
       constructor: function () {
         Log.addLogListener(this);
       },
-      onLogEntry: function (oEvent) {
+      onLogEntry: function (oLogEntry) {
         const http = new XMLHttpRequest();
         const url = "https://some.remote.server/location";
         http.open("POST", url);
-        http.send(oEvent.message); // js/ui5-log-injection-to-http
-
-        $('myId').html(oEvent.message) // Xss
-        jQuery.sap.globalEval(oEvent.message); // UI5 Xss
+        http.send(oLogEntry.message); // js/ui5-log-injection-to-http
       },
     });
   },
