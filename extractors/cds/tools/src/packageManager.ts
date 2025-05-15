@@ -14,20 +14,32 @@ export interface PackageJson {
 }
 
 /**
- * Find directories containing package.json with @sap/cds dependency
- * @param filePaths List of CDS file paths to check
- * @param codeqlExePath Path to the CodeQL executable (optional)
- * @returns Set of directories containing relevant package.json files
+ * Find directories containing package.json with a `@sap/cds` dependency.
+ * @param filePaths List of CDS file paths to check.
+ * @param codeqlExePath Path to the CodeQL executable (optional).
+ * @param sourceRoot The source root directory (optional) - Limits the search to
+ * never go above this directory.
+ * @returns Set of directories containing relevant package.json files.
  */
-export function findPackageJsonDirs(filePaths: string[], codeqlExePath?: string): Set<string> {
+export function findPackageJsonDirs(
+  filePaths: string[],
+  codeqlExePath?: string,
+  sourceRoot?: string,
+): Set<string> {
   const packageJsonDirs = new Set<string>();
+  const absoluteSourceRoot = sourceRoot ? resolve(sourceRoot) : undefined;
 
   filePaths.forEach(file => {
     let dir = dirname(resolve(file));
-    const rootDir = dirname(dir); // Keep track of the root to avoid infinite loop
 
-    while (dir !== rootDir && rootDir !== dir) {
-      // Check until we reach the root directory
+    // Check current directory and parent directories for package.json with a
+    // dependency on `@sap/cds`. Never look above the source root directory.
+    while (true) {
+      // Stop if we've reached or gone above the source root directory.
+      if (absoluteSourceRoot && !dir.startsWith(absoluteSourceRoot)) {
+        break;
+      }
+
       const packageJsonPath = join(dir, 'package.json');
       if (existsSync(packageJsonPath)) {
         try {
