@@ -2,7 +2,7 @@
   "name": "@advanced-security/codeql-sap-js_index-cds-files",
   "version": "1.0.0",
   "description": "CodeQL extractor for DB indexing of .cds.json files produced by the 'cds' compiler.",
-  "main": "out/index-files.js",
+  "main": "out/cds-extractor.js",
   "scripts": {
     "build": "tsc",
     "build:all": "npm run lint:fix && npm run test:coverage && npm run build",

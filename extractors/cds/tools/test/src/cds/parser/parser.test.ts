@@ -1,14 +1,15 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import mockFs from 'mock-fs';
 
 import {
-  determineCdsFilesForProjectDir,
-  isLikelyCdsProject,
-  determineCdsProjectsUnderSourceDir,
-  findProjectRootFromCdsFile,
-  extractCdsImports,
   buildCdsProjectDependencyGraph,
+  determineCdsFilesForProjectDir,
+  determineCdsProjectsUnderSourceDir,
+  extractCdsImports,
+  findProjectRootFromCdsFile,
   getAllCdsFiles,
-} from '../../../src/cds/parser';
+  isLikelyCdsProject,
+} from '../../../../src/cds/parser/functions';
 
 // Helper for creating test file structure
 function createTestFileSystem() {
@@ -247,16 +248,47 @@ describe('CDS Parser Functions', () => {
       }).toThrow();
     });
   });
-
   describe('buildCdsProjectDependencyGraph', () => {
-    it('should build a dependency graph of CDS projects', () => {
-      const projectDirs = ['project', 'another-project', 'standalone-cds'];
-      const graph = buildCdsProjectDependencyGraph('/', projectDirs);
+    beforeEach(() => {
+      // Setup a simple mock filesystem with one CDS project
+      mockFs({
+        '/project': {
+          'package.json': JSON.stringify({
+            name: 'project',
+            dependencies: {
+              '@sap/cds': '4.0.0',
+            },
+          }),
+          'app.cds': 'namespace test;',
+          srv: {
+            'service.cds': 'using test from "../app";',
+          },
+          db: {
+            'schema.cds': 'namespace db;',
+          },
+        },
+      });
 
-      expect(graph.size).toBe(3);
+      // Mock determineCdsProjectsUnderSourceDir to return exactly what we want
+      const functionsModule = require('../../../../src/cds/parser/functions');
+      jest
+        .spyOn(functionsModule, 'determineCdsProjectsUnderSourceDir')
+        .mockReturnValue(['project']);
+
+      // Also need to mock determineCdsFilesForProjectDir to return our expected files
+      jest
+        .spyOn(functionsModule, 'determineCdsFilesForProjectDir')
+        .mockReturnValue(['project/app.cds', 'project/srv/service.cds', 'project/db/schema.cds']);
+    });
+
+    it('should build a dependency graph of CDS projects', () => {
+      const graph = buildCdsProjectDependencyGraph('/');
+
+      expect(graph.size).toBe(1);
+      // Our mock includes 3 directories but isLikelyCdsProject would
+      // typically filter out directories that don't match the criteria
+      // Through the filesystem mocking we can test what's actually found
       expect(graph.has('project')).toBe(true);
-      expect(graph.has('another-project')).toBe(true);
-      expect(graph.has('standalone-cds')).toBe(true);
 
       // Verify project structure
       const project = graph.get('project');

@@ -1,16 +1,8 @@
 import { execFileSync, spawnSync, SpawnSyncReturns } from 'child_process';
 import { resolve } from 'path';
 
-import { fileExists, dirExists, recursivelyRenameJsonFiles } from '../filesystem';
-
-/**
- * Result of a CDS compilation
- */
-export interface CdsCompilationResult {
-  success: boolean;
-  message?: string;
-  outputPath?: string;
-}
+import { CdsCompilationResult } from './types';
+import { fileExists, dirExists, recursivelyRenameJsonFiles } from '../../filesystem';
 
 /**
  * Determine the `cds` command to use based on the environment.
