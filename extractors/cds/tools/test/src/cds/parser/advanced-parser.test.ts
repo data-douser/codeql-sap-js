@@ -1,7 +1,11 @@
 import mockFs from 'mock-fs';
 
-import { consolidateCdsResults, parseCdsFile, processCdsProject } from '../../../src/cds/parser';
-import { CdsParseResult } from '../../../src/cds/parserTypes';
+import {
+  CdsParseResult,
+  consolidateCdsResults,
+  parseCdsFile,
+  processCdsProject,
+} from '../../../../src/cds';
 
 describe('Advanced CDS Parser Functions', () => {
   afterEach(() => {

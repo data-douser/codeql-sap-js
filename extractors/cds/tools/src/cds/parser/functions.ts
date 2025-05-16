@@ -3,6 +3,7 @@ import { dirname, join, relative, resolve, sep } from 'path';
 
 import { sync } from 'glob';
 
+import { writeParserDebugInfo } from './debug';
 import {
   CdsAccessControl,
   CdsAnnotation,
@@ -15,7 +16,7 @@ import {
   CdsService,
   FileCache,
   PackageJson,
-} from './parserTypes';
+} from './types';
 
 // Global file cache to avoid multiple reads of the same file
 const fileCache: FileCache = {
@@ -25,61 +26,30 @@ const fileCache: FileCache = {
 };
 
 /**
- * Safely reads a file's content, using the cache if available
- * @param filePath - Path to the file to read
- * @returns The file content as a string
- */
-export function readFileWithCache(filePath: string): string {
-  if (fileCache.fileContents.has(filePath)) {
-    return fileCache.fileContents.get(filePath)!;
-  }
-
-  try {
-    const content = readFileSync(filePath, 'utf8');
-    fileCache.fileContents.set(filePath, content);
-    return content;
-  } catch (error) {
-    console.error(`Error reading file ${filePath}: ${String(error)}`);
-    throw error;
-  }
-}
-
-/**
- * Safely parses a package.json file, using the cache if available
- * @param filePath - Path to the package.json file
- * @returns The parsed package.json content or undefined if the file doesn't exist or can't be parsed
- */
-export function readPackageJsonWithCache(filePath: string): PackageJson | undefined {
-  if (fileCache.packageJsonCache.has(filePath)) {
-    return fileCache.packageJsonCache.get(filePath);
-  }
-
-  if (!existsSync(filePath)) {
-    return undefined;
-  }
-
-  try {
-    const content = readFileWithCache(filePath);
-    const packageJson = JSON.parse(content) as PackageJson;
-    fileCache.packageJsonCache.set(filePath, packageJson);
-    return packageJson;
-  } catch (error) {
-    console.warn(`Error parsing package.json at ${filePath}: ${String(error)}`);
-    return undefined;
-  }
-}
-
-/**
- * Builds a dependency graph of CDS projects
+ * Builds a dependency graph of CDS projects and performs the initial parsing stage of the CDS extractor.
+ * This is the top-level function for the parser stage of the CDS extractor.
  *
  * @param sourceRootDir - Source root directory
- * @param projectDirs - List of project directories relative to sourceRootDir
+ * @param runMode - Current run mode (index-files, debug-parser, or autobuild)
+ * @param scriptDir - Directory where the script is running (for debug output)
  * @returns Map of project directories to their CdsProject objects with dependency information
  */
 export function buildCdsProjectDependencyGraph(
   sourceRootDir: string,
-  projectDirs: string[],
+  runMode?: string,
+  scriptDir?: string,
 ): Map<string, CdsProject> {
+  // Find all CDS projects under the source directory
+  console.log('Detecting CDS projects...');
+  const projectDirs = determineCdsProjectsUnderSourceDir(sourceRootDir);
+
+  if (projectDirs.length === 0) {
+    console.log('No CDS projects found.');
+    return new Map<string, CdsProject>();
+  }
+
+  console.log(`Found ${projectDirs.length} CDS project(s) under source directory.`);
+
   const projectMap = new Map<string, CdsProject>();
 
   // First pass: create CdsProject objects for each project directory
@@ -100,6 +70,7 @@ export function buildCdsProjectDependencyGraph(
   }
 
   // Second pass: analyze dependencies between projects
+  console.log('Analyzing dependencies between CDS projects...');
   for (const [projectDir, project] of projectMap.entries()) {
     // Check each CDS file for imports
     for (const relativeFilePath of project.cdsFiles) {
@@ -166,7 +137,26 @@ export function buildCdsProjectDependencyGraph(
     }
   }
 
+  // Handle debug mode specifically if requested
+  if (runMode === 'debug-parser' && scriptDir) {
+    // Output the project graph to a debug file
+    if (!writeParserDebugInfo(projectMap, sourceRootDir, scriptDir)) {
+      console.warn(
+        'Failed to write parser debug information. This indicates an empty project map, possibly due to a misconfiguration when calling the parent script.',
+      );
+    }
+  }
+
   return projectMap;
+}
+
+/**
+ * Clear the file cache - useful for testing or when memory needs to be freed
+ */
+export function clearFileCache(): void {
+  fileCache.fileContents.clear();
+  fileCache.packageJsonCache.clear();
+  fileCache.cdsParseCache.clear();
 }
 
 /**
@@ -252,13 +242,16 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
       continue;
     }
 
-    // Check if this directory appears to be a standalone CDS project
-    const standaloneProjectDir = findProjectRootFromCdsFile(dir, sourceRootDir);
-    if (standaloneProjectDir) {
-      const relativePath = relative(sourceRootDir, standaloneProjectDir);
-      if (!projectDirs.includes(relativePath)) {
-        projectDirs.push(relativePath);
-        processedDirectories.add(standaloneProjectDir);
+    // Only proceed if this directory is likely a CDS project on its own
+    if (isLikelyCdsProject(dir)) {
+      // Check if this directory appears to be a standalone CDS project
+      const standaloneProjectDir = findProjectRootFromCdsFile(dir, sourceRootDir);
+      if (standaloneProjectDir) {
+        const relativePath = relative(sourceRootDir, standaloneProjectDir);
+        if (!projectDirs.includes(relativePath)) {
+          projectDirs.push(relativePath);
+          processedDirectories.add(standaloneProjectDir);
+        }
       }
     }
   }
@@ -484,11 +477,8 @@ export function findProjectRootFromCdsFile(
  */
 export function getAllCdsFiles(sourceRootDir: string): { filePath: string; project: string }[] {
   try {
-    // Find all projects
-    const projectDirs = determineCdsProjectsUnderSourceDir(sourceRootDir);
-
-    // Build project dependency graph
-    const projectMap = buildCdsProjectDependencyGraph(sourceRootDir, projectDirs);
+    // Build project dependency graph directly
+    const projectMap = buildCdsProjectDependencyGraph(sourceRootDir);
 
     // Collect all CDS files with their project information
     const result: { filePath: string; project: string }[] = [];
@@ -1086,10 +1076,46 @@ export function processCdsProject(sourceRootDir: string, projectDir: string): Cd
 }
 
 /**
- * Clear the file cache - useful for testing or when memory needs to be freed
+ * Safely reads a file's content, using the cache if available
+ * @param filePath - Path to the file to read
+ * @returns The file content as a string
  */
-export function clearFileCache(): void {
-  fileCache.fileContents.clear();
-  fileCache.packageJsonCache.clear();
-  fileCache.cdsParseCache.clear();
+export function readFileWithCache(filePath: string): string {
+  if (fileCache.fileContents.has(filePath)) {
+    return fileCache.fileContents.get(filePath)!;
+  }
+
+  try {
+    const content = readFileSync(filePath, 'utf8');
+    fileCache.fileContents.set(filePath, content);
+    return content;
+  } catch (error) {
+    console.error(`Error reading file ${filePath}: ${String(error)}`);
+    throw error;
+  }
+}
+
+/**
+ * Safely parses a package.json file, using the cache if available
+ * @param filePath - Path to the package.json file
+ * @returns The parsed package.json content or undefined if the file doesn't exist or can't be parsed
+ */
+export function readPackageJsonWithCache(filePath: string): PackageJson | undefined {
+  if (fileCache.packageJsonCache.has(filePath)) {
+    return fileCache.packageJsonCache.get(filePath);
+  }
+
+  if (!existsSync(filePath)) {
+    return undefined;
+  }
+
+  try {
+    const content = readFileWithCache(filePath);
+    const packageJson = JSON.parse(content) as PackageJson;
+    fileCache.packageJsonCache.set(filePath, packageJson);
+    return packageJson;
+  } catch (error) {
+    console.warn(`Error parsing package.json at ${filePath}: ${String(error)}`);
+    return undefined;
+  }
 }
