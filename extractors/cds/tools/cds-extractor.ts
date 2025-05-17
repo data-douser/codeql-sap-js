@@ -1,9 +1,8 @@
-import { join } from 'path';
-
 import {
   buildCdsProjectDependencyGraph,
   compileCdsToJson,
   determineCdsCommand,
+  findProjectForCdsFile,
   writeParserDebugInfo,
 } from './src/cds';
 import { runJavaScriptExtractor } from './src/codeql';
@@ -102,21 +101,9 @@ console.log('Detecting CDS projects and analyzing their structure...');
 // Build the project dependency graph using the project-aware parser
 const projectMap = buildCdsProjectDependencyGraph(sourceRoot, runMode);
 
-// Extract all package.json directories that need dependency installation
-const packageJsonDirs = new Set<string>();
-projectMap.forEach(project => {
-  if (
-    project.packageJson &&
-    (project.packageJson.dependencies?.['@sap/cds'] ||
-      project.packageJson.devDependencies?.['@sap/cds'])
-  ) {
-    packageJsonDirs.add(join(sourceRoot, project.projectDir));
-  }
-});
-
-// Install node dependencies in each directory.
-console.log('Pre-installing required CDS compiler versions ...');
-installDependencies(packageJsonDirs, codeqlExePath);
+// Install dependencies using the new caching approach
+console.log('Installing required CDS compiler versions using cached approach...');
+const projectCacheDirMap = installDependencies(projectMap, sourceRoot, codeqlExePath);
 
 // Determine the CDS command to use.
 const cdsCommand = determineCdsCommand();
@@ -126,8 +113,15 @@ console.log('Processing CDS files to JSON ...');
 // Compile each `.cds` file to create a `.cds.json` file.
 for (const rawCdsFilePath of cdsFilePathsToProcess) {
   try {
+    // Find which project this CDS file belongs to, to use the correct cache directory
+    const projectDir = findProjectForCdsFile(rawCdsFilePath, sourceRoot, projectMap);
+    const cacheDir = projectDir ? projectCacheDirMap.get(projectDir) : undefined;
+    if (cacheDir) {
+      console.log(`Using cache directory for ${rawCdsFilePath}: ${cacheDir}`);
+    }
+
     // Use resolved path directly instead of passing through getArg
-    const compilationResult = compileCdsToJson(rawCdsFilePath, sourceRoot, cdsCommand);
+    const compilationResult = compileCdsToJson(rawCdsFilePath, sourceRoot, cdsCommand, cacheDir);
 
     if (!compilationResult.success && compilationResult.message) {
       console.error(
