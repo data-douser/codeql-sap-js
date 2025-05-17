@@ -1,5 +1,5 @@
-import { execFileSync, spawnSync, SpawnSyncReturns } from 'child_process';
-import { resolve } from 'path';
+import { execFileSync, spawnSync, SpawnSyncOptions } from 'child_process';
+import { resolve, join, delimiter } from 'path';
 
 import { CdsCompilationResult } from './types';
 import { fileExists, dirExists, recursivelyRenameJsonFiles } from '../../filesystem';
@@ -29,12 +29,14 @@ export function determineCdsCommand(): string {
  * @param cdsFilePath Path to the CDS file
  * @param sourceRoot The source root directory
  * @param cdsCommand The CDS command to use
+ * @param cacheDir Optional path to a directory containing installed dependencies
  * @returns Result of the compilation
  */
 export function compileCdsToJson(
   cdsFilePath: string,
   sourceRoot: string,
   cdsCommand: string,
+  cacheDir?: string,
 ): CdsCompilationResult {
   try {
     const resolvedCdsFilePath = resolve(cdsFilePath);
@@ -45,7 +47,25 @@ export function compileCdsToJson(
     const cdsJsonOutPath = `${resolvedCdsFilePath}.json`;
     console.log(`Processing CDS file ${resolvedCdsFilePath} to ${cdsJsonOutPath} ...`);
 
-    const result: SpawnSyncReturns<Buffer> = spawnSync(
+    // Prepare spawn options
+    const spawnOptions: SpawnSyncOptions = {
+      cwd: sourceRoot,
+      shell: true,
+      stdio: 'pipe',
+    };
+
+    // If a cache directory is provided, set NODE_PATH to use that cache
+    if (cacheDir) {
+      const nodePath = join(cacheDir, 'node_modules');
+      spawnOptions.env = {
+        ...process.env,
+        NODE_PATH: `${nodePath}${delimiter}${process.env.NODE_PATH ?? ''}`,
+        PATH: `${join(nodePath, '.bin')}${delimiter}${process.env.PATH}`,
+      };
+      console.log(`Using cached dependencies from: ${cacheDir}`);
+    }
+
+    const result = spawnSync(
       cdsCommand,
       [
         'compile',
@@ -58,7 +78,7 @@ export function compileCdsToJson(
         '--log-level',
         'warn',
       ],
-      { cwd: sourceRoot, shell: true, stdio: 'pipe' },
+      spawnOptions,
     );
 
     if (result.error) {
