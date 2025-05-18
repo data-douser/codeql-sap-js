@@ -149,10 +149,6 @@ export function getJavaScriptExtractorRoot(codeqlExePath: string): string {
     return '';
   }
 
-  console.log(
-    `DEBUG: Attempting to resolve JavaScript extractor root with codeqlExePath: ${codeqlExePath}`,
-  );
-  console.log(`DEBUG: Current working directory: ${process.cwd()}`);
   try {
     jsExtractorRoot = execFileSync(
       codeqlExePath,

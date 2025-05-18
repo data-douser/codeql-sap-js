@@ -59,8 +59,6 @@ process.chdir(sourceRoot);
 console.log(
   `INFO: CodeQL CDS extractor using run mode '${runMode}' for scan of project source root directory '${sourceRoot}'.`,
 );
-console.log(`DEBUG: CodeQL executable path: ${codeqlExePath}`);
-console.log(`DEBUG: Current working directory: ${process.cwd()}`);
 
 // Only process response file for INDEX_FILES mode
 let cdsFilePathsToProcess: string[] = [];
@@ -98,12 +96,7 @@ if (typedProjectMap.__debugParserSuccess) {
 
 // Install dependencies using the new caching approach
 console.log('Installing required CDS compiler versions using cached approach...');
-console.log(`DEBUG: Before installDependencies - CodeQL path: ${codeqlExePath}`);
-console.log(`DEBUG: Current working directory: ${process.cwd()}`);
 const projectCacheDirMap = installDependencies(projectMap, sourceRoot, codeqlExePath);
-
-// Determine the CDS command to use.
-const cdsCommand = determineCdsCommand();
 
 console.log('Processing CDS files to JSON ...');
 
@@ -113,9 +106,9 @@ for (const rawCdsFilePath of cdsFilePathsToProcess) {
     // Find which project this CDS file belongs to, to use the correct cache directory
     const projectDir = findProjectForCdsFile(rawCdsFilePath, sourceRoot, projectMap);
     const cacheDir = projectDir ? projectCacheDirMap.get(projectDir) : undefined;
-    if (cacheDir) {
-      console.log(`Using cache directory for ${rawCdsFilePath}: ${cacheDir}`);
-    }
+
+    // Determine the CDS command to use based on the cache directory for this specific file
+    const cdsCommand = determineCdsCommand(cacheDir);
 
     // Use resolved path directly instead of passing through getArg
     const compilationResult = compileCdsToJson(rawCdsFilePath, sourceRoot, cdsCommand, cacheDir);
@@ -137,7 +130,6 @@ for (const rawCdsFilePath of cdsFilePathsToProcess) {
 // Configure the "LGTM" index filters for proper extraction.
 configureLgtmIndexFilters();
 
-console.log(`DEBUG: CODEQL_DIST before runJavaScriptExtractor: ${process.env.CODEQL_DIST}`);
 // Run CodeQL's JavaScript extractor to process the compiled JSON files.
 const extractorResult = runJavaScriptExtractor(sourceRoot, autobuildScriptPath, codeqlExePath);
 if (!extractorResult.success && extractorResult.error) {
