@@ -111,7 +111,15 @@ for (const rawCdsFilePath of cdsFilePathsToProcess) {
     const cdsCommand = determineCdsCommand(cacheDir);
 
     // Use resolved path directly instead of passing through getArg
-    const compilationResult = compileCdsToJson(rawCdsFilePath, sourceRoot, cdsCommand, cacheDir);
+    // Pass the project dependency information to enable project-aware compilation
+    const compilationResult = compileCdsToJson(
+      rawCdsFilePath,
+      sourceRoot,
+      cdsCommand,
+      cacheDir,
+      projectMap,
+      projectDir,
+    );
 
     if (!compilationResult.success && compilationResult.message) {
       console.error(
