@@ -176,6 +176,15 @@ export interface CdsProject {
   projectDir: string;
 }
 
+/** Extended CdsProject map with debug signals */
+export interface CdsProjectMapWithDebugSignals extends Map<string, CdsProject> {
+  /** Signal for successful debug parser operation */
+  __debugParserSuccess?: boolean;
+
+  /** Signal for failed debug parser operation */
+  __debugParserFailure?: boolean;
+}
+
 /** Represents a CDS service definition. */
 export interface CdsService {
   /** Annotations attached to the service. */

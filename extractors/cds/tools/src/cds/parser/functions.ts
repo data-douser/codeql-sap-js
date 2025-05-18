@@ -39,6 +39,12 @@ export function buildCdsProjectDependencyGraph(
   runMode?: string,
   scriptDir?: string,
 ): Map<string, CdsProject> {
+  // If debug-parser mode, log additional information
+  if (runMode === 'debug-parser') {
+    console.log('Running CDS Parser in debug mode...');
+    console.log(`Source Root Directory: ${sourceRootDir}`);
+  }
+
   // Find all CDS projects under the source directory
   console.log('Detecting CDS projects...');
   const projectDirs = determineCdsProjectsUnderSourceDir(sourceRootDir);
@@ -144,6 +150,13 @@ export function buildCdsProjectDependencyGraph(
       console.warn(
         'Failed to write parser debug information. This indicates an empty project map, possibly due to a misconfiguration when calling the parent script.',
       );
+    }
+
+    // Instead of exiting directly (which interrupts tests), return with a signal property
+    if (projectMap.size === 0) {
+      return Object.assign(projectMap, { __debugParserFailure: true });
+    } else {
+      return Object.assign(projectMap, { __debugParserSuccess: true });
     }
   }
 

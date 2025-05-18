@@ -113,7 +113,7 @@ export function writeParserDebugInfo(
     // cat/read when debugging.
     writeFileSync(debugFilePath, `${debugContent}\n`, 'utf-8');
 
-    console.log(`Parser debug information written to: ${debugFilePath}`);
+    console.log(`INFO: CDS extractor parser debug information written to: ${debugFilePath}`);
     return true;
   } catch (error: unknown) {
     console.error(`Error writing parser debug information: ${String(error)}`);
