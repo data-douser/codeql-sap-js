@@ -3,8 +3,8 @@ import {
   compileCdsToJson,
   determineCdsCommand,
   findProjectForCdsFile,
-  writeParserDebugInfo,
 } from './src/cds';
+import { CdsProjectMapWithDebugSignals } from './src/cds/parser/types';
 import { runJavaScriptExtractor } from './src/codeql';
 import { addCompilationDiagnostic } from './src/diagnostics';
 import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
@@ -25,42 +25,14 @@ if (!validationResult.isValid) {
 // Get the validated and sanitized arguments
 const { runMode, sourceRoot, responseFile } = validationResult.args!;
 
-// Handle debug parser mode
-if (runMode === (RunMode.DEBUG_PARSER as string)) {
-  console.log('Running CDS Parser in debug mode...');
-  console.log(`Source Root Directory: ${sourceRoot}`);
-
-  // Use the project-aware parser as the main entry point
-  const scriptDir = __dirname;
-  const projectMap = buildCdsProjectDependencyGraph(sourceRoot, runMode, scriptDir);
-
-  if (projectMap.size === 0) {
-    console.warn('No CDS projects found. Cannot generate debug information.');
-    process.exit(1);
-  }
-
-  // Check if debug information was successfully written
-  if (runMode === 'debug-parser' && !writeParserDebugInfo(projectMap, sourceRoot, scriptDir)) {
-    console.warn('Failed to write debug information.');
-    process.exit(1);
-  }
-
-  console.log('Debug parser process completed successfully.');
-  process.exit(0);
-} else if (runMode === (RunMode.AUTOBUILD as string)) {
+// Check for autobuild mode
+if (runMode === (RunMode.AUTOBUILD as string)) {
   console.log('Autobuild mode is not implemented yet.');
   process.exit(1);
 }
 
-// Force this script, and any process it spawns, to use the project (source) root
-// directory as the current working directory.
-process.chdir(sourceRoot);
-
-console.log(
-  `INFO: CodeQL CDS extractor using run mode '${runMode}' for scan of project source root directory '${sourceRoot}'.`,
-);
-
-// Setup the environment and validate all requirements.
+// Setup the environment and validate all requirements first, before changing directory
+// This ensures we can properly locate the CodeQL tools
 const {
   success: envSetupSuccess,
   errorMessages,
@@ -79,6 +51,16 @@ if (!envSetupSuccess) {
   // Exit with an error code when environment setup fails.
   process.exit(1);
 }
+
+// Force this script, and any process it spawns, to use the project (source) root
+// directory as the current working directory.
+process.chdir(sourceRoot);
+
+console.log(
+  `INFO: CodeQL CDS extractor using run mode '${runMode}' for scan of project source root directory '${sourceRoot}'.`,
+);
+console.log(`DEBUG: CodeQL executable path: ${codeqlExePath}`);
+console.log(`DEBUG: Current working directory: ${process.cwd()}`);
 
 // Only process response file for INDEX_FILES mode
 let cdsFilePathsToProcess: string[] = [];
@@ -99,10 +81,25 @@ if (runMode === (RunMode.INDEX_FILES as string)) {
 console.log('Detecting CDS projects and analyzing their structure...');
 
 // Build the project dependency graph using the project-aware parser
-const projectMap = buildCdsProjectDependencyGraph(sourceRoot, runMode);
+// Pass the script directory (__dirname) to support debug-parser mode internally
+const projectMap = buildCdsProjectDependencyGraph(sourceRoot, runMode, __dirname);
+
+// Cast to the interface with debug signals to properly handle debug mode
+const typedProjectMap = projectMap as CdsProjectMapWithDebugSignals;
+
+// Check if we're in debug-parser mode and should exit (based on signals from buildCdsProjectDependencyGraph)
+if (typedProjectMap.__debugParserSuccess) {
+  console.log('Debug parser mode completed successfully.');
+  process.exit(0);
+} else if (typedProjectMap.__debugParserFailure) {
+  console.warn('No CDS projects found. Cannot generate debug information.');
+  process.exit(1);
+}
 
 // Install dependencies using the new caching approach
 console.log('Installing required CDS compiler versions using cached approach...');
+console.log(`DEBUG: Before installDependencies - CodeQL path: ${codeqlExePath}`);
+console.log(`DEBUG: Current working directory: ${process.cwd()}`);
 const projectCacheDirMap = installDependencies(projectMap, sourceRoot, codeqlExePath);
 
 // Determine the CDS command to use.
@@ -140,6 +137,7 @@ for (const rawCdsFilePath of cdsFilePathsToProcess) {
 // Configure the "LGTM" index filters for proper extraction.
 configureLgtmIndexFilters();
 
+console.log(`DEBUG: CODEQL_DIST before runJavaScriptExtractor: ${process.env.CODEQL_DIST}`);
 // Run CodeQL's JavaScript extractor to process the compiled JSON files.
 const extractorResult = runJavaScriptExtractor(sourceRoot, autobuildScriptPath, codeqlExePath);
 if (!extractorResult.success && extractorResult.error) {
