@@ -29,4 +29,4 @@ The fragment from an `xs-app.json` file shows the application in question having
 - SAP: [Server-Side JavaScript Security Considerations](https://help.sap.com/docs/SAP_HANA_PLATFORM/d89d4595fae647eabc14002c0340a999/2040c1b7e478448cb9904c55ac06cac8.html).
 - SAP: [XS Advanced Application Router Configuration](https://help.sap.com/docs/SAP_HANA_PLATFORM/4505d0bdaf4948449b7f7379d24d0f0d/5f77e58ec01b46f6b64ee1e2afe3ead7.html#authenticationmethod), relevant to XS Advanced applications.
 - SAP: [Application-Access File Keyword Options: Authentication](https://help.sap.com/docs/SAP_HANA_PLATFORM/b3d0daf2a98e49ada00bf31b7ca7a42e/a9fc5c220d744180850996e2f5d34d6c.html?version=2.0.03&locale=en-US#authentication), relevant to XS Classic applications.
-* Common Weakness Enumeration: [CWE-306](https://cwe.mitre.org/data/definitions/306.html).
+- Common Weakness Enumeration: [CWE-306](https://cwe.mitre.org/data/definitions/306.html).
