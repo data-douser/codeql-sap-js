@@ -78,6 +78,8 @@ class WebAppManifest extends File {
   WebApp getWebapp() { result = webapp }
 }
 
+bindingset[f1, f2]
+pragma[inline_late]
 predicate inSameWebApp(File f1, File f2) {
   exists(WebApp webApp | webApp.getAResource() = f1 and webApp.getAResource() = f2)
 }
@@ -153,7 +155,8 @@ abstract class UserModule extends CallExpr {
 class SapDefineModule extends AmdModuleDefinition::Range, MethodCallExpr, UserModule {
   SapDefineModule() {
     /*
-     * NOTE: This only matches a call to the dot expression `sap.ui.define`, and does not consider a flow among `sap`, `ui`, and `define`.
+     * NOTE: This only matches a call to the dot expression `sap.ui.define`, and does not
+     * consider a flow among `sap`, `ui`, and `define`.
      */
 
     exists(GlobalVarAccess sap, DotExpr sapUi, DotExpr sapUiDefine |
@@ -218,50 +221,11 @@ class JQueryDefineModule extends UserModule, MethodCallExpr {
   }
 }
 
-private SourceNode sapControl(TypeTracker t) {
-  t.start() and
-  exists(UserModule d, string dependencyType |
-    dependencyType = ["sap/ui/core/Control", "sap.ui.core.Control"]
-  |
-    d.getADependency() = dependencyType and
-    result = d.getRequiredObject(dependencyType).asSourceNode()
-  )
-  or
-  exists(TypeTracker t2 | result = sapControl(t2).track(t2, t))
-}
-
-private SourceNode sapControl() { result = sapControl(TypeTracker::end()) }
-
-private SourceNode sapController(TypeTracker t) {
-  t.start() and
-  exists(UserModule d, string dependencyType |
-    dependencyType = ["sap/ui/core/mvc/Controller", "sap.ui.core.mvc.Controller"]
-  |
-    d.getADependency() = dependencyType and
-    result = d.getRequiredObject(dependencyType).asSourceNode()
-  )
-  or
-  exists(TypeTracker t2 | result = sapController(t2).track(t2, t))
-}
-
-private SourceNode sapController() { result = sapController(TypeTracker::end()) }
-
-private SourceNode sapRenderer(TypeTracker t) {
-  t.start() and
-  exists(UserModule d, string dependencyType |
-    dependencyType = ["sap/ui/core/Renderer", "sap.ui.core.Renderer"]
-  |
-    d.getADependency() = dependencyType and
-    result = d.getRequiredObject(dependencyType).asSourceNode()
-  )
-  or
-  exists(TypeTracker t2 | result = sapController(t2).track(t2, t))
-}
-
-private SourceNode sapRenderer() { result = sapRenderer(TypeTracker::end()) }
-
-private class Renderer extends SapExtendCall {
-  Renderer() { this.getReceiver().getALocalSource() = sapRenderer() }
+class Renderer extends SapExtendCall {
+  Renderer() {
+    this.getReceiver().getALocalSource() =
+      TypeTrackers::hasDependency(["sap/ui/core/Renderer", "sap.ui.core.Renderer"])
+  }
 
   FunctionNode getRenderer() {
     /* 1. Old API */
@@ -274,7 +238,8 @@ private class Renderer extends SapExtendCall {
 
 class CustomControl extends SapExtendCall {
   CustomControl() {
-    this.getReceiver().getALocalSource() = sapControl() or
+    this.getReceiver().getALocalSource() =
+      TypeTrackers::hasDependency(["sap/ui/core/Control", "sap.ui.core.Control"]) or
     exists(SapDefineModule sapModule | this.getDefine() = sapModule.getExtendingModule())
   }
 
@@ -448,7 +413,8 @@ class CustomController extends SapExtendCall {
   string name;
 
   CustomController() {
-    this.getReceiver().getALocalSource() = sapController() and
+    this.getReceiver().getALocalSource() =
+      TypeTrackers::hasDependency(["sap/ui/core/mvc/Controller", "sap.ui.core.mvc.Controller"]) and
     name = this.getFile().getBaseName().regexpCapture("([a-zA-Z0-9]+).[cC]ontroller.js", 1)
   }
 
@@ -770,35 +736,24 @@ abstract class UI5InternalModel extends UI5Model, NewNode {
   abstract string getPathString(Property property);
 }
 
-/**
- * Represents models that are loaded from an external source, e.g. OData service.
- * It is the value flowing to a `setModel` call in a handler of a `CustomController` (which is represented by `ControllerHandler`), since it is the closest we can get to the actual model itself.
- */
-private SourceNode sapComponent(TypeTracker t) {
-  t.start() and
-  exists(UserModule d, string dependencyType |
-    dependencyType =
-      [
-        "sap/ui/core/mvc/Component", "sap.ui.core.mvc.Component", "sap/ui/core/UIComponent",
-        "sap.ui.core.UIComponent"
-      ]
-  |
-    d.getADependency() = dependencyType and
-    result = d.getRequiredObject(dependencyType).asSourceNode()
-  )
-  or
-  exists(TypeTracker t2 | result = sapComponent(t2).track(t2, t))
-}
-
-private SourceNode sapComponent() { result = sapComponent(TypeTracker::end()) }
-
 import ManifestJson
 
 /**
  * A UI5 Component that may contain other controllers or controls.
  */
 class Component extends SapExtendCall {
-  Component() { this.getReceiver().getALocalSource() = sapComponent() }
+  Component() {
+    this.getReceiver().getALocalSource() =
+      /*
+       * Represents models that are loaded from an external source, e.g. OData service.
+       * It is the value flowing to a `setModel` call in a handler of a `CustomController` (which is represented by `ControllerHandler`), since it is the closest we can get to the actual model itself.
+       */
+
+      TypeTrackers::hasDependency([
+          "sap/ui/core/mvc/Component", "sap.ui.core.mvc.Component", "sap/ui/core/UIComponent",
+          "sap.ui.core.UIComponent"
+        ])
+  }
 
   string getId() { result = this.getName().regexpCapture("([a-zA-Z0-9.]+).Component", 1) }
 
@@ -1486,5 +1441,21 @@ class PropertyMetadata extends ObjectLiteralNode {
       result.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue() = name
     ) and
     inSameWebApp(this.getFile(), result.getFile())
+  }
+}
+
+module TypeTrackers {
+  private SourceNode hasDependency(TypeTracker t, string dependencyPath) {
+    t.start() and
+    exists(UserModule d |
+      d.getADependency() = dependencyPath and
+      result = d.getRequiredObject(dependencyPath).asSourceNode()
+    )
+    or
+    exists(TypeTracker t2 | result = hasDependency(t2, dependencyPath).track(t2, t))
+  }
+
+  SourceNode hasDependency(string dependencyPath) {
+    result = hasDependency(TypeTracker::end(), dependencyPath)
   }
 }

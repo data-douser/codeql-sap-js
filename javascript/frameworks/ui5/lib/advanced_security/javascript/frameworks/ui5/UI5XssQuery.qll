@@ -2,7 +2,6 @@ import javascript
 import advanced_security.javascript.frameworks.ui5.dataflow.DataFlow as UI5DataFlow
 import advanced_security.javascript.frameworks.ui5.UI5View
 import semmle.javascript.security.dataflow.DomBasedXssQuery as DomBasedXss
-import semmle.javascript.security.dataflow.ClientSideUrlRedirectCustomizations::ClientSideUrlRedirect as UrlRedirect
 
 class Configuration extends DomBasedXss::Configuration {
   override predicate isSource(DataFlow::Node start) {
@@ -56,7 +55,6 @@ class Configuration extends DomBasedXss::Configuration {
 
   override predicate isSink(DataFlow::Node node) {
     node instanceof UI5ExtHtmlISink or
-    node instanceof UrlRedirect::LocationSink or
     node instanceof UI5ModelHtmlISink
   }
 }
@@ -64,13 +62,13 @@ class Configuration extends DomBasedXss::Configuration {
 /**
  * An HTML injection sink associated with a `UI5BoundNode`, typically for library controls acting as sinks.
  */
-class UI5ModelHtmlISink extends DomBasedXss::Sink {
+class UI5ModelHtmlISink extends DataFlow::Node {
   UI5ModelHtmlISink() { exists(UI5View view | view.getAnHtmlISink().getNode() = this) }
 }
 
 /**
  * An HTML injection sink typically for custom controls whose RenderManager calls acting as sinks.
  */
-private class UI5ExtHtmlISink extends DomBasedXss::Sink {
+private class UI5ExtHtmlISink extends DataFlow::Node {
   UI5ExtHtmlISink() { this = ModelOutput::getASinkNode("ui5-html-injection").asSink() }
 }
