@@ -8,7 +8,7 @@ import { CdsProjectMapWithDebugSignals } from './src/cds/parser/types';
 import { runJavaScriptExtractor } from './src/codeql';
 import { addCompilationDiagnostic } from './src/diagnostics';
 import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
-import { getCdsFilePathsToProcess } from './src/filesystem';
+import { handleIndexFilesMode } from './src/indexFiles';
 import { installDependencies } from './src/packageManager';
 import { RunMode, validateArguments } from './src/utils';
 
@@ -60,21 +60,6 @@ console.log(
   `INFO: CodeQL CDS extractor using run mode '${runMode}' for scan of project source root directory '${sourceRoot}'.`,
 );
 
-// Only process response file for INDEX_FILES mode
-let cdsFilePathsToProcess: string[] = [];
-if (runMode === (RunMode.INDEX_FILES as string)) {
-  // Validate response file and get the full paths of CDS files to process.
-  const filePathsResult = getCdsFilePathsToProcess(responseFile, platformInfo);
-  if (!filePathsResult.success) {
-    console.warn(filePathsResult.errorMessage);
-    // Exit with an error if unable to get a list of `.cds` file paths to process.
-    process.exit(1);
-  }
-
-  // Get the validated list of CDS files to process
-  cdsFilePathsToProcess = filePathsResult.cdsFilePaths;
-}
-
 // Using the new project-aware approach to find CDS projects and their dependencies
 console.log('Detecting CDS projects and analyzing their structure...');
 
@@ -97,6 +82,29 @@ if (typedProjectMap.__debugParserSuccess) {
 // Install dependencies using the new caching approach
 console.log('Installing required CDS compiler versions using cached approach...');
 const projectCacheDirMap = installDependencies(projectMap, sourceRoot, codeqlExePath);
+
+// Handle run mode specific logic
+let cdsFilePathsToProcess: string[] = [];
+
+if (runMode === (RunMode.INDEX_FILES as string)) {
+  // Use the dedicated function for INDEX_FILES mode
+  const indexFilesResult = handleIndexFilesMode(projectMap, sourceRoot, responseFile, platformInfo);
+
+  if (!indexFilesResult.validationResult.success) {
+    console.warn(indexFilesResult.validationResult.errorMessage);
+    // Exit with an error if unable to read the response file
+    process.exit(1);
+  }
+
+  cdsFilePathsToProcess = indexFilesResult.cdsFilePathsToProcess;
+} else {
+  console.log('Extracting CDS files from discovered projects...');
+
+  // Extract all CDS files from the discovered projects for other run modes
+  for (const [, project] of projectMap.entries()) {
+    cdsFilePathsToProcess.push(...project.cdsFiles);
+  }
+}
 
 console.log('Processing CDS files to JSON ...');
 

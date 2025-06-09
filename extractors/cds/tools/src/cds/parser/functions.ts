@@ -197,8 +197,11 @@ export function determineCdsFilesForProjectDir(
   }
 
   try {
-    // Use glob to find all .cds files under the project directory
-    const cdsFiles = sync(join(projectDir, '**/*.cds'), { nodir: true });
+    // Use glob to find all .cds files under the project directory, excluding node_modules
+    const cdsFiles = sync(join(projectDir, '**/*.cds'), {
+      nodir: true,
+      ignore: ['**/node_modules/**'],
+    });
 
     // Convert absolute paths to paths relative to sourceRootDir
     return cdsFiles.map(file => relative(sourceRootDir, file));
@@ -223,8 +226,11 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
   const projectDirs: string[] = [];
   const processedDirectories = new Set<string>();
 
-  // Find all package.json files under the source directory
-  const packageJsonFiles = sync(join(sourceRootDir, '**/package.json'), { nodir: true });
+  // Find all package.json files under the source directory, excluding node_modules
+  const packageJsonFiles = sync(join(sourceRootDir, '**/package.json'), {
+    nodir: true,
+    ignore: ['**/node_modules/**'],
+  });
 
   // Check each directory containing a package.json file
   for (const packageJsonFile of packageJsonFiles) {
@@ -244,8 +250,11 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
     }
   }
 
-  // Also check directories that have .cds files but no package.json
-  const cdsFiles = sync(join(sourceRootDir, '**/*.cds'), { nodir: true });
+  // Also check directories that have .cds files but no package.json, excluding node_modules
+  const cdsFiles = sync(join(sourceRootDir, '**/*.cds'), {
+    nodir: true,
+    ignore: ['**/node_modules/**'],
+  });
   const cdsDirsSet = new Set(cdsFiles.map(file => dirname(file)));
   const cdsDirs = Array.from(cdsDirsSet);
 
@@ -279,6 +288,11 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
  * @returns true if the directory or a parent has been processed
  */
 export function isDirectoryProcessed(dir: string, processedDirectories: Set<string>): boolean {
+  // Skip node_modules directories entirely
+  if (dir.includes('node_modules')) {
+    return true; // Consider node_modules as already processed to skip them
+  }
+
   let currentDir = dir;
 
   while (currentDir) {
@@ -432,6 +446,11 @@ export function findProjectRootFromCdsFile(
   cdsFileDir: string,
   sourceRootDir: string,
 ): string | null {
+  // Skip node_modules directories entirely
+  if (cdsFileDir.includes('node_modules')) {
+    return null;
+  }
+
   let currentDir = cdsFileDir;
 
   // Limit the upward search to the sourceRootDir
@@ -442,7 +461,11 @@ export function findProjectRootFromCdsFile(
       // be the real project root containing both db and srv directories
       const parentDir = dirname(currentDir);
 
-      if (parentDir !== currentDir && parentDir.startsWith(sourceRootDir)) {
+      if (
+        parentDir !== currentDir &&
+        parentDir.startsWith(sourceRootDir) &&
+        !parentDir.includes('node_modules')
+      ) {
         const hasDbDir =
           existsSync(join(parentDir, 'db')) && statSync(join(parentDir, 'db')).isDirectory();
         const hasSrvDir =
@@ -522,6 +545,11 @@ export function getAllCdsFiles(sourceRootDir: string): { filePath: string; proje
  */
 export function isLikelyCdsProject(dir: string): boolean {
   try {
+    // Skip node_modules directories entirely
+    if (dir.includes('node_modules')) {
+      return false;
+    }
+
     // Check if package.json exists and has CAP dependencies
     const packageJsonPath = join(dir, 'package.json');
     const packageJson = readPackageJsonWithCache(packageJsonPath);
@@ -538,12 +566,13 @@ export function isLikelyCdsProject(dir: string): boolean {
       }
     }
 
-    // Check for CDS files in standard locations
+    // Check for CDS files in standard locations (checking both direct and nested files)
     const standardLocations = [join(dir, 'db'), join(dir, 'srv'), join(dir, 'app')];
 
     for (const location of standardLocations) {
       if (existsSync(location) && statSync(location).isDirectory()) {
-        const cdsFiles = sync(join(location, '*.cds'));
+        // Check for any .cds files at any level under these directories
+        const cdsFiles = sync(join(location, '**/*.cds'), { nodir: true });
         if (cdsFiles.length > 0) {
           return true;
         }
