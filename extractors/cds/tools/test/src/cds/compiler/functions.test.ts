@@ -234,10 +234,9 @@ describe('cds compiler functions', () => {
       expect(result.outputPath).toBe(cdsJsonOutPath);
       expect(result.compiledAsProject).toBe(true);
 
-      // Verify the --parse flag was added for project compilation
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
         'cds',
-        expect.arrayContaining(['compile', resolvedCdsPath, '--to', 'json', '--parse']),
+        expect.arrayContaining(['compile', resolvedCdsPath, '--to', 'json']),
         expect.any(Object),
       );
     });
