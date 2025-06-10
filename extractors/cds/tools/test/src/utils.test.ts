@@ -1,6 +1,7 @@
 import { resolve } from 'path';
 
-import { RunMode, getArg, validateArguments } from '../../src/utils';
+import { RunMode } from '../../src/runMode';
+import { getArg, validateArguments } from '../../src/utils';
 
 const EXTRACTOR_SCRIPT_NAME = 'cds-extractor.js';
 

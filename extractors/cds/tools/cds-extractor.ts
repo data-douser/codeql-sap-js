@@ -8,9 +8,9 @@ import { CdsProjectMapWithDebugSignals } from './src/cds/parser/types';
 import { runJavaScriptExtractor } from './src/codeql';
 import { addCompilationDiagnostic } from './src/diagnostics';
 import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
-import { handleIndexFilesMode } from './src/indexFiles';
 import { installDependencies } from './src/packageManager';
-import { RunMode, validateArguments } from './src/utils';
+import { RunMode } from './src/runMode';
+import { validateArguments } from './src/utils';
 
 // Validate arguments to this script.
 // The first argument we pass is the expected run mode, which will be extracted from process.argv[2]
@@ -23,7 +23,7 @@ if (!validationResult.isValid) {
 }
 
 // Get the validated and sanitized arguments
-const { runMode, sourceRoot, responseFile } = validationResult.args!;
+const { runMode, sourceRoot } = validationResult.args!;
 
 // Check for autobuild mode
 if (runMode === (RunMode.AUTOBUILD as string)) {
@@ -79,36 +79,26 @@ if (typedProjectMap.__debugParserSuccess) {
   process.exit(1);
 }
 
-// Install dependencies using the new caching approach
-console.log('Installing required CDS compiler versions using cached approach...');
+// Install dependencies of discovered CAP/CDS projects
+console.log('Ensuring depencencies are installed in cache for required CDS compiler versions...');
 const projectCacheDirMap = installDependencies(projectMap, sourceRoot, codeqlExePath);
 
-// Handle run mode specific logic
-let cdsFilePathsToProcess: string[] = [];
+const cdsFilePathsToProcess: string[] = [];
 
-if (runMode === (RunMode.INDEX_FILES as string)) {
-  // Use the dedicated function for INDEX_FILES mode
-  const indexFilesResult = handleIndexFilesMode(projectMap, sourceRoot, responseFile, platformInfo);
+console.log('Extracting CDS files from discovered projects...');
 
-  if (!indexFilesResult.validationResult.success) {
-    console.warn(indexFilesResult.validationResult.errorMessage);
-    // Exit with an error if unable to read the response file
-    process.exit(1);
-  }
-
-  cdsFilePathsToProcess = indexFilesResult.cdsFilePathsToProcess;
-} else {
-  console.log('Extracting CDS files from discovered projects...');
-
-  // Extract all CDS files from the discovered projects for other run modes
-  for (const [, project] of projectMap.entries()) {
-    cdsFilePathsToProcess.push(...project.cdsFiles);
-  }
+// Use the project map to collect all `.cds` files from each project.
+// We want to "extract" all `.cds` files from all projects so that we have a copy
+// of each `.cds` source file in the CodeQL database.
+for (const [, project] of projectMap.entries()) {
+  cdsFilePathsToProcess.push(...project.cdsFiles);
 }
 
 console.log('Processing CDS files to JSON ...');
 
-// Compile each `.cds` file to create a `.cds.json` file.
+// Evaluate each `.cds` source file to determine if it should be compiled to JSON.
+// TODO : use project.cdsFilesToCompile instead of cdsFiles, to avoid compiling files
+// that are already imported by other files in the same project.
 for (const rawCdsFilePath of cdsFilePathsToProcess) {
   try {
     // Find which project this CDS file belongs to, to use the correct cache directory

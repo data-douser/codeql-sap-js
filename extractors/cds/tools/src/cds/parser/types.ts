@@ -72,6 +72,9 @@ export interface CdsImport {
   /** Path to the imported resource. */
   path: string;
 
+  /** Resolved absolute path of the imported resource (when applicable). */
+  resolvedPath?: string;
+
   /** Original import statement. */
   statement: string;
 }
@@ -168,6 +171,9 @@ export interface CdsProject {
 
   /** Dependencies on other CDS projects. */
   dependencies?: CdsProject[];
+
+  /** Map of file paths (relative to source root) to their import information. */
+  imports?: Map<string, CdsImport[]>;
 
   /** The package.json content if available. */
   packageJson?: PackageJson;

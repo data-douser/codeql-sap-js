@@ -2,8 +2,8 @@ import { join, dirname } from 'path';
 
 import mockFs from 'mock-fs';
 
+import { buildCdsProjectDependencyGraph } from '../../../../src/cds/parser';
 import {
-  buildCdsProjectDependencyGraph,
   clearFileCache,
   determineCdsFilesForProjectDir,
   determineCdsProjectsUnderSourceDir,
@@ -401,7 +401,7 @@ describe('CDS Parser Self-Test Suite', () => {
 
     test('should throw error if projectDir is not a subdirectory of sourceRootDir', () => {
       expect(() => determineCdsFilesForProjectDir(SOURCE_ROOT, '/another-dir')).toThrow(
-        'projectDir must be a subdirectory of sourceRootDir.',
+        'projectDir must be a subdirectory of sourceRootDir or equal to sourceRootDir.',
       );
     });
 

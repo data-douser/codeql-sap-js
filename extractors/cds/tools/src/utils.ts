@@ -1,11 +1,6 @@
 import { resolve } from 'path';
 
-/** Enum representing the supported run modes for the CDS extractor. */
-export enum RunMode {
-  AUTOBUILD = 'autobuild',
-  DEBUG_PARSER = 'debug-parser',
-  INDEX_FILES = 'index-files',
-}
+import { RunMode } from './runMode';
 
 const USAGE_MESSAGE = `\tUsage1: node <script> ${RunMode.DEBUG_PARSER} <source-root> [<response-file>]
 \tUsage2: node <script> ${RunMode.INDEX_FILES} <source-root> <response-file>

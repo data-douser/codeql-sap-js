@@ -3,7 +3,6 @@ import mockFs from 'mock-fs';
 import {
   determineCdsFilesForProjectDir,
   determineCdsProjectsUnderSourceDir,
-  getAllCdsFiles,
   isLikelyCdsProject,
   clearFileCache,
 } from '../../../../src/cds/parser/functions';
@@ -254,7 +253,32 @@ describe('CDS Parser - Subdirectory File Detection', () => {
 
       expect(() => {
         determineCdsFilesForProjectDir('/project-a', '/project-b');
-      }).toThrow('projectDir must be a subdirectory of sourceRootDir.');
+      }).toThrow('projectDir must be a subdirectory of sourceRootDir or equal to sourceRootDir.');
+    });
+
+    it('should allow projectDir to be equal to sourceRootDir', () => {
+      mockFs({
+        '/project-root': {
+          'package.json': JSON.stringify({
+            name: 'project-root',
+            dependencies: { '@sap/cds': '^6.0.0' },
+          }),
+          'main.cds': 'namespace main;',
+          db: {
+            'schema.cds': 'namespace db;',
+          },
+          srv: {
+            'service.cds': 'namespace srv;',
+          },
+        },
+      });
+
+      const files = determineCdsFilesForProjectDir('/project-root', '/project-root');
+
+      expect(files).toContain('main.cds');
+      expect(files).toContain('db/schema.cds');
+      expect(files).toContain('srv/service.cds');
+      expect(files.length).toBe(3);
     });
 
     it('should throw error if parameters are missing', () => {
@@ -265,77 +289,6 @@ describe('CDS Parser - Subdirectory File Detection', () => {
       expect(() => {
         determineCdsFilesForProjectDir('/root', '');
       }).toThrow('both sourceRootDir and projectDir must be provided');
-    });
-  });
-
-  describe('getAllCdsFiles', () => {
-    it('should find all CDS files across multiple projects excluding node_modules', () => {
-      mockFs({
-        '/workspace': {
-          'project-a': {
-            'package.json': JSON.stringify({
-              name: 'project-a',
-              dependencies: { '@sap/cds': '^6.0.0' },
-            }),
-            'main.cds': 'namespace a;',
-            db: {
-              'schema.cds': 'namespace a.db;',
-            },
-            node_modules: {
-              dep: {
-                'dep.cds': 'namespace dep;',
-              },
-            },
-          },
-          'project-b': {
-            'package.json': JSON.stringify({
-              name: 'project-b',
-              dependencies: { '@sap/cds': '^6.0.0' },
-            }),
-            srv: {
-              'service.cds': 'namespace b.srv;',
-              impl: {
-                'impl.cds': 'namespace b.srv.impl;',
-              },
-            },
-            node_modules: {
-              'another-dep': {
-                'another.cds': 'namespace another;',
-              },
-            },
-          },
-          'standalone-cds': {
-            'single.cds': 'namespace standalone;',
-          },
-          'non-cds-project': {
-            'package.json': JSON.stringify({
-              name: 'non-cds-project',
-              dependencies: { express: '^4.0.0' },
-            }),
-            'index.js': 'console.log("hello");',
-          },
-        },
-      });
-
-      const allFiles = getAllCdsFiles('/workspace');
-
-      // Should include files from CDS projects
-      expect(allFiles.some(f => f.filePath.includes('project-a/main.cds'))).toBe(true);
-      expect(allFiles.some(f => f.filePath.includes('project-a/db/schema.cds'))).toBe(true);
-      expect(allFiles.some(f => f.filePath.includes('project-b/srv/service.cds'))).toBe(true);
-      expect(allFiles.some(f => f.filePath.includes('project-b/srv/impl/impl.cds'))).toBe(true);
-      expect(allFiles.some(f => f.filePath.includes('standalone-cds/single.cds'))).toBe(true);
-
-      // Should NOT include files from node_modules
-      expect(allFiles.some(f => f.filePath.includes('node_modules'))).toBe(false);
-      expect(allFiles.some(f => f.filePath.includes('dep.cds'))).toBe(false);
-      expect(allFiles.some(f => f.filePath.includes('another.cds'))).toBe(false);
-
-      // Should NOT include files from non-CDS projects
-      expect(allFiles.some(f => f.filePath.includes('non-cds-project'))).toBe(false);
-
-      // Should have the correct number of files (5 total)
-      expect(allFiles.length).toBe(5);
     });
   });
 
@@ -515,69 +468,6 @@ describe('CDS Parser - Subdirectory File Detection', () => {
 
       // Should have exactly 3 files
       expect(files.length).toBe(3);
-    });
-
-    it('should ensure getAllCdsFiles never includes node_modules files', () => {
-      mockFs({
-        '/workspace': {
-          project1: {
-            'package.json': JSON.stringify({
-              name: 'project1',
-              dependencies: { '@sap/cds': '^6.0.0' },
-            }),
-            'app.cds': 'namespace project1;',
-            db: {
-              deep: {
-                nested: {
-                  'model.cds': 'namespace project1.db.deep.nested;',
-                },
-              },
-            },
-            node_modules: {
-              'package-with-cds': {
-                'package.json': JSON.stringify({
-                  name: 'package-with-cds',
-                  dependencies: { '@sap/cds': '^6.0.0' },
-                }),
-                'lib.cds': 'namespace package;',
-                db: {
-                  'package-db.cds': 'namespace package.db;',
-                },
-              },
-            },
-          },
-          project2: {
-            'single.cds': 'namespace project2;',
-            node_modules: {
-              'another-package': {
-                'another.cds': 'namespace another;',
-              },
-            },
-          },
-        },
-      });
-
-      const allFiles = getAllCdsFiles('/workspace');
-
-      // Should include valid project files
-      expect(allFiles.some(f => f.filePath.includes('project1/app.cds'))).toBe(true);
-      expect(allFiles.some(f => f.filePath.includes('project1/db/deep/nested/model.cds'))).toBe(
-        true,
-      );
-      expect(allFiles.some(f => f.filePath.includes('project2/single.cds'))).toBe(true);
-
-      // Should NOT include any node_modules files
-      expect(allFiles.some(f => f.filePath.includes('node_modules'))).toBe(false);
-      expect(allFiles.some(f => f.filePath.includes('package-with-cds'))).toBe(false);
-      expect(allFiles.some(f => f.filePath.includes('another-package'))).toBe(false);
-
-      // Verify specific files are excluded
-      expect(allFiles.some(f => f.filePath.includes('lib.cds'))).toBe(false);
-      expect(allFiles.some(f => f.filePath.includes('package-db.cds'))).toBe(false);
-      expect(allFiles.some(f => f.filePath.includes('another.cds'))).toBe(false);
-
-      // Should have exactly 3 files
-      expect(allFiles.length).toBe(3);
     });
   });
 });

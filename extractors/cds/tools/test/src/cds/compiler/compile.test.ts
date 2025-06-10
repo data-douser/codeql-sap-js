@@ -1,7 +1,7 @@
 import * as childProcess from 'child_process';
 import * as path from 'path';
 
-import { determineCdsCommand, compileCdsToJson } from '../../../../src/cds/compiler/functions';
+import { compileCdsToJson } from '../../../../src/cds/compiler';
 import * as filesystem from '../../../../src/filesystem';
 
 // Mock dependencies
@@ -27,41 +27,9 @@ jest.mock('../../../../src/filesystem', () => ({
   recursivelyRenameJsonFiles: jest.fn(),
 }));
 
-describe('cds compiler functions', () => {
+describe('compile .cds to .cds.json', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('determineCdsCommand', () => {
-    it('should return "cds" when cds command is available', () => {
-      // Mock successful execution of "cds --version"
-      (childProcess.execFileSync as jest.Mock).mockImplementation(() => Buffer.from('4.6.0'));
-
-      // Execute
-      const result = determineCdsCommand();
-
-      // Verify
-      expect(result).toBe('cds');
-      expect(childProcess.execFileSync).toHaveBeenCalledWith('cds', ['--version'], {
-        stdio: 'ignore',
-      });
-    });
-
-    it('should return "npx -y --package @sap/cds-dk cds" when cds command is not available', () => {
-      // Mock failed execution of "cds --version"
-      (childProcess.execFileSync as jest.Mock).mockImplementation(() => {
-        throw new Error('Command not found');
-      });
-
-      // Execute
-      const result = determineCdsCommand();
-
-      // Verify
-      expect(result).toBe('npx -y --package @sap/cds-dk cds');
-      expect(childProcess.execFileSync).toHaveBeenCalledWith('cds', ['--version'], {
-        stdio: 'ignore',
-      });
-    });
   });
 
   describe('compileCdsToJson', () => {

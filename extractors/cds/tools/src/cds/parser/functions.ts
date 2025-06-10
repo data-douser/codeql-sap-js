@@ -1,9 +1,8 @@
 import { existsSync, readFileSync, statSync } from 'fs';
-import { dirname, join, relative, resolve, sep } from 'path';
+import { dirname, join, relative, sep } from 'path';
 
 import { sync } from 'glob';
 
-import { writeParserDebugInfo } from './debug';
 import {
   CdsAccessControl,
   CdsAnnotation,
@@ -11,7 +10,6 @@ import {
   CdsExposedEntity,
   CdsImport,
   CdsParseResult,
-  CdsProject,
   CdsProperty,
   CdsService,
   FileCache,
@@ -26,150 +24,136 @@ const fileCache: FileCache = {
 };
 
 /**
- * Builds a dependency graph of CDS projects and performs the initial parsing stage of the CDS extractor.
- * This is the top-level function for the parser stage of the CDS extractor.
- *
- * @param sourceRootDir - Source root directory
- * @param runMode - Current run mode (index-files, debug-parser, or autobuild)
- * @param scriptDir - Directory where the script is running (for debug output)
- * @returns Map of project directories to their CdsProject objects with dependency information
- */
-export function buildCdsProjectDependencyGraph(
-  sourceRootDir: string,
-  runMode?: string,
-  scriptDir?: string,
-): Map<string, CdsProject> {
-  // If debug-parser mode, log additional information
-  if (runMode === 'debug-parser') {
-    console.log('Running CDS Parser in debug mode...');
-    console.log(`Source Root Directory: ${sourceRootDir}`);
-  }
-
-  // Find all CDS projects under the source directory
-  console.log('Detecting CDS projects...');
-  const projectDirs = determineCdsProjectsUnderSourceDir(sourceRootDir);
-
-  if (projectDirs.length === 0) {
-    console.log('No CDS projects found.');
-    return new Map<string, CdsProject>();
-  }
-
-  console.log(`Found ${projectDirs.length} CDS project(s) under source directory.`);
-
-  const projectMap = new Map<string, CdsProject>();
-
-  // First pass: create CdsProject objects for each project directory
-  for (const projectDir of projectDirs) {
-    const absoluteProjectDir = join(sourceRootDir, projectDir);
-    const cdsFiles = determineCdsFilesForProjectDir(sourceRootDir, absoluteProjectDir);
-
-    // Try to load package.json if it exists
-    const packageJsonPath = join(absoluteProjectDir, 'package.json');
-    const packageJson = readPackageJsonWithCache(packageJsonPath);
-
-    projectMap.set(projectDir, {
-      projectDir,
-      cdsFiles,
-      packageJson,
-      dependencies: [],
-    });
-  }
-
-  // Second pass: analyze dependencies between projects
-  console.log('Analyzing dependencies between CDS projects...');
-  for (const [projectDir, project] of projectMap.entries()) {
-    // Check each CDS file for imports
-    for (const relativeFilePath of project.cdsFiles) {
-      const absoluteFilePath = join(sourceRootDir, relativeFilePath);
-
-      try {
-        const imports = extractCdsImports(absoluteFilePath);
-
-        // Process each import
-        for (const importInfo of imports) {
-          if (importInfo.isRelative) {
-            // Resolve the relative import path
-            const importedFilePath = resolve(dirname(absoluteFilePath), importInfo.path);
-            const normalizedImportedPath = importedFilePath.endsWith('.cds')
-              ? importedFilePath
-              : `${importedFilePath}.cds`;
-
-            // Find which project contains this imported file
-            for (const [otherProjectDir, otherProject] of projectMap.entries()) {
-              if (otherProjectDir === projectDir) continue; // Skip self
-
-              const otherProjectAbsoluteDir = join(sourceRootDir, otherProjectDir);
-
-              // Check if the imported file is in the other project
-              const isInOtherProject = otherProject.cdsFiles.some(otherFile => {
-                const otherAbsolutePath = join(sourceRootDir, otherFile);
-                return (
-                  otherAbsolutePath === normalizedImportedPath ||
-                  normalizedImportedPath.startsWith(otherProjectAbsoluteDir + sep)
-                );
-              });
-
-              if (isInOtherProject) {
-                // Add dependency if not already present
-                project.dependencies ??= [];
-
-                if (!project.dependencies.includes(otherProject)) {
-                  project.dependencies.push(otherProject);
-                }
-              }
-            }
-          }
-          // For module imports, check package.json dependencies
-          else if (importInfo.isModule && project.packageJson) {
-            const dependencies = {
-              ...(project.packageJson.dependencies ?? {}),
-              ...(project.packageJson.devDependencies ?? {}),
-            };
-
-            // Extract module name from import path (e.g., '@sap/cds/common' -> '@sap/cds')
-            const moduleName = importInfo.path.split('/')[0].startsWith('@')
-              ? importInfo.path.split('/').slice(0, 2).join('/')
-              : importInfo.path.split('/')[0];
-
-            if (dependencies[moduleName]) {
-              // This is a valid module dependency, nothing more to do here
-              // In the future, we could track module dependencies separately
-            }
-          }
-        }
-      } catch (error: unknown) {
-        console.warn(`Error processing imports in ${absoluteFilePath}: ${String(error)}`);
-      }
-    }
-  }
-
-  // Handle debug mode specifically if requested
-  if (runMode === 'debug-parser' && scriptDir) {
-    // Output the project graph to a debug file
-    if (!writeParserDebugInfo(projectMap, sourceRootDir, scriptDir)) {
-      console.warn(
-        'Failed to write parser debug information. This indicates an empty project map, possibly due to a misconfiguration when calling the parent script.',
-      );
-    }
-
-    // Instead of exiting directly (which interrupts tests), return with a signal property
-    if (projectMap.size === 0) {
-      return Object.assign(projectMap, { __debugParserFailure: true });
-    } else {
-      return Object.assign(projectMap, { __debugParserSuccess: true });
-    }
-  }
-
-  return projectMap;
-}
-
-/**
  * Clear the file cache - useful for testing or when memory needs to be freed
  */
 export function clearFileCache(): void {
   fileCache.fileContents.clear();
   fileCache.packageJsonCache.clear();
   fileCache.cdsParseCache.clear();
+}
+
+/**
+ * Merge and consolidate multiple CDS parse results
+ * This is useful when analyzing related CDS files that belong to the same project
+ *
+ * @param results - Array of CDS parse results
+ * @returns Consolidated CDS parse result
+ */
+export function consolidateCdsResults(results: CdsParseResult[]): CdsParseResult {
+  const consolidated: CdsParseResult = {
+    entities: [],
+    services: [],
+    imports: [],
+    accessControls: [],
+    contexts: [],
+    errors: [],
+  };
+
+  // First, collect all basic definitions
+  for (const result of results) {
+    consolidated.entities.push(...result.entities);
+    consolidated.services.push(...result.services);
+    consolidated.imports.push(...result.imports);
+    consolidated.accessControls.push(...result.accessControls);
+    consolidated.contexts.push(...result.contexts);
+    consolidated.errors.push(...result.errors);
+  }
+
+  // Then process access controls and apply them to their targets
+  const processedAccessControls = new Set<string>();
+
+  for (const accessControl of consolidated.accessControls) {
+    const accessControlKey = `${accessControl.target}-${accessControl.type}-${String(accessControl.value)}`;
+
+    // Skip if we've already processed an identical access control
+    if (processedAccessControls.has(accessControlKey)) {
+      continue;
+    }
+
+    processedAccessControls.add(accessControlKey);
+
+    // Find the target service or entity
+    // First try exact match, then try with just the name part (allowing for qualified names)
+    let targetService = consolidated.services.find(
+      s => s.name === accessControl.target || s.fqn === accessControl.target,
+    );
+
+    // If no exact match found, try to match just the name part (for cases like "CatalogService")
+    if (!targetService && !accessControl.target.includes('.')) {
+      targetService = consolidated.services.find(s => s.name === accessControl.target);
+    }
+
+    if (targetService) {
+      // Check if this annotation already exists
+      const existingAnnotation = targetService.annotations.find(
+        a => a.name === accessControl.type && a.value === accessControl.value,
+      );
+
+      if (!existingAnnotation) {
+        // Add this access control as an annotation to the service
+        targetService.annotations.push({
+          name: accessControl.type,
+          value: accessControl.value,
+          sourceFile: accessControl.sourceFile,
+        });
+      }
+    } else {
+      // Check if this is a qualified entity name like "ServiceName.EntityName"
+      const qualifiedNameParts = accessControl.target.split('.');
+      if (qualifiedNameParts.length === 2) {
+        const serviceName = qualifiedNameParts[0];
+        const entityName = qualifiedNameParts[1];
+
+        // Find the service first
+        const service = consolidated.services.find(s => s.name === serviceName);
+        if (service) {
+          // Find the entity inside the service
+          const entity = service.entities.find(e => e.name === entityName);
+          if (entity) {
+            // Check if this annotation already exists
+            const existingAnnotation = entity.annotations.find(
+              a => a.name === accessControl.type && a.value === accessControl.value,
+            );
+
+            if (!existingAnnotation) {
+              // Add this access control as an annotation to the entity within service
+              entity.annotations.push({
+                name: accessControl.type,
+                value: accessControl.value,
+                sourceFile: accessControl.sourceFile,
+              });
+            }
+
+            // Skip checking standalone entities since we found a match
+            continue;
+          }
+        }
+      }
+
+      // Check if this targets a standalone entity
+      const targetEntity = consolidated.entities.find(
+        e => e.name === accessControl.target || e.fqn === accessControl.target,
+      );
+
+      if (targetEntity) {
+        // Check if this annotation already exists
+        const existingAnnotation = targetEntity.annotations.find(
+          a => a.name === accessControl.type && a.value === accessControl.value,
+        );
+
+        if (!existingAnnotation) {
+          // Add this access control as an annotation to the entity
+          targetEntity.annotations.push({
+            name: accessControl.type,
+            value: accessControl.value,
+            sourceFile: accessControl.sourceFile,
+          });
+        }
+      }
+    }
+  }
+
+  return consolidated;
 }
 
 /**
@@ -192,15 +176,25 @@ export function determineCdsFilesForProjectDir(
       `Unable to determine CDS files for project dir '${projectDir}'; both sourceRootDir and projectDir must be provided.`,
     );
   }
-  if (!projectDir.startsWith(sourceRootDir)) {
-    throw new Error('projectDir must be a subdirectory of sourceRootDir.');
+
+  // Normalize paths by removing trailing slashes for comparison
+  const normalizedSourceRoot = sourceRootDir.replace(/[/\\]+$/, '');
+  const normalizedProjectDir = projectDir.replace(/[/\\]+$/, '');
+
+  if (
+    !normalizedProjectDir.startsWith(normalizedSourceRoot) &&
+    normalizedProjectDir !== normalizedSourceRoot
+  ) {
+    throw new Error(
+      'projectDir must be a subdirectory of sourceRootDir or equal to sourceRootDir.',
+    );
   }
 
   try {
     // Use glob to find all .cds files under the project directory, excluding node_modules
     const cdsFiles = sync(join(projectDir, '**/*.cds'), {
       nodir: true,
-      ignore: ['**/node_modules/**'],
+      ignore: ['**/node_modules/**', '**/*.testproj/**'],
     });
 
     // Convert absolute paths to paths relative to sourceRootDir
@@ -229,7 +223,7 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
   // Find all package.json files under the source directory, excluding node_modules
   const packageJsonFiles = sync(join(sourceRootDir, '**/package.json'), {
     nodir: true,
-    ignore: ['**/node_modules/**'],
+    ignore: ['**/node_modules/**', '**/*.testproj/**'],
   });
 
   // Check each directory containing a package.json file
@@ -241,19 +235,21 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
       continue;
     }
 
-    processedDirectories.add(dir);
-
     // Only consider this directory if it's likely a CDS project
     if (isLikelyCdsProject(dir)) {
       // Add the directory relative to sourceRootDir
-      projectDirs.push(relative(sourceRootDir, dir));
+      const relativePath = relative(sourceRootDir, dir);
+      // Handle the case where the project is at the root (relative path becomes empty string)
+      const projectDir = relativePath || '.';
+      projectDirs.push(projectDir);
+      processedDirectories.add(dir);
     }
   }
 
   // Also check directories that have .cds files but no package.json, excluding node_modules
   const cdsFiles = sync(join(sourceRootDir, '**/*.cds'), {
     nodir: true,
-    ignore: ['**/node_modules/**'],
+    ignore: ['**/node_modules/**', '**/*.testproj/**'],
   });
   const cdsDirsSet = new Set(cdsFiles.map(file => dirname(file)));
   const cdsDirs = Array.from(cdsDirsSet);
@@ -265,13 +261,28 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
     }
 
     // Only proceed if this directory is likely a CDS project on its own
+    // But first check if it's part of an already identified project
+    let isPartOfExistingProject = false;
+    for (const processedDir of processedDirectories) {
+      if (dir.startsWith(processedDir + sep) || dir === processedDir) {
+        isPartOfExistingProject = true;
+        break;
+      }
+    }
+
+    if (isPartOfExistingProject) {
+      continue;
+    }
+
     if (isLikelyCdsProject(dir)) {
       // Check if this directory appears to be a standalone CDS project
       const standaloneProjectDir = findProjectRootFromCdsFile(dir, sourceRootDir);
       if (standaloneProjectDir) {
         const relativePath = relative(sourceRootDir, standaloneProjectDir);
-        if (!projectDirs.includes(relativePath)) {
-          projectDirs.push(relativePath);
+        // Handle the case where the project is at the root (relative path becomes empty string)
+        const projectDir = relativePath || '.';
+        if (!projectDirs.includes(projectDir)) {
+          projectDirs.push(projectDir);
           processedDirectories.add(standaloneProjectDir);
         }
       }
@@ -288,9 +299,9 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
  * @returns true if the directory or a parent has been processed
  */
 export function isDirectoryProcessed(dir: string, processedDirectories: Set<string>): boolean {
-  // Skip node_modules directories entirely
-  if (dir.includes('node_modules')) {
-    return true; // Consider node_modules as already processed to skip them
+  // Skip node_modules and testproj directories entirely
+  if (dir.includes('node_modules') || dir.includes('.testproj')) {
+    return true; // Consider these as already processed to skip them
   }
 
   let currentDir = dir;
@@ -309,6 +320,102 @@ export function isDirectoryProcessed(dir: string, processedDirectories: Set<stri
   }
 
   return false;
+}
+
+/**
+ * Extract access control definitions from a CDS file
+ */
+export function extractAccessControls(content: string, sourceFile: string): CdsAccessControl[] {
+  const accessControls: CdsAccessControl[] = [];
+
+  // Look for @requires annotations
+  const requiresRegex = /@requires\s*:\s*['"]([^'"]+)['"]/g;
+  let requiresMatch;
+
+  while ((requiresMatch = requiresRegex.exec(content)) !== null) {
+    // Find the target entity or service for this annotation
+    const targetMatch = content
+      .substring(0, requiresMatch.index)
+      .match(/(?:entity|service)\s+(\w+)[^{]*$/);
+    if (targetMatch) {
+      accessControls.push({
+        target: targetMatch[1],
+        type: 'requires',
+        value: requiresMatch[1],
+        sourceFile,
+      });
+    }
+  }
+
+  // Look for annotate statements with @requires
+  const annotateRequiresRegex = /annotate\s+([\w.]+)\s+with\s+@requires\s*:\s*['"]([^'"]+)['"]/g;
+  let annotateMatch;
+
+  while ((annotateMatch = annotateRequiresRegex.exec(content)) !== null) {
+    accessControls.push({
+      target: annotateMatch[1],
+      type: 'requires',
+      value: annotateMatch[2],
+      sourceFile,
+    });
+  }
+
+  // Check for annotate statements with @(...) format
+  const annotateBracketRegex =
+    /annotate\s+([\w.]+)\s+with\s+@\(\s*requires\s*:\s*['"]([^'"]+)['"]\s*\)/g;
+  let bracketMatch;
+
+  while ((bracketMatch = annotateBracketRegex.exec(content)) !== null) {
+    accessControls.push({
+      target: bracketMatch[1],
+      type: 'requires',
+      value: bracketMatch[2],
+      sourceFile,
+    });
+  }
+
+  // Also check for annotate statements with braces
+  const annotateWithBracesRegex =
+    /annotate\s+([\w.]+)\s+with\s+{[^}]*@requires\s*:\s*['"]([^'"]+)['"]/g;
+  let bracesMatch;
+
+  while ((bracesMatch = annotateWithBracesRegex.exec(content)) !== null) {
+    accessControls.push({
+      target: bracesMatch[1],
+      type: 'requires',
+      value: bracesMatch[2],
+      sourceFile,
+    });
+  }
+
+  // Look for @readonly annotations
+  const readonlyRegex = /annotate\s+([\w.]+)\s+with\s+@readonly\s*:\s*(true|false)/g;
+  let readonlyMatch;
+
+  while ((readonlyMatch = readonlyRegex.exec(content)) !== null) {
+    accessControls.push({
+      target: readonlyMatch[1],
+      type: 'readonly',
+      value: readonlyMatch[2] === 'true', // Convert string to boolean
+      sourceFile,
+    });
+  }
+
+  // Check for readonly annotations with @(...) format
+  const readonlyBracketRegex =
+    /annotate\s+([\w.]+)\s+with\s+@\(\s*readonly\s*:\s*(true|false)\s*\)/g;
+  let readonlyBracketMatch;
+
+  while ((readonlyBracketMatch = readonlyBracketRegex.exec(content)) !== null) {
+    accessControls.push({
+      target: readonlyBracketMatch[1],
+      type: 'readonly',
+      value: readonlyBracketMatch[2] === 'true', // Convert string to boolean
+      sourceFile,
+    });
+  }
+
+  return accessControls;
 }
 
 /**
@@ -446,8 +553,8 @@ export function findProjectRootFromCdsFile(
   cdsFileDir: string,
   sourceRootDir: string,
 ): string | null {
-  // Skip node_modules directories entirely
-  if (cdsFileDir.includes('node_modules')) {
+  // Skip node_modules and testproj directories entirely
+  if (cdsFileDir.includes('node_modules') || cdsFileDir.includes('.testproj')) {
     return null;
   }
 
@@ -464,7 +571,8 @@ export function findProjectRootFromCdsFile(
       if (
         parentDir !== currentDir &&
         parentDir.startsWith(sourceRootDir) &&
-        !parentDir.includes('node_modules')
+        !parentDir.includes('node_modules') &&
+        !parentDir.includes('.testproj')
       ) {
         const hasDbDir =
           existsSync(join(parentDir, 'db')) && statSync(join(parentDir, 'db')).isDirectory();
@@ -505,37 +613,6 @@ export function findProjectRootFromCdsFile(
 }
 
 /**
- * Gets a list of all CDS files in the given source directory, organized by project.
- * This function attempts to avoid duplicate processing by understanding project structure.
- *
- * @param sourceRootDir - Source root directory
- * @returns Array of CDS files, each with project information
- */
-export function getAllCdsFiles(sourceRootDir: string): { filePath: string; project: string }[] {
-  try {
-    // Build project dependency graph directly
-    const projectMap = buildCdsProjectDependencyGraph(sourceRootDir);
-
-    // Collect all CDS files with their project information
-    const result: { filePath: string; project: string }[] = [];
-
-    for (const [projectDir, project] of projectMap.entries()) {
-      for (const cdsFile of project.cdsFiles) {
-        result.push({
-          filePath: cdsFile,
-          project: projectDir,
-        });
-      }
-    }
-
-    return result;
-  } catch (error: unknown) {
-    console.error(`Error getting all CDS files: ${String(error)}`);
-    return [];
-  }
-}
-
-/**
  * Determines if a directory likely contains a CAP project
  * by checking for key indicators like package.json with CAP dependencies
  * or .cds files in standard locations
@@ -545,8 +622,8 @@ export function getAllCdsFiles(sourceRootDir: string): { filePath: string; proje
  */
 export function isLikelyCdsProject(dir: string): boolean {
   try {
-    // Skip node_modules directories entirely
-    if (dir.includes('node_modules')) {
+    // Skip node_modules and testproj directories entirely
+    if (dir.includes('node_modules') || dir.includes('.testproj')) {
       return false;
     }
 
@@ -589,6 +666,36 @@ export function isLikelyCdsProject(dir: string): boolean {
   } catch (error: unknown) {
     console.error(`Error checking directory ${dir}: ${String(error)}`);
     return false;
+  }
+}
+
+/**
+ * Parse the value of an annotation
+ */
+export function parseAnnotationValue(valueStr: string): unknown {
+  valueStr = valueStr.trim();
+
+  // Try to parse as JSON
+  try {
+    return JSON.parse(valueStr);
+  } catch {
+    // If it's a quoted string
+    if (
+      (valueStr.startsWith('"') && valueStr.endsWith('"')) ||
+      (valueStr.startsWith("'") && valueStr.endsWith("'"))
+    ) {
+      return valueStr.slice(1, -1);
+    }
+
+    // If it's a boolean
+    if (valueStr === 'true') return true;
+    if (valueStr === 'false') return false;
+
+    // If it's a number
+    if (!isNaN(Number(valueStr))) return Number(valueStr);
+
+    // Default to returning the string as is
+    return valueStr;
   }
 }
 
@@ -803,36 +910,6 @@ export function parseEntityProperties(entityBody: string): CdsProperty[] {
 }
 
 /**
- * Parse the value of an annotation
- */
-export function parseAnnotationValue(valueStr: string): unknown {
-  valueStr = valueStr.trim();
-
-  // Try to parse as JSON
-  try {
-    return JSON.parse(valueStr);
-  } catch {
-    // If it's a quoted string
-    if (
-      (valueStr.startsWith('"') && valueStr.endsWith('"')) ||
-      (valueStr.startsWith("'") && valueStr.endsWith("'"))
-    ) {
-      return valueStr.slice(1, -1);
-    }
-
-    // If it's a boolean
-    if (valueStr === 'true') return true;
-    if (valueStr === 'false') return false;
-
-    // If it's a number
-    if (!isNaN(Number(valueStr))) return Number(valueStr);
-
-    // Default to returning the string as is
-    return valueStr;
-  }
-}
-
-/**
  * Parse exposed entities in a service
  */
 export function parseServiceEntities(serviceBody: string): CdsExposedEntity[] {
@@ -860,226 +937,6 @@ export function parseServiceEntities(serviceBody: string): CdsExposedEntity[] {
   }
 
   return entities;
-}
-
-/**
- * Extract access control definitions from a CDS file
- */
-export function extractAccessControls(content: string, sourceFile: string): CdsAccessControl[] {
-  const accessControls: CdsAccessControl[] = [];
-
-  // Look for @requires annotations
-  const requiresRegex = /@requires\s*:\s*['"]([^'"]+)['"]/g;
-  let requiresMatch;
-
-  while ((requiresMatch = requiresRegex.exec(content)) !== null) {
-    // Find the target entity or service for this annotation
-    const targetMatch = content
-      .substring(0, requiresMatch.index)
-      .match(/(?:entity|service)\s+(\w+)[^{]*$/);
-    if (targetMatch) {
-      accessControls.push({
-        target: targetMatch[1],
-        type: 'requires',
-        value: requiresMatch[1],
-        sourceFile,
-      });
-    }
-  }
-
-  // Look for annotate statements with @requires
-  const annotateRequiresRegex = /annotate\s+([\w.]+)\s+with\s+@requires\s*:\s*['"]([^'"]+)['"]/g;
-  let annotateMatch;
-
-  while ((annotateMatch = annotateRequiresRegex.exec(content)) !== null) {
-    accessControls.push({
-      target: annotateMatch[1],
-      type: 'requires',
-      value: annotateMatch[2],
-      sourceFile,
-    });
-  }
-
-  // Check for annotate statements with @(...) format
-  const annotateBracketRegex =
-    /annotate\s+([\w.]+)\s+with\s+@\(\s*requires\s*:\s*['"]([^'"]+)['"]\s*\)/g;
-  let bracketMatch;
-
-  while ((bracketMatch = annotateBracketRegex.exec(content)) !== null) {
-    accessControls.push({
-      target: bracketMatch[1],
-      type: 'requires',
-      value: bracketMatch[2],
-      sourceFile,
-    });
-  }
-
-  // Also check for annotate statements with braces
-  const annotateWithBracesRegex =
-    /annotate\s+([\w.]+)\s+with\s+{[^}]*@requires\s*:\s*['"]([^'"]+)['"]/g;
-  let bracesMatch;
-
-  while ((bracesMatch = annotateWithBracesRegex.exec(content)) !== null) {
-    accessControls.push({
-      target: bracesMatch[1],
-      type: 'requires',
-      value: bracesMatch[2],
-      sourceFile,
-    });
-  }
-
-  // Look for @readonly annotations
-  const readonlyRegex = /annotate\s+([\w.]+)\s+with\s+@readonly\s*:\s*(true|false)/g;
-  let readonlyMatch;
-
-  while ((readonlyMatch = readonlyRegex.exec(content)) !== null) {
-    accessControls.push({
-      target: readonlyMatch[1],
-      type: 'readonly',
-      value: readonlyMatch[2] === 'true', // Convert string to boolean
-      sourceFile,
-    });
-  }
-
-  // Check for readonly annotations with @(...) format
-  const readonlyBracketRegex =
-    /annotate\s+([\w.]+)\s+with\s+@\(\s*readonly\s*:\s*(true|false)\s*\)/g;
-  let readonlyBracketMatch;
-
-  while ((readonlyBracketMatch = readonlyBracketRegex.exec(content)) !== null) {
-    accessControls.push({
-      target: readonlyBracketMatch[1],
-      type: 'readonly',
-      value: readonlyBracketMatch[2] === 'true', // Convert string to boolean
-      sourceFile,
-    });
-  }
-
-  return accessControls;
-}
-
-/**
- * Merge and consolidate multiple CDS parse results
- * This is useful when analyzing related CDS files that belong to the same project
- *
- * @param results - Array of CDS parse results
- * @returns Consolidated CDS parse result
- */
-export function consolidateCdsResults(results: CdsParseResult[]): CdsParseResult {
-  const consolidated: CdsParseResult = {
-    entities: [],
-    services: [],
-    imports: [],
-    accessControls: [],
-    contexts: [],
-    errors: [],
-  };
-
-  // First, collect all basic definitions
-  for (const result of results) {
-    consolidated.entities.push(...result.entities);
-    consolidated.services.push(...result.services);
-    consolidated.imports.push(...result.imports);
-    consolidated.accessControls.push(...result.accessControls);
-    consolidated.contexts.push(...result.contexts);
-    consolidated.errors.push(...result.errors);
-  }
-
-  // Then process access controls and apply them to their targets
-  const processedAccessControls = new Set<string>();
-
-  for (const accessControl of consolidated.accessControls) {
-    const accessControlKey = `${accessControl.target}-${accessControl.type}-${String(accessControl.value)}`;
-
-    // Skip if we've already processed an identical access control
-    if (processedAccessControls.has(accessControlKey)) {
-      continue;
-    }
-
-    processedAccessControls.add(accessControlKey);
-
-    // Find the target service or entity
-    // First try exact match, then try with just the name part (allowing for qualified names)
-    let targetService = consolidated.services.find(
-      s => s.name === accessControl.target || s.fqn === accessControl.target,
-    );
-
-    // If no exact match found, try to match just the name part (for cases like "CatalogService")
-    if (!targetService && !accessControl.target.includes('.')) {
-      targetService = consolidated.services.find(s => s.name === accessControl.target);
-    }
-
-    if (targetService) {
-      // Check if this annotation already exists
-      const existingAnnotation = targetService.annotations.find(
-        a => a.name === accessControl.type && a.value === accessControl.value,
-      );
-
-      if (!existingAnnotation) {
-        // Add this access control as an annotation to the service
-        targetService.annotations.push({
-          name: accessControl.type,
-          value: accessControl.value,
-          sourceFile: accessControl.sourceFile,
-        });
-      }
-    } else {
-      // Check if this is a qualified entity name like "ServiceName.EntityName"
-      const qualifiedNameParts = accessControl.target.split('.');
-      if (qualifiedNameParts.length === 2) {
-        const serviceName = qualifiedNameParts[0];
-        const entityName = qualifiedNameParts[1];
-
-        // Find the service first
-        const service = consolidated.services.find(s => s.name === serviceName);
-        if (service) {
-          // Find the entity inside the service
-          const entity = service.entities.find(e => e.name === entityName);
-          if (entity) {
-            // Check if this annotation already exists
-            const existingAnnotation = entity.annotations.find(
-              a => a.name === accessControl.type && a.value === accessControl.value,
-            );
-
-            if (!existingAnnotation) {
-              // Add this access control as an annotation to the entity within service
-              entity.annotations.push({
-                name: accessControl.type,
-                value: accessControl.value,
-                sourceFile: accessControl.sourceFile,
-              });
-            }
-
-            // Skip checking standalone entities since we found a match
-            continue;
-          }
-        }
-      }
-
-      // Check if this targets a standalone entity
-      const targetEntity = consolidated.entities.find(
-        e => e.name === accessControl.target || e.fqn === accessControl.target,
-      );
-
-      if (targetEntity) {
-        // Check if this annotation already exists
-        const existingAnnotation = targetEntity.annotations.find(
-          a => a.name === accessControl.type && a.value === accessControl.value,
-        );
-
-        if (!existingAnnotation) {
-          // Add this access control as an annotation to the entity
-          targetEntity.annotations.push({
-            name: accessControl.type,
-            value: accessControl.value,
-            sourceFile: accessControl.sourceFile,
-          });
-        }
-      }
-    }
-  }
-
-  return consolidated;
 }
 
 /**

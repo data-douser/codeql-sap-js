@@ -94,12 +94,11 @@ export function writeParserDebugInfo(
       }
     });
 
-    // Check if we have meaningful content to write
-    const debugContent = outputLines.join('\n');
-    if (!debugContent.trim()) {
-      console.warn('No debug information to write. Empty project map or no CDS projects found.');
-      return false;
-    }
+    // Add the stringified JSON representation of the project map at the end
+    // of the debug content.
+    outputLines.push('\nProject Map JSON:');
+    outputLines.push('===================');
+    outputLines.push(JSON.stringify(Array.from(projectMap.entries()), null, 2));
 
     const debugFilePath = join(scriptDir, PARSER_DEBUG_SUBDIR, PARSER_DEBUG_FILE);
 
@@ -111,7 +110,7 @@ export function writeParserDebugInfo(
 
     // Intentionally add a newline at the end of the file to make it easier to
     // cat/read when debugging.
-    writeFileSync(debugFilePath, `${debugContent}\n`, 'utf-8');
+    writeFileSync(debugFilePath, `${outputLines.join('\n')}\n`, 'utf-8');
 
     console.log(`INFO: CDS extractor parser debug information written to: ${debugFilePath}`);
     return true;

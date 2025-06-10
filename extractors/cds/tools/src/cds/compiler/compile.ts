@@ -1,85 +1,9 @@
-import { execFileSync, spawnSync, SpawnSyncOptions } from 'child_process';
+import { spawnSync, SpawnSyncOptions } from 'child_process';
 import { resolve, join, delimiter, relative } from 'path';
 
 import { CdsCompilationResult } from './types';
+import { getCdsVersion } from './version';
 import { fileExists, dirExists, recursivelyRenameJsonFiles } from '../../filesystem';
-
-/**
- * Determine the `cds` command to use based on the environment and cache directory.
- * @param cacheDir Optional path to a directory containing installed dependencies
- * @returns A string representing the CLI command to run to invoke the
- * CDS compiler.
- */
-export function determineCdsCommand(cacheDir?: string): string {
-  // If we have a cache directory, use the cds binary from there
-  if (cacheDir) {
-    const localCdsBin = join(cacheDir, 'node_modules', '.bin', 'cds');
-
-    // Check if the local cds binary exists in the cache directory
-    if (fileExists(localCdsBin)) {
-      // We need to use node to execute the local bin directly to ensure correct resolution
-      return `node "${localCdsBin}"`;
-    }
-
-    // If there's a cache directory but no local binary, use npx with NODE_PATH
-    return `npx --no-install cds`;
-  }
-
-  // Default behavior when no cache directory is provided
-  let cdsCommand = 'cds';
-  try {
-    execFileSync('cds', ['--version'], { stdio: 'ignore' });
-  } catch {
-    // If 'cds' command is not available, use npx to run it
-    cdsCommand = 'npx -y --package @sap/cds-dk cds';
-  }
-  return cdsCommand;
-}
-
-/**
- * Get the CDS compiler version from a specific command or cache directory
- * @param cdsCommand The CDS command to use
- * @param cacheDir Optional path to a directory containing installed dependencies
- * @returns The CDS compiler version string, or undefined if it couldn't be determined
- */
-export function getCdsVersion(cdsCommand: string, cacheDir?: string): string | undefined {
-  try {
-    // Set up environment vars if using a cache directory
-    const spawnOptions: SpawnSyncOptions = {
-      shell: true,
-      stdio: 'pipe',
-      env: { ...process.env },
-    };
-
-    // If a cache directory is provided, set NODE_PATH to use that cache
-    if (cacheDir) {
-      const nodePath = join(cacheDir, 'node_modules');
-
-      // Set up environment to use the cached dependencies
-      spawnOptions.env = {
-        ...process.env,
-        NODE_PATH: `${nodePath}${delimiter}${process.env.NODE_PATH ?? ''}`,
-        PATH: `${join(nodePath, '.bin')}${delimiter}${process.env.PATH}`,
-        npm_config_prefix: cacheDir,
-      };
-    }
-
-    // Execute the CDS command with the --version flag
-    const result = spawnSync(cdsCommand, ['--version'], spawnOptions);
-    if (result.status === 0 && result.stdout) {
-      const versionOutput = result.stdout.toString().trim();
-      // Extract version number, which is typically in formats like "@sap/cds: 6.1.3" or similar
-      const match = versionOutput.match(/@sap\/cds[^0-9]*([0-9]+\.[0-9]+\.[0-9]+)/);
-      if (match?.[1]) {
-        return match[1]; // Return just the version number
-      }
-      return versionOutput; // Return full output if we couldn't parse it
-    }
-    return undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 /**
  * Compile a CDS file to JSON
