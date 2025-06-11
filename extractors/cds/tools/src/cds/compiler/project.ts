@@ -1,3 +1,5 @@
+import { relative } from 'path';
+
 /**
  * Helper functions for mapping CDS files to their projects and cache directories
  */
@@ -15,15 +17,20 @@ export function findProjectForCdsFile(
   projectMap: Map<string, { cdsFiles: string[] }>,
 ): string | undefined {
   // Get the relative path to the project directory for this CDS file
-  const relativeCdsFilePath = cdsFilePath.startsWith(sourceRoot)
-    ? cdsFilePath.substring(sourceRoot.length + 1)
-    : cdsFilePath;
+  const relativeCdsFilePath = relative(sourceRoot, cdsFilePath);
+
+  // If the file is outside the source root, path.relative() will start with '../'
+  // In this case, we should also check against the absolute path
+  const isOutsideSourceRoot = relativeCdsFilePath.startsWith('../');
 
   // Find the project this file belongs to
   for (const [projectDir, project] of projectMap.entries()) {
     if (
       project.cdsFiles.some(
-        cdsFile => cdsFile === relativeCdsFilePath || relativeCdsFilePath.startsWith(projectDir),
+        cdsFile =>
+          cdsFile === relativeCdsFilePath ||
+          relativeCdsFilePath.startsWith(projectDir) ||
+          (isOutsideSourceRoot && cdsFile === cdsFilePath),
       )
     ) {
       return projectDir;

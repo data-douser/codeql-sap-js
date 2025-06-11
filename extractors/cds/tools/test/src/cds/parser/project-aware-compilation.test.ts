@@ -1,37 +1,55 @@
-import { mkdirSync, rmSync, writeFileSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { mkdirSync, writeFileSync } from 'fs';
+import { resolve, relative } from 'path';
+
+import * as tmp from 'tmp';
 
 import { determineCdsFilesToCompile } from '../../../../src/cds/parser/functions';
 
+/**
+ * Validates that a path is safe to use within a base directory.
+ * Prevents path traversal attacks by ensuring the resolved path stays within the base directory.
+ */
+function validateSafePath(basePath: string, ...pathSegments: string[]): string {
+  const resolvedBase = resolve(basePath);
+  const targetPath = resolve(basePath, ...pathSegments);
+
+  // Check if the resolved target path is within the base directory
+  const relativePath = relative(resolvedBase, targetPath);
+  if (relativePath.startsWith('..') || relativePath.includes('..')) {
+    throw new Error(`Path traversal detected: ${pathSegments.join('/')}`);
+  }
+
+  return targetPath;
+}
+
 describe('Project-aware compilation for CAP projects', () => {
   let tempDir: string;
+  let tmpCleanup: (() => void) | undefined;
 
   beforeEach(() => {
-    // Create a temporary directory for each test
-    tempDir = join(tmpdir(), `cds-test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
-    mkdirSync(tempDir, { recursive: true });
+    // Create a secure temporary directory for each test
+    const tmpObj = tmp.dirSync({ unsafeCleanup: true });
+    tempDir = tmpObj.name;
+    tmpCleanup = tmpObj.removeCallback;
   });
 
   afterEach(() => {
-    // Clean up temporary directory
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch (error: unknown) {
-      console.warn(`Warning: Could not clean up temp directory ${tempDir}: ${String(error)}`);
+    // Clean up temporary directory using tmp library's cleanup function
+    if (tmpCleanup) {
+      tmpCleanup();
     }
   });
 
   it('should use project-level compilation for log injection test case structure', () => {
     // Create the log injection test case structure
-    const projectPath = join(tempDir, 'log-injection-without-protocol-none');
+    const projectPath = validateSafePath(tempDir, 'log-injection-without-protocol-none');
     mkdirSync(projectPath, { recursive: true });
-    mkdirSync(join(projectPath, 'db'), { recursive: true });
-    mkdirSync(join(projectPath, 'srv'), { recursive: true });
+    mkdirSync(validateSafePath(projectPath, 'db'), { recursive: true });
+    mkdirSync(validateSafePath(projectPath, 'srv'), { recursive: true });
 
     // Create package.json with CAP dependencies
     writeFileSync(
-      join(projectPath, 'package.json'),
+      validateSafePath(projectPath, 'package.json'),
       JSON.stringify({
         name: 'log-injection-test',
         dependencies: {
@@ -42,7 +60,7 @@ describe('Project-aware compilation for CAP projects', () => {
 
     // Create CDS files
     writeFileSync(
-      join(projectPath, 'db', 'schema.cds'),
+      validateSafePath(projectPath, 'db', 'schema.cds'),
       `namespace advanced_security.log_injection.sample_entities;
 
 entity Entity1 {
@@ -57,7 +75,7 @@ entity Entity2 {
     );
 
     writeFileSync(
-      join(projectPath, 'srv', 'service1.cds'),
+      validateSafePath(projectPath, 'srv', 'service1.cds'),
       `using { advanced_security.log_injection.sample_entities as db_schema } from '../db/schema';
 
 service Service1 @(path: '/service-1') {
@@ -70,7 +88,7 @@ service Service1 @(path: '/service-1') {
     );
 
     writeFileSync(
-      join(projectPath, 'srv', 'service2.cds'),
+      validateSafePath(projectPath, 'srv', 'service2.cds'),
       `using { advanced_security.log_injection.sample_entities as db_schema } from '../db/schema';
 
 service Service2 @(path: '/service-2') {
@@ -128,12 +146,12 @@ service Service2 @(path: '/service-2') {
 
   it('should still use individual file compilation for simple projects without CAP structure', () => {
     // Create a simple project without typical CAP structure
-    const simpleProjectPath = join(tempDir, 'simple-project');
+    const simpleProjectPath = validateSafePath(tempDir, 'simple-project');
     mkdirSync(simpleProjectPath, { recursive: true });
 
     // Create CDS files in flat structure
     writeFileSync(
-      join(simpleProjectPath, 'main.cds'),
+      validateSafePath(simpleProjectPath, 'main.cds'),
       `using from "./model";
 
 service MainService {
@@ -142,7 +160,7 @@ service MainService {
     );
 
     writeFileSync(
-      join(simpleProjectPath, 'model.cds'),
+      validateSafePath(simpleProjectPath, 'model.cds'),
       `namespace model;
 
 entity Item {

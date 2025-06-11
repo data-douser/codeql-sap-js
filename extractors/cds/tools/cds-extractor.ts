@@ -80,7 +80,7 @@ if (typedProjectMap.__debugParserSuccess) {
 }
 
 // Install dependencies of discovered CAP/CDS projects
-console.log('Ensuring depencencies are installed in cache for required CDS compiler versions...');
+console.log('Ensuring dependencies are installed in cache for required CDS compiler versions...');
 const projectCacheDirMap = installDependencies(projectMap, sourceRoot, codeqlExePath);
 
 const cdsFilePathsToProcess: string[] = [];

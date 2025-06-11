@@ -40,7 +40,7 @@ export default defineConfig([
       // @ts-expect-error - typescript-eslint is a valid plugin
       '@typescript-eslint': fixupPluginRules(typescriptEslint),
       // @ts-expect-error - import is a valid plugin
-      'import': fixupPluginRules(_import),
+      import: fixupPluginRules(_import),
       // @ts-expect-error - prettier is a valid plugin
       prettier: fixupPluginRules(prettier),
     },
@@ -55,7 +55,7 @@ export default defineConfig([
       sourceType: 'module',
       parserOptions: {
         project: './tsconfig.json',
-        tsconfigRootDir: '/Users/data-douser/Git/data-douser/codeql-sap-js/extractors/cds/tools',
+        tsconfigRootDir: __dirname,
         createDefaultProgram: true,
       },
     },

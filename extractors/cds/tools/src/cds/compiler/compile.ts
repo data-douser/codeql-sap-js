@@ -173,19 +173,6 @@ function compileIndividualFile(
     'warn',
   ];
 
-  /**
-   * using the `--parse` flag changes how the data is shown in the generated .cds.json file,
-   * where annotations and other metadata will show up under the `extensions` property instead
-   * of the `definitions` property, as used in previous versions of the CDS extractor.
-   *
-   * DELETE this comment if the `--parse` flag is definitely not needed in the future.
-   *
-   * // For root CDS files in project-aware mode, add --parse flag to ensure complete model
-   *if (projectBasedCompilation) {
-   *  compileArgs.push('--parse');
-   *}
-   */
-
   // CRITICAL: Use the provided spawnOptions which has sourceRoot as cwd
   const result = spawnSync(cdsCommand, compileArgs, spawnOptions);
 

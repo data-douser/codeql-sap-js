@@ -16,12 +16,14 @@
     "test:coverage": "jest --coverage --collectCoverageFrom='src/**/*.ts'"
   },
   "dependencies": {
+    "@types/tmp": "^0.2.6",
     "child_process": "^1.0.2",
     "fs": "^0.0.1-security",
     "glob": "^11.0.2",
     "os": "^0.1.2",
     "path": "^0.12.7",
-    "shell-quote": "^1.8.2"
+    "shell-quote": "^1.8.2",
+    "tmp": "^0.2.3"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.9",

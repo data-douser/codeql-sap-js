@@ -1,24 +1,44 @@
-import { mkdirSync, writeFileSync, rmSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { mkdirSync, writeFileSync } from 'fs';
+import { resolve, relative } from 'path';
+
+import * as tmp from 'tmp';
 
 import { determineCdsFilesToCompile } from '../../../../src/cds/parser/functions';
+
+/**
+ * Validates that a path is safe to use within a base directory.
+ * Prevents path traversal attacks by ensuring the resolved path stays within the base directory.
+ */
+function validateSafePath(basePath: string, ...pathSegments: string[]): string {
+  const resolvedBase = resolve(basePath);
+  const targetPath = resolve(basePath, ...pathSegments);
+
+  // Check if the resolved target path is within the base directory
+  const relativePath = relative(resolvedBase, targetPath);
+  if (relativePath.startsWith('..') || relativePath.includes('..')) {
+    throw new Error(`Path traversal detected: ${pathSegments.join('/')}`);
+  }
+
+  return targetPath;
+}
 
 describe('determineCdsFilesToCompile', () => {
   let tempDir: string;
   let sourceRoot: string;
+  let tmpCleanup: (() => void) | undefined;
 
   beforeEach(() => {
-    // Create a unique temporary directory for each test
-    tempDir = join(tmpdir(), `test-${Date.now()}-${Math.random().toString(36).substring(7)}`);
+    // Create a secure temporary directory for each test
+    const tmpObj = tmp.dirSync({ unsafeCleanup: true });
+    tempDir = tmpObj.name;
     sourceRoot = tempDir;
-    mkdirSync(tempDir, { recursive: true });
+    tmpCleanup = tmpObj.removeCallback;
   });
 
   afterEach(() => {
-    // Clean up temporary directory
-    if (tempDir) {
-      rmSync(tempDir, { recursive: true, force: true });
+    // Clean up temporary directory using tmp library's cleanup function
+    if (tmpCleanup) {
+      tmpCleanup();
     }
   });
 
@@ -48,8 +68,8 @@ describe('determineCdsFilesToCompile', () => {
 
   it('should return only root files for non-CAP projects with imports', () => {
     // Create test CDS files in a flat structure (not CAP-like)
-    writeFileSync(join(sourceRoot, 'service.cds'), 'using from "./schema";');
-    writeFileSync(join(sourceRoot, 'schema.cds'), 'entity Test {}');
+    writeFileSync(validateSafePath(sourceRoot, 'service.cds'), 'using from "./schema";');
+    writeFileSync(validateSafePath(sourceRoot, 'schema.cds'), 'entity Test {}');
 
     const project = {
       projectDir: '.',
@@ -79,10 +99,10 @@ describe('determineCdsFilesToCompile', () => {
 
   it('should use project-level compilation for CAP projects with srv and db directories', () => {
     // Create test CDS files
-    mkdirSync(join(sourceRoot, 'srv'), { recursive: true });
-    mkdirSync(join(sourceRoot, 'db'), { recursive: true });
-    writeFileSync(join(sourceRoot, 'srv/service.cds'), 'using from "../db/schema";');
-    writeFileSync(join(sourceRoot, 'db/schema.cds'), 'entity Test {}');
+    mkdirSync(validateSafePath(sourceRoot, 'srv'), { recursive: true });
+    mkdirSync(validateSafePath(sourceRoot, 'db'), { recursive: true });
+    writeFileSync(validateSafePath(sourceRoot, 'srv/service.cds'), 'using from "../db/schema";');
+    writeFileSync(validateSafePath(sourceRoot, 'db/schema.cds'), 'entity Test {}');
 
     const project = {
       projectDir: '.',
@@ -111,11 +131,11 @@ describe('determineCdsFilesToCompile', () => {
 
   it('should use project-level compilation for CAP projects with multiple services', () => {
     // Create test CDS files
-    mkdirSync(join(sourceRoot, 'srv'), { recursive: true });
-    mkdirSync(join(sourceRoot, 'db'), { recursive: true });
-    writeFileSync(join(sourceRoot, 'srv/service1.cds'), 'using from "../db/schema";');
-    writeFileSync(join(sourceRoot, 'srv/service2.cds'), 'using from "../db/schema";');
-    writeFileSync(join(sourceRoot, 'db/schema.cds'), 'entity Test {}');
+    mkdirSync(validateSafePath(sourceRoot, 'srv'), { recursive: true });
+    mkdirSync(validateSafePath(sourceRoot, 'db'), { recursive: true });
+    writeFileSync(validateSafePath(sourceRoot, 'srv/service1.cds'), 'using from "../db/schema";');
+    writeFileSync(validateSafePath(sourceRoot, 'srv/service2.cds'), 'using from "../db/schema";');
+    writeFileSync(validateSafePath(sourceRoot, 'db/schema.cds'), 'entity Test {}');
 
     const project = {
       projectDir: '.',
