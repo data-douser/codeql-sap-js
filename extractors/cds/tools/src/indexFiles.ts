@@ -2,6 +2,7 @@ import { join } from 'path';
 
 import { CdsProject } from './cds/parser/types';
 import { getCdsFilePathsToProcess } from './filesystem';
+import { cdsExtractorLog } from './logging';
 
 export interface IndexFilesValidationResult {
   success: boolean;
@@ -96,7 +97,7 @@ export function handleIndexFilesMode(
   cdsFilePathsToProcess: string[];
   validationResult: IndexFilesValidationResult;
 } {
-  console.log('Extracting CDS files from discovered projects...');
+  cdsExtractorLog('info', 'Extracting CDS files from discovered projects...');
 
   // Extract all CDS files from the discovered projects
   const cdsFilePathsToProcess: string[] = [];
@@ -104,7 +105,8 @@ export function handleIndexFilesMode(
     cdsFilePathsToProcess.push(...project.cdsFiles);
   }
 
-  console.log(
+  cdsExtractorLog(
+    'info',
     'Validating discovered CDS files against response file for backwards compatibility...',
   );
 
@@ -125,11 +127,17 @@ export function handleIndexFilesMode(
 
   // Log warnings if any
   validationResult.warnings.forEach(warning => {
-    console.warn(`Warning: ${warning}`);
+    cdsExtractorLog('warn', warning);
   });
 
-  console.log(`Discovered ${validationResult.discoveredCount} CDS files from project analysis`);
-  console.log(`Response file specified ${validationResult.responseFileCount} CDS files`);
+  cdsExtractorLog(
+    'info',
+    `Discovered ${validationResult.discoveredCount} CDS files from project analysis`,
+  );
+  cdsExtractorLog(
+    'info',
+    `Response file specified ${validationResult.responseFileCount} CDS files`,
+  );
 
   return {
     cdsFilePathsToProcess,

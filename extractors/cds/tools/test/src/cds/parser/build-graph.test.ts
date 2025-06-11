@@ -209,6 +209,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       const projectMap = buildCdsProjectDependencyGraph(tempDir, 'debug-parser', tempDir);
 
       // In debug mode with projects, should have success signal
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((projectMap as any).__debugParserSuccess).toBe(true);
       expect(projectMap.size).toBe(1);
     });

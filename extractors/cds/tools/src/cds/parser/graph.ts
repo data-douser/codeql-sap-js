@@ -9,6 +9,7 @@ import {
   readPackageJsonWithCache,
 } from './functions';
 import { CdsImport, CdsProject } from './types';
+import { cdsExtractorLog } from '../../logging';
 
 /**
  * Builds a dependency graph of CDS projects and performs the initial parsing stage of the CDS extractor.
@@ -26,20 +27,20 @@ export function buildCdsProjectDependencyGraph(
 ): Map<string, CdsProject> {
   // If debug-parser mode, log additional information
   if (runMode === 'debug-parser') {
-    console.log('Running CDS Parser in debug mode...');
-    console.log(`Source Root Directory: ${sourceRootDir}`);
+    cdsExtractorLog('info', 'Running CDS Parser in debug mode...');
+    cdsExtractorLog('info', `Source Root Directory: ${sourceRootDir}`);
   }
 
   // Find all CDS projects under the source directory
-  console.log('Detecting CDS projects...');
+  cdsExtractorLog('info', 'Detecting CDS projects...');
   const projectDirs = determineCdsProjectsUnderSourceDir(sourceRootDir);
 
   if (projectDirs.length === 0) {
-    console.log('No CDS projects found.');
+    cdsExtractorLog('info', 'No CDS projects found.');
     return new Map<string, CdsProject>();
   }
 
-  console.log(`Found ${projectDirs.length} CDS project(s) under source directory.`);
+  cdsExtractorLog('info', `Found ${projectDirs.length} CDS project(s) under source directory.`);
 
   const projectMap = new Map<string, CdsProject>();
 
@@ -63,7 +64,7 @@ export function buildCdsProjectDependencyGraph(
   }
 
   // Second pass: analyze dependencies between projects
-  console.log('Analyzing dependencies between CDS projects...');
+  cdsExtractorLog('info', 'Analyzing dependencies between CDS projects...');
   for (const [projectDir, project] of projectMap.entries()) {
     // Check each CDS file for imports
     for (const relativeFilePath of project.cdsFiles) {
@@ -99,8 +100,9 @@ export function buildCdsProjectDependencyGraph(
                   .replace(/^[/\\]/, '');
               }
             } catch (error) {
-              console.warn(
-                `Warning: Could not resolve import path for ${importInfo.path} in ${relativeFilePath}: ${String(error)}`,
+              cdsExtractorLog(
+                'warn',
+                `Could not resolve import path for ${importInfo.path} in ${relativeFilePath}: ${String(error)}`,
               );
             }
 
@@ -153,26 +155,31 @@ export function buildCdsProjectDependencyGraph(
         // Store the enriched imports in the project
         project.imports?.set(relativeFilePath, enrichedImports);
       } catch (error: unknown) {
-        console.warn(`Error processing imports in ${absoluteFilePath}: ${String(error)}`);
+        cdsExtractorLog(
+          'warn',
+          `Error processing imports in ${absoluteFilePath}: ${String(error)}`,
+        );
       }
     }
   }
 
   // Third pass: determine which CDS files should be compiled for each project
-  console.log('Determining CDS files to compile for each project...');
+  cdsExtractorLog('info', 'Determining CDS files to compile for each project...');
   for (const [, project] of projectMap.entries()) {
     try {
       const filesToCompile = determineCdsFilesToCompile(sourceRootDir, project);
       project.cdsFilesToCompile = filesToCompile;
 
       if (runMode === 'debug-parser') {
-        console.log(
+        cdsExtractorLog(
+          'info',
           `Project ${project.projectDir}: ${filesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files`,
         );
       }
     } catch (error) {
-      console.warn(
-        `Warning: Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
+      cdsExtractorLog(
+        'warn',
+        `Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
       );
       // Fall back to compiling all files on error
       project.cdsFilesToCompile = [...project.cdsFiles];
@@ -183,7 +190,8 @@ export function buildCdsProjectDependencyGraph(
   if (runMode === 'debug-parser' && scriptDir) {
     // Output the project graph to a debug file
     if (!writeParserDebugInfo(projectMap, sourceRootDir, scriptDir)) {
-      console.warn(
+      cdsExtractorLog(
+        'warn',
         'Failed to write parser debug information. This indicates an empty project map, possibly due to a misconfiguration when calling the parent script.',
       );
     }

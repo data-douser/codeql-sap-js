@@ -15,6 +15,7 @@ import {
   FileCache,
   PackageJson,
 } from './types';
+import { cdsExtractorLog } from '../../logging';
 
 // Global file cache to avoid multiple reads of the same file
 const fileCache: FileCache = {
@@ -200,7 +201,7 @@ export function determineCdsFilesForProjectDir(
     // Convert absolute paths to paths relative to sourceRootDir
     return cdsFiles.map(file => relative(sourceRootDir, file));
   } catch (error: unknown) {
-    console.error(`Error finding CDS files in ${projectDir}: ${String(error)}`);
+    cdsExtractorLog('error', `Error finding CDS files in ${projectDir}: ${String(error)}`);
     return [];
   }
 }
@@ -664,7 +665,7 @@ export function isLikelyCdsProject(dir: string): boolean {
 
     return false;
   } catch (error: unknown) {
-    console.error(`Error checking directory ${dir}: ${String(error)}`);
+    cdsExtractorLog('error', `Error checking directory ${dir}: ${String(error)}`);
     return false;
   }
 }
@@ -958,7 +959,7 @@ export function processCdsProject(sourceRootDir: string, projectDir: string): Cd
       const result = parseCdsFile(absoluteFilePath);
       parseResults.push(result);
     } catch (error: unknown) {
-      console.error(`Error processing file ${absoluteFilePath}: ${String(error)}`);
+      cdsExtractorLog('error', `Error processing file ${absoluteFilePath}: ${String(error)}`);
       // Add an empty result with the error
       parseResults.push({
         entities: [],
@@ -989,7 +990,7 @@ export function readFileWithCache(filePath: string): string {
     fileCache.fileContents.set(filePath, content);
     return content;
   } catch (error) {
-    console.error(`Error reading file ${filePath}: ${String(error)}`);
+    cdsExtractorLog('error', `Error reading file ${filePath}: ${String(error)}`);
     throw error;
   }
 }
@@ -1014,7 +1015,7 @@ export function readPackageJsonWithCache(filePath: string): PackageJson | undefi
     fileCache.packageJsonCache.set(filePath, packageJson);
     return packageJson;
   } catch (error) {
-    console.warn(`Error parsing package.json at ${filePath}: ${String(error)}`);
+    cdsExtractorLog('warn', `Error parsing package.json at ${filePath}: ${String(error)}`);
     return undefined;
   }
 }
@@ -1088,7 +1089,7 @@ export function determineCdsFilesToCompile(
           }
         }
       } catch (error) {
-        console.warn(`Warning: Error processing imports for ${file}: ${String(error)}`);
+        cdsExtractorLog('warn', `Error processing imports for ${file}: ${String(error)}`);
       }
     }
 
@@ -1105,16 +1106,18 @@ export function determineCdsFilesToCompile(
 
     // If no root files were identified, fall back to compiling all files
     if (rootFiles.length === 0) {
-      console.warn(
-        `Warning: No root CDS files identified in project ${project.projectDir}, will compile all files`,
+      cdsExtractorLog(
+        'warn',
+        `No root CDS files identified in project ${project.projectDir}, will compile all files`,
       );
       return [...project.cdsFiles];
     }
 
     return rootFiles;
   } catch (error) {
-    console.warn(
-      `Warning: Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
+    cdsExtractorLog(
+      'warn',
+      `Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
     );
     // Fall back to compiling all files on error
     return [...project.cdsFiles];

@@ -8,6 +8,7 @@ import { CdsProjectMapWithDebugSignals } from './src/cds/parser/types';
 import { runJavaScriptExtractor } from './src/codeql';
 import { addCompilationDiagnostic } from './src/diagnostics';
 import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
+import { cdsExtractorLog, setSourceRootDirectory } from './src/logging';
 import { installDependencies } from './src/packageManager';
 import { RunMode } from './src/runMode';
 import { validateArguments } from './src/utils';
@@ -25,9 +26,12 @@ if (!validationResult.isValid) {
 // Get the validated and sanitized arguments
 const { runMode, sourceRoot } = validationResult.args!;
 
+// Initialize the unified logging system with the source root directory
+setSourceRootDirectory(sourceRoot);
+
 // Check for autobuild mode
 if (runMode === (RunMode.AUTOBUILD as string)) {
-  console.log('Autobuild mode is not implemented yet.');
+  cdsExtractorLog('info', 'Autobuild mode is not implemented yet.');
   process.exit(1);
 }
 
@@ -43,7 +47,8 @@ const {
 
 if (!envSetupSuccess) {
   const codeqlExe = platformInfo.isWindows ? 'codeql.exe' : 'codeql';
-  console.warn(
+  cdsExtractorLog(
+    'warn',
     `'${codeqlExe} database index-files --language cds' terminated early due to: ${errorMessages.join(
       ', ',
     )}.`,
@@ -56,12 +61,13 @@ if (!envSetupSuccess) {
 // directory as the current working directory.
 process.chdir(sourceRoot);
 
-console.log(
-  `INFO: CodeQL CDS extractor using run mode '${runMode}' for scan of project source root directory '${sourceRoot}'.`,
+cdsExtractorLog(
+  'info',
+  `CodeQL CDS extractor using run mode '${runMode}' for scan of project source root directory '${sourceRoot}'.`,
 );
 
 // Using the new project-aware approach to find CDS projects and their dependencies
-console.log('Detecting CDS projects and analyzing their structure...');
+cdsExtractorLog('info', 'Detecting CDS projects and analyzing their structure...');
 
 // Build the project dependency graph using the project-aware parser
 // Pass the script directory (__dirname) to support debug-parser mode internally
@@ -72,20 +78,23 @@ const typedProjectMap = projectMap as CdsProjectMapWithDebugSignals;
 
 // Check if we're in debug-parser mode and should exit (based on signals from buildCdsProjectDependencyGraph)
 if (typedProjectMap.__debugParserSuccess) {
-  console.log('Debug parser mode completed successfully.');
+  cdsExtractorLog('info', 'Debug parser mode completed successfully.');
   process.exit(0);
 } else if (typedProjectMap.__debugParserFailure) {
-  console.warn('No CDS projects found. Cannot generate debug information.');
+  cdsExtractorLog('warn', 'No CDS projects found. Cannot generate debug information.');
   process.exit(1);
 }
 
 // Install dependencies of discovered CAP/CDS projects
-console.log('Ensuring dependencies are installed in cache for required CDS compiler versions...');
+cdsExtractorLog(
+  'info',
+  'Ensuring dependencies are installed in cache for required CDS compiler versions...',
+);
 const projectCacheDirMap = installDependencies(projectMap, sourceRoot, codeqlExePath);
 
 const cdsFilePathsToProcess: string[] = [];
 
-console.log('Extracting CDS files from discovered projects...');
+cdsExtractorLog('info', 'Extracting CDS files from discovered projects...');
 
 // Use the project map to collect all `.cds` files from each project.
 // We want to "extract" all `.cds` files from all projects so that we have a copy
@@ -94,7 +103,7 @@ for (const [, project] of projectMap.entries()) {
   cdsFilePathsToProcess.push(...project.cdsFiles);
 }
 
-console.log('Processing CDS files to JSON ...');
+cdsExtractorLog('info', 'Processing CDS files to JSON ...');
 
 // Collect files that need compilation, handling project-level compilation
 const cdsFilesToCompile: string[] = [];
@@ -115,7 +124,8 @@ for (const [projectDir, project] of projectMap.entries()) {
   }
 }
 
-console.log(
+cdsExtractorLog(
+  'info',
   `Found ${cdsFilePathsToProcess.length} total CDS files, ${cdsFilesToCompile.length} files to compile (${projectsForProjectLevelCompilation.size} project-level compilations)`,
 );
 
@@ -141,14 +151,16 @@ for (const rawCdsFilePath of cdsFilesToCompile) {
     );
 
     if (!compilationResult.success && compilationResult.message) {
-      console.error(
-        `ERROR: adding diagnostic for source file=${rawCdsFilePath} : ${compilationResult.message} ...`,
+      cdsExtractorLog(
+        'error',
+        `adding diagnostic for source file=${rawCdsFilePath} : ${compilationResult.message} ...`,
       );
       addCompilationDiagnostic(rawCdsFilePath, compilationResult.message, codeqlExePath);
     }
   } catch (errorMessage) {
-    console.error(
-      `ERROR: adding diagnostic for source file=${rawCdsFilePath} : ${String(errorMessage)} ...`,
+    cdsExtractorLog(
+      'error',
+      `adding diagnostic for source file=${rawCdsFilePath} : ${String(errorMessage)} ...`,
     );
     addCompilationDiagnostic(rawCdsFilePath, String(errorMessage), codeqlExePath);
   }
@@ -160,7 +172,7 @@ configureLgtmIndexFilters();
 // Run CodeQL's JavaScript extractor to process the compiled JSON files.
 const extractorResult = runJavaScriptExtractor(sourceRoot, autobuildScriptPath, codeqlExePath);
 if (!extractorResult.success && extractorResult.error) {
-  console.error(`Error running JavaScript extractor: ${extractorResult.error}`);
+  cdsExtractorLog('error', `Error running JavaScript extractor: ${extractorResult.error}`);
 }
 
 // Use the `cds-extractor.js` name in the log message as that is the name of the script

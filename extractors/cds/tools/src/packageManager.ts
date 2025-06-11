@@ -4,6 +4,7 @@ import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 
 import { addDependencyDiagnostic, addPackageJsonParsingDiagnostic } from './diagnostics';
+import { cdsExtractorLog } from './logging';
 
 /**
  * Interface for package.json structure
@@ -122,7 +123,7 @@ export function findPackageJsonDirs(
           }
         } catch (error) {
           const errorMessage = `Failed to parse package.json at ${packageJsonPath}: ${String(error)}`;
-          console.warn(`WARN: ${errorMessage}`);
+          cdsExtractorLog('warn', errorMessage);
 
           if (codeqlExePath) {
             addPackageJsonParsingDiagnostic(packageJsonPath, errorMessage, codeqlExePath);
@@ -156,7 +157,7 @@ export function installDependencies(
 ): Map<string, string> {
   // Sanity check that we found at least one project
   if (projectMap.size === 0) {
-    console.warn('WARN: failed to detect any CDS projects for dependency installation.');
+    cdsExtractorLog('warn', 'failed to detect any CDS projects for dependency installation.');
     return new Map<string, string>();
   }
 
@@ -167,7 +168,7 @@ export function installDependencies(
   // return at least one combination (the 'latest' default if none found)
   // But we keep it for clarity and backward compatibility
   if (dependencyCombinations.length === 0) {
-    console.warn('WARN: No CDS dependencies found in any project.');
+    cdsExtractorLog('warn', 'No CDS dependencies found in any project.');
     // Create a default 'latest' version combination for projects with no CDS dependencies
     const latestCombination = {
       cdsVersion: 'latest',
@@ -180,7 +181,10 @@ export function installDependencies(
     dependencyCombinations.push(latestCombination);
   }
 
-  console.log(`Found ${dependencyCombinations.length} unique CDS dependency combination(s).`);
+  cdsExtractorLog(
+    'info',
+    `Found ${dependencyCombinations.length} unique CDS dependency combination(s).`,
+  );
 
   // Create a cache directory under the source root
   const cacheRootDir = join(sourceRoot, '.cds-extractor-cache');
@@ -188,7 +192,8 @@ export function installDependencies(
     try {
       mkdirSync(cacheRootDir, { recursive: true });
     } catch (err) {
-      console.error(
+      cdsExtractorLog(
+        'error',
         `Failed to create cache directory: ${err instanceof Error ? err.message : String(err)}`,
       );
       // Fall back to a temporary directory if we can't create the cache dir
@@ -210,7 +215,8 @@ export function installDependencies(
       try {
         mkdirSync(cacheDir, { recursive: true });
       } catch (err) {
-        console.error(
+        cdsExtractorLog(
+          'error',
           `Failed to create cache directory for combination ${hash}: ${err instanceof Error ? err.message : String(err)}`,
         );
         continue;
@@ -230,7 +236,8 @@ export function installDependencies(
       try {
         writeFileSync(join(cacheDir, 'package.json'), JSON.stringify(packageJson, null, 2));
       } catch (err) {
-        console.error(
+        cdsExtractorLog(
+          'error',
           `Failed to create package.json in cache directory: ${err instanceof Error ? err.message : String(err)}`,
         );
         continue;
@@ -244,7 +251,10 @@ export function installDependencies(
 
     if (!nodeModulesExists) {
       // Install dependencies in the cache directory
-      console.log(`Installing @sap/cds@${cdsVersion} and @sap/cds-dk@${cdsDkVersion} in cache...`);
+      cdsExtractorLog(
+        'info',
+        `Installing @sap/cds@${cdsVersion} and @sap/cds-dk@${cdsDkVersion} in cache...`,
+      );
       try {
         execFileSync('npm', ['install', '--quiet', '--no-audit', '--no-fund'], {
           cwd: cacheDir,
@@ -252,12 +262,13 @@ export function installDependencies(
         });
       } catch (err) {
         const errorMessage = `Failed to install dependencies in cache directory ${cacheDir}: ${err instanceof Error ? err.message : String(err)}`;
-        console.error(errorMessage);
+        cdsExtractorLog('error', errorMessage);
         // Skip this combination
         continue;
       }
     } else {
-      console.log(
+      cdsExtractorLog(
+        'info',
         `Using cached dependencies for @sap/cds@${cdsVersion} and @sap/cds-dk@${cdsDkVersion}`,
       );
     }
@@ -298,7 +309,7 @@ function fallbackToDirectInstallation(
   sourceRoot: string,
   codeqlExePath?: string,
 ): Map<string, string> {
-  console.warn('WARN: Falling back to direct dependency installation in project directories.');
+  cdsExtractorLog('warn', 'Falling back to direct dependency installation in project directories.');
 
   // Convert project directories to the set format expected by the original implementation
   const packageJsonDirs = new Set<string>();
@@ -311,14 +322,15 @@ function fallbackToDirectInstallation(
 
   // Sanity check that we found at least one package.json directory
   if (packageJsonDirs.size === 0) {
-    console.warn(
-      'WARN: failed to detect any package.json directories for cds compiler installation.',
+    cdsExtractorLog(
+      'warn',
+      'failed to detect any package.json directories for cds compiler installation.',
     );
     return new Map<string, string>();
   }
 
   packageJsonDirs.forEach(dir => {
-    console.log(`Installing node dependencies from ${dir}/package.json ...`);
+    cdsExtractorLog('info', `Installing node dependencies from ${dir}/package.json ...`);
     try {
       execFileSync('npm', ['install', '--quiet', '--no-audit', '--no-fund'], {
         cwd: dir,
@@ -327,7 +339,7 @@ function fallbackToDirectInstallation(
 
       // Order is important here. Install dependencies from package.json in the directory,
       // then install the CDS development kit (`@sap/cds-dk`) in the directory.
-      console.log(`Installing '@sap/cds-dk' into ${dir} to enable CDS compilation ...`);
+      cdsExtractorLog('info', `Installing '@sap/cds-dk' into ${dir} to enable CDS compilation ...`);
       execFileSync(
         'npm',
         ['install', '--quiet', '--no-audit', '--no-fund', '--no-save', '@sap/cds-dk'],
@@ -335,7 +347,7 @@ function fallbackToDirectInstallation(
       );
     } catch (err) {
       const errorMessage = `Failed to install dependencies in ${dir}: ${err instanceof Error ? err.message : String(err)}`;
-      console.error(errorMessage);
+      cdsExtractorLog('error', errorMessage);
       if (codeqlExePath) {
         const packageJsonPath = join(dir, 'package.json');
         addDependencyDiagnostic(packageJsonPath, errorMessage, codeqlExePath);

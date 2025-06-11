@@ -4,6 +4,7 @@ import { arch, platform } from 'os';
 import { join, resolve } from 'path';
 
 import { dirExists } from './filesystem';
+import { cdsExtractorLog } from './logging';
 
 /**
  * Interface for platform information
@@ -59,19 +60,21 @@ export function getCodeQLExePath(): string {
   if (codeqlDist) {
     const codeqlPathFromDist = resolve(join(codeqlDist, codeqlExeName));
     if (existsSync(codeqlPathFromDist)) {
-      console.log(`INFO: Using CodeQL executable from CODEQL_DIST: ${codeqlPathFromDist}`);
+      cdsExtractorLog('info', `Using CodeQL executable from CODEQL_DIST: ${codeqlPathFromDist}`);
       return codeqlPathFromDist;
     } else {
-      console.error(
-        `ERROR: CODEQL_DIST is set to '${codeqlDist}', but CodeQL executable was not found at '${codeqlPathFromDist}'. Please ensure this path is correct. Falling back to PATH-based discovery.`,
+      cdsExtractorLog(
+        'error',
+        `CODEQL_DIST is set to '${codeqlDist}', but CodeQL executable was not found at '${codeqlPathFromDist}'. Please ensure this path is correct. Falling back to PATH-based discovery.`,
       );
       // Fall through to PATH-based discovery
     }
   }
 
   // CODEQL_DIST is not set or was invalid, attempt to find CodeQL via system PATH using 'codeql version --format=json'
-  console.log(
-    'INFO: CODEQL_DIST environment variable not set or invalid. Attempting to find CodeQL executable via system PATH using "codeql version --format=json".',
+  cdsExtractorLog(
+    'info',
+    'CODEQL_DIST environment variable not set or invalid. Attempting to find CodeQL executable via system PATH using "codeql version --format=json".',
   );
   try {
     const versionOutput = execFileSync(codeqlExeName, ['version', '--format=json'], {
@@ -95,22 +98,26 @@ export function getCodeQLExePath(): string {
       ) {
         const resolvedPathFromVersion = resolve(join(versionInfo.unpackedLocation, codeqlExeName));
         if (existsSync(resolvedPathFromVersion)) {
-          console.log(
-            `INFO: CodeQL executable found via 'codeql version --format=json' at: ${resolvedPathFromVersion}`,
+          cdsExtractorLog(
+            'info',
+            `CodeQL executable found via 'codeql version --format=json' at: ${resolvedPathFromVersion}`,
           );
           return resolvedPathFromVersion;
         }
-        console.warn(
-          `WARN: 'codeql version --format=json' provided unpackedLocation '${versionInfo.unpackedLocation}', but executable not found at '${resolvedPathFromVersion}'.`,
+        cdsExtractorLog(
+          'warn',
+          `'codeql version --format=json' provided unpackedLocation '${versionInfo.unpackedLocation}', but executable not found at '${resolvedPathFromVersion}'.`,
         );
       } else {
-        console.warn(
-          "WARN: Could not determine CodeQL executable path from 'codeql version --format=json' output. 'unpackedLocation' field missing, empty, or invalid.",
+        cdsExtractorLog(
+          'warn',
+          "Could not determine CodeQL executable path from 'codeql version --format=json' output. 'unpackedLocation' field missing, empty, or invalid.",
         );
       }
     } catch (parseError) {
-      console.warn(
-        `WARN: Failed to parse 'codeql version --format=json' output: ${String(parseError)}. Output was: ${versionOutput}`,
+      cdsExtractorLog(
+        'warn',
+        `Failed to parse 'codeql version --format=json' output: ${String(parseError)}. Output was: ${versionOutput}`,
       );
     }
   } catch (error) {
@@ -118,11 +125,12 @@ export function getCodeQLExePath(): string {
     if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
       errorMessage += `\nINFO: The command '${codeqlExeName}' was not found in your system PATH.`;
     }
-    console.log(errorMessage);
+    cdsExtractorLog('info', errorMessage);
   }
 
-  console.error(
-    'ERROR: Failed to determine CodeQL executable path. Please ensure the CODEQL_DIST environment variable is set and points to a valid CodeQL distribution, or that the CodeQL CLI (codeql) is available in your system PATH and "codeql version --format=json" can provide its location.',
+  cdsExtractorLog(
+    'error',
+    'Failed to determine CodeQL executable path. Please ensure the CODEQL_DIST environment variable is set and points to a valid CodeQL distribution, or that the CodeQL CLI (codeql) is available in your system PATH and "codeql version --format=json" can provide its location.',
   );
   return ''; // Return empty string if all attempts fail
 }
@@ -136,15 +144,17 @@ export function getJavaScriptExtractorRoot(codeqlExePath: string): string {
   let jsExtractorRoot = process.env.CODEQL_EXTRACTOR_JAVASCRIPT_ROOT ?? '';
 
   if (jsExtractorRoot) {
-    console.log(
-      `INFO: Using JavaScript extractor root from environment variable CODEQL_EXTRACTOR_JAVASCRIPT_ROOT: ${jsExtractorRoot}`,
+    cdsExtractorLog(
+      'info',
+      `Using JavaScript extractor root from environment variable CODEQL_EXTRACTOR_JAVASCRIPT_ROOT: ${jsExtractorRoot}`,
     );
     return jsExtractorRoot;
   }
 
   if (!codeqlExePath) {
-    console.warn(
-      'WARN: Cannot resolve JavaScript extractor root because the CodeQL executable path was not provided or found.',
+    cdsExtractorLog(
+      'warn',
+      'Cannot resolve JavaScript extractor root because the CodeQL executable path was not provided or found.',
     );
     return '';
   }
@@ -158,15 +168,17 @@ export function getJavaScriptExtractorRoot(codeqlExePath: string): string {
       .toString()
       .trim();
     if (jsExtractorRoot) {
-      console.log(`INFO: JavaScript extractor root resolved to: ${jsExtractorRoot}`);
+      cdsExtractorLog('info', `JavaScript extractor root resolved to: ${jsExtractorRoot}`);
     } else {
-      console.warn(
-        `WARN: 'codeql resolve extractor --language=javascript' using '${codeqlExePath}' returned an empty path.`,
+      cdsExtractorLog(
+        'warn',
+        `'codeql resolve extractor --language=javascript' using '${codeqlExePath}' returned an empty path.`,
       );
     }
   } catch (error) {
-    console.error(
-      `ERROR: Error resolving JavaScript extractor root using '${codeqlExePath}': ${String(error)}`,
+    cdsExtractorLog(
+      'error',
+      `Error resolving JavaScript extractor root using '${codeqlExePath}': ${String(error)}`,
     );
     jsExtractorRoot = ''; // Ensure it's empty on error
   }
@@ -208,8 +220,11 @@ export function configureLgtmIndexFilters(): void {
   let excludeFilters = '';
 
   if (process.env.LGTM_INDEX_FILTERS) {
-    console.log(`Found $LGTM_INDEX_FILTERS already set to:
-${process.env.LGTM_INDEX_FILTERS}`);
+    cdsExtractorLog(
+      'info',
+      `Found $LGTM_INDEX_FILTERS already set to:
+${process.env.LGTM_INDEX_FILTERS}`,
+    );
     const allowedExcludePatterns = [join('exclude:**', '*'), join('exclude:**', '*.*')];
 
     excludeFilters =

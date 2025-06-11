@@ -2,6 +2,7 @@ import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
 import { CdsProject } from './types';
+import { cdsExtractorLog } from '../../logging';
 
 const PARSER_DEBUG_FILE = 'cds-extractor.parser.debug.txt';
 const PARSER_DEBUG_SUBDIR = 'debug';
@@ -22,7 +23,10 @@ export function writeParserDebugInfo(
   try {
     // Early check if project map is empty
     if (!projectMap || projectMap.size === 0) {
-      console.warn('Cannot write debug information: Empty project map or no CDS projects found.');
+      cdsExtractorLog(
+        'warn',
+        'Cannot write debug information: Empty project map or no CDS projects found.',
+      );
       return false;
     }
 
@@ -112,10 +116,10 @@ export function writeParserDebugInfo(
     // cat/read when debugging.
     writeFileSync(debugFilePath, `${outputLines.join('\n')}\n`, 'utf-8');
 
-    console.log(`INFO: CDS extractor parser debug information written to: ${debugFilePath}`);
+    cdsExtractorLog('info', `CDS extractor parser debug information written to: ${debugFilePath}`);
     return true;
   } catch (error: unknown) {
-    console.error(`Error writing parser debug information: ${String(error)}`);
+    cdsExtractorLog('error', `Error writing parser debug information: ${String(error)}`);
     return false;
   }
 }

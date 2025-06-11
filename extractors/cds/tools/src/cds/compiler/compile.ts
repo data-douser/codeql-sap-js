@@ -4,6 +4,7 @@ import { resolve, join, delimiter, relative } from 'path';
 import { CdsCompilationResult } from './types';
 import { getCdsVersion } from './version';
 import { fileExists, dirExists, recursivelyRenameJsonFiles } from '../../filesystem';
+import { cdsExtractorLog } from '../../logging';
 import { CdsProject } from '../parser/types';
 
 /**
@@ -59,7 +60,8 @@ function compileProjectLevel(
   spawnOptions: SpawnSyncOptions,
   versionInfo: string,
 ): CdsCompilationResult {
-  console.log(
+  cdsExtractorLog(
+    'info',
     `${resolvedCdsFilePath} is part of a CAP project - using project-aware compilation ${versionInfo}...`,
   );
 
@@ -102,7 +104,7 @@ function compileProjectLevel(
     'warn',
   ];
 
-  console.log(`Compiling CAP project directories: ${existingDirectories.join(', ')}`);
+  cdsExtractorLog('info', `Compiling CAP project directories: ${existingDirectories.join(', ')}`);
 
   // CRITICAL: Use the provided spawnOptions which has sourceRoot as cwd
   const result = spawnSync(cdsCommand, compileArgs, spawnOptions);
@@ -127,11 +129,14 @@ function compileProjectLevel(
 
   // Handle directory output if the CDS compiler generated a directory
   if (dirExists(projectJsonOutPath)) {
-    console.log(`CDS compiler generated JSON to output directory: ${projectJsonOutPath}`);
+    cdsExtractorLog(
+      'info',
+      `CDS compiler generated JSON to output directory: ${projectJsonOutPath}`,
+    );
     // Recursively rename all .json files to have a .cds.json extension
     recursivelyRenameJsonFiles(projectJsonOutPath);
   } else {
-    console.log(`CDS compiler generated JSON to file: ${projectJsonOutPath}`);
+    cdsExtractorLog('info', `CDS compiler generated JSON to file: ${projectJsonOutPath}`);
   }
 
   return {
@@ -196,11 +201,11 @@ function compileIndividualFile(
 
   // Handle directory output if the CDS compiler generated a directory
   if (dirExists(cdsJsonOutPath)) {
-    console.log(`CDS compiler generated JSON to output directory: ${cdsJsonOutPath}`);
+    cdsExtractorLog('info', `CDS compiler generated JSON to output directory: ${cdsJsonOutPath}`);
     // Recursively rename all .json files to have a .cds.json extension
     recursivelyRenameJsonFiles(cdsJsonOutPath);
   } else {
-    console.log(`CDS compiler generated JSON to file: ${cdsJsonOutPath}`);
+    cdsExtractorLog('info', `CDS compiler generated JSON to file: ${cdsJsonOutPath}`);
   }
 
   return {
@@ -286,7 +291,8 @@ export function compileCdsToJson(
 
       // Check if this file is in the list of files to compile for this project
       if (!shouldCompileIndividually(project, relativePath)) {
-        console.log(
+        cdsExtractorLog(
+          'info',
           `${resolvedCdsFilePath} is imported by other files - will be compiled as part of a project ${versionInfo}...`,
         );
         return {
@@ -296,13 +302,17 @@ export function compileCdsToJson(
           message: 'File was compiled as part of a project-based compilation',
         };
       } else {
-        console.log(
+        cdsExtractorLog(
+          'info',
           `${resolvedCdsFilePath} identified as a root CDS file - using individual file compilation ${versionInfo}...`,
         );
       }
     } else {
       // Fallback to individual file compilation if project information is not available
-      console.log(`Processing individual CDS file ${resolvedCdsFilePath} ${versionInfo}...`);
+      cdsExtractorLog(
+        'info',
+        `Processing individual CDS file ${resolvedCdsFilePath} ${versionInfo}...`,
+      );
     }
 
     return compileIndividualFile(resolvedCdsFilePath, cdsCommand, spawnOptions, !!isProjectAware);

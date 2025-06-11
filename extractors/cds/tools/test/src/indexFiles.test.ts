@@ -292,7 +292,7 @@ describe('indexFiles', () => {
       expect(result.validationResult.success).toBe(true);
       expect(result.validationResult.warnings).toHaveLength(1);
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Warning: Discovered CDS files not in response file: extra.cds'),
+        expect.stringContaining('WARN: Discovered CDS files not in response file: extra.cds'),
       );
 
       consoleSpy.mockRestore();
