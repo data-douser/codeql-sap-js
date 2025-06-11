@@ -21,6 +21,7 @@ describe('writeParserDebugInfo', () => {
     const mockProject: CdsProject = {
       projectDir: 'test-project',
       cdsFiles: ['file1.cds', 'file2.cds'],
+      cdsFilesToCompile: ['file1.cds', 'file2.cds'],
       packageJson: {
         name: 'test-package',
         dependencies: {
@@ -51,6 +52,7 @@ describe('writeParserDebugInfo', () => {
     const mockProject: CdsProject = {
       projectDir: 'test-project',
       cdsFiles: ['file1.cds', 'file2.cds'],
+      cdsFilesToCompile: ['file1.cds', 'file2.cds'],
       packageJson: {
         name: 'test-package',
         dependencies: {
@@ -82,6 +84,7 @@ describe('writeParserDebugInfo', () => {
     const mockProject: CdsProject = {
       projectDir: 'test-project',
       cdsFiles: ['file1.cds', 'file2.cds'],
+      cdsFilesToCompile: ['file1.cds', 'file2.cds'],
       packageJson: {
         name: 'test-package',
         dependencies: {

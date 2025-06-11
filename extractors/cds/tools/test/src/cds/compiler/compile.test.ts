@@ -79,7 +79,34 @@ describe('compile .cds to .cds.json', () => {
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
         'cds',
         expect.arrayContaining(['compile', resolvedCdsPath, '--to', 'json']),
-        expect.any(Object),
+        expect.objectContaining({
+          cwd: '/source/root', // CRITICAL: Verify cwd is sourceRoot
+        }),
+      );
+    });
+
+    it('should ensure cwd is always sourceRoot for spawned processes', () => {
+      // Setup
+      const sourceRoot = '/my/source/root';
+      const cacheDir = '/cache/dir';
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      compileCdsToJson('test.cds', sourceRoot, 'cds', cacheDir);
+
+      // Verify that all spawnSync calls use sourceRoot as cwd
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        'cds',
+        expect.any(Array),
+        expect.objectContaining({
+          cwd: sourceRoot, // CRITICAL: Must be sourceRoot to ensure correct path generation
+        }),
       );
     });
 
@@ -135,6 +162,7 @@ describe('compile .cds to .cds.json', () => {
     it('should use cache directory when provided', () => {
       // Setup
       const cacheDir = '/cache/dir';
+      const sourceRoot = '/source/root';
       const nodePath = '/cache/dir/node_modules';
       const binPath = '/cache/dir/node_modules/.bin';
 
@@ -146,13 +174,14 @@ describe('compile .cds to .cds.json', () => {
       });
 
       // Execute
-      compileCdsToJson('test.cds', '/source/root', 'cds', cacheDir);
+      compileCdsToJson('test.cds', sourceRoot, 'cds', cacheDir);
 
       // Verify
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
         'cds',
         expect.any(Array),
         expect.objectContaining({
+          cwd: sourceRoot, // CRITICAL: Must be sourceRoot
           env: expect.objectContaining({
             NODE_PATH: expect.stringContaining(nodePath),
             PATH: expect.stringContaining(binPath),
@@ -230,6 +259,7 @@ describe('compile .cds to .cds.json', () => {
       const projectInfo = {
         projectDir,
         cdsFiles: ['project/root.cds', 'project/lib.cds'],
+        cdsFilesToCompile: ['project/root.cds'], // Only root.cds should be compiled, not lib.cds
         imports: new Map([['project/root.cds', [{ resolvedPath: 'project/lib.cds' }]]]),
       };
       projectMap.set(projectDir, projectInfo);
@@ -255,6 +285,61 @@ describe('compile .cds to .cds.json', () => {
         'cds',
         expect.arrayContaining(['compile']),
         expect.any(Object),
+      );
+    });
+
+    it('should use sourceRoot as cwd for project-level compilation', () => {
+      // Setup
+      const sourceRoot = '/source/root';
+      const projectDir = 'test-project';
+
+      // Set up the path.relative mock
+      (path.relative as jest.Mock).mockImplementation(() => 'test-project/test.cds');
+
+      // Create project dependency map with project-level compilation marker
+      const projectMap = new Map();
+      const projectInfo = {
+        projectDir,
+        cdsFiles: ['test-project/srv/service.cds', 'test-project/db/schema.cds'],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        imports: new Map(),
+      };
+      projectMap.set(projectDir, projectInfo);
+
+      // Mock filesystem checks
+      (filesystem.dirExists as jest.Mock).mockImplementation(path => {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        return path.includes('/db') || path.includes('/srv');
+      });
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from('Compilation successful'),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        sourceRoot,
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+
+      // CRITICAL: Verify that project-level compilation uses sourceRoot as cwd
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        'cds',
+        expect.arrayContaining(['compile', 'test-project/db', 'test-project/srv']),
+        expect.objectContaining({
+          cwd: sourceRoot, // CRITICAL: Must be sourceRoot, not projectAbsolutePath
+        }),
       );
     });
   });

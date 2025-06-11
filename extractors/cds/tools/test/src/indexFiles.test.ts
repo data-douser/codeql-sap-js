@@ -189,11 +189,13 @@ describe('indexFiles', () => {
       projectMap.set('project1', {
         projectDir: join(sourceRoot, 'project1'),
         cdsFiles: [join(sourceRoot, 'project1/model.cds')],
+        cdsFilesToCompile: [join(sourceRoot, 'project1/model.cds')],
       });
 
       projectMap.set('project2', {
         projectDir: join(sourceRoot, 'project2'),
         cdsFiles: [join(sourceRoot, 'project2/service.cds')],
+        cdsFilesToCompile: [join(sourceRoot, 'project2/service.cds')],
       });
 
       // Create the CDS files and directories
@@ -223,6 +225,7 @@ describe('indexFiles', () => {
       projectMap.set('project1', {
         projectDir: join(sourceRoot, 'project1'),
         cdsFiles: [join(sourceRoot, 'project1/model.cds')],
+        cdsFilesToCompile: [join(sourceRoot, 'project1/model.cds')],
       });
 
       const nonExistentResponseFile = join(tempDir, 'nonexistent.txt');
@@ -267,6 +270,10 @@ describe('indexFiles', () => {
       projectMap.set('project1', {
         projectDir: join(sourceRoot, 'project1'),
         cdsFiles: [join(sourceRoot, 'project1/model.cds'), join(sourceRoot, 'project1/extra.cds')],
+        cdsFilesToCompile: [
+          join(sourceRoot, 'project1/model.cds'),
+          join(sourceRoot, 'project1/extra.cds'),
+        ],
       });
 
       // Create the CDS files

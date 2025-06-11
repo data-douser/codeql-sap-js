@@ -3,6 +3,7 @@ import { dirname, join, resolve, sep } from 'path';
 import { writeParserDebugInfo } from './debug';
 import {
   determineCdsFilesForProjectDir,
+  determineCdsFilesToCompile,
   determineCdsProjectsUnderSourceDir,
   extractCdsImports,
   readPackageJsonWithCache,
@@ -54,6 +55,7 @@ export function buildCdsProjectDependencyGraph(
     projectMap.set(projectDir, {
       projectDir,
       cdsFiles,
+      cdsFilesToCompile: [], // Will be populated in the third pass
       packageJson,
       dependencies: [],
       imports: new Map<string, CdsImport[]>(),
@@ -153,6 +155,27 @@ export function buildCdsProjectDependencyGraph(
       } catch (error: unknown) {
         console.warn(`Error processing imports in ${absoluteFilePath}: ${String(error)}`);
       }
+    }
+  }
+
+  // Third pass: determine which CDS files should be compiled for each project
+  console.log('Determining CDS files to compile for each project...');
+  for (const [, project] of projectMap.entries()) {
+    try {
+      const filesToCompile = determineCdsFilesToCompile(sourceRootDir, project);
+      project.cdsFilesToCompile = filesToCompile;
+
+      if (runMode === 'debug-parser') {
+        console.log(
+          `Project ${project.projectDir}: ${filesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files`,
+        );
+      }
+    } catch (error) {
+      console.warn(
+        `Warning: Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
+      );
+      // Fall back to compiling all files on error
+      project.cdsFilesToCompile = [...project.cdsFiles];
     }
   }
 

@@ -96,10 +96,31 @@ for (const [, project] of projectMap.entries()) {
 
 console.log('Processing CDS files to JSON ...');
 
-// Evaluate each `.cds` source file to determine if it should be compiled to JSON.
-// TODO : use project.cdsFilesToCompile instead of cdsFiles, to avoid compiling files
-// that are already imported by other files in the same project.
-for (const rawCdsFilePath of cdsFilePathsToProcess) {
+// Collect files that need compilation, handling project-level compilation
+const cdsFilesToCompile: string[] = [];
+const projectsForProjectLevelCompilation = new Set<string>();
+
+for (const [projectDir, project] of projectMap.entries()) {
+  if (project.cdsFilesToCompile.includes('__PROJECT_LEVEL_COMPILATION__')) {
+    // This project needs project-level compilation
+    projectsForProjectLevelCompilation.add(projectDir);
+    // We'll only compile one file per project to trigger project-level compilation
+    // Use the first CDS file as a representative
+    if (project.cdsFiles.length > 0) {
+      cdsFilesToCompile.push(project.cdsFiles[0]);
+    }
+  } else {
+    // Normal individual file compilation
+    cdsFilesToCompile.push(...project.cdsFilesToCompile);
+  }
+}
+
+console.log(
+  `Found ${cdsFilePathsToProcess.length} total CDS files, ${cdsFilesToCompile.length} files to compile (${projectsForProjectLevelCompilation.size} project-level compilations)`,
+);
+
+// Evaluate each `.cds` source file that should be compiled to JSON.
+for (const rawCdsFilePath of cdsFilesToCompile) {
   try {
     // Find which project this CDS file belongs to, to use the correct cache directory
     const projectDir = findProjectForCdsFile(rawCdsFilePath, sourceRoot, projectMap);

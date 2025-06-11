@@ -34,7 +34,7 @@ export function clearFileCache(): void {
 
 /**
  * Merge and consolidate multiple CDS parse results
- * This is useful when analyzing related CDS files that belong to the same project
+ * This is useful when analyzing related CDS files that belong to to the same project
  *
  * @param results - Array of CDS parse results
  * @returns Consolidated CDS parse result
@@ -1016,5 +1016,158 @@ export function readPackageJsonWithCache(filePath: string): PackageJson | undefi
   } catch (error) {
     console.warn(`Error parsing package.json at ${filePath}: ${String(error)}`);
     return undefined;
+  }
+}
+
+/**
+ * Determines which CDS files in a project should be compiled to JSON.
+ * For CAP projects with typical directory structure (db/, srv/), we should use project-aware compilation.
+ * For other projects, we fall back to the previous approach of identifying root files.
+ *
+ * @param sourceRootDir - The source root directory
+ * @param project - The CDS project to analyze
+ * @returns Array of CDS file paths (relative to source root) that should be compiled
+ */
+export function determineCdsFilesToCompile(
+  sourceRootDir: string,
+  project: {
+    cdsFiles: string[];
+    imports?: Map<string, CdsImport[]>;
+    projectDir: string;
+  },
+): string[] {
+  if (!project.cdsFiles || project.cdsFiles.length === 0) {
+    return [];
+  }
+
+  // If there's only one CDS file, it should be compiled individually
+  if (project.cdsFiles.length === 1) {
+    return [...project.cdsFiles];
+  }
+
+  // Check if this looks like a CAP project with typical directory structure
+  const absoluteProjectDir = join(sourceRootDir, project.projectDir);
+  const hasCapStructure = hasTypicalCapDirectoryStructure(project.cdsFiles);
+  const isCapProject = isLikelyCdsProject(absoluteProjectDir);
+
+  // Use project-level compilation only if:
+  // 1. It has CAP package.json dependencies OR
+  // 2. It has the typical CAP directory structure (db/, srv/ etc.)
+  if (
+    project.cdsFiles.length > 1 &&
+    (hasCapStructure || (isCapProject && hasPackageJsonWithCapDeps(absoluteProjectDir)))
+  ) {
+    // For CAP projects, we should use project-level compilation
+    // Return a special marker that indicates the entire project should be compiled together
+    return ['__PROJECT_LEVEL_COMPILATION__'];
+  }
+
+  // For non-CAP projects or when we can't determine project type,
+  // fall back to the original logic of identifying root files
+  if (!project.imports || project.imports.size === 0) {
+    return [...project.cdsFiles];
+  }
+
+  try {
+    // Create a map to track imported files in the project
+    const importedFiles = new Map<string, boolean>();
+
+    // First pass: collect all imported files in the project
+    for (const file of project.cdsFiles) {
+      try {
+        const absoluteFilePath = join(sourceRootDir, file);
+        if (existsSync(absoluteFilePath)) {
+          // Get imports for this file
+          const imports = project.imports.get(file) ?? [];
+
+          // Mark imported files
+          for (const importInfo of imports) {
+            if (importInfo.resolvedPath) {
+              importedFiles.set(importInfo.resolvedPath, true);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`Warning: Error processing imports for ${file}: ${String(error)}`);
+      }
+    }
+
+    // Second pass: identify root files (files that are not imported by others)
+    const rootFiles: string[] = [];
+    for (const file of project.cdsFiles) {
+      const relativePath = relative(sourceRootDir, join(sourceRootDir, file));
+      const isImported = importedFiles.has(relativePath);
+
+      if (!isImported) {
+        rootFiles.push(file);
+      }
+    }
+
+    // If no root files were identified, fall back to compiling all files
+    if (rootFiles.length === 0) {
+      console.warn(
+        `Warning: No root CDS files identified in project ${project.projectDir}, will compile all files`,
+      );
+      return [...project.cdsFiles];
+    }
+
+    return rootFiles;
+  } catch (error) {
+    console.warn(
+      `Warning: Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
+    );
+    // Fall back to compiling all files on error
+    return [...project.cdsFiles];
+  }
+}
+
+/**
+ * Checks if a project has a typical CAP directory structure by looking at the file paths.
+ * This is used as a heuristic to determine if project-level compilation should be used.
+ *
+ * @param cdsFiles - List of CDS files in the project (relative to source root)
+ * @returns true if the project appears to have a CAP structure
+ */
+function hasTypicalCapDirectoryStructure(cdsFiles: string[]): boolean {
+  // Check if there are files in common CAP directories
+  const hasDbFiles = cdsFiles.some(file => file.includes('db/') || file.includes('database/'));
+  const hasSrvFiles = cdsFiles.some(file => file.includes('srv/') || file.includes('service/'));
+
+  // If we have both db and srv files, this looks like a CAP project
+  if (hasDbFiles && hasSrvFiles) {
+    return true;
+  }
+
+  // Check if files are spread across multiple meaningful directories (not just the root)
+  const meaningfulDirectories = new Set(
+    cdsFiles.map(file => dirname(file)).filter(dir => dir !== '.' && dir !== ''), // Exclude root directory
+  );
+
+  // If there are multiple meaningful directories with CDS files, this might be a structured project
+  // But we need to be more selective - only consider it structured if there are actual subdirectories
+  return meaningfulDirectories.size >= 2;
+}
+
+/**
+ * Checks if a directory has a package.json with CAP dependencies
+ */
+function hasPackageJsonWithCapDeps(dir: string): boolean {
+  try {
+    const packageJsonPath = join(dir, 'package.json');
+    const packageJson = readPackageJsonWithCache(packageJsonPath);
+
+    if (packageJson) {
+      const dependencies = {
+        ...(packageJson.dependencies ?? {}),
+        ...(packageJson.devDependencies ?? {}),
+      };
+
+      // Check for common CAP dependencies
+      return !!(dependencies['@sap/cds'] || dependencies['@sap/cds-dk']);
+    }
+
+    return false;
+  } catch {
+    return false;
   }
 }

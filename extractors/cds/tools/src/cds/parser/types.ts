@@ -169,6 +169,9 @@ export interface CdsProject {
   /** All CDS files within this project. */
   cdsFiles: string[];
 
+  /** CDS files that should be compiled to JSON (typically root files not imported by others). */
+  cdsFilesToCompile: string[];
+
   /** Dependencies on other CDS projects. */
   dependencies?: CdsProject[];
 
