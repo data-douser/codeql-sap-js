@@ -739,5 +739,5 @@ class HandlerParameterData instanceof PropRead {
     )
   }
 
-  string toString() { result = this.(PropRead).toString() }
+  string toString() { result = PropRead.super.toString() }
 }
