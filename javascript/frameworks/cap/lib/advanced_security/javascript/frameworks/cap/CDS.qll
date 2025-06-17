@@ -494,10 +494,7 @@ class ImplMethodCallApplicationServiceDefinition extends MethodCallNode,
   UserDefinedApplicationService
 {
   ImplMethodCallApplicationServiceDefinition() {
-    exists(CdsFacade cds |
-      this.getReceiver() = cds.getMember("service").asSource() and
-      this.getMethodName() = "impl"
-    )
+    exists(CdsFacade cds | this = cds.getMember("service").getMember("impl").getACall())
   }
 
   override FunctionNode getInitFunction() { result = this.getArgument(0) }
