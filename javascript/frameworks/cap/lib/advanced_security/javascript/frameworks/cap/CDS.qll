@@ -20,20 +20,8 @@ class CdsFacade extends API::Node {
 /**
  * A call to `entities` on a CDS facade.
  */
-class CdsEntitiesCall extends API::Node {
-  CdsEntitiesCall() { exists(CdsFacade cds | this = cds.getMember("entities")) }
-}
-
-/**
- * An entity instance obtained by the entity's namespace,
- * via `cds.entities`
- * ```javascript
- * // Obtained through `cds.entities`
- * const { Service1 } = cds.entities("sample.application.namespace");
- * ```
- */
-class EntityEntry extends DataFlow::CallNode {
-  EntityEntry() { exists(CdsEntitiesCall c | c.getACall() = this) }
+class CdsEntitiesCall extends DataFlow::CallNode {
+  CdsEntitiesCall() { exists(CdsFacade cds | this = cds.getMember("entities").getACall()) }
 
   /**
    * Gets the namespace that this entity belongs to.
@@ -41,6 +29,46 @@ class EntityEntry extends DataFlow::CallNode {
   string getNamespace() {
     result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
   }
+}
+
+/**
+ * An entity object that belongs to a service.
+ *
+ * ```javascript
+ * // Obtained through `cds.entities`
+ * const { Service1 } = cds.entities("sample.application.namespace");
+ * // Obtained through `Service.entities`, in this case the `Service`
+ * // being a `this` variable of the service.
+ * const { Service1 } = this.entities;
+ * ```
+ */
+abstract class EntityEntry instanceof PropRead {
+  Location getLocation() { result = PropRead.super.getLocation() }
+
+  string toString() { result = PropRead.super.toString() }
+
+  /**
+   * Gets the definition of the service to which this entity belongs to.
+   */
+  abstract UserDefinedApplicationService getServiceDefinition();
+}
+
+private class EntityEntryFromCdsEntities extends EntityEntry {
+  CdsEntitiesCall cdsEntities;
+
+  EntityEntryFromCdsEntities() { this = cdsEntities.getAPropertyRead() }
+
+  override UserDefinedApplicationService getServiceDefinition() {
+    result.getServiceName() = cdsEntities.getNamespace()
+  }
+}
+
+private class EntityEntryFromServiceInstance extends EntityEntry {
+  ServiceInstance srv;
+
+  EntityEntryFromServiceInstance() { this = srv.getAPropertyRead("entities").getAPropertyRead() }
+
+  override UserDefinedApplicationService getServiceDefinition() { result = srv.getDefinition() }
 }
 
 /**
