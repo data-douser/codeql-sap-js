@@ -299,9 +299,11 @@ class CqlClause extends TCqlClause {
     result = this.getRunner().getDefinition().getCdsDeclaration().getAnEntity()
     or
     /* 2. Variable whose value is a reference to an entity */
-    exists(ExprNode entityReference | entityReference = this.getAccessingEntityReference() |
-      result = entityReference.getALocalSource().(EntityReferenceFromEntities).getCqlDefinition()
-    )
+    result =
+      this.getAccessingEntityReference()
+          .getALocalSource()
+          .(EntityReferenceFromEntities)
+          .getCqlDefinition()
   }
 }
 
