@@ -19,21 +19,6 @@ class TaintedClause instanceof CqlClause {
 }
 
 /**
- * Call to`cds.db.run`
- * or
- * an await surrounding a sql statement
- */
-class CQLSink extends DataFlow::Node {
-  CQLSink() {
-    this = any(CdsFacade cds).getMember("db").getMember("run").getACall().getAnArgument()
-    or
-    exists(AwaitExpr a, CqlClause clause |
-      a.getAChildExpr() = clause.asExpr() and this.asExpr() = clause.asExpr()
-    )
-  }
-}
-
-/**
  * a more heurisitic based taint step
  * captures one of the alternative ways to construct query strings:
  * `cds.parse.cql(`string`+userInput)`
@@ -57,7 +42,14 @@ class CqlIConfiguration extends TaintTracking::Configuration {
 
   override predicate isSource(DataFlow::Node source) { source instanceof RemoteFlowSource }
 
-  override predicate isSink(DataFlow::Node sink) { sink instanceof CQLSink }
+  override predicate isSink(DataFlow::Node node) {
+    node = any(CdsFacade cds).getMember("db").getMember("run").getACall().getAnArgument()
+    or
+    exists(AwaitExpr awaitExpr, CqlClause clause |
+      node.asExpr() = clause.asExpr() and
+      awaitExpr.getOperand() = clause.asExpr()
+    )
+  }
 
   override predicate isSanitizer(DataFlow::Node node) {
     super.isSanitizer(node) or

@@ -7,6 +7,7 @@ import advanced_security.javascript.frameworks.cap.CQL
 import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 
 /**
+ * The CDS facade that provides useful interfaces to the current CAP application.
  * ```js
  * const cds = require('@sap/cds')
  * ```
@@ -29,6 +30,23 @@ class CdsEntitiesCall extends DataFlow::CallNode {
   string getNamespace() {
     result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
   }
+}
+
+/**
+ * The property `db` of on a CDS facade, often accessed as `cds.db`.
+ */
+class CdsDb extends SourceNode {
+  CdsDb() { exists(CdsFacade cds | this = cds.getMember("db").asSource()) }
+
+  MethodCallNode getRunCall() { result = this.getAMemberCall("run") }
+
+  MethodCallNode getCreateCall() { result = this.getAMemberCall("create") }
+
+  MethodCallNode getUpdateCall() { result = this.getAMemberCall("update") }
+
+  MethodCallNode getDeleteCall() { result = this.getAMemberCall("delete") }
+
+  MethodCallNode getInsertCall() { result = this.getAMemberCall("insert") }
 }
 
 /**
@@ -123,7 +141,8 @@ class CdsConnectToCall extends DataFlow::CallNode {
 }
 
 /**
- * A dataflow node that represents a service. Note that its definition is a `UserDefinedApplicationService`, not a `ServiceInstance`.
+ * A dataflow node that represents a service.
+ * Note that its definition is a `UserDefinedApplicationService`, not a `ServiceInstance`.
  */
 abstract class ServiceInstance extends SourceNode {
   abstract UserDefinedApplicationService getDefinition();
@@ -764,5 +783,59 @@ class HandlerParameterData instanceof PropRead {
     )
   }
 
-  string toString() { result = PropRead.super.toString() }
+  string toString() { result = super.toString() }
+}
+
+/**
+ * A call to a method capable of running a CQL query. This includes the following:
+ * - Generic query runners: `cds.run`, `cds.db.run`, `srv.run`
+ * - Shortcut to CQL's `READ`: `cds.read`, `cds.db.read`, `srv.read`
+ * - Shortcut to CQL's `CREATE`: `cds.create`, `cds.db.create`, `srv.create`
+ * - Shortcut to CQL's `INSERT`: `cds.insert`, `cds.db.insert`, `srv.insert`
+ * - Shortcut to CQL's `UPSERT`: `cds.upsert`, `cds.db.upsert`, `srv.upsert`
+ * - Shortcut to CQL's `UPDATE`: `cds.update`, `cds.db.update`, `srv.update`
+ * - Shortcut to CQL's `DELETE`: `cds.delete`, `cds.db.delete`, `srv.delete`
+ */
+abstract class CqlQueryRunnerCall extends MethodCallNode {
+  SourceNode base;
+  string methodName;
+
+  CqlQueryRunnerCall() {
+    this = base.getAMemberCall(methodName) and
+    (
+      /*
+       * 1. Method call on the CDS facade or the base database service,
+       * accessed as `cds.db`.
+       */
+
+      exists(CdsFacade cds | base = cds.asSource()) or
+      exists(CdsDb cdsDb | base = cdsDb) or
+      /* 2. Method call on a service instance object. */
+      exists(ServiceInstance srv | base = srv)
+    )
+  }
+}
+
+class CqlRunMethodCall extends CqlQueryRunnerCall {
+  CqlRunMethodCall() { this.getMethodName() = "run" }
+}
+
+class CqlReadMethodCall extends CqlQueryRunnerCall {
+  CqlReadMethodCall() { this.getMethodName() = "read" }
+}
+
+class CqlCreateMethodCall extends CqlQueryRunnerCall {
+  CqlCreateMethodCall() { this.getMethodName() = "create" }
+}
+
+class CqlUpdateMethodCall extends CqlQueryRunnerCall {
+  CqlUpdateMethodCall() { this.getMethodName() = "update" }
+}
+
+class CqlDeleteMethodCall extends CqlQueryRunnerCall {
+  CqlDeleteMethodCall() { this.getMethodName() = "delete" }
+}
+
+class CqlInsertMethodCall extends CqlQueryRunnerCall {
+  CqlInsertMethodCall() { this.getMethodName() = "insert" }
 }

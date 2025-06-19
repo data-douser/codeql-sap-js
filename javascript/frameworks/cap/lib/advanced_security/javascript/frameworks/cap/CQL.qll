@@ -11,12 +11,14 @@ class CqlQueryBase extends VarRef {
     exists(string name |
       this.getName() = name and
       name in ["SELECT", "INSERT", "DELETE", "UPDATE", "UPSERT"] and
-      /* Made available as a global variable */
-      exists(GlobalVariable queryBase | this = queryBase.getAReference())
-      or
-      /* Imported from `cds.ql` */
-      exists(CdsFacade cds |
-        cds.getMember("ql").getMember(name).getAValueReachableFromSource().asExpr() = this
+      (
+        /* Made available as a global variable */
+        exists(GlobalVariable queryBase | this = queryBase.getAReference())
+        or
+        /* Imported from `cds.ql` */
+        exists(CdsFacade cds |
+          cds.getMember("ql").getMember(name).getAValueReachableFromSource().asExpr() = this
+        )
       )
     )
   }
@@ -88,22 +90,22 @@ Expr getRootReceiver(Expr e) {
  * provided by the module cds.ql
  */
 private newtype TCqlClause =
-  TaggedTemplate(TaggedTemplateExpr taggedTemplateExpr) {
+  TTaggedTemplate(TaggedTemplateExpr taggedTemplateExpr) {
     exists(CqlQueryBase base | base = getRootReceiver(taggedTemplateExpr)) or
     exists(CqlQueryBaseCall call | call = getRootReceiver(taggedTemplateExpr))
   } or
-  MethodCall(MethodCallExpr callExpr) {
+  TMethodCall(MethodCallExpr callExpr) {
     exists(CqlQueryBase base | base = getRootReceiver(callExpr)) or
     exists(CqlQueryBaseCall call | call = getRootReceiver(callExpr))
   } or
-  ShortcutCall(CqlQueryBaseCall callExpr)
+  TShortcutCall(CqlQueryBaseCall callExpr)
 
 class CqlClause extends TCqlClause {
-  TaggedTemplateExpr asTaggedTemplate() { this = TaggedTemplate(result) }
+  TaggedTemplateExpr asTaggedTemplate() { this = TTaggedTemplate(result) }
 
-  MethodCallExpr asMethodCall() { this = MethodCall(result) }
+  MethodCallExpr asMethodCall() { this = TMethodCall(result) }
 
-  CallExpr asShortcutCall() { this = ShortcutCall(result) }
+  CallExpr asShortcutCall() { this = TShortcutCall(result) }
 
   Node flow() { result = this.asExpr().flow() }
 
@@ -169,8 +171,8 @@ class CqlClause extends TCqlClause {
   CqlQueryBase getCqlBase() { result = getRootReceiver(this.asMethodCall()) }
 
   CqlQueryBaseCall getCqlBaseCall() {
-    result = getRootReceiver(this.asTaggedTemplate()).(CqlQueryBaseCall) or
-    result = getRootReceiver(this.asMethodCall()).(CqlQueryBaseCall)
+    result = getRootReceiver(this.asTaggedTemplate()) or
+    result = getRootReceiver(this.asMethodCall())
   }
 
   /** Describes a parent expression relation */
@@ -184,9 +186,9 @@ class CqlClause extends TCqlClause {
    * Possible cases for constructing a chain of clauses:
    *
    * (looking at the terminal clause and its possible parent types as tuples: (this, parent))
-   * 1. MethodCall.MethodCall
+   * 1. TMethodCall.TMethodCall
    *     - example `(SELECT.from(Table),  SELECT.from(Table).where("col1='*'"))`
-   * 2. ShortcutCall.MethodCall
+   * 2. TShortcutCall.TMethodCall
    *     - example `(SELECT("col1, col2"), SELECT("col1, col2").from("Table"))`
    *
    * Note that ShortcutCalls cannot be added to any clause chain other than the first position, e.g.
