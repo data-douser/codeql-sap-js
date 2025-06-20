@@ -2,7 +2,7 @@ const cds = require("@sap/cds");
 
 module.exports = class Service1 extends cds.ApplicationService {
   init() {
-    /* ========== Service1 running query on the database service using `cds.run` and friends using Fluent API ========== */
+    /* ========== 1. Service1 running query on the database service using `cds.run` and friends using Fluent API ========== */
     this.on("send11", async (req) => {
       const { id } = req.data;
       const query = SELECT.from`Entity1`.where("ID=" + id);
@@ -34,7 +34,7 @@ module.exports = class Service1 extends cds.ApplicationService {
       cds.delete("Entity1").where("ID =" + id);
     });
 
-    /* ========== Service1 running query on itself by `await`-ing the query ========== */
+    /* ========== 2. Service1 running query on itself by `await`-ing the query ========== */
     this.on("send21", async (req) => {
       const { id } = req.data;
       const { Service1Entity } = this.entities;
@@ -65,7 +65,7 @@ module.exports = class Service1 extends cds.ApplicationService {
       await DELETE.from(Service1Entity).where("ID =" + id);
     });
 
-    /* ========== Service1 running query on itself using `this.run` and friends using Fluent API ========== */
+    /* ========== 3. Service1 running query on itself using `this.run` and friends using Fluent API ========== */
     this.on("send31", async (req) => {
       const { id } = req.data;
       const query = SELECT.from`Service1Entity`.where("ID=" + id);
@@ -97,7 +97,7 @@ module.exports = class Service1 extends cds.ApplicationService {
       this.delete(`Service1Entity`).where("ID =" + id);
     });
 
-    /* ========== Service1 running query on Service2 using `Service2.run` and friends ========== */
+    /* ========== 4. Service1 running query on Service2 using `Service2.run` and friends ========== */
     this.on("send41", async (req) => {
       const { id } = req.data;
       const { Service2 } = await cds.connect.to("Service2");
