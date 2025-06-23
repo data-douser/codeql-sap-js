@@ -101,7 +101,7 @@ class CdsConnectToCall extends DataFlow::CallNode {
 }
 
 /**
- * A dataflow node that represents a service.
+ * A data flow node that represents a service.
  * Note that its definition is a `UserDefinedApplicationService`, not a `ServiceInstance`.
  */
 abstract class ServiceInstance extends SourceNode {
@@ -146,7 +146,7 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
  * const Service1 = cds.connect.to("service-2");
  * ```
  */
-class ServiceInstanceFromCdsConnectTo extends ServiceInstance, SourceNode instanceof PropRead {
+class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
   string serviceDesignator;
   string serviceName;
 
@@ -155,9 +155,8 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance, SourceNode instan
   }
 
   override UserDefinedApplicationService getDefinition() {
-    /* 1. The service  */
     exists(RequiredService serviceDecl |
-      serviceDecl.getName() = [serviceName, serviceDesignator] and
+      serviceDecl.getName() = serviceDesignator and
       result.hasLocationInfo(serviceDecl.getImplementationFile().getAbsolutePath(), _, _, _, _)
     )
     or
@@ -167,10 +166,6 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance, SourceNode instan
   string getServiceDesignator() { result = serviceDesignator }
 
   string getServiceName() { result = serviceName }
-}
-
-class DBServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo {
-  DBServiceInstanceFromCdsConnectTo() { serviceDesignator = "db" }
 }
 
 /**
@@ -269,6 +264,28 @@ class ServiceInstanceFromServeWithParameter extends ServiceInstance {
       result = serviceInstance.getDefinition()
     )
   }
+}
+
+abstract class CdsDbService extends ServiceInstance {
+  /* A DB service is implicitly defined. */
+  override UserDefinedApplicationService getDefinition() { none() }
+}
+
+class GloballyAccessedCdsDbService extends CdsDbService {
+  GloballyAccessedCdsDbService() {
+    exists(CdsFacade cds |
+      this = cds.getMember("db").asSource() or
+      this = cds.asSource()
+    )
+  }
+}
+
+/* Note: This should not extend `ServiceInstanceFromCdsConnectTo`, as it does NOT do a property read! */
+class DbServiceInstanceFromCdsConnectTo extends CdsDbService {
+  DbServiceInstanceFromCdsConnectTo() { this = serviceInstanceFromCdsConnectTo("db") }
+
+  /* A DB service is implicitly defined. */
+  override UserDefinedApplicationService getDefinition() { none() }
 }
 
 /**
@@ -564,16 +581,30 @@ class CdsUser extends API::Node {
   }
 }
 
-class CdsTransaction extends MethodCallNode {
+class CdsTransaction extends SourceNode {
   ServiceInstance srv;
+  CallNode txCall;
 
-  CdsTransaction() { this = srv.getAMemberCall("tx") }
+  CdsTransaction() {
+    txCall = srv.getAMemberCall("tx") and
+    (
+      this = txCall or
+      this =
+        txCall
+            .getABoundCallbackParameter([
+                0, // When the context object is absent
+                1 // When the context object is present
+              ], 0)
+    )
+  }
 
   ServiceInstance getRunner() { result = srv }
 
   SourceNode getContextObject() {
-    result = this.getAnArgument().getALocalSource() and not result instanceof FunctionNode
+    /* 1. An object node passed as the first argument to a call to `srv.tx`. */
+    result = txCall.getALocalSource() and not result instanceof FunctionNode
     or
+    /* 2. A manually overriden `cds.context`. */
     exists(Stmt stmt, CdsFacade cds |
       stmt = this.asExpr().getFirstControlFlowNode().getAPredecessor+() and
       result = cds.getMember("context").asSink() and
@@ -583,25 +614,10 @@ class CdsTransaction extends MethodCallNode {
 
   DataFlow::Node getUser() { result = this.getContextObject().getAPropertyWrite("user").getRhs() }
 
-  MethodCallNode getATransactionCall() {
-    exists(ControlFlowNode exprOrStmt |
-      exprOrStmt =
-        this.getAnArgument().(FunctionNode).getALocalSource().asExpr().(Function).getABodyStmt() and
-      exprOrStmt.(Stmt).getAChildExpr().flow().(MethodCallNode).getReceiver().getALocalSource() =
-        this.getAnArgument().(FunctionNode).getParameter(_) and
-      result = exprOrStmt.(Stmt).getAChildExpr().flow()
-      or
-      exprOrStmt =
-        this.getAnArgument().(FunctionNode).getALocalSource().asExpr().(Function).getAChildExpr() and
-      exprOrStmt.(Expr).flow().(MethodCallNode).getReceiver().getALocalSource() =
-        this.getAnArgument().(FunctionNode).getParameter(_) and
-      result = exprOrStmt.(MethodCallExpr).flow()
-      or
-      exprOrStmt = this.asExpr().getFirstControlFlowNode().getASuccessor+() and
-      exprOrStmt.(Expr).flow().(MethodCallNode).getReceiver().getALocalSource() = this and
-      result = exprOrStmt.(MethodCallExpr).flow()
-    )
-  }
+  /**
+   * Gets a method call on this transaction object.
+   */
+  MethodCallNode getATransactionCall() { result = this.getAMemberCall(_) }
 
   CqlClause getAnExecutedCqlClause() {
     result.asExpr() = this.getATransactionCall().getAnArgument().asExpr()
@@ -722,13 +738,11 @@ class EntityReferenceFromUserDefinedServiceEntities extends EntityReferenceFromE
 }
 
 /**
- * db.entities, db.entities(...), cds.entities, cds.entities(...)
+ * cds.entities, cds.entities(...), cds.db.entities, cds.db.entities(...)
  */
 class EntityReferenceFromDbOrCdsEntities extends EntityReferenceFromEntities {
   EntityReferenceFromDbOrCdsEntities() {
-    this.getReceiver().getALocalSource() instanceof DBServiceInstanceFromCdsConnectTo or
-    exists(CdsFacade cds | this.getReceiver().getALocalSource() = cds.getNode()) or
-    exists(CdsFacade cds | this.getReceiver().getALocalSource() = cds.getMember("db").asSource())
+    this.getReceiver().getALocalSource() instanceof CdsDbService
   }
 
   override CdlEntity getCqlDefinition() {
@@ -823,8 +837,16 @@ abstract class CqlQueryRunnerCall extends MethodCallNode {
 
       exists(CdsFacade cds | base = cds.asSource()) or
       exists(CdsDb cdsDb | base = cdsDb) or
-      /* 2. Method call on a service instance object. */
-      exists(ServiceInstance srv | base = srv)
+      /*
+       * 2. Method call on a service instance object.
+       */
+
+      exists(ServiceInstance srv | base.getALocalSource() = srv) or
+      /*
+       * 3. Method call on a transaction object.
+       */
+
+      exists(CdsTransaction tx | base = tx)
     )
   }
 
@@ -908,6 +930,41 @@ class CqlUpsertMethodCall extends CqlShortcutMethodCall {
     |
       result = chainedMethodCall.getAnArgument() or
       result = chainedMethodCall.getAnArgument().(SourceNode).getAPropertyWrite().getRhs()
+    )
+  }
+}
+
+/**
+ * A call to APIs that takes the given input string written in CDL and parses it according to
+ * the CQN specification.
+ *
+ * Note that the outcome of calling the fluent APIs is also a CQN, which means both can be run
+ * against a service with `srv.run`.
+ */
+abstract class CqlClauseParserCall extends DataFlow::CallNode {
+  DataFlow::ExprNode cdlString;
+
+  DataFlow::ExprNode getCdlString() { result = cdlString }
+}
+
+class GlobalCQLFunction extends CqlClauseParserCall {
+  GlobalCQLFunction() { this = DataFlow::globalVarRef("CQL").getACall() }
+}
+
+class CdsParseCqlCall extends CqlClauseParserCall {
+  CdsParseCqlCall() {
+    exists(CdsFacade cds |
+      this = cds.getMember("parse").getMember("cql").getACall() and
+      cdlString = this.getArgument(0)
+    )
+  }
+}
+
+class CdsQlCall extends CqlClauseParserCall {
+  CdsQlCall() {
+    exists(CdsFacade cds |
+      this = cds.getMember("ql").getACall() and
+      cdlString = this.getArgument(0)
     )
   }
 }

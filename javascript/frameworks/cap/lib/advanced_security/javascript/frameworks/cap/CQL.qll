@@ -354,38 +354,3 @@ class CqlDeleteClause extends CqlClause {
     result.asDotExpr().getPropertyName() = "from"
   }
 }
-
-/**
- * A call to APIs that takes the given input string written in CDL and parses it according to
- * the CQN specification.
- *
- * Note that the outcome of calling the fluent APIs is also a CQN, which means both can be run
- * against a service with `srv.run`.
- */
-abstract class CqlClauseParserCall extends DataFlow::CallNode {
-  DataFlow::ExprNode cdlString;
-
-  DataFlow::ExprNode getCdlString() { result = cdlString }
-}
-
-class GlobalCQLFunction extends CqlClauseParserCall {
-  GlobalCQLFunction() { this = DataFlow::globalVarRef("CQL").getACall() }
-}
-
-class CdsParseCqlCall extends CqlClauseParserCall {
-  CdsParseCqlCall() {
-    exists(CdsFacade cds |
-      this = cds.getMember("parse").getMember("cql").getACall() and
-      cdlString = this.getArgument(0)
-    )
-  }
-}
-
-class CdsQlCall extends CqlClauseParserCall {
-  CdsQlCall() {
-    exists(CdsFacade cds |
-      this = cds.getMember("ql").getACall() and
-      cdlString = this.getArgument(0)
-    )
-  }
-}

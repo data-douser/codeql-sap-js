@@ -44,7 +44,7 @@ class CqlClauseParserCallWithStringConcat instanceof CqlClauseParserCall {
 }
 
 class CqlInjectionConfiguration extends TaintTracking::Configuration {
-  CqlInjectionConfiguration() { this = "CqlInjection" }
+  CqlInjectionConfiguration() { this = "CQL injection from untrusted data" }
 
   override predicate isSource(DataFlow::Node source) { source instanceof RemoteFlowSource }
 

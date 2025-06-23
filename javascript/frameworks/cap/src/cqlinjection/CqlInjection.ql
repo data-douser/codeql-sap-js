@@ -16,5 +16,6 @@ import advanced_security.javascript.frameworks.cap.CAPCqlInjectionQuery
 
 from CqlInjectionConfiguration sql, DataFlow::PathNode source, DataFlow::PathNode sink
 where sql.hasFlowPath(source, sink)
-select sink.getNode(), source, sink, "This query depends on a $@.", source.getNode(),
+/* TODO: Print different message if sink is `CqlShortcutMethodCallWithStringConcat` */
+select sink.getNode(), source, sink, "This CQL query depends on a $@.", source.getNode(),
   "user-provided value"
