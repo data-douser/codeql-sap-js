@@ -23,13 +23,18 @@ module.exports = class Service1 extends cds.ApplicationService {
       const { id, amount } = req.data;
       cds.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);
     });
-
+    
     this.on("send15", async (req) => {
+      const { id } = req.data;
+      cds.insert("Entity1").entries({id: "" + id});
+    });
+
+    this.on("send16", async (req) => {
       const { id } = req.data;
       cds.upsert("Entity1").entries({id: "" + id});
     });
 
-    this.on("send16", async (req) => {
+    this.on("send17", async (req) => {
       const { id } = req.data;
       cds.delete("Entity1").where("ID =" + id);
     });
@@ -86,13 +91,18 @@ module.exports = class Service1 extends cds.ApplicationService {
       const { id, amount } = req.data;
       this.update(`Service1Entity`).set("col1 = col1" + amount).where("col1 = " + id);
     });
-
+    
     this.on("send35", async (req) => {
+      const { id } = req.data;
+      this.insert(`Service1Entity`).entries({id: "" + id});
+    });
+
+    this.on("send36", async (req) => {
       const { id } = req.data;
       this.upsert(`Service1Entity`).entries({id: "" + id});
     });
 
-    this.on("send36", async (req) => {
+    this.on("send37", async (req) => {
       const { id } = req.data;
       this.delete(`Service1Entity`).where("ID =" + id);
     });
@@ -126,13 +136,49 @@ module.exports = class Service1 extends cds.ApplicationService {
     this.on("send45", async (req) => {
       const { id } = req.data;
       const { Service2 } = await cds.connect.to("Service2");
-      Service2.upsert(`Service2Entity`).entries({id: "" + id});
+      Service2.insert(`Service2Entity`).entries({id: "" + id});
     });
 
     this.on("send46", async (req) => {
       const { id } = req.data;
       const { Service2 } = await cds.connect.to("Service2");
+      Service2.upsert(`Service2Entity`).entries({id: "" + id});
+    });
+
+    this.on("send47", async (req) => {
+      const { id } = req.data;
+      const { Service2 } = await cds.connect.to("Service2");
       Service2.delete(`Service2Entity`).where("ID =" + id);
+    });
+
+    /* ========== 5. Service1 running query on Service2 using CQN parsed with `cds.ql` ========== */
+    this.on("send5", async (req) => {
+      const { id } = req.data;
+      const { Service2 } = await cds.connect.to("Service2");
+      const query = cds.ql("SELECT * from Service1Entity where ID =" + id);
+      Service2.run(query);
+    });
+
+    /* ========== 6. Service1 running query on the database service using CQN parsed with `cds.parse.cql` ========== */
+    this.on("send6", async (req) => {
+      const { id } = req.data;
+      const query = cds.parse.cql(`SELECT * from Entity1 where ID =` + id);
+      cds.run(query);
+    });
+
+    /* ========== 7. Service1 running query on Service2 using an unparsed CDL string (only valid in old versions of CAP) ========== */
+    this.on("send71", async (req) => {
+      const { id } = req.data;
+      const { Service2 } = await cds.connect.to("Service2");
+      const query = "SELECT * from Entity1 where ID =" + id;
+      Service2.run(query);
+    });
+
+    this.on("send72", async (req) => {
+      const { id } = req.data;
+      const { Service2 } = await cds.connect.to("Service2");
+      const query = `SELECT * from Entity1 where ID =` + id;
+      Service2.run(query);
     });
   }
 };
