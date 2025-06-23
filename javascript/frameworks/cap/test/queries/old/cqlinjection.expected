@@ -1,0 +1,88 @@
+WARNING: module 'PathGraph' has been deprecated and may be removed in future (CqlInjection.ql:14,8-27)
+WARNING: type 'Configuration' has been deprecated and may be removed in future (CqlInjection.ql:19,33-61)
+WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:46,29-47)
+WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:46,56-74)
+nodes
+| cqlinjection.js:7:34:7:36 | req |
+| cqlinjection.js:7:34:7:36 | req |
+| cqlinjection.js:8:13:8:30 | { book, quantity } |
+| cqlinjection.js:8:13:8:41 | book |
+| cqlinjection.js:8:15:8:18 | book |
+| cqlinjection.js:8:34:8:36 | req |
+| cqlinjection.js:8:34:8:41 | req.data |
+| cqlinjection.js:12:11:12:56 | query |
+| cqlinjection.js:12:19:12:56 | SELECT. ... book}`) |
+| cqlinjection.js:12:44:12:55 | `ID=${book}` |
+| cqlinjection.js:12:50:12:53 | book |
+| cqlinjection.js:13:36:13:40 | query |
+| cqlinjection.js:13:36:13:40 | query |
+| cqlinjection.js:15:27:15:64 | SELECT. ... book}`) |
+| cqlinjection.js:15:27:15:64 | SELECT. ... book}`) |
+| cqlinjection.js:15:52:15:63 | `ID=${book}` |
+| cqlinjection.js:15:58:15:61 | book |
+| cqlinjection.js:17:11:17:57 | query2 |
+| cqlinjection.js:17:20:17:57 | SELECT. ... + book) |
+| cqlinjection.js:17:45:17:56 | 'ID=' + book |
+| cqlinjection.js:17:53:17:56 | book |
+| cqlinjection.js:18:37:18:42 | query2 |
+| cqlinjection.js:18:37:18:42 | query2 |
+| cqlinjection.js:20:27:20:64 | SELECT. ... + book) |
+| cqlinjection.js:20:27:20:64 | SELECT. ... + book) |
+| cqlinjection.js:20:52:20:63 | 'ID=' + book |
+| cqlinjection.js:20:60:20:63 | book |
+| cqlinjection.js:27:11:27:62 | cqn |
+| cqlinjection.js:27:17:27:62 | CQL`SEL ...  + book |
+| cqlinjection.js:27:59:27:62 | book |
+| cqlinjection.js:28:39:28:41 | cqn |
+| cqlinjection.js:28:39:28:41 | cqn |
+| cqlinjection.js:30:11:30:60 | cqn1 |
+| cqlinjection.js:30:18:30:60 | cds.par ... + book) |
+| cqlinjection.js:30:32:30:59 | `SELECT ...  + book |
+| cqlinjection.js:30:56:30:59 | book |
+| cqlinjection.js:31:39:31:42 | cqn1 |
+| cqlinjection.js:31:39:31:42 | cqn1 |
+edges
+| cqlinjection.js:7:34:7:36 | req | cqlinjection.js:8:34:8:36 | req |
+| cqlinjection.js:7:34:7:36 | req | cqlinjection.js:8:34:8:36 | req |
+| cqlinjection.js:8:13:8:30 | { book, quantity } | cqlinjection.js:8:15:8:18 | book |
+| cqlinjection.js:8:13:8:41 | book | cqlinjection.js:12:50:12:53 | book |
+| cqlinjection.js:8:13:8:41 | book | cqlinjection.js:15:58:15:61 | book |
+| cqlinjection.js:8:13:8:41 | book | cqlinjection.js:17:53:17:56 | book |
+| cqlinjection.js:8:13:8:41 | book | cqlinjection.js:20:60:20:63 | book |
+| cqlinjection.js:8:13:8:41 | book | cqlinjection.js:27:59:27:62 | book |
+| cqlinjection.js:8:13:8:41 | book | cqlinjection.js:30:56:30:59 | book |
+| cqlinjection.js:8:15:8:18 | book | cqlinjection.js:8:13:8:41 | book |
+| cqlinjection.js:8:34:8:36 | req | cqlinjection.js:8:34:8:41 | req.data |
+| cqlinjection.js:8:34:8:41 | req.data | cqlinjection.js:8:13:8:30 | { book, quantity } |
+| cqlinjection.js:12:11:12:56 | query | cqlinjection.js:13:36:13:40 | query |
+| cqlinjection.js:12:11:12:56 | query | cqlinjection.js:13:36:13:40 | query |
+| cqlinjection.js:12:19:12:56 | SELECT. ... book}`) | cqlinjection.js:12:11:12:56 | query |
+| cqlinjection.js:12:44:12:55 | `ID=${book}` | cqlinjection.js:12:19:12:56 | SELECT. ... book}`) |
+| cqlinjection.js:12:50:12:53 | book | cqlinjection.js:12:44:12:55 | `ID=${book}` |
+| cqlinjection.js:15:52:15:63 | `ID=${book}` | cqlinjection.js:15:27:15:64 | SELECT. ... book}`) |
+| cqlinjection.js:15:52:15:63 | `ID=${book}` | cqlinjection.js:15:27:15:64 | SELECT. ... book}`) |
+| cqlinjection.js:15:58:15:61 | book | cqlinjection.js:15:52:15:63 | `ID=${book}` |
+| cqlinjection.js:17:11:17:57 | query2 | cqlinjection.js:18:37:18:42 | query2 |
+| cqlinjection.js:17:11:17:57 | query2 | cqlinjection.js:18:37:18:42 | query2 |
+| cqlinjection.js:17:20:17:57 | SELECT. ... + book) | cqlinjection.js:17:11:17:57 | query2 |
+| cqlinjection.js:17:45:17:56 | 'ID=' + book | cqlinjection.js:17:20:17:57 | SELECT. ... + book) |
+| cqlinjection.js:17:53:17:56 | book | cqlinjection.js:17:45:17:56 | 'ID=' + book |
+| cqlinjection.js:20:52:20:63 | 'ID=' + book | cqlinjection.js:20:27:20:64 | SELECT. ... + book) |
+| cqlinjection.js:20:52:20:63 | 'ID=' + book | cqlinjection.js:20:27:20:64 | SELECT. ... + book) |
+| cqlinjection.js:20:60:20:63 | book | cqlinjection.js:20:52:20:63 | 'ID=' + book |
+| cqlinjection.js:27:11:27:62 | cqn | cqlinjection.js:28:39:28:41 | cqn |
+| cqlinjection.js:27:11:27:62 | cqn | cqlinjection.js:28:39:28:41 | cqn |
+| cqlinjection.js:27:17:27:62 | CQL`SEL ...  + book | cqlinjection.js:27:11:27:62 | cqn |
+| cqlinjection.js:27:59:27:62 | book | cqlinjection.js:27:17:27:62 | CQL`SEL ...  + book |
+| cqlinjection.js:30:11:30:60 | cqn1 | cqlinjection.js:31:39:31:42 | cqn1 |
+| cqlinjection.js:30:11:30:60 | cqn1 | cqlinjection.js:31:39:31:42 | cqn1 |
+| cqlinjection.js:30:18:30:60 | cds.par ... + book) | cqlinjection.js:30:11:30:60 | cqn1 |
+| cqlinjection.js:30:32:30:59 | `SELECT ...  + book | cqlinjection.js:30:18:30:60 | cds.par ... + book) |
+| cqlinjection.js:30:56:30:59 | book | cqlinjection.js:30:32:30:59 | `SELECT ...  + book |
+#select
+| cqlinjection.js:13:36:13:40 | query | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:13:36:13:40 | query | This query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
+| cqlinjection.js:15:27:15:64 | SELECT. ... book}`) | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:15:27:15:64 | SELECT. ... book}`) | This query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
+| cqlinjection.js:18:37:18:42 | query2 | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:18:37:18:42 | query2 | This query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
+| cqlinjection.js:20:27:20:64 | SELECT. ... + book) | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:20:27:20:64 | SELECT. ... + book) | This query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
+| cqlinjection.js:28:39:28:41 | cqn | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:28:39:28:41 | cqn | This query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
+| cqlinjection.js:31:39:31:42 | cqn1 | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:31:39:31:42 | cqn1 | This query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
