@@ -2,71 +2,78 @@ import javascript
 import semmle.javascript.security.dataflow.SqlInjectionCustomizations
 import advanced_security.javascript.frameworks.cap.CQL
 import advanced_security.javascript.frameworks.cap.RemoteFlowSources
+import advanced_security.javascript.frameworks.cap.dataflow.FlowSteps
 
-/**
- * A possibly tainted clause
- * any clause with a string concatenation in it
- * regardless of where that operand came from
- */
-class TaintedClause instanceof CqlClause {
-  TaintedClause() { exists(StringConcatenation::getAnOperand(this.getArgument().flow())) }
-
-  string toString() { result = super.toString() }
-
-  Expr getArgument() { result = super.getArgument() }
-
-  Expr asExpr() { result = super.asExpr() }
-}
-
-/**
- * a more heurisitic based taint step
- * captures one of the alternative ways to construct query strings:
- * `cds.parse.cql(`string`+userInput)`
- * and considers them tainted if they've been concatenated against
- * in any manner
- */
-class ParseCQLTaintedClause extends CallNode {
-  ParseCQLTaintedClause() {
-    this = any(CdsFacade cds).getMember("parse").getMember("cql").getACall() and
-    exists(DataFlow::Node n |
-      n = StringConcatenation::getAnOperand(this.getAnArgument()) and
-      //omit the fact that the arg of cds.parse.cql (`SELECT * from Foo`)
-      //is technically a string concat
-      not n.asExpr() instanceof TemplateElement
+class CqlClauseWithStringConcatParameter instanceof CqlClause {
+  CqlClauseWithStringConcatParameter() {
+    exists(DataFlow::Node queryParameter |
+      (
+        if this instanceof CqlInsertClause or this instanceof CqlUpsertClause
+        then
+          queryParameter = this.getArgument().flow() or
+          queryParameter = this.getArgument().flow().(SourceNode).getAPropertyWrite().getRhs()
+        else queryParameter = this.getArgument().flow()
+      ) and
+      exists(StringConcatenation::getAnOperand(queryParameter))
     )
   }
+
+  Location getLocation() { result = super.getLocation() }
+
+  string toString() { result = super.toString() }
 }
 
-class CqlIConfiguration extends TaintTracking::Configuration {
-  CqlIConfiguration() { this = "CqlInjection" }
+class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
+  CqlShortcutMethodCallWithStringConcat() {
+    exists(StringConcatenation::getAnOperand(super.getAQueryParameter()))
+  }
+
+  Location getLocation() { result = super.getLocation() }
+
+  string toString() { result = super.toString() }
+}
+
+class CqlClauseParserCallWithStringConcat instanceof CqlClauseParserCall {
+  CqlClauseParserCallWithStringConcat() {
+    exists(StringConcatenation::getAnOperand(super.getCdlString()))
+  }
+
+  Location getLocation() { result = super.getLocation() }
+
+  string toString() { result = super.toString() }
+}
+
+class CqlInjectionConfiguration extends TaintTracking::Configuration {
+  CqlInjectionConfiguration() { this = "CqlInjection" }
 
   override predicate isSource(DataFlow::Node source) { source instanceof RemoteFlowSource }
 
   override predicate isSink(DataFlow::Node node) {
-    node = any(CdsFacade cds).getMember("db").getMember("run").getACall().getAnArgument()
+    exists(CqlRunMethodCall cqlRunMethodCall |
+      node = cqlRunMethodCall.(CqlRunMethodCall).getAQueryParameter()
+    )
     or
-    exists(AwaitExpr awaitExpr, CqlClause clause |
-      node.asExpr() = clause.asExpr() and
-      awaitExpr.getOperand() = clause.asExpr()
+    exists(CqlShortcutMethodCallWithStringConcat queryRunnerCall |
+      node = queryRunnerCall.(CqlQueryRunnerCall).getAQueryParameter()
+    )
+    or
+    exists(AwaitExpr await, CqlClauseWithStringConcatParameter cqlClauseWithStringConcat |
+      node = await.flow() and
+      await.getOperand() = cqlClauseWithStringConcat.(CqlClause).getArgument()
     )
   }
 
-  override predicate isSanitizer(DataFlow::Node node) {
-    super.isSanitizer(node) or
-    node instanceof SqlInjection::Sanitizer
-  }
+  override predicate isSanitizer(DataFlow::Node node) { node instanceof SqlInjection::Sanitizer }
 
-  override predicate isAdditionalTaintStep(DataFlow::Node pred, DataFlow::Node succ) {
-    //string concatenation in a clause arg taints the clause
-    exists(TaintedClause clause |
-      clause.getArgument() = pred.asExpr() and
-      clause.asExpr() = succ.asExpr()
+  override predicate isAdditionalTaintStep(DataFlow::Node start, DataFlow::Node end) {
+    exists(CqlClauseParserCallWithStringConcat cqlParseCallWithStringConcat |
+      start = cqlParseCallWithStringConcat.(CqlClauseParserCall).getAnArgument() and
+      end = cqlParseCallWithStringConcat
     )
     or
-    //less precise, any concat in the alternative sql stmt construction techniques
-    exists(ParseCQLTaintedClause parse |
-      parse.getAnArgument() = pred and
-      parse = succ
+    exists(CqlClause cqlClause |
+      start = cqlClause.getArgument().flow() and
+      end = cqlClause.flow()
     )
   }
 }

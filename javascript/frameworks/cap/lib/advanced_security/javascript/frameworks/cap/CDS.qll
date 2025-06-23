@@ -146,26 +146,31 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
  * const Service1 = cds.connect.to("service-2");
  * ```
  */
-class ServiceInstanceFromCdsConnectTo extends ServiceInstance, SourceNode {
+class ServiceInstanceFromCdsConnectTo extends ServiceInstance, SourceNode instanceof PropRead {
+  string serviceDesignator;
   string serviceName;
 
-  ServiceInstanceFromCdsConnectTo() { this = serviceInstanceFromCdsConnectTo(serviceName) }
+  ServiceInstanceFromCdsConnectTo() {
+    this = serviceInstanceFromCdsConnectTo(serviceDesignator).getAPropertyRead(serviceName)
+  }
 
   override UserDefinedApplicationService getDefinition() {
     /* 1. The service  */
     exists(RequiredService serviceDecl |
-      serviceDecl.getName() = serviceName and
+      serviceDecl.getName() = [serviceName, serviceDesignator] and
       result.hasLocationInfo(serviceDecl.getImplementationFile().getAbsolutePath(), _, _, _, _)
     )
     or
-    result.getUnqualifiedName() = serviceName
+    result.getUnqualifiedName() = serviceDesignator
   }
+
+  string getServiceDesignator() { result = serviceDesignator }
 
   string getServiceName() { result = serviceName }
 }
 
 class DBServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo {
-  DBServiceInstanceFromCdsConnectTo() { serviceName = "db" }
+  DBServiceInstanceFromCdsConnectTo() { serviceDesignator = "db" }
 }
 
 /**
@@ -639,15 +644,15 @@ abstract class EntityReference extends CdsReference {
  */
 class EntityReferenceFromEntities extends EntityReference instanceof PropRead {
   /**
-   * Property or call to entities
+   * A read from property `entities` or a method call to `entities`.
    */
   DataFlow::SourceNode entitiesAccess;
   /**
-   * Receiver of the entities call or the base of propread
+   * The receiver of the call to `entities` or the base of the read from `entities`.
    */
   DataFlow::Node receiver;
   /**
-   * Name of the (unqualified) entity being accessed
+   * The unqualified name of the entity being accessed.
    */
   string entityName;
 
@@ -748,14 +753,16 @@ class EntityReferenceFromCqlClause extends EntityReference, ExprNode {
 }
 
 /**
- * The `"data"` property of the handler's parameter that represents the request or message passed to this handler.
- * This property carries the user-provided payload provided to the CAP application. e.g.
+ * The `"data"` property of the handler's parameter that represents the request or message
+ * passed to this handler. This property carries the user-provided payload provided to the
+ * CAP application. e.g.
  * ``` javascript
  * srv.on("send", async (msg) => {
  *   const { payload } = msg.data;
  * })
  * ```
- * The `payload` carries the data that is sent to this application on the action or event named `send`.
+ * The `payload` carries the data that is sent to this application on the action or event
+ * named `send`.
  */
 class HandlerParameterData instanceof PropRead {
   HandlerParameter handlerParameter;
@@ -807,7 +814,7 @@ abstract class CqlQueryRunnerCall extends MethodCallNode {
   string methodName;
 
   CqlQueryRunnerCall() {
-    this = base.getAMemberCall(methodName) and
+    this = base.getAMemberInvocation(methodName) and
     (
       /*
        * 1. Method call on the CDS facade or the base database service,
@@ -820,28 +827,87 @@ abstract class CqlQueryRunnerCall extends MethodCallNode {
       exists(ServiceInstance srv | base = srv)
     )
   }
+
+  /**
+   * Gets an argument to this runner call, including the subsequent builder functions
+   * called in a chained manner on this one.
+   */
+  abstract DataFlow::Node getAQueryParameter();
 }
 
 class CqlRunMethodCall extends CqlQueryRunnerCall {
   CqlRunMethodCall() { this.getMethodName() = "run" }
+
+  override DataFlow::Node getAQueryParameter() { result = this.getArgument(0) }
 }
 
-class CqlReadMethodCall extends CqlQueryRunnerCall {
+class CqlShortcutMethodCall extends CqlQueryRunnerCall {
+  CqlShortcutMethodCall() {
+    this.getMethodName() = ["read", "create", "update", "delete", "insert", "upsert"]
+  }
+
+  abstract override DataFlow::Node getAQueryParameter();
+}
+
+class CqlReadMethodCall extends CqlShortcutMethodCall {
   CqlReadMethodCall() { this.getMethodName() = "read" }
+
+  override DataFlow::Node getAQueryParameter() {
+    result = this.getAChainedMethodCall(_).getAnArgument()
+  }
 }
 
-class CqlCreateMethodCall extends CqlQueryRunnerCall {
+class CqlCreateMethodCall extends CqlShortcutMethodCall {
   CqlCreateMethodCall() { this.getMethodName() = "create" }
+
+  override DataFlow::Node getAQueryParameter() {
+    exists(DataFlow::CallNode chainedMethodCall |
+      chainedMethodCall = this.getAChainedMethodCall(_)
+    |
+      result = chainedMethodCall.getAnArgument() or
+      result = chainedMethodCall.getAnArgument().(SourceNode).getAPropertyWrite().getRhs()
+    )
+  }
 }
 
-class CqlUpdateMethodCall extends CqlQueryRunnerCall {
+class CqlUpdateMethodCall extends CqlShortcutMethodCall {
   CqlUpdateMethodCall() { this.getMethodName() = "update" }
+
+  override DataFlow::Node getAQueryParameter() {
+    result = this.getAChainedMethodCall(_).getAnArgument()
+  }
 }
 
-class CqlDeleteMethodCall extends CqlQueryRunnerCall {
+class CqlDeleteMethodCall extends CqlShortcutMethodCall {
   CqlDeleteMethodCall() { this.getMethodName() = "delete" }
+
+  override DataFlow::Node getAQueryParameter() {
+    result = this.getAChainedMethodCall(_).getAnArgument()
+  }
 }
 
-class CqlInsertMethodCall extends CqlQueryRunnerCall {
+class CqlInsertMethodCall extends CqlShortcutMethodCall {
   CqlInsertMethodCall() { this.getMethodName() = "insert" }
+
+  override DataFlow::Node getAQueryParameter() {
+    exists(DataFlow::CallNode chainedMethodCall |
+      chainedMethodCall = this.getAChainedMethodCall(_)
+    |
+      result = chainedMethodCall.getAnArgument() or
+      result = chainedMethodCall.getAnArgument().(SourceNode).getAPropertyWrite().getRhs()
+    )
+  }
+}
+
+class CqlUpsertMethodCall extends CqlShortcutMethodCall {
+  CqlUpsertMethodCall() { this.getMethodName() = "upsert" }
+
+  override DataFlow::Node getAQueryParameter() {
+    exists(DataFlow::CallNode chainedMethodCall |
+      chainedMethodCall = this.getAChainedMethodCall(_)
+    |
+      result = chainedMethodCall.getAnArgument() or
+      result = chainedMethodCall.getAnArgument().(SourceNode).getAPropertyWrite().getRhs()
+    )
+  }
 }

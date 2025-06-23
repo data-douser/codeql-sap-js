@@ -14,7 +14,7 @@ import javascript
 import DataFlow::PathGraph
 import advanced_security.javascript.frameworks.cap.CAPCqlInjectionQuery
 
-from CqlIConfiguration sql, DataFlow::PathNode source, DataFlow::PathNode sink
+from CqlInjectionConfiguration sql, DataFlow::PathNode source, DataFlow::PathNode sink
 where sql.hasFlowPath(source, sink)
 select sink.getNode(), source, sink, "This query depends on a $@.", source.getNode(),
   "user-provided value"
