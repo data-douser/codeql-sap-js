@@ -34,6 +34,5 @@ DataFlow::Node getQueryOfSink(DataFlow::Node sink) {
 
 from CqlInjectionConfiguration sql, DataFlow::PathNode source, DataFlow::PathNode sink
 where sql.hasFlowPath(source, sink)
-/* TODO: Print different message if sink is `CqlShortcutMethodCallWithStringConcat` */
 select getQueryOfSink(sink.getNode()), source, sink, "This CQL query depends on a $@.",
   source.getNode(), "user-provided value"

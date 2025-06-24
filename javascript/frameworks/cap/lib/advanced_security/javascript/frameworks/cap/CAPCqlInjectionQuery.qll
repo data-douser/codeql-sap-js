@@ -111,3 +111,4 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
     )
   }
 }
+
