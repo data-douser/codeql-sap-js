@@ -66,14 +66,48 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
   override predicate isSanitizer(DataFlow::Node node) { node instanceof SqlInjection::Sanitizer }
 
   override predicate isAdditionalTaintStep(DataFlow::Node start, DataFlow::Node end) {
+    /*
+     * 1.
+     */
+
     exists(CqlClauseParserCallWithStringConcat cqlParseCallWithStringConcat |
       start = cqlParseCallWithStringConcat.(CqlClauseParserCall).getAnArgument() and
       end = cqlParseCallWithStringConcat
     )
     or
+    /*
+     * 2. Jump from a query parameter to the CQL query clause itself. e.g. Given below code:
+     *
+     * ``` javascript
+     * await SELECT.from(Service1Entity).where("ID=" + id);
+     * ```
+     *
+     * This step jumps from `id` in the call to `where` to the entire SELECT clause.
+     */
+
     exists(CqlClause cqlClause |
       start = cqlClause.getArgument().flow() and
       end = cqlClause.flow()
+    )
+    or
+    /*
+     * 3. In case of INSERT and UPSERT, jump from an object write to a query parameter to the argument itself.
+     * e.g. Given below code:
+     *
+     * ``` javascript
+     * await INSERT.into(Service1Entity).entries({ id: "" + id });
+     * ```
+     *
+     * This step jumps from `id` in the property value expression to the enclosing object `{ id: "" + id }`.
+     * This in conjunction with the above step 2 will make the taint tracker jump from `id` to the entire
+     * INSERT clause.
+     */
+
+    exists(CqlClause cqlClause, PropWrite propWrite |
+      (cqlClause instanceof CqlInsertClause or cqlClause instanceof CqlUpsertClause) and
+      cqlClause.getArgument().flow() = propWrite.getBase() and
+      start = propWrite.getRhs() and
+      end = propWrite.getBase()
     )
   }
 }

@@ -8,16 +8,18 @@ import advanced_security.javascript.frameworks.cap.CDS
  */
 class CqlQueryBase extends VarRef {
   CqlQueryBase() {
-    exists(string name |
-      this.getName() = name and
-      name in ["SELECT", "INSERT", "DELETE", "UPDATE", "UPSERT"] and
-      (
-        /* Made available as a global variable */
-        exists(GlobalVariable queryBase | this = queryBase.getAReference())
-        or
-        /* Imported from `cds.ql` */
-        exists(CdsFacade cds |
-          cds.getMember("ql").getMember(name).getAValueReachableFromSource().asExpr() = this
+    exists(VarRef varRef | this = varRef |
+      exists(string name |
+        varRef.getName() = name and
+        name in ["SELECT", "INSERT", "DELETE", "UPDATE", "UPSERT"] and
+        (
+          /* Made available as a global variable */
+          exists(GlobalVariable queryBase | this = queryBase.getAReference())
+          or
+          /* Imported from `cds.ql` */
+          exists(CdsFacade cds |
+            cds.getMember("ql").getMember(name).getAValueReachableFromSource().asExpr() = this
+          )
         )
       )
     )
@@ -106,6 +108,8 @@ class CqlClause extends TCqlClause {
   MethodCallExpr asMethodCall() { this = TMethodCall(result) }
 
   CallExpr asShortcutCall() { this = TShortcutCall(result) }
+
+  predicate isMethodCall() { this = TMethodCall(_) }
 
   Node flow() { result = this.asExpr().flow() }
 
