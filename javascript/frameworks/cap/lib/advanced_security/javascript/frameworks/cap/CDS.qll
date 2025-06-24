@@ -7,13 +7,26 @@ import advanced_security.javascript.frameworks.cap.CQL
 import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 
 /**
- * The CDS facade that provides useful interfaces to the current CAP application.
+ * The CDS facade object that provides useful interfaces to the current CAP application.
+ * It also acts as a shortcut to `cds.db` when imported via `"@sap/cds"`.
+ *
  * ```js
  * const cds = require('@sap/cds')
  * ```
  */
+/* TODO: Does the `cds` object imported with `"@sap/cds/lib"` also have shortcut to `cds.db`?  */
 class CdsFacade extends API::Node {
-  CdsFacade() { this = API::moduleImport(["@sap/cds", "@sap/cds/lib"]) }
+  string importPath;
+
+  CdsFacade() {
+    importPath = ["@sap/cds", "@sap/cds/lib"] and
+    this = API::moduleImport(importPath)
+  }
+
+  /**
+   * Holds if this CDS facade object is imported via path `"@sap/cds/lib"`.
+   */
+  predicate isFromCdsLib() { importPath = "@sap/cds/lib" }
 
   Node getNode() { result = this.asSource() }
 }
@@ -36,7 +49,7 @@ class CdsEntitiesCall extends DataFlow::CallNode {
  * The property `db` of on a CDS facade, often accessed as `cds.db`.
  */
 class CdsDb extends SourceNode {
-  CdsDb() { exists(CdsFacade cds | this = cds.getMember("db").asSource()) }
+  CdsDb() { exists(CdsFacade cds | not cds.isFromCdsLib() | this = cds.getMember("db").asSource()) }
 
   MethodCallNode getRunCall() { result = this.getAMemberCall("run") }
 
@@ -268,7 +281,7 @@ abstract class CdsDbService extends ServiceInstance {
 
 class GloballyAccessedCdsDbService extends CdsDbService {
   GloballyAccessedCdsDbService() {
-    exists(CdsFacade cds |
+    exists(CdsFacade cds | not cds.isFromCdsLib() |
       this = cds.getMember("db").asSource() or
       this = cds.asSource()
     )

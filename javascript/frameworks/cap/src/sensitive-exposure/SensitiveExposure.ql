@@ -21,7 +21,7 @@ import DataFlow::PathGraph
  * via `cds.entities`
  * ```javascript
  * // Obtained through `cds.entities`
- * const { Service1 } = cds.entities("sample.application.namespace");
+ * const Service1 = cds.entities("sample.application.namespace");
  * ```
  */
 class EntityEntry extends DataFlow::CallNode {
