@@ -1,7 +1,7 @@
 WARNING: module 'PathGraph' has been deprecated and may be removed in future (SensitiveExposure.ql:17,8-27)
-WARNING: type 'Configuration' has been deprecated and may be removed in future (SensitiveExposure.ql:59,42-70)
-WARNING: type 'PathNode' has been deprecated and may be removed in future (SensitiveExposure.ql:69,41-59)
-WARNING: type 'PathNode' has been deprecated and may be removed in future (SensitiveExposure.ql:69,68-86)
+WARNING: type 'Configuration' has been deprecated and may be removed in future (SensitiveExposure.ql:50,42-70)
+WARNING: type 'PathNode' has been deprecated and may be removed in future (SensitiveExposure.ql:60,41-59)
+WARNING: type 'PathNode' has been deprecated and may be removed in future (SensitiveExposure.ql:60,68-86)
 nodes
 | sensitive-exposure.js:9:32:9:42 | Sample.name |
 | sensitive-exposure.js:9:32:9:42 | Sample.name |
@@ -9,4 +9,4 @@ nodes
 edges
 | sensitive-exposure.js:9:32:9:42 | Sample.name | sensitive-exposure.js:9:32:9:42 | Sample.name |
 #select
-| sensitive-exposure.js:9:32:9:42 | Sample.name | sensitive-exposure.js:9:32:9:42 | Sample.name | sensitive-exposure.js:9:32:9:42 | Sample.name | Log entry depends on the $@ field which is annotated as potentially sensitive. | sensitive-exposure.cds.json:9:17:13:9 | {\\n      ...       } | name |
+| sensitive-exposure.js:9:32:9:42 | Sample.name | sensitive-exposure.js:9:32:9:42 | Sample.name | sensitive-exposure.js:9:32:9:42 | Sample.name | Log entry depends on the $@ field which is annotated as potentially sensitive. | sensitive-exposure.cds:4:5:4:8 | {\\n      ...       } | name |
