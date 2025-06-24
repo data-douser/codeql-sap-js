@@ -665,7 +665,7 @@ abstract class EntityReference extends CdsReference {
  * SELECT.from`Books`.where(`ID=${id}`)
  * ```
  */
-class EntityReferenceFromEntities extends EntityReference instanceof PropRead {
+class EntityReferenceFromEntities extends EntityReference, SourceNode instanceof PropRead {
   /**
    * A read from property `entities` or a method call to `entities`.
    */
@@ -710,6 +710,12 @@ class EntityReferenceFromEntities extends EntityReference instanceof PropRead {
   DataFlow::Node getReceiver() { result = receiver }
 
   string getEntityName() { result = entityName }
+
+  predicate isFromEntitiesCall() { entitiesAccess instanceof MethodCallNode }
+
+  string getEntitiesCallNamespace() {
+    result = entitiesAccess.(MethodCallNode).getArgument(0).getStringValue()
+  }
 
   abstract override CdlEntity getCqlDefinition();
 
