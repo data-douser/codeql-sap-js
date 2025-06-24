@@ -174,17 +174,10 @@ module.exports = class Service1 extends cds.ApplicationService {
     });
 
     /* ========== 8. Service1 running query on Service2 using an unparsed CDL string (only valid in old versions of CAP) ========== */
-    this.on("send71", async (req) => {
+    this.on("send81", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
       const query = "SELECT * from Entity1 where ID =" + id;
-      Service2.run(query);
-    });
-
-    this.on("send72", async (req) => {
-      const { id } = req.data;
-      const Service2 = await cds.connect.to("Service2");
-      const query = `SELECT * from Entity1 where ID =` + id;
       Service2.run(query);
     });
 
