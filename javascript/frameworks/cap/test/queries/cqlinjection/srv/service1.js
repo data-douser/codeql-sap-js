@@ -110,51 +110,51 @@ module.exports = class Service1 extends cds.ApplicationService {
     /* ========== 4. Service1 running query on Service2 using `Service2.run` and friends ========== */
     this.on("send41", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       const query = SELECT.from`Service1Entity`.where("ID=" + id);
       Service2.run(query);
     });
 
     this.on("send42", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.read(`Service2Entity`).where("ID =" + id);
     });
 
     this.on("send43", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.create(`Service2Entity`).entries({id: "" + id});
     });
 
     this.on("send44", async (req) => {
       const { id, amount } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.update(`Service2Entity`).set("col1 = col1" + amount).where("col1 = " + id);
     });
 
     this.on("send45", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.insert(`Service2Entity`).entries({id: "" + id});
     });
 
     this.on("send46", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.upsert(`Service2Entity`).entries({id: "" + id});
     });
 
     this.on("send47", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.delete(`Service2Entity`).where("ID =" + id);
     });
 
     /* ========== 5. Service1 running query on Service2 using CQN parsed with `cds.ql` ========== */
     this.on("send5", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       const query = cds.ql("SELECT * from Service1Entity where ID =" + id);
       Service2.run(query);
     });
@@ -176,14 +176,14 @@ module.exports = class Service1 extends cds.ApplicationService {
     /* ========== 8. Service1 running query on Service2 using an unparsed CDL string (only valid in old versions of CAP) ========== */
     this.on("send71", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       const query = "SELECT * from Entity1 where ID =" + id;
       Service2.run(query);
     });
 
     this.on("send72", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       const query = `SELECT * from Entity1 where ID =` + id;
       Service2.run(query);
     });
@@ -191,7 +191,7 @@ module.exports = class Service1 extends cds.ApplicationService {
     /* ========== 9. Service1 running query on Service2 using `Service2.tx( tx => tx.run(...) )` and friends ========== */
     this.on("send91", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       const query = SELECT.from`Service2Entity`.where("ID=" + id);
       Service2.tx(async (tx) => {
         tx.run(query);
@@ -200,7 +200,7 @@ module.exports = class Service1 extends cds.ApplicationService {
 
     this.on("send92", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.tx(async (tx) => {
         tx.read(`Service2Entity`).where("ID =" + id);
       });
@@ -208,7 +208,7 @@ module.exports = class Service1 extends cds.ApplicationService {
 
     this.on("send93", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.tx(async (tx) => {
         tx.create(`Service2Entity`).entries({id: "" + id});
       });
@@ -216,7 +216,7 @@ module.exports = class Service1 extends cds.ApplicationService {
 
     this.on("send94", async (req) => {
       const { id, amount } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.tx(async (tx) => {
         tx.update(`Service2Entity`).set("col1 = col1" + amount).where("col1 = " + id);
       });
@@ -224,7 +224,7 @@ module.exports = class Service1 extends cds.ApplicationService {
 
     this.on("send95", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.tx(async (tx) => {
         tx.insert(`Service2Entity`).entries({id: "" + id});
       });
@@ -232,7 +232,7 @@ module.exports = class Service1 extends cds.ApplicationService {
 
     this.on("send96", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.tx(async (tx) => {
         tx.upsert(`Service2Entity`).entries({id: "" + id});
       });
@@ -240,7 +240,7 @@ module.exports = class Service1 extends cds.ApplicationService {
 
     this.on("send97", async (req) => {
       const { id } = req.data;
-      const { Service2 } = await cds.connect.to("Service2");
+      const Service2 = await cds.connect.to("Service2");
       Service2.tx(async (tx) => {
         tx.delete(`Service2Entity`).where("ID =" + id);
       });

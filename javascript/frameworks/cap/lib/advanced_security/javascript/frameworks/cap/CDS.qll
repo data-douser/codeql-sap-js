@@ -148,11 +148,8 @@ class ServiceInstanceFromCdsServe extends ServiceInstance {
  */
 class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
   string serviceDesignator;
-  string serviceName;
 
-  ServiceInstanceFromCdsConnectTo() {
-    this = serviceInstanceFromCdsConnectTo(serviceDesignator).getAPropertyRead(serviceName)
-  }
+  ServiceInstanceFromCdsConnectTo() { this = serviceInstanceFromCdsConnectTo(serviceDesignator) }
 
   override UserDefinedApplicationService getDefinition() {
     exists(RequiredService serviceDecl |
@@ -164,8 +161,6 @@ class ServiceInstanceFromCdsConnectTo extends ServiceInstance {
   }
 
   string getServiceDesignator() { result = serviceDesignator }
-
-  string getServiceName() { result = serviceName }
 }
 
 /**
@@ -280,8 +275,7 @@ class GloballyAccessedCdsDbService extends CdsDbService {
   }
 }
 
-/* Note: This should not extend `ServiceInstanceFromCdsConnectTo`, as it does NOT do a property read! */
-class DbServiceInstanceFromCdsConnectTo extends CdsDbService {
+class DbServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo, CdsDbService {
   DbServiceInstanceFromCdsConnectTo() { this = serviceInstanceFromCdsConnectTo("db") }
 
   /* A DB service is implicitly defined. */
@@ -602,7 +596,7 @@ class CdsTransaction extends SourceNode {
 
   SourceNode getContextObject() {
     /* 1. An object node passed as the first argument to a call to `srv.tx`. */
-    result = txCall.getALocalSource() and not result instanceof FunctionNode
+    result = txCall.getAnArgument().getALocalSource() and not result instanceof FunctionNode
     or
     /* 2. A manually overriden `cds.context`. */
     exists(Stmt stmt, CdsFacade cds |
