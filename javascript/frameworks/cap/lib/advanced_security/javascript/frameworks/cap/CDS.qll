@@ -942,11 +942,17 @@ class CqlUpsertMethodCall extends CqlShortcutMethodCall {
 abstract class CqlClauseParserCall extends DataFlow::CallNode {
   DataFlow::ExprNode cdlString;
 
+  /**
+   * Gets the data flow node that represents the CDL string to be parsed.
+   */
   DataFlow::ExprNode getCdlString() { result = cdlString }
 }
 
 class GlobalCQLFunction extends CqlClauseParserCall {
-  GlobalCQLFunction() { this = DataFlow::globalVarRef("CQL").getACall() }
+  GlobalCQLFunction() {
+    this = DataFlow::globalVarRef("CQL").getACall() and
+    cdlString = this.getArgument(0)
+  }
 }
 
 class CdsParseCqlCall extends CqlClauseParserCall {

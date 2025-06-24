@@ -167,9 +167,9 @@ module.exports = class Service1 extends cds.ApplicationService {
     });
 
     /* ========== 7. Service1 running query on the database service using CQN parsed with global function `CQL` ========== */
-    this.on("send6", async (req) => {
+    this.on("send7", async (req) => {
       const { id } = req.data;
-      const query = cds.parse.cql(`SELECT * from Entity1 where ID =` + id);
+      const query = CQL(`SELECT * from Entity1 where ID =` + id);
       cds.run(query);
     });
 

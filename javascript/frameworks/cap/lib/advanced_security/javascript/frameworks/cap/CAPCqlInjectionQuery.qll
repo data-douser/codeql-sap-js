@@ -41,12 +41,13 @@ class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
 }
 
 /**
- * A CQL parser call (cds.ql, cds.parse.cql, ...) parameterized with a string
+ * A CQL parser call (`cds.ql`, `cds.parse.cql`, ...) parameterized with a string
  * conatenation expression.
  */
 class CqlClauseParserCallWithStringConcat instanceof CqlClauseParserCall {
   CqlClauseParserCallWithStringConcat() {
-    exists(StringConcatenation::getAnOperand(super.getCdlString()))
+    not this.getCdlString().(StringOps::Concatenation).asExpr() instanceof TemplateLiteral and
+    exists(StringConcatenation::getAnOperand(this.getCdlString()))
   }
 
   Location getLocation() { result = super.getLocation() }
