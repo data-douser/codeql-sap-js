@@ -1,6 +1,6 @@
 WARNING: module 'PathGraph' has been deprecated and may be removed in future (CqlInjection.ql:14,8-27)
-WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:17,37-55)
-WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:17,64-82)
+WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:35,37-55)
+WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:35,64-82)
 nodes
 | cqlinjection.js:7:34:7:36 | req |
 | cqlinjection.js:7:34:7:36 | req |
@@ -84,8 +84,8 @@ edges
 | cqlinjection.js:30:56:30:59 | book | cqlinjection.js:30:32:30:59 | `SELECT ...  + book |
 #select
 | cqlinjection.js:13:36:13:40 | query | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:13:36:13:40 | query | This CQL query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
-| cqlinjection.js:15:21:15:64 | await S ... book}`) | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:15:21:15:64 | await S ... book}`) | This CQL query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
+| cqlinjection.js:15:27:15:64 | SELECT. ... book}`) | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:15:21:15:64 | await S ... book}`) | This CQL query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
 | cqlinjection.js:18:37:18:42 | query2 | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:18:37:18:42 | query2 | This CQL query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
-| cqlinjection.js:20:21:20:64 | await S ... + book) | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:20:21:20:64 | await S ... + book) | This CQL query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
+| cqlinjection.js:20:27:20:64 | SELECT. ... + book) | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:20:21:20:64 | await S ... + book) | This CQL query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
 | cqlinjection.js:28:39:28:41 | cqn | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:28:39:28:41 | cqn | This CQL query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
 | cqlinjection.js:31:39:31:42 | cqn1 | cqlinjection.js:7:34:7:36 | req | cqlinjection.js:31:39:31:42 | cqn1 | This CQL query depends on a $@. | cqlinjection.js:7:34:7:36 | req | user-provided value |
