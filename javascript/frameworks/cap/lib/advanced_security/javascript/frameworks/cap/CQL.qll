@@ -3,8 +3,8 @@ import DataFlow
 import advanced_security.javascript.frameworks.cap.CDS
 
 /**
- * Objects from the SQL-like fluent API
- * this is the set of clauses that acts as the base of a statement
+ * Objects from the SQL-like fluent API that forms the basis of constructing
+ * a CQL clause.
  */
 class CqlQueryBase extends VarRef {
   CqlQueryBase() {

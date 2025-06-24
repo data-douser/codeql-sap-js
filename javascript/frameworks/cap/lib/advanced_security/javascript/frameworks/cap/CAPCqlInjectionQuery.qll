@@ -4,6 +4,9 @@ import advanced_security.javascript.frameworks.cap.CQL
 import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 import advanced_security.javascript.frameworks.cap.dataflow.FlowSteps
 
+/**
+ * A CQL clause parameterized with a string concatentation expression.
+ */
 class CqlClauseWithStringConcatParameter instanceof CqlClause {
   CqlClauseWithStringConcatParameter() {
     exists(DataFlow::Node queryParameter |
@@ -23,6 +26,10 @@ class CqlClauseWithStringConcatParameter instanceof CqlClause {
   string toString() { result = super.toString() }
 }
 
+/**
+ * A CQL shortcut method call (`read`, `create`, ...) parameterized with a string
+ * concatenation expression.
+ */
 class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
   CqlShortcutMethodCallWithStringConcat() {
     exists(StringConcatenation::getAnOperand(super.getAQueryParameter()))
@@ -33,6 +40,10 @@ class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
   string toString() { result = super.toString() }
 }
 
+/**
+ * A CQL parser call (cds.ql, cds.parse.cql, ...) parameterized with a string
+ * conatenation expression.
+ */
 class CqlClauseParserCallWithStringConcat instanceof CqlClauseParserCall {
   CqlClauseParserCallWithStringConcat() {
     exists(StringConcatenation::getAnOperand(super.getCdlString()))
@@ -57,6 +68,7 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
       node = queryRunnerCall.(CqlQueryRunnerCall).getAQueryParameter()
     )
     or
+    /* 3. An await expression that  */
     exists(AwaitExpr await, CqlClauseWithStringConcatParameter cqlClauseWithStringConcat |
       node = await.flow() and
       await.getOperand() = cqlClauseWithStringConcat.(CqlClause).asExpr()
@@ -67,12 +79,12 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
 
   override predicate isAdditionalTaintStep(DataFlow::Node start, DataFlow::Node end) {
     /*
-     * 1.
+     * 1. Given a call to a CQL parser, jump from the argument to the parser call itself.
      */
 
-    exists(CqlClauseParserCallWithStringConcat cqlParseCallWithStringConcat |
-      start = cqlParseCallWithStringConcat.(CqlClauseParserCall).getAnArgument() and
-      end = cqlParseCallWithStringConcat
+    exists(CqlClauseParserCall cqlParserCall |
+      start = cqlParserCall.(CqlClauseParserCall).getAnArgument() and
+      end = cqlParserCall
     )
     or
     /*
@@ -111,4 +123,3 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
     )
   }
 }
-

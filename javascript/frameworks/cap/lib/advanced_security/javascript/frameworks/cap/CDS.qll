@@ -857,6 +857,10 @@ class CqlRunMethodCall extends CqlQueryRunnerCall {
   override DataFlow::Node getAQueryParameter() { result = this.getArgument(0) }
 }
 
+/**
+ * A [CRUD-style call](https://cap.cloud.sap/docs/node.js/core-services#crud-style-api)
+ * that translates to running a CQL query internally.
+ */
 class CqlShortcutMethodCall extends CqlQueryRunnerCall {
   CqlShortcutMethodCall() {
     this.getMethodName() = ["read", "create", "update", "delete", "insert", "upsert"]
