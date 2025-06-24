@@ -59,7 +59,7 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
     or
     exists(AwaitExpr await, CqlClauseWithStringConcatParameter cqlClauseWithStringConcat |
       node = await.flow() and
-      await.getOperand() = cqlClauseWithStringConcat.(CqlClause).getArgument()
+      await.getOperand() = cqlClauseWithStringConcat.(CqlClause).asExpr()
     )
   }
 
