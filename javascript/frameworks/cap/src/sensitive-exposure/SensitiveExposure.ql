@@ -16,6 +16,25 @@ import advanced_security.javascript.frameworks.cap.CDS
 import advanced_security.javascript.frameworks.cap.CAPLogInjectionQuery
 import DataFlow::PathGraph
 
+/**
+ * An entity instance obtained by the entity's namespace,
+ * via `cds.entities`
+ * ```javascript
+ * // Obtained through `cds.entities`
+ * const { Service1 } = cds.entities("sample.application.namespace");
+ * ```
+ */
+class EntityEntry extends DataFlow::CallNode {
+  EntityEntry() { exists(CdsEntitiesCall c | c.getACall() = this) }
+
+  /**
+   * Gets the namespace that this entity belongs to.
+   */
+  string getNamespace() {
+    result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
+  }
+}
+
 SourceNode entityAccesses(TypeTracker t, string entityNamespace) {
   t.start() and
   exists(EntityEntry e | result = e and entityNamespace = e.getNamespace())
