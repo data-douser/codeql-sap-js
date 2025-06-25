@@ -2,6 +2,8 @@ import { execFileSync } from 'child_process';
 import { existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 
+import { quote } from 'shell-quote';
+
 import { fileExists } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
 
@@ -93,7 +95,9 @@ function testCdsCommand(
         env: cleanEnv,
       }).toString();
     } else {
-      result = execFileSync('sh', ['-c', `${command} --version`], {
+      // Use shell-quote to properly escape the command and prevent injection
+      const escapedCommand = quote([command, '--version']);
+      result = execFileSync('sh', ['-c', escapedCommand], {
         encoding: 'utf8',
         stdio: 'pipe',
         timeout: 5000, // Reduced timeout for faster failure
