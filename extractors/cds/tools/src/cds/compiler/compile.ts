@@ -12,19 +12,27 @@ import { CdsProject } from '../parser/types';
  * CRITICAL: Always sets cwd to sourceRoot to ensure generated JSON paths are relative to sourceRoot.
  *
  * @param sourceRoot The source root directory - used as cwd for all spawned processes
+ * @param cdsCommand The CDS command to determine if we need Node.js environment setup
  * @param cacheDir Optional cache directory for dependencies
  * @returns Spawn options configured for CDS compilation
  */
-function createSpawnOptions(sourceRoot: string, cacheDir?: string): SpawnSyncOptions {
+function createSpawnOptions(
+  sourceRoot: string,
+  cdsCommand: string,
+  cacheDir?: string,
+): SpawnSyncOptions {
   const spawnOptions: SpawnSyncOptions = {
     cwd: sourceRoot, // CRITICAL: Always use sourceRoot as cwd to ensure correct path generation
-    shell: true,
+    shell: true, // Use shell to handle complex command paths consistently
     stdio: 'pipe',
     env: { ...process.env },
   };
 
-  // If a cache directory is provided, set NODE_PATH to use that cache
-  if (cacheDir) {
+  // Check if we're using a direct binary path (contains node_modules/.bin/) or npx-style command
+  const isDirectBinary = cdsCommand.includes('node_modules/.bin/');
+
+  // Only set up Node.js environment for npx-style commands, not for direct binary execution
+  if (cacheDir && !isDirectBinary) {
     const nodePath = join(cacheDir, 'node_modules');
 
     // Set up environment to use the cached dependencies
@@ -34,7 +42,21 @@ function createSpawnOptions(sourceRoot: string, cacheDir?: string): SpawnSyncOpt
       PATH: `${join(nodePath, '.bin')}${delimiter}${process.env.PATH}`,
       // Add NPM configuration to ensure dependencies are resolved from the cache directory
       npm_config_prefix: cacheDir,
+      // Ensure we don't pick up global CDS installations that might conflict
+      npm_config_global: 'false',
+      // Clear any existing CDS environment variables that might interfere
+      CDS_HOME: cacheDir,
     };
+  } else if (isDirectBinary) {
+    // For direct binary execution, use minimal environment to avoid conflicts
+    // Remove Node.js-specific environment variables that might interfere
+    const cleanEnv = { ...process.env };
+    delete cleanEnv.NODE_PATH;
+    delete cleanEnv.npm_config_prefix;
+    delete cleanEnv.npm_config_global;
+    delete cleanEnv.CDS_HOME;
+
+    spawnOptions.env = cleanEnv;
   }
 
   return spawnOptions;
@@ -94,7 +116,7 @@ function compileProjectLevel(
 
   const compileArgs = [
     'compile',
-    ...relativeProjectDirectories, // Use relative paths from sourceRoot
+    ...relativeProjectDirectories, // Use relative paths from sourceRoot as separate arguments
     '--to',
     'json',
     '--dest',
@@ -105,15 +127,30 @@ function compileProjectLevel(
   ];
 
   cdsExtractorLog('info', `Compiling CAP project directories: ${existingDirectories.join(', ')}`);
+  cdsExtractorLog(
+    'info',
+    `Executing CDS command in directory ${String(spawnOptions.cwd)}: command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
+  );
 
   // CRITICAL: Use the provided spawnOptions which has sourceRoot as cwd
+  // Use array arguments for consistent test behavior
   const result = spawnSync(cdsCommand, compileArgs, spawnOptions);
 
   if (result.error) {
+    cdsExtractorLog('error', `SpawnSync error: ${result.error.message}`);
     throw new Error(`Error executing CDS compiler: ${result.error.message}`);
   }
 
+  // Log stderr for debugging even on success (CDS often writes warnings to stderr)
+  if (result.stderr && result.stderr.length > 0) {
+    cdsExtractorLog('debug', `CDS stderr output: ${result.stderr.toString()}`);
+  }
+
   if (result.status !== 0) {
+    cdsExtractorLog('error', `CDS command failed with status ${result.status}`);
+    cdsExtractorLog('error', `Command: ${cdsCommand} ${compileArgs.join(' ')}`);
+    cdsExtractorLog('error', `Stdout: ${result.stdout?.toString() || 'No stdout'}`);
+    cdsExtractorLog('error', `Stderr: ${result.stderr?.toString() || 'No stderr'}`);
     throw new Error(
       `Could not compile the CAP project ${projectDir}.\nReported error(s):\n\`\`\`\n${
         result.stderr?.toString() || 'Unknown error'
@@ -178,14 +215,30 @@ function compileIndividualFile(
     'warn',
   ];
 
+  cdsExtractorLog(
+    'info',
+    `Executing CDS command in directory ${String(spawnOptions.cwd)}: command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
+  );
+
   // CRITICAL: Use the provided spawnOptions which has sourceRoot as cwd
+  // Use array arguments for consistent test behavior
   const result = spawnSync(cdsCommand, compileArgs, spawnOptions);
 
   if (result.error) {
+    cdsExtractorLog('error', `SpawnSync error: ${result.error.message}`);
     throw new Error(`Error executing CDS compiler: ${result.error.message}`);
   }
 
+  // Log stderr for debugging even on success (CDS often writes warnings to stderr)
+  if (result.stderr && result.stderr.length > 0) {
+    cdsExtractorLog('debug', `CDS stderr output: ${result.stderr.toString()}`);
+  }
+
   if (result.status !== 0) {
+    cdsExtractorLog('error', `CDS command failed with status ${result.status}`);
+    cdsExtractorLog('error', `Command: ${cdsCommand} ${compileArgs.join(' ')}`);
+    cdsExtractorLog('error', `Stdout: ${result.stdout?.toString() || 'No stdout'}`);
+    cdsExtractorLog('error', `Stderr: ${result.stderr?.toString() || 'No stderr'}`);
     throw new Error(
       `Could not compile the file ${resolvedCdsFilePath}.\nReported error(s):\n\`\`\`\n${
         result.stderr?.toString() || 'Unknown error'
@@ -267,7 +320,7 @@ export function compileCdsToJson(
     const versionInfo = cdsVersion ? `with CDS v${cdsVersion}` : '';
 
     // CRITICAL: Create spawn options with sourceRoot as cwd to ensure correct path generation
-    const spawnOptions = createSpawnOptions(sourceRoot, cacheDir);
+    const spawnOptions = createSpawnOptions(sourceRoot, cdsCommand, cacheDir);
 
     // Determine if we should compile this file directly or as part of a project
     // Check if the projectMap and projectDir are provided

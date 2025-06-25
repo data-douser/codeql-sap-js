@@ -1125,6 +1125,41 @@ export function determineCdsFilesToCompile(
 }
 
 /**
+ * Determines the expected output files for a project based on its compilation strategy.
+ * This function predicts what .cds.json files will be generated during compilation.
+ *
+ * @param project - The CDS project to analyze
+ * @returns Array of expected output file paths (relative to source root)
+ */
+export function determineExpectedOutputFiles(project: {
+  cdsFiles: string[];
+  cdsFilesToCompile: string[];
+  projectDir: string;
+}): string[] {
+  const expectedFiles: string[] = [];
+
+  // Check if this project uses project-level compilation
+  const usesProjectLevelCompilation = project.cdsFilesToCompile.includes(
+    '__PROJECT_LEVEL_COMPILATION__',
+  );
+
+  if (usesProjectLevelCompilation) {
+    // For project-level compilation, expect a single model.cds.json file in the project root
+    const projectModelFile = join(project.projectDir, 'model.cds.json');
+    expectedFiles.push(projectModelFile);
+  } else {
+    // For individual file compilation, expect a .cds.json file for each file to compile
+    for (const cdsFile of project.cdsFilesToCompile) {
+      if (cdsFile !== '__PROJECT_LEVEL_COMPILATION__') {
+        expectedFiles.push(`${cdsFile}.json`);
+      }
+    }
+  }
+
+  return expectedFiles;
+}
+
+/**
  * Checks if a project has a typical CAP directory structure by looking at the file paths.
  * This is used as a heuristic to determine if project-level compilation should be used.
  *

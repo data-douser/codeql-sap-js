@@ -1,10 +1,17 @@
+import { join } from 'path';
+
+import { sync as globSync } from 'glob';
+
+import { determineCdsCommand } from './src/cds';
+import { orchestrateCompilation } from './src/cds/compiler/graph';
 import {
-  buildCdsProjectDependencyGraph,
-  compileCdsToJson,
-  determineCdsCommand,
-  findProjectForCdsFile,
-} from './src/cds';
-import { CdsProjectMapWithDebugSignals } from './src/cds/parser/types';
+  handleDebugParserMode,
+  handleDebugCompilerMode,
+  isDebugMode,
+  isDebugParserMode,
+  isDebugCompilerMode,
+} from './src/cds/parser/debugUtils';
+import { buildEnhancedCdsProjectDependencyGraph } from './src/cds/parser/graph';
 import { runJavaScriptExtractor } from './src/codeql';
 import { addCompilationDiagnostic } from './src/diagnostics';
 import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
@@ -66,103 +73,143 @@ cdsExtractorLog(
   `CodeQL CDS extractor using run mode '${runMode}' for scan of project source root directory '${sourceRoot}'.`,
 );
 
-// Using the new project-aware approach to find CDS projects and their dependencies
-cdsExtractorLog('info', 'Detecting CDS projects and analyzing their structure...');
+// Using the enhanced project-aware approach to find CDS projects and their dependencies
+cdsExtractorLog('info', 'Building enhanced CDS project dependency graph...');
 
-// Build the project dependency graph using the project-aware parser
-// Pass the script directory (__dirname) to support debug-parser mode internally
-const projectMap = buildCdsProjectDependencyGraph(sourceRoot, runMode, __dirname);
+// Build the enhanced dependency graph using the new enhanced parser
+let dependencyGraph;
 
-// Cast to the interface with debug signals to properly handle debug mode
-const typedProjectMap = projectMap as CdsProjectMapWithDebugSignals;
+try {
+  dependencyGraph = buildEnhancedCdsProjectDependencyGraph(sourceRoot, runMode, __dirname);
 
-// Check if we're in debug-parser mode and should exit (based on signals from buildCdsProjectDependencyGraph)
-if (typedProjectMap.__debugParserSuccess) {
-  cdsExtractorLog('info', 'Debug parser mode completed successfully.');
-  process.exit(0);
-} else if (typedProjectMap.__debugParserFailure) {
-  cdsExtractorLog('warn', 'No CDS projects found. Cannot generate debug information.');
+  cdsExtractorLog(
+    'info',
+    `Enhanced dependency graph created with ${dependencyGraph.projects.size} projects and ${dependencyGraph.statusSummary.totalCdsFiles} CDS files`,
+  );
+
+  // Handle debug modes early - these modes should exit after completing their specific tasks
+  if (isDebugParserMode(runMode)) {
+    const debugSuccess = handleDebugParserMode(dependencyGraph, sourceRoot, __dirname);
+    process.exit(debugSuccess ? 0 : 1);
+  }
+
+  // Log details about discovered projects for debugging
+  if (dependencyGraph.projects.size > 0) {
+    for (const [projectDir, project] of dependencyGraph.projects.entries()) {
+      cdsExtractorLog(
+        'info',
+        `Enhanced Project: ${projectDir}, Status: ${project.status}, CDS files: ${project.cdsFiles.length}, Files to compile: ${project.cdsFilesToCompile.length}`,
+      );
+    }
+  } else {
+    cdsExtractorLog(
+      'warn',
+      'No CDS projects were detected. This may indicate an issue with project detection logic.',
+    );
+    // Let's also try to find CDS files directly as a backup check
+    try {
+      const allCdsFiles = Array.from(
+        new Set([
+          ...globSync(join(sourceRoot, '**/*.cds'), {
+            ignore: ['**/node_modules/**', '**/.git/**'],
+          }),
+        ]),
+      );
+      cdsExtractorLog(
+        'info',
+        `Direct search found ${allCdsFiles.length} CDS files in the source tree.`,
+      );
+      if (allCdsFiles.length > 0) {
+        cdsExtractorLog(
+          'info',
+          `Sample CDS files: ${allCdsFiles.slice(0, 5).join(', ')}${allCdsFiles.length > 5 ? ', ...' : ''}`,
+        );
+      }
+    } catch (globError) {
+      cdsExtractorLog('warn', `Could not perform direct CDS file search: ${String(globError)}`);
+    }
+  }
+} catch (error) {
+  cdsExtractorLog('error', `Failed to build enhanced dependency graph: ${String(error)}`);
+  // Exit with error since we can't continue without a proper dependency graph
   process.exit(1);
 }
 
 // Install dependencies of discovered CAP/CDS projects
-cdsExtractorLog(
-  'info',
-  'Ensuring dependencies are installed in cache for required CDS compiler versions...',
-);
-const projectCacheDirMap = installDependencies(projectMap, sourceRoot, codeqlExePath);
+cdsExtractorLog('info', 'Installing dependencies for discovered CDS projects...');
+
+const projectCacheDirMap = installDependencies(dependencyGraph, sourceRoot, codeqlExePath);
 
 const cdsFilePathsToProcess: string[] = [];
 
 cdsExtractorLog('info', 'Extracting CDS files from discovered projects...');
 
-// Use the project map to collect all `.cds` files from each project.
+// Use the enhanced dependency graph to collect all `.cds` files from each project.
 // We want to "extract" all `.cds` files from all projects so that we have a copy
 // of each `.cds` source file in the CodeQL database.
-for (const [, project] of projectMap.entries()) {
+for (const project of dependencyGraph.projects.values()) {
   cdsFilePathsToProcess.push(...project.cdsFiles);
 }
 
-cdsExtractorLog('info', 'Processing CDS files to JSON ...');
+cdsExtractorLog('info', 'Processing CDS files to JSON using enhanced compilation orchestration...');
 
-// Collect files that need compilation, handling project-level compilation
-const cdsFilesToCompile: string[] = [];
-const projectsForProjectLevelCompilation = new Set<string>();
+// Check if we're running in debug mode
+if (isDebugMode(runMode)) {
+  cdsExtractorLog(
+    'info',
+    `Running in ${runMode} mode - enhanced debug information will be collected...`,
+  );
+}
 
-for (const [projectDir, project] of projectMap.entries()) {
-  if (project.cdsFilesToCompile.includes('__PROJECT_LEVEL_COMPILATION__')) {
-    // This project needs project-level compilation
-    projectsForProjectLevelCompilation.add(projectDir);
-    // We'll only compile one file per project to trigger project-level compilation
-    // Use the first CDS file as a representative
-    if (project.cdsFiles.length > 0) {
-      cdsFilesToCompile.push(project.cdsFiles[0]);
-    }
-  } else {
-    // Normal individual file compilation
-    cdsFilesToCompile.push(...project.cdsFilesToCompile);
-  }
+// Initialize CDS command cache early to avoid repeated testing during compilation
+// This is a critical optimization that avoids testing commands for every single file
+try {
+  determineCdsCommand(undefined, sourceRoot);
+  cdsExtractorLog('info', 'CDS command cache initialized successfully');
+} catch (error) {
+  cdsExtractorLog('warn', `CDS command cache initialization failed: ${String(error)}`);
+  // Continue anyway - individual calls will handle fallbacks
 }
 
 cdsExtractorLog(
   'info',
-  `Found ${cdsFilePathsToProcess.length} total CDS files, ${cdsFilesToCompile.length} files to compile (${projectsForProjectLevelCompilation.size} project-level compilations)`,
+  `Found ${cdsFilePathsToProcess.length} total CDS files, ${dependencyGraph.statusSummary.totalCdsFiles} CDS files in dependency graph`,
 );
 
-// Evaluate each `.cds` source file that should be compiled to JSON.
-for (const rawCdsFilePath of cdsFilesToCompile) {
-  try {
-    // Find which project this CDS file belongs to, to use the correct cache directory
-    const projectDir = findProjectForCdsFile(rawCdsFilePath, sourceRoot, projectMap);
-    const cacheDir = projectDir ? projectCacheDirMap.get(projectDir) : undefined;
+try {
+  // Use the new orchestrated compilation approach with debug awareness
+  orchestrateCompilation(dependencyGraph, projectCacheDirMap, codeqlExePath, isDebugMode(runMode));
 
-    // Determine the CDS command to use based on the cache directory for this specific file
-    const cdsCommand = determineCdsCommand(cacheDir);
+  // Check if we should exit for debug modes after successful compilation
+  if (isDebugCompilerMode(runMode)) {
+    const debugSuccess = handleDebugCompilerMode(dependencyGraph, runMode);
+    process.exit(debugSuccess ? 0 : 1);
+  }
 
-    // Use resolved path directly instead of passing through getArg
-    // Pass the project dependency information to enable project-aware compilation
-    const compilationResult = compileCdsToJson(
-      rawCdsFilePath,
-      sourceRoot,
-      cdsCommand,
-      cacheDir,
-      projectMap,
-      projectDir,
-    );
-
-    if (!compilationResult.success && compilationResult.message) {
-      cdsExtractorLog(
-        'error',
-        `adding diagnostic for source file=${rawCdsFilePath} : ${compilationResult.message} ...`,
-      );
-      addCompilationDiagnostic(rawCdsFilePath, compilationResult.message, codeqlExePath);
-    }
-  } catch (errorMessage) {
+  // Handle compilation failures for normal mode
+  if (!dependencyGraph.statusSummary.overallSuccess) {
     cdsExtractorLog(
       'error',
-      `adding diagnostic for source file=${rawCdsFilePath} : ${String(errorMessage)} ...`,
+      `Compilation completed with failures: ${dependencyGraph.statusSummary.failedCompilations} failed out of ${dependencyGraph.statusSummary.totalCompilationTasks} total tasks`,
     );
-    addCompilationDiagnostic(rawCdsFilePath, String(errorMessage), codeqlExePath);
+
+    // Add diagnostics for critical errors
+    for (const error of dependencyGraph.errors.critical) {
+      cdsExtractorLog('error', `Critical error in ${error.phase}: ${error.message}`);
+    }
+
+    // Don't exit with error - let the JavaScript extractor run on whatever was compiled
+  }
+} catch (error) {
+  cdsExtractorLog('error', `Compilation orchestration failed: ${String(error)}`);
+
+  // Add diagnostic for the overall failure
+  if (cdsFilePathsToProcess.length > 0) {
+    addCompilationDiagnostic(
+      cdsFilePathsToProcess[0], // Use first file as representative
+      `Compilation orchestration failed: ${String(error)}`,
+      codeqlExePath,
+    );
   }
 }
 

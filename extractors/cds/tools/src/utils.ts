@@ -2,9 +2,10 @@ import { resolve } from 'path';
 
 import { RunMode } from './runMode';
 
-const USAGE_MESSAGE = `\tUsage1: node <script> ${RunMode.DEBUG_PARSER} <source-root> [<response-file>]
-\tUsage2: node <script> ${RunMode.INDEX_FILES} <source-root> <response-file>
-\tUsage3: node <script> ${RunMode.AUTOBUILD} <source-root>`;
+const USAGE_MESSAGE = `\tUsage1: node <script> ${RunMode.DEBUG_PARSER} <source-root>
+\tUsage2: node <script> ${RunMode.DEBUG_COMPILER} <source-root>
+\tUsage3: node <script> ${RunMode.INDEX_FILES} <source-root> <response-file>
+\tUsage4: node <script> ${RunMode.AUTOBUILD} <source-root>`;
 
 /**
  * Safely get a command-line parameter and properly resolve the path.

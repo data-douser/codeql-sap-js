@@ -164,6 +164,169 @@ export interface FileCache {
   cdsParseCache: Map<string, CdsParseResult>;
 }
 
+/** Compilation configuration for a CDS project */
+export interface CdsCompilationConfig {
+  /** The CDS command that will be used for compilation */
+  cdsCommand: string;
+
+  /** The cache directory to use for dependencies, if any */
+  cacheDir?: string;
+
+  /** Whether to use project-level compilation */
+  useProjectLevelCompilation: boolean;
+
+  /** Version compatibility status */
+  versionCompatibility: {
+    /** Whether the CDS versions are compatible */
+    isCompatible: boolean;
+    /** Error message if incompatible */
+    errorMessage?: string;
+    /** Detected CDS version */
+    cdsVersion?: string;
+    /** Project's expected CDS version */
+    expectedCdsVersion?: string;
+  };
+}
+
+/**
+ * Debug information for tracking extractor execution
+ */
+export interface ExtractorDebugInfo {
+  /** Run mode of the extractor */
+  runMode: string;
+  /** Source root directory */
+  sourceRootDir: string;
+  /** Script directory where extractor is running */
+  scriptDir?: string;
+  /** Timestamp when extraction started */
+  startTime: Date;
+  /** Timestamp when extraction completed */
+  endTime?: Date;
+  /** Total duration in milliseconds */
+  durationMs?: number;
+  /** Environment information */
+  environment: {
+    nodeVersion: string;
+    platform: string;
+    cwd: string;
+    argv: string[];
+  };
+}
+
+/**
+ * Parser debug information
+ */
+export interface ParserDebugInfo {
+  /** Number of projects detected */
+  projectsDetected: number;
+  /** Number of CDS files found */
+  cdsFilesFound: number;
+  /** Dependency resolution success */
+  dependencyResolutionSuccess: boolean;
+  /** Errors encountered during parsing */
+  parsingErrors: string[];
+  /** Warnings during parsing */
+  parsingWarnings: string[];
+  /** Debug output file path if generated */
+  debugOutputPath?: string;
+}
+
+/**
+ * Compiler debug information
+ */
+export interface CompilerDebugInfo {
+  /** Available CDS commands discovered */
+  availableCommands: Array<{
+    command: string;
+    version?: string;
+    strategy: string;
+    tested: boolean;
+    error?: string;
+  }>;
+  /** Selected primary command */
+  selectedCommand: string;
+  /** Cache directories discovered */
+  cacheDirectories: string[];
+  /** Command cache initialization success */
+  cacheInitialized: boolean;
+}
+
+/**
+ * Status summary for the entire extraction process
+ */
+export interface ExtractionStatusSummary {
+  /** Overall success status */
+  overallSuccess: boolean;
+  /** Total projects processed */
+  totalProjects: number;
+  /** Total CDS files processed */
+  totalCdsFiles: number;
+  /** Total compilation tasks */
+  totalCompilationTasks: number;
+  /** Successful compilation tasks */
+  successfulCompilations: number;
+  /** Failed compilation tasks */
+  failedCompilations: number;
+  /** Skipped compilation tasks */
+  skippedCompilations: number;
+  /** Tasks that required retries */
+  retriedCompilations: number;
+  /** JSON files generated */
+  jsonFilesGenerated: number;
+  /** Critical errors that stopped extraction */
+  criticalErrors: string[];
+  /** Non-critical warnings */
+  warnings: string[];
+  /** Performance metrics */
+  performance: {
+    totalDurationMs: number;
+    parsingDurationMs: number;
+    compilationDurationMs: number;
+    extractionDurationMs: number;
+  };
+}
+
+/**
+ * Enhanced CDS project with comprehensive tracking and debug information
+ */
+export interface EnhancedCdsProject extends CdsProject {
+  /** Unique identifier for this project */
+  id: string;
+
+  /** Enhanced compilation configuration with retry support */
+  enhancedCompilationConfig?: import('../compiler/types.js').EnhancedCompilationConfig;
+
+  /** Compilation tasks for this project */
+  compilationTasks: import('../compiler/types.js').CompilationTask[];
+
+  /** Parser debug information for this project */
+  parserDebugInfo?: {
+    /** Dependencies successfully resolved */
+    dependenciesResolved: string[];
+    /** Import resolution errors */
+    importErrors: string[];
+    /** Files that couldn't be parsed */
+    parseErrors: Map<string, string>;
+  };
+
+  /** Current status of the project */
+  status:
+    | 'discovered'
+    | 'dependencies_resolved'
+    | 'compilation_planned'
+    | 'compiling'
+    | 'completed'
+    | 'failed';
+
+  /** Timestamps for tracking project processing */
+  timestamps: {
+    discovered: Date;
+    dependenciesResolved?: Date;
+    compilationStarted?: Date;
+    compilationCompleted?: Date;
+  };
+}
+
 /** Represents a CDS project with its directory and associated files. */
 export interface CdsProject {
   /** All CDS files within this project. */
@@ -171,6 +334,9 @@ export interface CdsProject {
 
   /** CDS files that should be compiled to JSON (typically root files not imported by others). */
   cdsFilesToCompile: string[];
+
+  /** Expected JSON output files that will be generated (relative to source root). */
+  expectedOutputFiles: string[];
 
   /** Dependencies on other CDS projects. */
   dependencies?: CdsProject[];
@@ -183,15 +349,83 @@ export interface CdsProject {
 
   /** The directory path of the project. */
   projectDir: string;
+
+  /** Compilation configuration determined during project detection */
+  compilationConfig?: CdsCompilationConfig;
 }
 
-/** Extended CdsProject map with debug signals */
-export interface CdsProjectMapWithDebugSignals extends Map<string, CdsProject> {
-  /** Signal for successful debug parser operation */
-  __debugParserSuccess?: boolean;
+/**
+ * Comprehensive CDS dependency graph that supports all extractor phases
+ */
+export interface CdsDependencyGraph {
+  /** Unique identifier for this dependency graph */
+  id: string;
 
-  /** Signal for failed debug parser operation */
-  __debugParserFailure?: boolean;
+  /** Source root directory */
+  sourceRootDir: string;
+
+  /** Script directory where extractor is running */
+  scriptDir: string;
+
+  /** Enhanced projects with comprehensive tracking */
+  projects: Map<string, EnhancedCdsProject>;
+
+  /** Global cache directories available */
+  globalCacheDirectories: Map<string, string>;
+
+  /** Debug information for the entire extraction process */
+  debugInfo: {
+    extractor: ExtractorDebugInfo;
+    parser: ParserDebugInfo;
+    compiler: CompilerDebugInfo;
+  };
+
+  /** Current phase of processing */
+  currentPhase:
+    | 'initializing'
+    | 'parsing'
+    | 'dependency_resolution'
+    | 'compilation_planning'
+    | 'compiling'
+    | 'extracting'
+    | 'completed'
+    | 'failed';
+
+  /** Status summary updated as processing progresses */
+  statusSummary: ExtractionStatusSummary;
+
+  /** File cache for avoiding repeated reads */
+  fileCache: FileCache;
+
+  /** Configuration and settings */
+  config: {
+    /** Maximum retry attempts for compilation */
+    maxRetryAttempts: number;
+    /** Whether to enable detailed logging */
+    enableDetailedLogging: boolean;
+    /** Whether to generate debug output files */
+    generateDebugOutput: boolean;
+    /** Timeout for individual compilation tasks (ms) */
+    compilationTimeoutMs: number;
+  };
+
+  /** Error tracking and reporting */
+  errors: {
+    /** Critical errors that stop processing */
+    critical: Array<{
+      phase: string;
+      message: string;
+      timestamp: Date;
+      stack?: string;
+    }>;
+    /** Non-critical warnings */
+    warnings: Array<{
+      phase: string;
+      message: string;
+      timestamp: Date;
+      context?: string;
+    }>;
+  };
 }
 
 /** Represents a CDS service definition. */

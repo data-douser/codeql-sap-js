@@ -208,10 +208,12 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
 
       const projectMap = buildCdsProjectDependencyGraph(tempDir, 'debug-parser', tempDir);
 
-      // In debug mode with projects, should have success signal
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((projectMap as any).__debugParserSuccess).toBe(true);
+      // In debug mode, should return normal project map without debug signals
+      // (debug handling is now responsibility of cds-extractor.ts)
       expect(projectMap.size).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((projectMap as any).__debugParserSuccess).toBeUndefined();
+      expect(projectMap.has('simple-project')).toBe(true);
     });
 
     it('should handle debug-parser mode with empty project map', () => {

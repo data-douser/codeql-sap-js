@@ -66,6 +66,16 @@ export function writeParserDebugInfo(
         }
       }
 
+      // Display files to compile and expected outputs
+      outputLines.push(`  Files to compile: ${project.cdsFilesToCompile.length}`);
+      outputLines.push(`  Expected output files: ${project.expectedOutputFiles.length}`);
+      if (project.expectedOutputFiles.length > 0) {
+        outputLines.push('  Expected outputs:');
+        project.expectedOutputFiles.forEach(file => {
+          outputLines.push(`    - ${file}`);
+        });
+      }
+
       // Display package.json info
       if (project.packageJson) {
         outputLines.push('  Package Info:');
@@ -88,6 +98,31 @@ export function writeParserDebugInfo(
         outputLines.push('  No package.json found');
       }
 
+      // Display compilation configuration info
+      if (project.compilationConfig) {
+        outputLines.push('  Compilation Configuration:');
+        outputLines.push(`    CDS Command: ${project.compilationConfig.cdsCommand}`);
+        outputLines.push(`    Cache Dir: ${project.compilationConfig.cacheDir ?? 'none'}`);
+        outputLines.push(
+          `    Project-level compilation: ${project.compilationConfig.useProjectLevelCompilation}`,
+        );
+        outputLines.push(
+          `    Version compatible: ${project.compilationConfig.versionCompatibility.isCompatible}`,
+        );
+        if (!project.compilationConfig.versionCompatibility.isCompatible) {
+          outputLines.push(
+            `    Version error: ${project.compilationConfig.versionCompatibility.errorMessage}`,
+          );
+        }
+        if (project.compilationConfig.versionCompatibility.cdsVersion) {
+          outputLines.push(
+            `    Detected CDS version: ${project.compilationConfig.versionCompatibility.cdsVersion}`,
+          );
+        }
+      } else {
+        outputLines.push('  No compilation configuration');
+      }
+
       if (project.dependencies && project.dependencies.length > 0) {
         outputLines.push(`  Dependencies: ${project.dependencies.length}`);
         project.dependencies.forEach(dep => {
@@ -99,10 +134,22 @@ export function writeParserDebugInfo(
     });
 
     // Add the stringified JSON representation of the project map at the end
-    // of the debug content.
-    outputLines.push('\nProject Map JSON:');
-    outputLines.push('===================');
-    outputLines.push(JSON.stringify(Array.from(projectMap.entries()), null, 2));
+    // of the debug content - this will show all data including compilation configuration
+    outputLines.push('\nComplete Project Map JSON:');
+    outputLines.push('==========================');
+    outputLines.push('// This shows the complete project map with all detected configuration');
+    outputLines.push(
+      '// including compilation settings, version compatibility, and expected outputs',
+    );
+    outputLines.push('');
+
+    // Convert Map to a plain object for better JSON serialization
+    const projectMapForJson: Record<string, CdsProject> = {};
+    projectMap.forEach((project, projectDir) => {
+      projectMapForJson[projectDir] = project;
+    });
+
+    outputLines.push(JSON.stringify(projectMapForJson, null, 2));
 
     const debugFilePath = join(scriptDir, PARSER_DEBUG_SUBDIR, PARSER_DEBUG_FILE);
 

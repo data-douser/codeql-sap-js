@@ -1,14 +1,14 @@
 import { dirname, join, resolve, sep } from 'path';
 
-import { writeParserDebugInfo } from './debug';
 import {
   determineCdsFilesForProjectDir,
   determineCdsFilesToCompile,
   determineCdsProjectsUnderSourceDir,
+  determineExpectedOutputFiles,
   extractCdsImports,
   readPackageJsonWithCache,
 } from './functions';
-import { CdsImport, CdsProject } from './types';
+import { CdsDependencyGraph, CdsImport, CdsProject, EnhancedCdsProject } from './types';
 import { cdsExtractorLog } from '../../logging';
 
 /**
@@ -23,7 +23,7 @@ import { cdsExtractorLog } from '../../logging';
 export function buildCdsProjectDependencyGraph(
   sourceRootDir: string,
   runMode?: string,
-  scriptDir?: string,
+  _scriptDir?: string,
 ): Map<string, CdsProject> {
   // If debug-parser mode, log additional information
   if (runMode === 'debug-parser') {
@@ -57,6 +57,7 @@ export function buildCdsProjectDependencyGraph(
       projectDir,
       cdsFiles,
       cdsFilesToCompile: [], // Will be populated in the third pass
+      expectedOutputFiles: [], // Will be populated in the fourth pass
       packageJson,
       dependencies: [],
       imports: new Map<string, CdsImport[]>(),
@@ -167,6 +168,14 @@ export function buildCdsProjectDependencyGraph(
   cdsExtractorLog('info', 'Determining CDS files to compile for each project...');
   for (const [, project] of projectMap.entries()) {
     try {
+      project.cdsFilesToCompile = determineCdsFilesToCompile(sourceRootDir, project);
+
+      if (runMode === 'debug-parser') {
+        cdsExtractorLog(
+          'info',
+          `Project ${project.projectDir}: ${project.cdsFilesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files`,
+        );
+      }
       const filesToCompile = determineCdsFilesToCompile(sourceRootDir, project);
       project.cdsFilesToCompile = filesToCompile;
 
@@ -186,23 +195,180 @@ export function buildCdsProjectDependencyGraph(
     }
   }
 
-  // Handle debug mode specifically if requested
-  if (runMode === 'debug-parser' && scriptDir) {
-    // Output the project graph to a debug file
-    if (!writeParserDebugInfo(projectMap, sourceRootDir, scriptDir)) {
+  // Fourth pass: determine expected output files for each project
+  cdsExtractorLog('info', 'Determining expected output files for each project...');
+  for (const [, project] of projectMap.entries()) {
+    try {
+      const expectedOutputFiles = determineExpectedOutputFiles(project);
+      project.expectedOutputFiles = expectedOutputFiles;
+
+      if (runMode === 'debug-parser') {
+        cdsExtractorLog(
+          'info',
+          `Project ${project.projectDir}: expecting ${expectedOutputFiles.length} output files`,
+        );
+      }
+    } catch (error) {
       cdsExtractorLog(
         'warn',
-        'Failed to write parser debug information. This indicates an empty project map, possibly due to a misconfiguration when calling the parent script.',
+        `Error determining expected output files for project ${project.projectDir}: ${String(error)}`,
       );
-    }
-
-    // Instead of exiting directly (which interrupts tests), return with a signal property
-    if (projectMap.size === 0) {
-      return Object.assign(projectMap, { __debugParserFailure: true });
-    } else {
-      return Object.assign(projectMap, { __debugParserSuccess: true });
+      // Fall back to empty array on error
+      project.expectedOutputFiles = [];
     }
   }
 
   return projectMap;
+}
+
+/**
+ * Builds an enhanced CDS dependency graph with comprehensive tracking and debug information.
+ * This is the new enhanced version that returns a CdsDependencyGraph instead of a simple Map.
+ *
+ * @param sourceRootDir - Source root directory
+ * @param runMode - Current run mode (index-files, debug-parser, debug-compiler, or autobuild)
+ * @param scriptDir - Directory where the script is running (for debug output)
+ * @returns Enhanced CDS dependency graph with comprehensive tracking
+ */
+export function buildEnhancedCdsProjectDependencyGraph(
+  sourceRootDir: string,
+  runMode?: string,
+  scriptDir?: string,
+): CdsDependencyGraph {
+  const startTime = new Date();
+
+  // Create the initial dependency graph structure
+  const dependencyGraph: CdsDependencyGraph = {
+    id: `cds_graph_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    sourceRootDir,
+    scriptDir: scriptDir ?? sourceRootDir,
+    projects: new Map<string, EnhancedCdsProject>(),
+    globalCacheDirectories: new Map<string, string>(),
+    debugInfo: {
+      extractor: {
+        runMode: runMode ?? 'index-files',
+        sourceRootDir,
+        scriptDir,
+        startTime,
+        environment: {
+          nodeVersion: process.version,
+          platform: process.platform,
+          cwd: process.cwd(),
+          argv: process.argv,
+        },
+      },
+      parser: {
+        projectsDetected: 0,
+        cdsFilesFound: 0,
+        dependencyResolutionSuccess: true,
+        parsingErrors: [],
+        parsingWarnings: [],
+      },
+      compiler: {
+        availableCommands: [],
+        selectedCommand: '',
+        cacheDirectories: [],
+        cacheInitialized: false,
+      },
+    },
+    currentPhase: 'parsing',
+    statusSummary: {
+      overallSuccess: false,
+      totalProjects: 0,
+      totalCdsFiles: 0,
+      totalCompilationTasks: 0,
+      successfulCompilations: 0,
+      failedCompilations: 0,
+      skippedCompilations: 0,
+      retriedCompilations: 0,
+      jsonFilesGenerated: 0,
+      criticalErrors: [],
+      warnings: [],
+      performance: {
+        totalDurationMs: 0,
+        parsingDurationMs: 0,
+        compilationDurationMs: 0,
+        extractionDurationMs: 0,
+      },
+    },
+    fileCache: {
+      fileContents: new Map<string, string>(),
+      packageJsonCache: new Map<string, import('./types').PackageJson>(),
+      cdsParseCache: new Map<string, import('./types').CdsParseResult>(),
+    },
+    config: {
+      maxRetryAttempts: 3,
+      enableDetailedLogging: runMode === 'debug-compiler' || runMode === 'debug-parser',
+      generateDebugOutput: Boolean(runMode?.startsWith('debug')),
+      compilationTimeoutMs: 30000, // 30 seconds
+    },
+    errors: {
+      critical: [],
+      warnings: [],
+    },
+  };
+
+  try {
+    // Use the existing function to build the basic project map
+    const basicProjectMap = buildCdsProjectDependencyGraph(sourceRootDir, runMode, scriptDir);
+
+    // Convert basic projects to enhanced projects
+    for (const [projectDir, basicProject] of basicProjectMap.entries()) {
+      const enhancedProject: EnhancedCdsProject = {
+        ...basicProject,
+        id: `project_${projectDir.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`,
+        enhancedCompilationConfig: undefined, // Will be set during compilation planning
+        compilationTasks: [],
+        parserDebugInfo: {
+          dependenciesResolved: [],
+          importErrors: [],
+          parseErrors: new Map<string, string>(),
+        },
+        status: 'discovered',
+        timestamps: {
+          discovered: new Date(),
+        },
+      };
+
+      dependencyGraph.projects.set(projectDir, enhancedProject);
+    }
+
+    // Update summary statistics
+    dependencyGraph.statusSummary.totalProjects = dependencyGraph.projects.size;
+    dependencyGraph.statusSummary.totalCdsFiles = Array.from(
+      dependencyGraph.projects.values(),
+    ).reduce((sum, project) => sum + project.cdsFiles.length, 0);
+
+    dependencyGraph.debugInfo.parser.projectsDetected = dependencyGraph.projects.size;
+    dependencyGraph.debugInfo.parser.cdsFilesFound = dependencyGraph.statusSummary.totalCdsFiles;
+
+    // Mark dependency resolution phase as completed
+    dependencyGraph.currentPhase = 'dependency_resolution';
+
+    const endTime = new Date();
+    dependencyGraph.debugInfo.extractor.endTime = endTime;
+    dependencyGraph.debugInfo.extractor.durationMs = endTime.getTime() - startTime.getTime();
+    dependencyGraph.statusSummary.performance.parsingDurationMs =
+      dependencyGraph.debugInfo.extractor.durationMs;
+
+    cdsExtractorLog(
+      'info',
+      `Enhanced dependency graph created with ${dependencyGraph.projects.size} projects and ${dependencyGraph.statusSummary.totalCdsFiles} CDS files`,
+    );
+
+    return dependencyGraph;
+  } catch (error) {
+    const errorMessage = `Failed to build enhanced dependency graph: ${String(error)}`;
+    cdsExtractorLog('error', errorMessage);
+
+    dependencyGraph.errors.critical.push({
+      phase: 'parsing',
+      message: errorMessage,
+      timestamp: new Date(),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    dependencyGraph.currentPhase = 'failed';
+    return dependencyGraph;
+  }
 }

@@ -1,7 +1,11 @@
 import * as childProcess from 'child_process';
 import * as path from 'path';
 
-import { determineCdsCommand, compileCdsToJson } from '../../../src/cds/compiler';
+import {
+  determineCdsCommand,
+  compileCdsToJson,
+  resetCdsCommandCache,
+} from '../../../src/cds/compiler';
 import * as filesystem from '../../../src/filesystem';
 
 // Mock dependencies
@@ -27,9 +31,14 @@ jest.mock('../../../src/filesystem', () => ({
   recursivelyRenameJsonFiles: jest.fn(),
 }));
 
+jest.mock('../../../src/cds/compiler/version', () => ({
+  getCdsVersion: jest.fn(),
+}));
+
 describe('cdsCompiler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetCdsCommandCache();
   });
 
   describe('determineCdsCommand', () => {
@@ -37,13 +46,16 @@ describe('cdsCompiler', () => {
       // Mock successful execution of "cds --version"
       (childProcess.execFileSync as jest.Mock).mockReturnValue(Buffer.from('4.6.0'));
 
-      const result = determineCdsCommand();
+      const result = determineCdsCommand(undefined, '/mock/source/root');
 
       expect(result).toBe('cds');
       expect(childProcess.execFileSync).toHaveBeenCalledWith(
-        'cds',
-        ['--version'],
-        expect.objectContaining({ stdio: 'ignore' }),
+        'sh',
+        ['-c', 'cds --version'],
+        expect.objectContaining({
+          stdio: 'pipe',
+          cwd: '/mock/source/root',
+        }),
       );
     });
 
@@ -53,13 +65,17 @@ describe('cdsCompiler', () => {
         throw new Error('Command not found');
       });
 
-      const result = determineCdsCommand();
+      const result = determineCdsCommand(undefined, '/mock/source/root');
 
       expect(result).toBe('npx -y --package @sap/cds-dk cds');
+      // Should first try cds, then fallback to npx
       expect(childProcess.execFileSync).toHaveBeenCalledWith(
-        'cds',
-        ['--version'],
-        expect.objectContaining({ stdio: 'ignore' }),
+        'sh',
+        ['-c', 'cds --version'],
+        expect.objectContaining({
+          stdio: 'pipe',
+          cwd: '/mock/source/root',
+        }),
       );
     });
   });

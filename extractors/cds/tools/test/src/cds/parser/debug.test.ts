@@ -22,6 +22,7 @@ describe('writeParserDebugInfo', () => {
       projectDir: 'test-project',
       cdsFiles: ['file1.cds', 'file2.cds'],
       cdsFilesToCompile: ['file1.cds', 'file2.cds'],
+      expectedOutputFiles: ['file1.cds.json', 'file2.cds.json'],
       packageJson: {
         name: 'test-package',
         dependencies: {
@@ -53,6 +54,7 @@ describe('writeParserDebugInfo', () => {
       projectDir: 'test-project',
       cdsFiles: ['file1.cds', 'file2.cds'],
       cdsFilesToCompile: ['file1.cds', 'file2.cds'],
+      expectedOutputFiles: ['file1.cds.json', 'file2.cds.json'],
       packageJson: {
         name: 'test-package',
         dependencies: {
@@ -85,6 +87,7 @@ describe('writeParserDebugInfo', () => {
       projectDir: 'test-project',
       cdsFiles: ['file1.cds', 'file2.cds'],
       cdsFilesToCompile: ['file1.cds', 'file2.cds'],
+      expectedOutputFiles: ['file1.cds.json', 'file2.cds.json'],
       packageJson: {
         name: 'test-package',
         dependencies: {
