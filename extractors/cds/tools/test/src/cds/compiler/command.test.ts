@@ -62,7 +62,8 @@ describe('cds compiler command', () => {
           if (fullCommand === '-c cds --version') {
             throw new Error('Command not found');
           }
-          if (fullCommand === '-c npx -y --package @sap/cds-dk cds --version') {
+          // The shell-quote library escapes the command, so it becomes quoted
+          if (fullCommand === "-c 'npx -y --package @sap/cds-dk cds' --version") {
             return Buffer.from('6.1.3');
           }
           throw new Error('Unexpected command');
@@ -87,7 +88,7 @@ describe('cds compiler command', () => {
       });
       expect(childProcess.execFileSync).toHaveBeenCalledWith(
         'sh',
-        ['-c', 'npx -y --package @sap/cds-dk cds --version'],
+        ['-c', "'npx -y --package @sap/cds-dk cds' --version"],
         {
           encoding: 'utf8',
           stdio: 'pipe',
