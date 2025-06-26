@@ -10,8 +10,9 @@ let sourceRootDirectory: string | undefined;
 /**
  * Unique session ID for this CDS extractor run to help distinguish
  * between multiple concurrent or sequential runs in logs.
+ * Uses the extractor start timestamp for uniqueness.
  */
-const sessionId = Math.random().toString(36).substring(2, 8);
+const sessionId = Date.now().toString();
 
 /**
  * Start time of the CDS extractor session for performance tracking.
