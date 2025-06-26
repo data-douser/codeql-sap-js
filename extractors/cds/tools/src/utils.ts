@@ -32,14 +32,10 @@ export function getArg(args: string[], index: number, defaultValue = ''): string
  * - For 'autobuild' mode: <run-mode> <source-root>
  *
  * @param args Command line arguments to check.
- * @param expectedRunMode The expected run mode for validation.
  * @returns Object with validation result, usage message if failed, and validated
  * arguments if successful.
  */
-export function validateArguments(
-  args: string[],
-  expectedRunMode: RunMode,
-): {
+export function validateArguments(args: string[]): {
   isValid: boolean;
   usageMessage?: string;
   args?: {
@@ -51,11 +47,8 @@ export function validateArguments(
   const scriptPath = args[1] ?? '';
   const scriptName = scriptPath.split(/[/\\]/).pop() ?? 'cds-extractor.js';
 
-  // Each run mode has a minimum required argument count.
-  // The args array includes 'node' and the script name, so we
-  // use "minArgCount + 2".
-  const minArgCount = expectedRunMode === RunMode.INDEX_FILES ? 3 : 2;
-  if (args.length < minArgCount + 2) {
+  // Minimum arguments: node, script, run-mode, source-root (4 total)
+  if (args.length < 4) {
     return {
       isValid: false,
       usageMessage: USAGE_MESSAGE,
@@ -73,11 +66,20 @@ export function validateArguments(
     };
   }
 
-  // For 'index-files' mode, all three args are required.
+  // Validate argument count based on the actual run mode
+  // For 'index-files' mode, all three args are required: run-mode, source-root, response-file
   if (runMode === (RunMode.INDEX_FILES as string) && args.length < 5) {
     return {
       isValid: false,
       usageMessage: `For '${RunMode.INDEX_FILES}' mode: node ${scriptName} ${RunMode.INDEX_FILES} <source-root> <response-file>`,
+    };
+  }
+
+  // For other modes, only run-mode and source-root are required
+  if (runMode !== (RunMode.INDEX_FILES as string) && args.length < 4) {
+    return {
+      isValid: false,
+      usageMessage: `For '${runMode}' mode: node ${scriptName} ${runMode} <source-root> [<response-file>]`,
     };
   }
 
@@ -91,6 +93,8 @@ export function validateArguments(
   let usageMessage = '';
   if (runMode === (RunMode.DEBUG_PARSER as string)) {
     usageMessage = `${RunMode.DEBUG_PARSER} <source-root> [<response-file>]`;
+  } else if (runMode === (RunMode.DEBUG_COMPILER as string)) {
+    usageMessage = `${RunMode.DEBUG_COMPILER} <source-root> [<response-file>]`;
   } else if (runMode === (RunMode.INDEX_FILES as string)) {
     usageMessage = `${RunMode.INDEX_FILES} <source-root> <response-file>`;
   } else if (runMode === (RunMode.AUTOBUILD as string)) {

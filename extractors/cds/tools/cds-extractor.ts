@@ -20,10 +20,9 @@ import { installDependencies } from './src/packageManager';
 import { RunMode } from './src/runMode';
 import { validateArguments } from './src/utils';
 
-// Validate arguments to this script.
-// The first argument we pass is the expected run mode, which will be extracted from process.argv[2]
-// This will determine the correct minimum argument count for validation
-const validationResult = validateArguments(process.argv, RunMode.AUTOBUILD);
+// Validate the first argument matches an allowed run mode and validate that
+// the total number of arguments is correct for the specified run mode.
+const validationResult = validateArguments(process.argv);
 if (!validationResult.isValid) {
   console.warn(validationResult.usageMessage);
   // Exit with an error code on invalid use of this script.

@@ -46,7 +46,7 @@ describe('utils', () => {
         'source-root',
         'response-file',
       ];
-      const result = validateArguments(args, RunMode.INDEX_FILES);
+      const result = validateArguments(args);
       expect(result.isValid).toBe(true);
       expect(result.args).toEqual({
         runMode: RunMode.INDEX_FILES,
@@ -57,7 +57,7 @@ describe('utils', () => {
 
     it('should invalidate index-files mode with missing response file', () => {
       const args = ['node', EXTRACTOR_SCRIPT_NAME, RunMode.INDEX_FILES, 'source-root'];
-      const result = validateArguments(args, RunMode.INDEX_FILES);
+      const result = validateArguments(args);
       expect(result.isValid).toBe(false);
       expect(result.usageMessage).toContain('<response-file>');
     });
@@ -71,7 +71,7 @@ describe('utils', () => {
         'source-root',
         'response-file',
       ];
-      const resultWithResponse = validateArguments(argsWithResponse, RunMode.DEBUG_PARSER);
+      const resultWithResponse = validateArguments(argsWithResponse);
       expect(resultWithResponse.isValid).toBe(true);
       expect(resultWithResponse.args).toEqual({
         runMode: RunMode.DEBUG_PARSER,
@@ -86,7 +86,7 @@ describe('utils', () => {
         RunMode.DEBUG_PARSER,
         'source-root',
       ];
-      const resultWithoutResponse = validateArguments(argsWithoutResponse, RunMode.DEBUG_PARSER);
+      const resultWithoutResponse = validateArguments(argsWithoutResponse);
       expect(resultWithoutResponse.isValid).toBe(true);
       expect(resultWithoutResponse.args).toEqual({
         runMode: RunMode.DEBUG_PARSER,
@@ -97,7 +97,7 @@ describe('utils', () => {
 
     it(`should validate minimum required arguments for runMode=${RunMode.AUTOBUILD}`, () => {
       const args = ['node', EXTRACTOR_SCRIPT_NAME, RunMode.AUTOBUILD, 'source-root'];
-      const result = validateArguments(args, RunMode.AUTOBUILD);
+      const result = validateArguments(args);
       expect(result.isValid).toBe(true);
       expect(result.args).toEqual({
         runMode: RunMode.AUTOBUILD,
@@ -108,7 +108,7 @@ describe('utils', () => {
 
     it(`should validate minimum required arguments for runMode=${RunMode.DEBUG_PARSER}`, () => {
       const args = ['node', EXTRACTOR_SCRIPT_NAME, RunMode.DEBUG_PARSER, 'source-root'];
-      const result = validateArguments(args, RunMode.DEBUG_PARSER);
+      const result = validateArguments(args);
       expect(result.isValid).toBe(true);
       expect(result.usageMessage).toContain(
         `${RunMode.DEBUG_PARSER} <source-root> [<response-file>]`,
@@ -123,7 +123,7 @@ describe('utils', () => {
         'source-root',
         'response-file',
       ];
-      const result = validateArguments(args, RunMode.INDEX_FILES);
+      const result = validateArguments(args);
       expect(result.isValid).toBe(true);
       expect(result.usageMessage).toContain(`${RunMode.INDEX_FILES} <source-root> <response-file>`);
       expect(result.args).toEqual({
@@ -135,7 +135,7 @@ describe('utils', () => {
 
     it('should invalidate when run mode is not valid', () => {
       const args = ['node', EXTRACTOR_SCRIPT_NAME, 'invalid-mode', 'source-root'];
-      const result = validateArguments(args, RunMode.AUTOBUILD);
+      const result = validateArguments(args);
       expect(result.isValid).toBe(false);
       expect(result.usageMessage).toContain('Invalid run mode');
       expect(result.usageMessage).toContain('Supported run modes:');
