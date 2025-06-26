@@ -133,34 +133,118 @@ module.exports = class Service1 extends cds.ApplicationService {
     });
 
     /* ========== 2. Service1 running query on itself by `await`-ing the query ========== */
-    this.on("send21", async (req) => {
+    this.on("send00211", async (req) => {
       const { id } = req.data;
       const { Service1Entity } = this.entities;
       await SELECT.from(Service1Entity).where("ID=" + id);
     });
 
-    this.on("send22", async (req) => {
+    this.on("send00212", async (req) => {
       const { id } = req.data;
       const { Service1Entity } = this.entities;
-      await INSERT.into(Service1Entity).entries({ id: "" + id });
+      await SELECT.from(Service1Entity).where(`ID=` + id);
     });
 
-    this.on("send23", async (req) => {
-      const { id, amount } = req.data;
+    this.on("send00213", async (req) => {
+      const { id } = req.data;
       const { Service1Entity } = this.entities;
-      await UPDATE.entity(Service1Entity).set(`col1 = col1 -` + amount).where("id=" + id);
+      await SELECT.from(Service1Entity).where(`ID=${id}`);
+    });
+    
+    this.on("send00214", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await SELECT.from(Service1Entity).where`ID=${id}`;
     });
 
-    this.on("send24", async (req) => {
+    this.on("send00221", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await INSERT.into(Service1Entity).entries("ID =" + id);
+    });
+
+    this.on("send00222", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await INSERT.into(Service1Entity).entries(`ID =` + id);
+    });
+
+    this.on("send00223", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await INSERT.into(Service1Entity).entries(`ID = ${id}`);
+    });
+
+    this.on("send00224", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await INSERT.into(Service1Entity).entries`ID = ${id}`;
+    });
+
+    this.on("send00231", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await UPDATE.entity(Service1Entity).set("col1 = col1 + " + id).where("ID =" + id);
+    });
+
+    this.on("send00232", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await UPDATE.entity(Service1Entity).set("col1 = col1 + " + id).where(`ID =` + id);
+    });
+
+    this.on("send00233", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await UPDATE.entity(Service1Entity).set("col1 = col1 + " + id).where(`ID = ${id}`);
+    });
+
+    this.on("send00234", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await UPDATE.entity(Service1Entity).set("col1 = col1 + " + id).where`ID = ${id}`;
+    });
+
+    this.on("send00241", async (req) => {
       const { id } = req.data;
       const { Service1Entity } = this.entities;
       await UPSERT.into(Service1Entity).entries({ id: "" + id });
     });
 
-    this.on("send25", async (req) => {
+    this.on("send00242", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await UPSERT.into(Service1Entity).entries({ id: `` + id });
+    });
+
+    this.on("send00243", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await UPSERT.into(Service1Entity).entries({ id: `${id}` });
+    });
+
+    this.on("send00251", async (req) => {
       const { id } = req.data;
       const { Service1Entity } = this.entities;
       await DELETE.from(Service1Entity).where("ID =" + id);
+    });
+
+    this.on("send00252", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await DELETE.from(Service1Entity).where(`ID =` + id);
+    });
+
+    this.on("send00253", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await DELETE.from(Service1Entity).where(`ID = ${id}`);
+    });
+    
+    this.on("send00254", async (req) => {
+      const { id } = req.data;
+      const { Service1Entity } = this.entities;
+      await DELETE.from(Service1Entity).where`ID = ${id}`;
     });
 
     /* ========== 3. Service1 running query on itself using `this.run` and friends using Fluent API ========== */
@@ -301,13 +385,25 @@ module.exports = class Service1 extends cds.ApplicationService {
     /* ========== 7. Service1 running query on the database service using CQN parsed with global function `CQL` ========== */
     this.on("send71", async (req) => {
       const { id } = req.data;
-      const query = CQL(`SELECT * from Entity1 where ID =` + id); // TP
+      const query = CQL("SELECT * from Entity1 where ID =" + id);
       cds.run(query);
     });
 
     this.on("send72", async (req) => {
       const { id } = req.data;
-      const query = CQL`SELECT * from Entity1 where ID =` + id;  // FP
+      const query = CQL(`SELECT * from Entity1 where ID =` + id);
+      cds.run(query);
+    });
+
+    this.on("send73", async (req) => {
+      const { id } = req.data;
+      const query = CQL`SELECT * from Entity1 where ID = ${id}`;
+      cds.run(query);
+    });
+
+    this.on("send74", async (req) => {
+      const { id } = req.data;
+      const query = CQL(`SELECT * from Entity1 where ID = ${id}`);
       cds.run(query);
     });
 
@@ -566,6 +662,5 @@ module.exports = class Service1 extends cds.ApplicationService {
       const { id } = req.data;
       cds.db.delete("Entity1").where("ID =" + id);
     });
-
   }
 };
