@@ -303,7 +303,9 @@ describe('environment', () => {
       expect(jsExtractorRoot).toBe('');
       expect(execFileSync).not.toHaveBeenCalled();
       expect(consoleSpy.warn).toHaveBeenCalledWith(
-        'WARN: Cannot resolve JavaScript extractor root because the CodeQL executable path was not provided or found.',
+        expect.stringMatching(
+          /^\[CDS-.+ \d+\] WARN: Cannot resolve JavaScript extractor root because the CodeQL executable path was not provided or found\.$/,
+        ),
       );
     });
 

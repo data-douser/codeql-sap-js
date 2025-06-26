@@ -8,6 +8,22 @@ import type { LogLevel } from './types';
 let sourceRootDirectory: string | undefined;
 
 /**
+ * Unique session ID for this CDS extractor run to help distinguish
+ * between multiple concurrent or sequential runs in logs.
+ */
+const sessionId = Math.random().toString(36).substring(2, 8);
+
+/**
+ * Start time of the CDS extractor session for performance tracking.
+ */
+const extractorStartTime = Date.now();
+
+/**
+ * Performance tracking state for timing critical operations.
+ */
+const performanceTracking = new Map<string, number>();
+
+/**
  * Sets the source root directory for path filtering in log messages.
  * This should typically be called once at the start of the CDS extractor.
  *
@@ -18,8 +34,157 @@ export function setSourceRootDirectory(sourceRoot: string): void {
 }
 
 /**
+ * Calculates elapsed time from start and formats it with appropriate units.
+ *
+ * @param startTime - The start timestamp in milliseconds
+ * @param endTime - The end timestamp in milliseconds (defaults to current time)
+ * @returns Formatted duration string
+ */
+function formatDuration(startTime: number, endTime: number = Date.now()): string {
+  const durationMs = endTime - startTime;
+
+  if (durationMs < 1000) {
+    return `${durationMs}ms`;
+  } else if (durationMs < 60000) {
+    return `${(durationMs / 1000).toFixed(2)}s`;
+  } else {
+    const minutes = Math.floor(durationMs / 60000);
+    const seconds = ((durationMs % 60000) / 1000).toFixed(2);
+    return `${minutes}m ${seconds}s`;
+  }
+}
+
+/**
+ * Starts tracking performance for a named operation.
+ *
+ * @param operationName - Name of the operation to track
+ */
+export function startPerformanceTracking(operationName: string): void {
+  performanceTracking.set(operationName, Date.now());
+  cdsExtractorLog('debug', `Started: ${operationName}`);
+}
+
+/**
+ * Ends tracking performance for a named operation and logs the duration.
+ *
+ * @param operationName - Name of the operation to stop tracking
+ */
+export function endPerformanceTracking(operationName: string): void {
+  const startTime = performanceTracking.get(operationName);
+  if (startTime) {
+    const duration = formatDuration(startTime);
+    performanceTracking.delete(operationName);
+    cdsExtractorLog('info', `Completed: ${operationName} (took ${duration})`);
+  } else {
+    cdsExtractorLog('warn', `No start time found for operation: ${operationName}`);
+  }
+}
+
+/**
+ * Logs a performance milestone with timing information.
+ *
+ * @param milestone - Description of the milestone reached
+ * @param additionalInfo - Optional additional information to include
+ */
+export function logPerformanceMilestone(milestone: string, additionalInfo?: string): void {
+  const currentTime = Date.now();
+  const overallDuration = formatDuration(extractorStartTime, currentTime);
+  const info = additionalInfo ? ` - ${additionalInfo}` : '';
+  cdsExtractorLog('info', `MILESTONE: ${milestone} (after ${overallDuration})${info}`);
+}
+
+/**
+ * Logs the start of the CDS extractor session with session information.
+ *
+ * @param runMode - The run mode being used
+ * @param sourceRoot - The source root directory being processed
+ */
+export function logExtractorStart(runMode: string, sourceRoot: string): void {
+  cdsExtractorLog('info', `=== CDS EXTRACTOR START [${sessionId}] ===`);
+  cdsExtractorLog('info', `Run Mode: ${runMode}`);
+  cdsExtractorLog('info', `Source Root: ${sourceRoot}`);
+}
+
+/**
+ * Logs the end of the CDS extractor session with final performance summary.
+ *
+ * @param success - Whether the extraction completed successfully
+ * @param additionalSummary - Optional additional summary information
+ */
+export function logExtractorEnd(success: boolean = true, additionalSummary?: string): void {
+  const endTime = Date.now();
+  const totalDuration = formatDuration(extractorStartTime, endTime);
+  const status = success ? 'SUCCESS' : 'FAILURE';
+
+  if (additionalSummary) {
+    cdsExtractorLog('info', additionalSummary);
+  }
+
+  cdsExtractorLog('info', `=== CDS EXTRACTOR END [${sessionId}] - ${status} ===`);
+  cdsExtractorLog('info', `Total Duration: ${totalDuration}`);
+}
+
+/**
+ * Logs current memory usage for performance debugging.
+ *
+ * @param context - Context description for the memory check
+ */
+export function logMemoryUsage(context: string): void {
+  if (typeof process !== 'undefined' && process.memoryUsage) {
+    try {
+      const memUsage = process.memoryUsage();
+      const formatBytes = (bytes: number): string => {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+      };
+
+      cdsExtractorLog(
+        'debug',
+        `Memory usage - ${context}: RSS=${formatBytes(memUsage.rss)}, Heap Used=${formatBytes(memUsage.heapUsed)}, Heap Total=${formatBytes(memUsage.heapTotal)}, External=${formatBytes(memUsage.external)}`,
+      );
+    } catch {
+      // Silently ignore errors when memory usage is not available
+      // This ensures the function never throws and doesn't interrupt the extraction process
+    }
+  }
+}
+
+/**
+ * Logs a performance counter with current count and rate information.
+ *
+ * @param counterName - Name of the counter
+ * @param currentCount - Current count value
+ * @param startTime - Start time for rate calculation (optional)
+ * @param totalExpected - Total expected count for progress percentage (optional)
+ */
+export function logPerformanceCounter(
+  counterName: string,
+  currentCount: number,
+  startTime?: number,
+  totalExpected?: number,
+): void {
+  let message = `${counterName}: ${currentCount}`;
+
+  if (totalExpected && totalExpected > 0) {
+    const percentage = ((currentCount / totalExpected) * 100).toFixed(1);
+    message += ` / ${totalExpected} (${percentage}%)`;
+  }
+
+  if (startTime) {
+    const elapsed = Date.now() - startTime;
+    const rate = elapsed > 0 ? ((currentCount / elapsed) * 1000).toFixed(1) : '0';
+    message += ` - Rate: ${rate}/sec`;
+  }
+
+  cdsExtractorLog('debug', message);
+}
+
+/**
  * Unified logging function for the CDS extractor. Provides consistent
- * log formatting with level prefixes and path filtering.
+ * log formatting with level prefixes, elapsed time, session IDs, and path filtering.
  *
  * @param level - The log level ('debug', 'info', 'warn', 'error')
  * @param message - The primary message or data to log
@@ -34,8 +199,9 @@ export function cdsExtractorLog(
     throw new Error('Source root directory is not set. Call setSourceRootDirectory() first.');
   }
 
-  // Convert log level to uppercase for consistent formatting
-  const levelPrefix = `${level.toUpperCase()}: `;
+  const currentTime = Date.now();
+  const elapsedMs = currentTime - extractorStartTime;
+  const levelPrefix = `[CDS-${sessionId} ${elapsedMs}] ${level.toUpperCase()}: `;
 
   // Process the primary message for path filtering if it's a string
   let processedMessage: string;

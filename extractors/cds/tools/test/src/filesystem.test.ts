@@ -128,7 +128,9 @@ describe('filesystem', () => {
 
       recursivelyRenameJsonFiles('/non-existent/dir');
 
-      expect(mockConsoleLog).toHaveBeenCalledWith('INFO: Directory not found: /non-existent/dir');
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        expect.stringMatching(/^\[CDS-.+ \d+\] INFO: Directory not found: \/non-existent\/dir$/),
+      );
       expect(fs.readdirSync).not.toHaveBeenCalled();
     });
 
