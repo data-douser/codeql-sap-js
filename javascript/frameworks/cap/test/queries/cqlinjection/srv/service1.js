@@ -3,40 +3,133 @@ const cds = require("@sap/cds");
 module.exports = class Service1 extends cds.ApplicationService {
   init() {
     /* ========== 1. Service1 running query on the database service using `cds.run` and friends using Fluent API ========== */
-    this.on("send11", async (req) => {
+    this.on("send00111", async (req) => {
       const { id } = req.data;
       const query = SELECT.from`Entity1`.where("ID=" + id);
       cds.run(query);
     });
 
-    this.on("send12", async (req) => {
+    this.on("send00112", async (req) => {
+      const { id } = req.data;
+      const query = SELECT.from`Entity1`.where(`ID=` + id);
+      cds.run(query);
+    });
+
+    this.on("send00113", async (req) => {
+      const { id } = req.data;
+      const query = SELECT.from`Entity1`.where(`ID=${id}`);
+      cds.run(query);
+    });
+
+    this.on("send00114", async (req) => {
+      const { id } = req.data;
+      const query = SELECT.from`Entity1`.where`ID=${id}`;
+      cds.run(query);
+    });
+
+    this.on("send00121", async (req) => {
       const { id } = req.data;
       cds.read("Entity1").where("ID =" + id);
     });
 
-    this.on("send13", async (req) => {
+    this.on("send00122", async (req) => {
+      const { id } = req.data;
+      cds.read("Entity1").where(`ID =` + id);
+    });
+
+    this.on("send00123", async (req) => {
+      const { id } = req.data;
+      cds.read("Entity1").where(`ID=${id}`);
+    });
+
+    this.on("send00124", async (req) => {
+      const { id } = req.data;
+      cds.read("Entity1").where`ID=${id}`;
+    });
+
+    this.on("send00131", async (req) => {
       const { id } = req.data;
       cds.create("Entity1").entries({id: "" + id});
     });
 
-    this.on("send14", async (req) => {
+    this.on("send00132", async (req) => {
+      const { id } = req.data;
+      cds.create("Entity1").entries({id: `` + id});
+    });
+
+    this.on("send00133", async (req) => {
+      const { id } = req.data;
+      cds.create("Entity1").entries({id: `${id}`});
+    });
+
+    this.on("send00141", async (req) => {
       const { id, amount } = req.data;
       cds.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);
     });
 
-    this.on("send15", async (req) => {
+    this.on("send00142", async (req) => {
+      const { id, amount } = req.data;
+      cds.update("Entity1").set("col1 = col1" + amount).where(`col1 = ` + id);
+    });
+
+    this.on("send00143", async (req) => {
+      const { id, amount } = req.data;
+      cds.update("Entity1").set("col1 = col1" + amount).where(`col1 = ${id}`);
+    });
+
+    this.on("send00144", async (req) => {
+      const { id, amount } = req.data;
+      cds.update("Entity1").set("col1 = col1" + amount).where`col1 = ${id}`;
+    });
+
+    this.on("send00151", async (req) => {
       const { id } = req.data;
       cds.insert("Entity1").entries({id: "" + id});
     });
 
-    this.on("send16", async (req) => {
+    this.on("send00152", async (req) => {
+      const { id } = req.data;
+      cds.insert("Entity1").entries({id: `` + id});
+    });
+
+    this.on("send00153", async (req) => {
+      const { id } = req.data;
+      cds.insert("Entity1").entries({id: `${id}`});
+    });
+
+    this.on("send00161", async (req) => {
       const { id } = req.data;
       cds.upsert("Entity1").entries({id: "" + id});
     });
 
-    this.on("send17", async (req) => {
+    this.on("send00162", async (req) => {
+      const { id } = req.data;
+      cds.upsert("Entity1").entries({id: `` + id});
+    });
+
+    this.on("send00163", async (req) => {
+      const { id } = req.data;
+      cds.upsert("Entity1").entries({id: `${id}`});
+    });
+
+    this.on("send00171", async (req) => {
       const { id } = req.data;
       cds.delete("Entity1").where("ID =" + id);
+    });
+
+    this.on("send00172", async (req) => {
+      const { id } = req.data;
+      cds.delete("Entity1").where(`ID =` + id);
+    });
+
+    this.on("send00173", async (req) => {
+      const { id } = req.data;
+      cds.delete("Entity1").where(`ID = ${id}`);
+    });
+
+    this.on("send00174", async (req) => {
+      const { id } = req.data;
+      cds.delete("Entity1").where`ID = ${id}`;
     });
 
     /* ========== 2. Service1 running query on itself by `await`-ing the query ========== */
@@ -152,24 +245,69 @@ module.exports = class Service1 extends cds.ApplicationService {
     });
 
     /* ========== 5. Service1 running query on Service2 using CQN parsed with `cds.ql` ========== */
-    this.on("send5", async (req) => {
+    this.on("send51", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
       const query = cds.ql("SELECT * from Service1Entity where ID =" + id);
       Service2.run(query);
     });
 
+    this.on("send51", async (req) => {
+      const { id } = req.data;
+      const Service2 = await cds.connect.to("Service2");
+      const query = cds.ql(`SELECT * from Service1Entity where ID =` + id);
+      Service2.run(query);
+    });
+
+    this.on("send53", async (req) => {
+      const { id } = req.data;
+      const Service2 = await cds.connect.to("Service2");
+      const query = cds.ql(`SELECT * from Service1Entity where ID = ${id}`);
+      Service2.run(query);
+    });
+
+    this.on("send54", async (req) => {
+      const { id } = req.data;
+      const Service2 = await cds.connect.to("Service2");
+      const query = cds.ql`SELECT * from Service1Entity where ID = ${id}`;
+      Service2.run(query);
+    });
+
     /* ========== 6. Service1 running query on the database service using CQN parsed with `cds.parse.cql` ========== */
-    this.on("send6", async (req) => {
+    this.on("send61", async (req) => {
+      const { id } = req.data;
+      const query = cds.parse.cql("SELECT * from Entity1 where ID =" + id);
+      cds.run(query);
+    });
+
+    this.on("send62", async (req) => {
       const { id } = req.data;
       const query = cds.parse.cql(`SELECT * from Entity1 where ID =` + id);
       cds.run(query);
     });
 
-    /* ========== 7. Service1 running query on the database service using CQN parsed with global function `CQL` ========== */
-    this.on("send7", async (req) => {
+    this.on("send63", async (req) => {
       const { id } = req.data;
-      const query = CQL(`SELECT * from Entity1 where ID =` + id);
+      const query = cds.parse.cql(`SELECT * from Entity1 where ID = ${id}`);
+      cds.run(query);
+    });
+
+    this.on("send64", async (req) => {
+      const { id } = req.data;
+      const query = cds.parse.cql`SELECT * from Entity1 where ID = ${id}`;
+      cds.run(query);
+    });
+
+    /* ========== 7. Service1 running query on the database service using CQN parsed with global function `CQL` ========== */
+    this.on("send71", async (req) => {
+      const { id } = req.data;
+      const query = CQL(`SELECT * from Entity1 where ID =` + id); // TP
+      cds.run(query);
+    });
+
+    this.on("send72", async (req) => {
+      const { id } = req.data;
+      const query = CQL`SELECT * from Entity1 where ID =` + id;  // FP
       cds.run(query);
     });
 
@@ -391,5 +529,43 @@ module.exports = class Service1 extends cds.ApplicationService {
         tx.delete(`Entity1`).where("ID =" + id);
       });
     });
+
+    /* ========== 13. Service1 running query on the database service using `cds.run` and friends using Fluent API ========== */
+    this.on("send131", async (req) => {
+      const { id } = req.data;
+      const query = SELECT.from`Entity1`.where("ID=" + id);
+      cds.db.run(query);
+    });
+
+    this.on("send132", async (req) => {
+      const { id } = req.data;
+      cds.db.read("Entity1").where("ID =" + id);
+    });
+
+    this.on("send133", async (req) => {
+      const { id } = req.data;
+      cds.db.create("Entity1").entries({id: "" + id});
+    });
+
+    this.on("send134", async (req) => {
+      const { id, amount } = req.data;
+      cds.db.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);
+    });
+
+    this.on("send135", async (req) => {
+      const { id } = req.data;
+      cds.db.insert("Entity1").entries({id: "" + id});
+    });
+
+    this.on("send136", async (req) => {
+      const { id } = req.data;
+      cds.db.upsert("Entity1").entries({id: "" + id});
+    });
+
+    this.on("send137", async (req) => {
+      const { id } = req.data;
+      cds.db.delete("Entity1").where("ID =" + id);
+    });
+
   }
 };
