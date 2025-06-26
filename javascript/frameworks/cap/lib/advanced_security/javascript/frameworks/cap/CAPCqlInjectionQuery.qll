@@ -31,13 +31,18 @@ class CqlClauseWithStringConcatParameter instanceof CqlClause {
  * concatenation expression.
  */
 class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
+  DataFlow::Node stringConcatParameter; 
+
   CqlShortcutMethodCallWithStringConcat() {
-    exists(StringConcatenation::getAnOperand(super.getAQueryParameter()))
+    stringConcatParameter = super.getAQueryParameter() and
+    exists(StringConcatenation::getAnOperand(stringConcatParameter))
   }
 
   Location getLocation() { result = super.getLocation() }
 
   string toString() { result = super.toString() }
+
+  DataFlow::Node getStringConcatParameter() { result = stringConcatParameter }
 }
 
 /**
@@ -66,7 +71,7 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
     )
     or
     exists(CqlShortcutMethodCallWithStringConcat queryRunnerCall |
-      node = queryRunnerCall.(CqlQueryRunnerCall).getAQueryParameter()
+      node = queryRunnerCall.getStringConcatParameter()
     )
     or
     exists(AwaitExpr await, CqlClauseWithStringConcatParameter cqlClauseWithStringConcat |
