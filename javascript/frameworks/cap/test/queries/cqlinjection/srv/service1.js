@@ -769,5 +769,18 @@ module.exports = class Service1 extends cds.ApplicationService {
       const { id } = req.data;
       cds.db.delete("Entity1").where`ID = ${id}`; // FP
     });
+
+    /* ========== FP cases that don't involve CAP APIs ========== */
+
+    const pg = require("pg");
+    let pool = new pg.Pool(config);
+    pool.query(req.params.category, [], function (err, results) { // non-CQL injection alert
+    });
+
+    const app = require("express")();
+    app.get("search", function handler(req2, res) {
+      pool.query(req2.params.category, [], function (err, results) { // non-CQL injection alert
+      });
+    });
   }
 };
