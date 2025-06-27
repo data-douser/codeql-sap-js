@@ -5,7 +5,7 @@ import {
   endPerformanceTracking,
   logPerformanceMilestone,
   logExtractorStart,
-  logExtractorEnd,
+  logExtractorStop,
   logMemoryUsage,
   logPerformanceCounter,
 } from '../../../src/logging';
@@ -318,27 +318,23 @@ describe('cdsExtractorLog', () => {
 
     describe('logExtractorStart', () => {
       it('should log extractor start with session information', () => {
-        logExtractorStart('autobuild', '/path/to/source');
+        logExtractorStart('/path/to/source');
 
-        expect(mockConsoleLog).toHaveBeenCalledTimes(3);
+        expect(mockConsoleLog).toHaveBeenCalledTimes(2);
         expect(mockConsoleLog).toHaveBeenNthCalledWith(
           1,
           expect.stringMatching(/^\[CDS-.+ \d+\] INFO: === CDS EXTRACTOR START \[.+\] ===$/),
         );
         expect(mockConsoleLog).toHaveBeenNthCalledWith(
           2,
-          expect.stringMatching(/^\[CDS-.+ \d+\] INFO: Run Mode: autobuild$/),
-        );
-        expect(mockConsoleLog).toHaveBeenNthCalledWith(
-          3,
           expect.stringMatching(/^\[CDS-.+ \d+\] INFO: Source Root: \/path\/to\/source$/),
         );
       });
     });
 
-    describe('logExtractorEnd', () => {
+    describe('logExtractorStop', () => {
       it('should log successful extractor end', () => {
-        logExtractorEnd();
+        logExtractorStop();
 
         expect(mockConsoleLog).toHaveBeenCalledTimes(2);
         expect(mockConsoleLog).toHaveBeenNthCalledWith(
@@ -354,7 +350,7 @@ describe('cdsExtractorLog', () => {
       });
 
       it('should log failed extractor end', () => {
-        logExtractorEnd(false);
+        logExtractorStop(false);
 
         expect(mockConsoleLog).toHaveBeenCalledTimes(2);
         expect(mockConsoleLog).toHaveBeenNthCalledWith(
@@ -370,7 +366,7 @@ describe('cdsExtractorLog', () => {
       });
 
       it('should log extractor end with additional summary', () => {
-        logExtractorEnd(true, 'Processed 50 files successfully');
+        logExtractorStop(true, 'Processed 50 files successfully');
 
         expect(mockConsoleLog).toHaveBeenCalledTimes(3);
         expect(mockConsoleLog).toHaveBeenNthCalledWith(
@@ -523,10 +519,10 @@ describe('cdsExtractorLog', () => {
       setSourceRootDirectory('/test/source-root');
     });
 
-    it('should handle durations over 1 minute in logExtractorEnd', () => {
-      // Since logExtractorEnd calculates from the module's extractorStartTime,
+    it('should handle durations over 1 minute in logExtractorStop', () => {
+      // Since logExtractorStop calculates from the module's extractorStartTime,
       // we just test that it logs with a valid format (no negative values)
-      logExtractorEnd();
+      logExtractorStop();
 
       expect(mockConsoleLog).toHaveBeenCalledWith(
         expect.stringMatching(

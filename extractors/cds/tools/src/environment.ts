@@ -253,9 +253,17 @@ ${process.env.LGTM_INDEX_FILTERS}`,
 }
 
 /**
- * Sets up the environment and validates key components for CDS extractor
- * @param sourceRoot The source root directory
- * @returns The environment setup result
+ * Sets up the environment and validates key components for running the CDS extractor.
+ * This includes checking for the CodeQL executable, validating the source root directory,
+ * and setting up environment variables for the JavaScript extractor.
+ *
+ * @param sourceRoot The source root directory.
+ *
+ * @returns The {@link EnvironmentSetupResult} containing success status, error messages,
+ *          CodeQL executable path, JavaScript extractor root, autobuild script path,
+ *          and platform information.
+ *
+ * @throws Will throw an error if the environment setup fails.
  */
 export function setupAndValidateEnvironment(sourceRoot: string): EnvironmentSetupResult {
   const errorMessages: string[] = [];

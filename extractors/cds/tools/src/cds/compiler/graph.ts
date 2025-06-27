@@ -1,6 +1,3 @@
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
-import { join } from 'path';
-
 import { determineCdsCommand, getCommandAnalysisForDebug } from './command';
 import { compileCdsToJson } from './compile';
 import {
@@ -580,18 +577,9 @@ export function orchestrateCompilation(
     dependencyGraph.statusSummary.overallSuccess = !hasFailures;
     dependencyGraph.currentPhase = hasFailures ? 'failed' : 'completed';
 
-    // Generate and log status report (debug-aware)
-    const statusReport = generateStatusReport(dependencyGraph, isDebugMode);
+    // Generate and log status report
+    const statusReport = generateStatusReport(dependencyGraph, false);
     cdsExtractorLog('info', 'Final Status Report:\n' + statusReport);
-
-    // Write debug information if in debug mode
-    if (isDebugMode) {
-      writeDebugInformation(
-        dependencyGraph,
-        dependencyGraph.scriptDir,
-        dependencyGraph.debugInfo.extractor.runMode,
-      );
-    }
   } catch (error) {
     const errorMessage = `Compilation orchestration failed: ${String(error)}`;
     cdsExtractorLog('error', errorMessage);
@@ -655,92 +643,5 @@ function collectCompilerDebugInfo(
     dependencyGraph.debugInfo.compiler.cacheInitialized = false;
     dependencyGraph.debugInfo.compiler.selectedCommand = 'unknown';
     dependencyGraph.debugInfo.compiler.availableCommands = [];
-  }
-}
-
-/**
- * Write debug information to JSON files for analysis
- * This replaces the old DebugRecorder approach with a graph-based one
- */
-export function writeDebugInformation(
-  dependencyGraph: CdsDependencyGraph,
-  scriptDir: string,
-  runMode: string,
-): void {
-  if (!runMode.startsWith('debug')) {
-    return; // Only write debug files in debug mode
-  }
-
-  try {
-    const debugDir = join(scriptDir, 'out', 'debug');
-    if (!existsSync(debugDir)) {
-      mkdirSync(debugDir, { recursive: true });
-    }
-
-    // Write comprehensive debug information
-    const debugData = {
-      timestamp: new Date().toISOString(),
-      runMode,
-      extractorInfo: dependencyGraph.debugInfo.extractor,
-      parserInfo: dependencyGraph.debugInfo.parser,
-      compilerInfo: dependencyGraph.debugInfo.compiler,
-      statusSummary: dependencyGraph.statusSummary,
-      projects: Array.from(dependencyGraph.projects.entries()).map(([projectDir, project]) => ({
-        projectDir,
-        id: project.id,
-        status: project.status,
-        cdsFiles: project.cdsFiles.length,
-        filesToCompile: project.cdsFilesToCompile.length,
-        compilationTasks: project.compilationTasks.length,
-        timestamps: project.timestamps,
-        enhancedCompilationConfig: project.enhancedCompilationConfig
-          ? {
-              primaryCdsCommand: project.enhancedCompilationConfig.primaryCdsCommand,
-              primaryCacheDir: project.enhancedCompilationConfig.primaryCacheDir,
-              useProjectLevelCompilation:
-                project.enhancedCompilationConfig.useProjectLevelCompilation,
-              alternativeCommands: project.enhancedCompilationConfig.alternativeCommands.length,
-              maxRetryAttempts: project.enhancedCompilationConfig.maxRetryAttempts,
-            }
-          : null,
-        parserDebugInfo: project.parserDebugInfo,
-        taskDetails: project.compilationTasks.map(task => ({
-          id: task.id,
-          type: task.type,
-          status: task.status,
-          sourceFiles: task.sourceFiles,
-          expectedOutputFiles: task.expectedOutputFiles,
-          priority: task.priority,
-          attempts: task.attempts.length,
-          errorSummary: task.errorSummary,
-        })),
-      })),
-      errors: dependencyGraph.errors,
-      performance: dependencyGraph.statusSummary.performance,
-    };
-
-    const debugFileName =
-      runMode === 'debug-parser'
-        ? 'cds-extractor.parser.debug.json'
-        : 'cds-extractor.compiler.debug.json';
-
-    const debugFilePath = join(debugDir, debugFileName);
-    writeFileSync(debugFilePath, JSON.stringify(debugData, null, 2));
-
-    cdsExtractorLog('info', `Debug information written to: ${debugFilePath}`);
-
-    // Log summary statistics
-    const projectsWithTasks = dependencyGraph.statusSummary.totalCompilationTasks;
-    const successfulTasks = dependencyGraph.statusSummary.successfulCompilations;
-    const failedTasks = dependencyGraph.statusSummary.failedCompilations;
-
-    cdsExtractorLog('info', `Debug summary for ${runMode}:`);
-    cdsExtractorLog('info', `  - Total projects: ${dependencyGraph.statusSummary.totalProjects}`);
-    cdsExtractorLog('info', `  - Total CDS files: ${dependencyGraph.statusSummary.totalCdsFiles}`);
-    cdsExtractorLog('info', `  - Compilation tasks: ${projectsWithTasks}`);
-    cdsExtractorLog('info', `  - Successful: ${successfulTasks}, Failed: ${failedTasks}`);
-    cdsExtractorLog('info', `  - Overall success: ${dependencyGraph.statusSummary.overallSuccess}`);
-  } catch (error) {
-    cdsExtractorLog('warn', `Could not write debug file: ${String(error)}`);
   }
 }

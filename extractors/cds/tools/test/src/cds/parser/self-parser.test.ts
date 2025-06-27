@@ -645,7 +645,7 @@ describe('CDS Parser Self-Test Suite', () => {
         },
       });
 
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT, 'debug-parser', '/script-dir');
+      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT, '/script-dir');
       expect(projectMap.size).toBe(1);
 
       // The debug file would be created, but we can't easily test that with mockFs

@@ -97,12 +97,10 @@ export function logPerformanceMilestone(milestone: string, additionalInfo?: stri
 /**
  * Logs the start of the CDS extractor session with session information.
  *
- * @param runMode - The run mode being used
  * @param sourceRoot - The source root directory being processed
  */
-export function logExtractorStart(runMode: string, sourceRoot: string): void {
+export function logExtractorStart(sourceRoot: string): void {
   cdsExtractorLog('info', `=== CDS EXTRACTOR START [${sessionId}] ===`);
-  cdsExtractorLog('info', `Run Mode: ${runMode}`);
   cdsExtractorLog('info', `Source Root: ${sourceRoot}`);
 }
 
@@ -112,7 +110,7 @@ export function logExtractorStart(runMode: string, sourceRoot: string): void {
  * @param success - Whether the extraction completed successfully
  * @param additionalSummary - Optional additional summary information
  */
-export function logExtractorEnd(success: boolean = true, additionalSummary?: string): void {
+export function logExtractorStop(success: boolean = true, additionalSummary?: string): void {
   const endTime = Date.now();
   const totalDuration = formatDuration(extractorStartTime, endTime);
   const status = success ? 'SUCCESS' : 'FAILURE';

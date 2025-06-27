@@ -3,34 +3,25 @@ import { join } from 'path';
 import { sync as globSync } from 'glob';
 
 import { determineCdsCommand } from './src/cds';
-import { orchestrateCompilation } from './src/cds/compiler/graph';
-import {
-  handleDebugParserMode,
-  handleDebugCompilerMode,
-  isDebugMode,
-  isDebugParserMode,
-  isDebugCompilerMode,
-} from './src/cds/parser/debugUtils';
-import { buildEnhancedCdsProjectDependencyGraph } from './src/cds/parser/graph';
+import { orchestrateCompilation } from './src/cds/compiler';
+import { buildEnhancedCdsProjectDependencyGraph } from './src/cds/parser';
 import { runJavaScriptExtractor } from './src/codeql';
 import { addCompilationDiagnostic } from './src/diagnostics';
 import { configureLgtmIndexFilters, setupAndValidateEnvironment } from './src/environment';
 import {
   cdsExtractorLog,
-  setSourceRootDirectory,
-  logExtractorStart,
-  logExtractorEnd,
-  logPerformanceMilestone,
-  startPerformanceTracking,
   endPerformanceTracking,
+  logExtractorStop,
+  logExtractorStart,
   logMemoryUsage,
+  logPerformanceMilestone,
+  setSourceRootDirectory,
+  startPerformanceTracking,
 } from './src/logging';
 import { installDependencies } from './src/packageManager';
-import { RunMode } from './src/runMode';
 import { validateArguments } from './src/utils';
 
-// Validate the first argument matches an allowed run mode and validate that
-// the total number of arguments is correct for the specified run mode.
+// Validate the script arguments.
 const validationResult = validateArguments(process.argv);
 if (!validationResult.isValid) {
   console.warn(validationResult.usageMessage);
@@ -38,25 +29,20 @@ if (!validationResult.isValid) {
   process.exit(1);
 }
 
-// Get the validated and sanitized arguments
-const { runMode, sourceRoot } = validationResult.args!;
+// Get the validated and sanitized arguments.
+const { sourceRoot } = validationResult.args!;
 
-// Initialize the unified logging system with the source root directory
+// Initialize the unified logging system with the source root directory.
 setSourceRootDirectory(sourceRoot);
 
-// Log the start of the CDS extractor session
-logExtractorStart(runMode, sourceRoot);
+// Log the start of the CDS extractor session as a whole.
+logExtractorStart(sourceRoot);
+// We log the memory usage at the start of the extractor to track memory growth.
 logMemoryUsage('Extractor Start');
 
-// Check for autobuild mode
-if (runMode === (RunMode.AUTOBUILD as string)) {
-  cdsExtractorLog('info', 'Autobuild mode is not implemented yet.');
-  logExtractorEnd(false, 'Terminated: Autobuild mode not implemented');
-  process.exit(1);
-}
-
-// Setup the environment and validate all requirements first, before changing directory
-// This ensures we can properly locate the CodeQL tools
+// Setup the environment and validate all requirements first, before changing
+// directory back to the "sourceRoot" directory. This ensures we can properly locate
+// the CodeQL tools.
 startPerformanceTracking('Environment Setup');
 const {
   success: envSetupSuccess,
@@ -76,7 +62,7 @@ if (!envSetupSuccess) {
     )}.`,
   );
   // Exit with an error code when environment setup fails.
-  logExtractorEnd(false, 'Terminated: Environment setup failed');
+  logExtractorStop(false, 'Terminated: Environment setup failed');
   process.exit(1);
 }
 
@@ -86,18 +72,24 @@ process.chdir(sourceRoot);
 
 cdsExtractorLog(
   'info',
-  `CodeQL CDS extractor using run mode '${runMode}' for scan of project source root directory '${sourceRoot}'.`,
+  `CodeQL CDS extractor using autobuild mode for scan of project source root directory '${sourceRoot}'.`,
 );
 
-// Using the enhanced project-aware approach to find CDS projects and their dependencies
 cdsExtractorLog('info', 'Building enhanced CDS project dependency graph...');
 
-// Build the enhanced dependency graph using the new enhanced parser
+// Build the CDS project `dependencyGraph` as the foundation for the extraction process.
+// This graph will contain all discovered CDS projects, their dependencies, the `.cds`
+// files discovered within each project, the expected `.cds.json` files for each project
+// and the compilation status of such `.cds.json` files.
+//
+// The `dependencyGraph` will be updated as CDS extractor phases progress, allowing for
+// a single data structure to be used for planning, execution, retries (i.e. error handling),
+// debugging, and final reporting.
 let dependencyGraph;
 
-startPerformanceTracking('Dependency Graph Build');
 try {
-  dependencyGraph = buildEnhancedCdsProjectDependencyGraph(sourceRoot, runMode, __dirname);
+  startPerformanceTracking('Dependency Graph Build');
+  dependencyGraph = buildEnhancedCdsProjectDependencyGraph(sourceRoot, __dirname);
   endPerformanceTracking('Dependency Graph Build');
 
   logPerformanceMilestone(
@@ -105,13 +97,6 @@ try {
     `${dependencyGraph.projects.size} projects, ${dependencyGraph.statusSummary.totalCdsFiles} CDS files`,
   );
   logMemoryUsage('After Dependency Graph');
-
-  // Handle debug modes early - these modes should exit after completing their specific tasks
-  if (isDebugParserMode(runMode)) {
-    const debugSuccess = handleDebugParserMode(dependencyGraph, sourceRoot, __dirname);
-    logExtractorEnd(debugSuccess, `Debug parser mode completed: ${runMode}`);
-    process.exit(debugSuccess ? 0 : 1);
-  }
 
   // Log details about discovered projects for debugging
   if (dependencyGraph.projects.size > 0) {
@@ -152,20 +137,15 @@ try {
 } catch (error) {
   cdsExtractorLog('error', `Failed to build enhanced dependency graph: ${String(error)}`);
   // Exit with error since we can't continue without a proper dependency graph
-  logExtractorEnd(false, 'Terminated: Dependency graph build failed');
+  logExtractorStop(false, 'Terminated: Dependency graph build failed');
   process.exit(1);
 }
-
-// Install dependencies of discovered CAP/CDS projects
-cdsExtractorLog('info', 'Installing dependencies for discovered CDS projects...');
 
 startPerformanceTracking('Dependency Installation');
 const projectCacheDirMap = installDependencies(dependencyGraph, sourceRoot, codeqlExePath);
 endPerformanceTracking('Dependency Installation');
 
 const cdsFilePathsToProcess: string[] = [];
-
-cdsExtractorLog('info', 'Extracting CDS files from discovered projects...');
 
 // Use the enhanced dependency graph to collect all `.cds` files from each project.
 // We want to "extract" all `.cds` files from all projects so that we have a copy
@@ -174,18 +154,8 @@ for (const project of dependencyGraph.projects.values()) {
   cdsFilePathsToProcess.push(...project.cdsFiles);
 }
 
-cdsExtractorLog('info', 'Processing CDS files to JSON using enhanced compilation orchestration...');
-
-// Check if we're running in debug mode
-if (isDebugMode(runMode)) {
-  cdsExtractorLog(
-    'info',
-    `Running in ${runMode} mode - enhanced debug information will be collected...`,
-  );
-}
-
-// Initialize CDS command cache early to avoid repeated testing during compilation
-// This is a critical optimization that avoids testing commands for every single file
+// Initialize CDS command cache early to avoid repeated testing during compilation.
+// This is a critical optimization that avoids testing commands for every single file.
 startPerformanceTracking('CDS Command Cache Initialization');
 try {
   determineCdsCommand(undefined, sourceRoot);
@@ -194,9 +164,9 @@ try {
 } catch (error) {
   endPerformanceTracking('CDS Command Cache Initialization');
   cdsExtractorLog('warn', `CDS command cache initialization failed: ${String(error)}`);
-  // Continue anyway - individual calls will handle fallbacks
 }
 
+// TODO : Improve logging / debugging of dependencyGraph.statusSummary. Just log the JSON?
 cdsExtractorLog(
   'info',
   `Found ${cdsFilePathsToProcess.length} total CDS files, ${dependencyGraph.statusSummary.totalCdsFiles} CDS files in dependency graph`,
@@ -204,15 +174,8 @@ cdsExtractorLog(
 
 startPerformanceTracking('CDS Compilation');
 try {
-  // Use the new orchestrated compilation approach with debug awareness
-  orchestrateCompilation(dependencyGraph, projectCacheDirMap, codeqlExePath, isDebugMode(runMode));
-
-  // Check if we should exit for debug modes after successful compilation
-  if (isDebugCompilerMode(runMode)) {
-    const debugSuccess = handleDebugCompilerMode(dependencyGraph, runMode);
-    logExtractorEnd(debugSuccess, `Debug mode completed: ${runMode}`);
-    process.exit(debugSuccess ? 0 : 1);
-  }
+  // Use the new orchestrated compilation approach (autobuild mode, no debug)
+  orchestrateCompilation(dependencyGraph, projectCacheDirMap, codeqlExePath, false);
 
   // Handle compilation failures for normal mode
   if (!dependencyGraph.statusSummary.overallSuccess) {
@@ -249,16 +212,17 @@ try {
 // Configure the "LGTM" index filters for proper extraction.
 configureLgtmIndexFilters();
 
-// Run CodeQL's JavaScript extractor to process the compiled JSON files.
+// Run CodeQL's JavaScript extractor to process the .cds source files and
+// the compiled .cds.json files.
 startPerformanceTracking('JavaScript Extraction');
 const extractorResult = runJavaScriptExtractor(sourceRoot, autobuildScriptPath, codeqlExePath);
 endPerformanceTracking('JavaScript Extraction');
 
 if (!extractorResult.success && extractorResult.error) {
   cdsExtractorLog('error', `Error running JavaScript extractor: ${extractorResult.error}`);
-  logExtractorEnd(false, 'JavaScript extractor failed');
+  logExtractorStop(false, 'JavaScript extractor failed');
 } else {
-  logExtractorEnd(true, 'CDS extraction completed successfully');
+  logExtractorStop(true, 'CDS extraction completed successfully');
 }
 
 // Use the `cds-extractor.js` name in the log message as that is the name of the script

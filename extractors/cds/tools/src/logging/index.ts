@@ -2,7 +2,7 @@ export {
   cdsExtractorLog,
   setSourceRootDirectory,
   logExtractorStart,
-  logExtractorEnd,
+  logExtractorStop,
   logPerformanceMilestone,
   startPerformanceTracking,
   endPerformanceTracking,

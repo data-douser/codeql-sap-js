@@ -206,7 +206,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     it('should handle debug-parser mode correctly', () => {
       createSimpleProject(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir, 'debug-parser', tempDir);
+      const projectMap = buildCdsProjectDependencyGraph(tempDir, tempDir);
 
       // In debug mode, should return normal project map without debug signals
       // (debug handling is now responsibility of cds-extractor.ts)
@@ -217,7 +217,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     });
 
     it('should handle debug-parser mode with empty project map', () => {
-      const projectMap = buildCdsProjectDependencyGraph(tempDir, 'debug-parser', tempDir);
+      const projectMap = buildCdsProjectDependencyGraph(tempDir, tempDir);
 
       // In debug mode with no projects, should just return empty map (no special signal in the actual implementation)
       expect(projectMap.size).toBe(0);

@@ -16,21 +16,13 @@ import { cdsExtractorLog } from '../../logging';
  * This is the top-level function for the parser stage of the CDS extractor.
  *
  * @param sourceRootDir - Source root directory
- * @param runMode - Current run mode (index-files, debug-parser, or autobuild)
- * @param scriptDir - Directory where the script is running (for debug output)
+ * @param _scriptDir - Directory where the script is running (for debug output) [unused]
  * @returns Map of project directories to their CdsProject objects with dependency information
  */
 export function buildCdsProjectDependencyGraph(
   sourceRootDir: string,
-  runMode?: string,
   _scriptDir?: string,
 ): Map<string, CdsProject> {
-  // If debug-parser mode, log additional information
-  if (runMode === 'debug-parser') {
-    cdsExtractorLog('info', 'Running CDS Parser in debug mode...');
-    cdsExtractorLog('info', `Source Root Directory: ${sourceRootDir}`);
-  }
-
   // Find all CDS projects under the source directory
   cdsExtractorLog('info', 'Detecting CDS projects...');
   const projectDirs = determineCdsProjectsUnderSourceDir(sourceRootDir);
@@ -168,23 +160,12 @@ export function buildCdsProjectDependencyGraph(
   cdsExtractorLog('info', 'Determining CDS files to compile for each project...');
   for (const [, project] of projectMap.entries()) {
     try {
-      project.cdsFilesToCompile = determineCdsFilesToCompile(sourceRootDir, project);
-
-      if (runMode === 'debug-parser') {
-        cdsExtractorLog(
-          'info',
-          `Project ${project.projectDir}: ${project.cdsFilesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files`,
-        );
-      }
       const filesToCompile = determineCdsFilesToCompile(sourceRootDir, project);
       project.cdsFilesToCompile = filesToCompile;
-
-      if (runMode === 'debug-parser') {
-        cdsExtractorLog(
-          'info',
-          `Project ${project.projectDir}: ${filesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files`,
-        );
-      }
+      cdsExtractorLog(
+        'info',
+        `Project ${project.projectDir}: ${filesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files`,
+      );
     } catch (error) {
       cdsExtractorLog(
         'warn',
@@ -201,13 +182,10 @@ export function buildCdsProjectDependencyGraph(
     try {
       const expectedOutputFiles = determineExpectedOutputFiles(project);
       project.expectedOutputFiles = expectedOutputFiles;
-
-      if (runMode === 'debug-parser') {
-        cdsExtractorLog(
-          'info',
-          `Project ${project.projectDir}: expecting ${expectedOutputFiles.length} output files`,
-        );
-      }
+      cdsExtractorLog(
+        'info',
+        `Project ${project.projectDir}: expecting ${expectedOutputFiles.length} output files`,
+      );
     } catch (error) {
       cdsExtractorLog(
         'warn',
@@ -224,16 +202,15 @@ export function buildCdsProjectDependencyGraph(
 /**
  * Builds an enhanced CDS dependency graph with comprehensive tracking and debug information.
  * This is the new enhanced version that returns a CdsDependencyGraph instead of a simple Map.
+ * The extractor now runs in autobuild mode by default.
  *
  * @param sourceRootDir - Source root directory
- * @param runMode - Current run mode (index-files, debug-parser, debug-compiler, or autobuild)
- * @param scriptDir - Directory where the script is running (for debug output)
+ * @param _scriptDir - Directory where the script is running (for debug output) [unused]
  * @returns Enhanced CDS dependency graph with comprehensive tracking
  */
 export function buildEnhancedCdsProjectDependencyGraph(
   sourceRootDir: string,
-  runMode?: string,
-  scriptDir?: string,
+  _scriptDir?: string,
 ): CdsDependencyGraph {
   const startTime = new Date();
 
@@ -241,14 +218,14 @@ export function buildEnhancedCdsProjectDependencyGraph(
   const dependencyGraph: CdsDependencyGraph = {
     id: `cds_graph_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     sourceRootDir,
-    scriptDir: scriptDir ?? sourceRootDir,
+    scriptDir: _scriptDir ?? sourceRootDir,
     projects: new Map<string, EnhancedCdsProject>(),
     globalCacheDirectories: new Map<string, string>(),
     debugInfo: {
       extractor: {
-        runMode: runMode ?? 'index-files',
+        runMode: 'autobuild',
         sourceRootDir,
-        scriptDir,
+        scriptDir: _scriptDir,
         startTime,
         environment: {
           nodeVersion: process.version,
@@ -298,8 +275,8 @@ export function buildEnhancedCdsProjectDependencyGraph(
     },
     config: {
       maxRetryAttempts: 3,
-      enableDetailedLogging: runMode === 'debug-compiler' || runMode === 'debug-parser',
-      generateDebugOutput: Boolean(runMode?.startsWith('debug')),
+      enableDetailedLogging: false, // Debug modes removed
+      generateDebugOutput: false, // Debug modes removed
       compilationTimeoutMs: 30000, // 30 seconds
     },
     errors: {
@@ -310,7 +287,7 @@ export function buildEnhancedCdsProjectDependencyGraph(
 
   try {
     // Use the existing function to build the basic project map
-    const basicProjectMap = buildCdsProjectDependencyGraph(sourceRootDir, runMode, scriptDir);
+    const basicProjectMap = buildCdsProjectDependencyGraph(sourceRootDir, _scriptDir);
 
     // Convert basic projects to enhanced projects
     for (const [projectDir, basicProject] of basicProjectMap.entries()) {

@@ -1,6 +1,5 @@
 import { resolve } from 'path';
 
-import { RunMode } from '../../src/runMode';
 import { getArg, validateArguments } from '../../src/utils';
 
 const EXTRACTOR_SCRIPT_NAME = 'cds-extractor.js';
@@ -38,107 +37,36 @@ describe('utils', () => {
       console.warn = originalConsoleWarn;
     });
 
-    it('should validate index-files mode requires 3 arguments', () => {
-      const args = [
-        'node',
-        EXTRACTOR_SCRIPT_NAME,
-        RunMode.INDEX_FILES,
-        'source-root',
-        'response-file',
-      ];
+    it('should validate when source root is provided', () => {
+      const args = ['node', EXTRACTOR_SCRIPT_NAME, 'source-root'];
       const result = validateArguments(args);
       expect(result.isValid).toBe(true);
       expect(result.args).toEqual({
-        runMode: RunMode.INDEX_FILES,
         sourceRoot: 'source-root',
-        responseFile: 'response-file',
       });
     });
 
-    it('should invalidate index-files mode with missing response file', () => {
-      const args = ['node', EXTRACTOR_SCRIPT_NAME, RunMode.INDEX_FILES, 'source-root'];
+    it('should invalidate when source root is missing', () => {
+      const args = ['node', EXTRACTOR_SCRIPT_NAME];
       const result = validateArguments(args);
       expect(result.isValid).toBe(false);
-      expect(result.usageMessage).toContain('<response-file>');
+      expect(result.usageMessage).toContain('<source-root>');
     });
 
-    it('should validate debug-parser mode with optional response file', () => {
-      // With response file
-      const argsWithResponse = [
-        'node',
-        EXTRACTOR_SCRIPT_NAME,
-        RunMode.DEBUG_PARSER,
-        'source-root',
-        'response-file',
-      ];
-      const resultWithResponse = validateArguments(argsWithResponse);
-      expect(resultWithResponse.isValid).toBe(true);
-      expect(resultWithResponse.args).toEqual({
-        runMode: RunMode.DEBUG_PARSER,
-        sourceRoot: 'source-root',
-        responseFile: 'response-file',
-      });
-
-      // Without response file
-      const argsWithoutResponse = [
-        'node',
-        EXTRACTOR_SCRIPT_NAME,
-        RunMode.DEBUG_PARSER,
-        'source-root',
-      ];
-      const resultWithoutResponse = validateArguments(argsWithoutResponse);
-      expect(resultWithoutResponse.isValid).toBe(true);
-      expect(resultWithoutResponse.args).toEqual({
-        runMode: RunMode.DEBUG_PARSER,
-        sourceRoot: 'source-root',
-        responseFile: '',
-      });
-    });
-
-    it(`should validate minimum required arguments for runMode=${RunMode.AUTOBUILD}`, () => {
-      const args = ['node', EXTRACTOR_SCRIPT_NAME, RunMode.AUTOBUILD, 'source-root'];
-      const result = validateArguments(args);
-      expect(result.isValid).toBe(true);
-      expect(result.args).toEqual({
-        runMode: RunMode.AUTOBUILD,
-        sourceRoot: 'source-root',
-        responseFile: '',
-      });
-    });
-
-    it(`should validate minimum required arguments for runMode=${RunMode.DEBUG_PARSER}`, () => {
-      const args = ['node', EXTRACTOR_SCRIPT_NAME, RunMode.DEBUG_PARSER, 'source-root'];
-      const result = validateArguments(args);
-      expect(result.isValid).toBe(true);
-      expect(result.usageMessage).toContain(
-        `${RunMode.DEBUG_PARSER} <source-root> [<response-file>]`,
-      );
-    });
-
-    it(`should validate minimum required arguments for runMode=${RunMode.INDEX_FILES}`, () => {
-      const args = [
-        'node',
-        EXTRACTOR_SCRIPT_NAME,
-        RunMode.INDEX_FILES,
-        'source-root',
-        'response-file',
-      ];
-      const result = validateArguments(args);
-      expect(result.isValid).toBe(true);
-      expect(result.usageMessage).toContain(`${RunMode.INDEX_FILES} <source-root> <response-file>`);
-      expect(result.args).toEqual({
-        runMode: RunMode.INDEX_FILES,
-        sourceRoot: 'source-root',
-        responseFile: 'response-file',
-      });
-    });
-
-    it('should invalidate when run mode is not valid', () => {
-      const args = ['node', EXTRACTOR_SCRIPT_NAME, 'invalid-mode', 'source-root'];
+    it('should invalidate when no arguments are provided', () => {
+      const args: string[] = [];
       const result = validateArguments(args);
       expect(result.isValid).toBe(false);
-      expect(result.usageMessage).toContain('Invalid run mode');
-      expect(result.usageMessage).toContain('Supported run modes:');
+      expect(result.usageMessage).toContain('<source-root>');
+    });
+
+    it('should handle additional arguments gracefully', () => {
+      const args = ['node', EXTRACTOR_SCRIPT_NAME, 'source-root', 'extra-arg'];
+      const result = validateArguments(args);
+      expect(result.isValid).toBe(true);
+      expect(result.args).toEqual({
+        sourceRoot: 'source-root',
+      });
     });
   });
 });
