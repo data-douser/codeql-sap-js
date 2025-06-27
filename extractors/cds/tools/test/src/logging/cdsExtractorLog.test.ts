@@ -105,100 +105,12 @@ describe('cdsExtractorLog', () => {
     });
   });
 
-  describe('path filtering for source root directory', () => {
-    beforeEach(() => {
-      setSourceRootDirectory('/my/source-root');
-    });
-
-    it('should allow source root directory logging message to pass through unchanged', () => {
-      const message = 'CDS extractor source root directory: /my/source-root';
-      cdsExtractorLog('info', message);
-
-      expect(mockConsoleLog).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /^\[CDS-.+ \d+\] INFO: CDS extractor source root directory: \/my\/source-root$/,
-        ),
-      );
-    });
-
-    it('should filter absolute paths to relative paths within source root', () => {
-      const message = 'Processing file at /my/source-root/project1/service.cds';
-      cdsExtractorLog('info', message);
-
-      expect(mockConsoleLog).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[CDS-.+ \d+\] INFO: Processing file at project1\/service\.cds$/),
-      );
-    });
-
-    it('should filter absolute paths with trailing slash on source root', () => {
-      setSourceRootDirectory('/my/source-root/');
-      const message = 'Processing file at /my/source-root/project1/service.cds';
-      cdsExtractorLog('info', message);
-
-      expect(mockConsoleLog).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[CDS-.+ \d+\] INFO: Processing file at project1\/service\.cds$/),
-      );
-    });
-
-    it('should handle multiple paths in the same message', () => {
-      const message = 'Copying from /my/source-root/src/file.cds to /my/source-root/dist/file.cds';
-      cdsExtractorLog('info', message);
-
-      expect(mockConsoleLog).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /^\[CDS-.+ \d+\] INFO: Copying from src\/file\.cds to dist\/file\.cds$/,
-        ),
-      );
-    });
-
-    it('should handle paths that do not start with source root directory', () => {
-      const message = 'External file at /other/path/file.cds';
-      cdsExtractorLog('warn', message);
-
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[CDS-.+ \d+\] WARN: External file at \/other\/path\/file\.cds$/),
-      );
-    });
-
-    it('should handle relative paths without modification', () => {
-      const message = 'Processing relative file at project1/service.cds';
-      cdsExtractorLog('info', message);
-
-      expect(mockConsoleLog).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /^\[CDS-.+ \d+\] INFO: Processing relative file at project1\/service\.cds$/,
-        ),
-      );
-    });
-
-    it('should handle messages without paths', () => {
-      const message = 'Starting compilation process';
-      cdsExtractorLog('info', message);
-
-      expect(mockConsoleLog).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[CDS-.+ \d+\] INFO: Starting compilation process$/),
-      );
-    });
-
-    it('should filter paths in complex messages', () => {
-      const message =
-        'Potential problem with CDS file at expected path /my/source-root/project1/service.cds';
-      cdsExtractorLog('warn', message);
-
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /^\[CDS-.+ \d+\] WARN: Potential problem with CDS file at expected path project1\/service\.cds$/,
-        ),
-      );
-    });
-  });
-
   describe('edge cases', () => {
     it('should throw error when source root directory is undefined', () => {
       setSourceRootDirectory(undefined as unknown as string);
 
       expect(() => {
-        cdsExtractorLog('info', 'Test message with /some/path');
+        cdsExtractorLog('info', 'Test message');
       }).toThrow('Source root directory is not set. Call setSourceRootDirectory() first.');
     });
 
@@ -206,7 +118,7 @@ describe('cdsExtractorLog', () => {
       setSourceRootDirectory('');
 
       expect(() => {
-        cdsExtractorLog('info', 'Test message with /some/path');
+        cdsExtractorLog('info', 'Test message');
       }).toThrow('Source root directory is not set. Call setSourceRootDirectory() first.');
     });
 
@@ -238,17 +150,17 @@ describe('cdsExtractorLog', () => {
       cdsExtractorLog('info', message);
 
       expect(mockConsoleLog).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[CDS-.+ \d+\] INFO: File at test\.cds$/),
+        expect.stringMatching(/^\[CDS-.+ \d+\] INFO: File at \/new\/source-root\/test\.cds$/),
       );
     });
 
-    it('should normalize source root directory with trailing slash', () => {
+    it('should allow setting source root directory with trailing slash', () => {
       setSourceRootDirectory('/test/root/');
       const message = 'File at /test/root/subfolder/test.cds';
       cdsExtractorLog('info', message);
 
       expect(mockConsoleLog).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[CDS-.+ \d+\] INFO: File at subfolder\/test\.cds$/),
+        expect.stringMatching(/^\[CDS-.+ \d+\] INFO: File at \/test\/root\/subfolder\/test\.cds$/),
       );
     });
   });

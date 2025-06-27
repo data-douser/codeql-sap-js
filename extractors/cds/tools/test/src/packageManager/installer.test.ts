@@ -268,5 +268,127 @@ describe('installer', () => {
 
       expect(result.size).toBe(0);
     });
+
+    it('should reuse cache for projects with different version specs but same resolved versions', () => {
+      // Mock version resolver to return the same resolved versions for different specs
+      const mockResolveCdsVersions = jest.mocked(
+        jest.requireMock('../../../src/packageManager/versionResolver').resolveCdsVersions,
+      );
+      mockResolveCdsVersions.mockReturnValue({
+        resolvedCdsVersion: '6.1.3',
+        resolvedCdsDkVersion: '6.0.0',
+        cdsExactMatch: false,
+        cdsDkExactMatch: false,
+      });
+
+      const dependencyGraph = createMockDependencyGraph([
+        {
+          projectDir: '/project1',
+          packageJson: {
+            name: 'project1',
+            dependencies: { '@sap/cds': '^6.1.0' },
+            devDependencies: { '@sap/cds-dk': '^6.0.0' },
+          },
+        },
+        {
+          projectDir: '/project2',
+          packageJson: {
+            name: 'project2',
+            dependencies: { '@sap/cds': '~6.1.0' },
+            devDependencies: { '@sap/cds-dk': '~6.0.0' },
+          },
+        },
+        {
+          projectDir: '/project3',
+          packageJson: {
+            name: 'project3',
+            dependencies: { '@sap/cds': 'latest' },
+            devDependencies: { '@sap/cds-dk': 'latest' },
+          },
+        },
+      ]);
+
+      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+
+      // Should create only one cache directory since all resolve to the same versions
+      expect(fs.mkdirSync).toHaveBeenCalledWith('/source/.cds-extractor-cache', {
+        recursive: true,
+      });
+
+      // Should only write one package.json (since only one cache dir is created)
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+
+      // Should only run npm install once
+      expect(childProcess.execFileSync).toHaveBeenCalledTimes(1);
+      expect(childProcess.execFileSync).toHaveBeenCalledWith(
+        'npm',
+        ['install', '--quiet', '--no-audit', '--no-fund'],
+        expect.objectContaining({ cwd: expect.stringContaining('cds-') }),
+      );
+
+      // All three projects should be mapped to cache directories
+      expect(result.size).toBe(3);
+
+      // All projects should use the same cache directory
+      const cacheDirs = Array.from(result.values());
+      expect(new Set(cacheDirs).size).toBe(1); // Only one unique cache directory
+    });
+
+    it('should create separate caches for projects with different resolved versions', () => {
+      const mockResolveCdsVersions = jest.mocked(
+        jest.requireMock('../../../src/packageManager/versionResolver').resolveCdsVersions,
+      );
+
+      // Mock different return values based on input
+      mockResolveCdsVersions.mockImplementation((cdsVersion: string, _cdsDkVersion: string) => {
+        if (cdsVersion === '6.1.3') {
+          return {
+            resolvedCdsVersion: '6.1.3',
+            resolvedCdsDkVersion: '6.0.0',
+            cdsExactMatch: true,
+            cdsDkExactMatch: true,
+          };
+        } else {
+          return {
+            resolvedCdsVersion: '7.0.0',
+            resolvedCdsDkVersion: '7.0.0',
+            cdsExactMatch: true,
+            cdsDkExactMatch: true,
+          };
+        }
+      });
+
+      const dependencyGraph = createMockDependencyGraph([
+        {
+          projectDir: '/project1',
+          packageJson: {
+            name: 'project1',
+            dependencies: { '@sap/cds': '6.1.3' },
+            devDependencies: { '@sap/cds-dk': '6.0.0' },
+          },
+        },
+        {
+          projectDir: '/project2',
+          packageJson: {
+            name: 'project2',
+            dependencies: { '@sap/cds': '7.0.0' },
+            devDependencies: { '@sap/cds-dk': '7.0.0' },
+          },
+        },
+      ]);
+
+      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+
+      // Should create two separate cache directories
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
+      expect(childProcess.execFileSync).toHaveBeenCalledTimes(2);
+
+      // Both projects should be mapped
+      expect(result.size).toBe(2);
+
+      // Projects should use different cache directories
+      const cacheDirs = Array.from(result.values());
+      expect(new Set(cacheDirs).size).toBe(2); // Two unique cache directories
+    });
   });
 });

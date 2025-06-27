@@ -640,26 +640,34 @@ export function isLikelyCdsProject(dir: string): boolean {
 
       // Check for common CAP dependencies
       if (dependencies['@sap/cds'] || dependencies['@sap/cds-dk']) {
+        // If this has workspaces defined, it's likely a monorepo root, not a CDS project itself
+        // unless it also has CDS files or standard CDS directories
+        if (
+          packageJson.workspaces &&
+          Array.isArray(packageJson.workspaces) &&
+          packageJson.workspaces.length > 0
+        ) {
+          // This is likely a monorepo - only treat as CDS project if it has actual CDS content
+          const hasStandardCdsDirectories = hasStandardCdsContent(dir);
+          const hasDirectCdsFiles = hasDirectCdsContent(dir);
+
+          if (!hasStandardCdsDirectories && !hasDirectCdsFiles) {
+            // This is a monorepo root without its own CDS content
+            return false;
+          }
+        }
+
         return true;
       }
     }
 
     // Check for CDS files in standard locations (checking both direct and nested files)
-    const standardLocations = [join(dir, 'db'), join(dir, 'srv'), join(dir, 'app')];
-
-    for (const location of standardLocations) {
-      if (existsSync(location) && statSync(location).isDirectory()) {
-        // Check for any .cds files at any level under these directories
-        const cdsFiles = sync(join(location, '**/*.cds'), { nodir: true });
-        if (cdsFiles.length > 0) {
-          return true;
-        }
-      }
+    if (hasStandardCdsContent(dir)) {
+      return true;
     }
 
     // Check for direct CDS files in the directory
-    const directCdsFiles = sync(join(dir, '*.cds'));
-    if (directCdsFiles.length > 0) {
+    if (hasDirectCdsContent(dir)) {
       return true;
     }
 
@@ -668,6 +676,33 @@ export function isLikelyCdsProject(dir: string): boolean {
     cdsExtractorLog('error', `Error checking directory ${dir}: ${String(error)}`);
     return false;
   }
+}
+
+/**
+ * Check if a directory has CDS content in standard CAP directories
+ */
+function hasStandardCdsContent(dir: string): boolean {
+  const standardLocations = [join(dir, 'db'), join(dir, 'srv'), join(dir, 'app')];
+
+  for (const location of standardLocations) {
+    if (existsSync(location) && statSync(location).isDirectory()) {
+      // Check for any .cds files at any level under these directories
+      const cdsFiles = sync(join(location, '**/*.cds'), { nodir: true });
+      if (cdsFiles.length > 0) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if a directory has direct CDS files
+ */
+function hasDirectCdsContent(dir: string): boolean {
+  const directCdsFiles = sync(join(dir, '*.cds'));
+  return directCdsFiles.length > 0;
 }
 
 /**

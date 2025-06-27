@@ -18,12 +18,12 @@ fi
 # of the project that to be scanned / indexed.
 _cwd="$PWD"
 _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-_cds_extractor_js_path="${_script_dir}/out/cds-extractor.js"
+_cds_extractor_js_path="${_script_dir}/dist/cds-extractor.js"
 _cds_extractor_node_modules_dir="${_script_dir}/node_modules"
 
 if [ ! -f "${_cds_extractor_js_path}" ]; then
     echo "Error: The 'cds-extractor.js' script does not exist at the expected path: ${_cds_extractor_js_path}"
-    echo "Please ensure that the script has been built and is available in the 'out' directory."
+    echo "Please ensure that the script has been built and is available in the 'dist' directory."
     exit 3
 fi
 

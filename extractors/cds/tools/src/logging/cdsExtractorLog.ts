@@ -1,9 +1,7 @@
-import { filterPathsInMessage } from './filter';
 import type { LogLevel } from './types';
 
 /**
- * Source root directory for path filtering. When set, absolute paths
- * starting with this directory will be converted to relative paths.
+ * Source root directory for logging context.
  */
 let sourceRootDirectory: string | undefined;
 
@@ -25,7 +23,7 @@ const extractorStartTime = Date.now();
 const performanceTracking = new Map<string, number>();
 
 /**
- * Sets the source root directory for path filtering in log messages.
+ * Sets the source root directory for logging context.
  * This should typically be called once at the start of the CDS extractor.
  *
  * @param sourceRoot - The absolute path to the source root directory
@@ -183,7 +181,7 @@ export function logPerformanceCounter(
 
 /**
  * Unified logging function for the CDS extractor. Provides consistent
- * log formatting with level prefixes, elapsed time, session IDs, and path filtering.
+ * log formatting with level prefixes, elapsed time, and session IDs.
  *
  * @param level - The log level ('debug', 'info', 'warn', 'error')
  * @param message - The primary message or data to log
@@ -202,37 +200,28 @@ export function cdsExtractorLog(
   const elapsedMs = currentTime - extractorStartTime;
   const levelPrefix = `[CDS-${sessionId} ${elapsedMs}] ${level.toUpperCase()}: `;
 
-  // Process the primary message for path filtering if it's a string
-  let processedMessage: string;
-  if (typeof message === 'string') {
-    processedMessage = levelPrefix + filterPathsInMessage(sourceRootDirectory, message);
-  } else {
-    // For non-string messages, just add the prefix
-    processedMessage = levelPrefix;
-  }
-
   // Select the appropriate console function based on log level
   switch (level) {
     case 'debug':
     case 'info':
       if (typeof message === 'string') {
-        console.log(processedMessage, ...optionalParams);
+        console.log(levelPrefix + message, ...optionalParams);
       } else {
-        console.log(processedMessage, message, ...optionalParams);
+        console.log(levelPrefix, message, ...optionalParams);
       }
       break;
     case 'warn':
       if (typeof message === 'string') {
-        console.warn(processedMessage, ...optionalParams);
+        console.warn(levelPrefix + message, ...optionalParams);
       } else {
-        console.warn(processedMessage, message, ...optionalParams);
+        console.warn(levelPrefix, message, ...optionalParams);
       }
       break;
     case 'error':
       if (typeof message === 'string') {
-        console.error(processedMessage, ...optionalParams);
+        console.error(levelPrefix + message, ...optionalParams);
       } else {
-        console.error(processedMessage, message, ...optionalParams);
+        console.error(levelPrefix, message, ...optionalParams);
       }
       break;
     default:

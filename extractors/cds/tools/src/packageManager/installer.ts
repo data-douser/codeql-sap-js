@@ -8,6 +8,8 @@ import { DiagnosticSeverity } from '../diagnostics';
 import { cdsExtractorLog } from '../logging';
 import { resolveCdsVersions } from './versionResolver';
 
+const cacheSubDirName = '.cds-extractor-cache';
+
 /**
  * Interface for package.json structure
  */
@@ -40,7 +42,7 @@ function extractUniqueDependencyCombinations(
 ): CdsDependencyCombination[] {
   const combinations = new Map<string, CdsDependencyCombination>();
 
-  for (const project of projects.values()) {
+  for (const project of Array.from(projects.values())) {
     if (!project.packageJson) {
       continue;
     }
@@ -48,13 +50,18 @@ function extractUniqueDependencyCombinations(
     const cdsVersion = project.packageJson.dependencies?.['@sap/cds'] ?? 'latest';
     const cdsDkVersion = project.packageJson.devDependencies?.['@sap/cds-dk'] ?? cdsVersion;
 
-    const hash = createHash('sha256').update(`${cdsVersion}|${cdsDkVersion}`).digest('hex');
+    // Resolve versions first to ensure we cache based on actual resolved versions
+    const resolvedVersions = resolveCdsVersions(cdsVersion, cdsDkVersion);
+    const { resolvedCdsVersion, resolvedCdsDkVersion, ...rest } = resolvedVersions;
+
+    // Calculate hash based on resolved versions to ensure proper cache reuse
+    const actualCdsVersion = resolvedCdsVersion ?? cdsVersion;
+    const actualCdsDkVersion = resolvedCdsDkVersion ?? cdsDkVersion;
+    const hash = createHash('sha256')
+      .update(`${actualCdsVersion}|${actualCdsDkVersion}`)
+      .digest('hex');
 
     if (!combinations.has(hash)) {
-      const resolvedVersions = resolveCdsVersions(cdsVersion, cdsDkVersion);
-
-      const { resolvedCdsVersion, resolvedCdsDkVersion, ...rest } = resolvedVersions;
-
       combinations.set(hash, {
         cdsVersion,
         cdsDkVersion,
@@ -110,6 +117,7 @@ function addDependencyVersionWarning(
  * Attempt to install dependencies in a cache directory with fallback logic
  * @param cacheDir Cache directory path
  * @param combination Dependency combination to install
+ * @param cacheDirName Name of the cache directory for logging
  * @param packageJsonPath Optional package.json path for diagnostics
  * @param codeqlExePath Optional CodeQL executable path for diagnostics
  * @returns True if installation succeeded, false otherwise
@@ -117,6 +125,7 @@ function addDependencyVersionWarning(
 function installDependenciesInCache(
   cacheDir: string,
   combination: CdsDependencyCombination,
+  cacheDirName: string,
   packageJsonPath?: string,
   codeqlExePath?: string,
 ): boolean {
@@ -130,7 +139,7 @@ function installDependenciesInCache(
   if (nodeModulesExists) {
     cdsExtractorLog(
       'info',
-      `Using cached dependencies for @sap/cds@${resolvedCdsVersion} and @sap/cds-dk@${resolvedCdsDkVersion}`,
+      `Using cached dependencies for @sap/cds@${resolvedCdsVersion} and @sap/cds-dk@${resolvedCdsDkVersion} from ${cacheDirName}`,
     );
 
     // Add warning diagnostic if using fallback versions
@@ -149,7 +158,7 @@ function installDependenciesInCache(
   // Install dependencies in the cache directory
   cdsExtractorLog(
     'info',
-    `Installing @sap/cds@${resolvedCdsVersion} and @sap/cds-dk@${resolvedCdsDkVersion} in cache...`,
+    `Installing @sap/cds@${resolvedCdsVersion} and @sap/cds-dk@${resolvedCdsDkVersion} in cache directory: ${cacheDirName}`,
   );
 
   if (isFallback && warning) {
@@ -208,11 +217,31 @@ export function installDependencies(
     `Found ${dependencyCombinations.length} unique CDS dependency combination(s).`,
   );
 
-  // Create a cache directory under the source root
-  const cacheRootDir = join(sourceRoot, '.cds-extractor-cache');
+  // Log each dependency combination for transparency
+  for (const combination of dependencyCombinations) {
+    const { cdsVersion, cdsDkVersion, hash, resolvedCdsVersion, resolvedCdsDkVersion, isFallback } =
+      combination;
+    const actualCdsVersion = resolvedCdsVersion ?? cdsVersion;
+    const actualCdsDkVersion = resolvedCdsDkVersion ?? cdsDkVersion;
+    const fallbackNote = isFallback ? ' (using fallback versions)' : '';
+
+    cdsExtractorLog(
+      'info',
+      `Dependency combination ${hash.substring(0, 8)}: @sap/cds@${actualCdsVersion}, @sap/cds-dk@${actualCdsDkVersion}${fallbackNote}`,
+    );
+  }
+
+  // Create a cache directory under the source root directory.
+  const cacheRootDir = join(sourceRoot, cacheSubDirName);
+  cdsExtractorLog(
+    'info',
+    `Using cache directory '${cacheSubDirName}' within source root directory '${cacheRootDir}'`,
+  );
+
   if (!existsSync(cacheRootDir)) {
     try {
       mkdirSync(cacheRootDir, { recursive: true });
+      cdsExtractorLog('info', `Created cache directory: ${cacheRootDir}`);
     } catch (err) {
       cdsExtractorLog(
         'warn',
@@ -221,6 +250,8 @@ export function installDependencies(
       cdsExtractorLog('info', 'Skipping dependency installation due to cache directory failure.');
       return new Map<string, string>();
     }
+  } else {
+    cdsExtractorLog('info', `Cache directory already exists: ${cacheRootDir}`);
   }
 
   // Map to track which cache directory to use for each project
@@ -234,14 +265,20 @@ export function installDependencies(
     const cacheDirName = `cds-${hash}`;
     const cacheDir = join(cacheRootDir, cacheDirName);
 
+    cdsExtractorLog(
+      'info',
+      `Processing dependency combination ${hash.substring(0, 8)} in cache directory: ${cacheDirName}`,
+    );
+
     // Create the cache directory if it doesn't exist
     if (!existsSync(cacheDir)) {
       try {
         mkdirSync(cacheDir, { recursive: true });
+        cdsExtractorLog('info', `Created cache subdirectory: ${cacheDirName}`);
       } catch (err) {
         cdsExtractorLog(
           'error',
-          `Failed to create cache directory for combination ${hash}: ${
+          `Failed to create cache directory for combination ${hash.substring(0, 8)} (${cacheDirName}): ${
             err instanceof Error ? err.message : String(err)
           }`,
         );
@@ -264,10 +301,11 @@ export function installDependencies(
 
       try {
         writeFileSync(join(cacheDir, 'package.json'), JSON.stringify(packageJson, null, 2));
+        cdsExtractorLog('info', `Created package.json in cache subdirectory: ${cacheDirName}`);
       } catch (err) {
         cdsExtractorLog(
           'error',
-          `Failed to create package.json in cache directory: ${
+          `Failed to create package.json in cache directory ${cacheDirName}: ${
             err instanceof Error ? err.message : String(err)
           }`,
         );
@@ -287,26 +325,44 @@ export function installDependencies(
     const installSuccess = installDependenciesInCache(
       cacheDir,
       combination,
+      cacheDirName,
       packageJsonPath,
       codeqlExePath,
     );
 
     if (!installSuccess) {
-      cdsExtractorLog('warn', `Skipping failed dependency combination ${hash}`);
+      cdsExtractorLog(
+        'warn',
+        `Skipping failed dependency combination ${hash.substring(0, 8)} (cache directory: ${cacheDirName})`,
+      );
       continue;
     }
 
     successfulInstallations++;
 
     // Associate projects with this dependency combination
-    for (const [projectDir, project] of dependencyGraph.projects.entries()) {
+    for (const [projectDir, project] of Array.from(dependencyGraph.projects.entries())) {
       if (!project.packageJson) {
         continue;
       }
       const p_cdsVersion = project.packageJson.dependencies?.['@sap/cds'] ?? 'latest';
       const p_cdsDkVersion = project.packageJson.devDependencies?.['@sap/cds-dk'] ?? p_cdsVersion;
 
-      if (p_cdsVersion === combination.cdsVersion && p_cdsDkVersion === combination.cdsDkVersion) {
+      // Resolve the project's versions to match against the combination's resolved versions
+      const projectResolvedVersions = resolveCdsVersions(p_cdsVersion, p_cdsDkVersion);
+      const projectActualCdsVersion = projectResolvedVersions.resolvedCdsVersion ?? p_cdsVersion;
+      const projectActualCdsDkVersion =
+        projectResolvedVersions.resolvedCdsDkVersion ?? p_cdsDkVersion;
+
+      // Match based on resolved versions since that's what the hash is based on
+      const combinationActualCdsVersion = combination.resolvedCdsVersion ?? combination.cdsVersion;
+      const combinationActualCdsDkVersion =
+        combination.resolvedCdsDkVersion ?? combination.cdsDkVersion;
+
+      if (
+        projectActualCdsVersion === combinationActualCdsVersion &&
+        projectActualCdsDkVersion === combinationActualCdsDkVersion
+      ) {
         projectCacheDirMap.set(projectDir, cacheDir);
       }
     }
@@ -322,6 +378,15 @@ export function installDependencies(
     );
   } else {
     cdsExtractorLog('info', 'All dependency combinations installed successfully.');
+  }
+
+  // Log project to cache directory mappings for transparency
+  if (projectCacheDirMap.size > 0) {
+    cdsExtractorLog('info', `Project to cache directory mappings:`);
+    for (const [projectDir, cacheDir] of Array.from(projectCacheDirMap.entries())) {
+      const cacheDirName = join(cacheDir).split('/').pop() ?? 'unknown';
+      cdsExtractorLog('info', `  ${projectDir} → ${cacheDirName}`);
+    }
   }
 
   return projectCacheDirMap;
