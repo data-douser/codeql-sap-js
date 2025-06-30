@@ -78,7 +78,7 @@ class AwaitCqlClauseWithStringConcatParameter extends CqlInjectionSink {
  * Service2.run(query);
  * ```
  * The `getQuery/0` member predicate gets the `query` argument of the above calls
- * to `run`
+ * to `run`.
  */
 class StringConcatParameterOfCqlRunMethodQueryArgument extends CqlInjectionSink {
   CqlRunMethodCall cqlRunMethodCall;
