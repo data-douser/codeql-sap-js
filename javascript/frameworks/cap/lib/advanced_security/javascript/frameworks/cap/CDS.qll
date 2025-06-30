@@ -8,13 +8,24 @@ import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 
 /**
  * The CDS facade object that provides useful interfaces to the current CAP application.
- * It also acts as a shortcut to `cds.db` when imported via `"@sap/cds"`.
+ * It also acts as a shortcut to `cds.db`.
  *
- * ```js
- * const cds = require('@sap/cds')
+ * ``` javascript
+ * var cds = require("@sap/cds")
+ * var cds = require("@sap/cds/lib")
+ * ```
+ *
+ * Note that, despite not being recorded in the API documentation, this object can also
+ * be obtained via a more specific import path `"@sap/cds/lib"`. The `cds_facade` object
+ * defined this way is identical with the official `"@sap/cds"` down to the memory location
+ * it is allocated in:
+ *
+ * ``` javascript
+ * var cds = require("@sap/cds");
+ * var cdslib = require("@sap/cds/lib");
+ * assert(cds === cdslib)
  * ```
  */
-/* TODO: Does the `cds` object imported with `"@sap/cds/lib"` also have shortcut to `cds.db`?  */
 class CdsFacade extends API::Node {
   string importPath;
 
@@ -22,11 +33,6 @@ class CdsFacade extends API::Node {
     importPath = ["@sap/cds", "@sap/cds/lib"] and
     this = API::moduleImport(importPath)
   }
-
-  /**
-   * Holds if this CDS facade object is imported via path `"@sap/cds/lib"`.
-   */
-  predicate isFromCdsLib() { importPath = "@sap/cds/lib" }
 }
 
 /**
@@ -39,23 +45,6 @@ class CdsEntitiesCall extends DataFlow::CallNode {
    * Gets the namespace that this entity belongs to.
    */
   string getNamespace() { result = this.getArgument(0).getStringValue() }
-}
-
-/**
- * The property `db` of on a CDS facade, often accessed as `cds.db`.
- */
-class CdsDb extends SourceNode {
-  CdsDb() { exists(CdsFacade cds | not cds.isFromCdsLib() | this = cds.getMember("db").asSource()) }
-
-  MethodCallNode getRunCall() { result = this.getAMemberCall("run") }
-
-  MethodCallNode getCreateCall() { result = this.getAMemberCall("create") }
-
-  MethodCallNode getUpdateCall() { result = this.getAMemberCall("update") }
-
-  MethodCallNode getDeleteCall() { result = this.getAMemberCall("delete") }
-
-  MethodCallNode getInsertCall() { result = this.getAMemberCall("insert") }
 }
 
 /**
@@ -275,13 +264,26 @@ abstract class CdsDbService extends ServiceInstance {
   override UserDefinedApplicationService getDefinition() { none() }
 }
 
-class GloballyAccessedCdsDbService extends CdsDbService {
-  GloballyAccessedCdsDbService() {
-    exists(CdsFacade cds | not cds.isFromCdsLib() |
+/**
+ * The property `db` of on a CDS facade, often accessed as `cds.db`.
+ */
+class CdsDb extends SourceNode, CdsDbService {
+  CdsDb() {
+    exists(CdsFacade cds |
       this = cds.getMember("db").asSource() or
       this = cds.asSource()
     )
   }
+
+  MethodCallNode getRunCall() { result = this.getAMemberCall("run") }
+
+  MethodCallNode getCreateCall() { result = this.getAMemberCall("create") }
+
+  MethodCallNode getUpdateCall() { result = this.getAMemberCall("update") }
+
+  MethodCallNode getDeleteCall() { result = this.getAMemberCall("delete") }
+
+  MethodCallNode getInsertCall() { result = this.getAMemberCall("insert") }
 }
 
 class DbServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo, CdsDbService {
@@ -760,11 +762,7 @@ class EntityReferenceFromDbOrCdsEntities extends EntityReferenceFromEntities {
       this.getEntities().(MethodCallNode).getArgument(0).getStringValue() + "." + entityName
   }
 
-  override UserDefinedApplicationService getServiceDefinition() {
-    /* TODO: Always get the DB service definition. */
-    none()
-    // result.getServiceName() = this.(CdsEntitiesCall).getNamespace()
-  }
+  override UserDefinedApplicationService getServiceDefinition() { none() }
 }
 
 class EntityReferenceFromCqlClause extends EntityReference, ExprNode {
