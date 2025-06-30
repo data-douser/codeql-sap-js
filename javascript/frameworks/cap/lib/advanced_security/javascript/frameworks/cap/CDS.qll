@@ -27,8 +27,6 @@ class CdsFacade extends API::Node {
    * Holds if this CDS facade object is imported via path `"@sap/cds/lib"`.
    */
   predicate isFromCdsLib() { importPath = "@sap/cds/lib" }
-
-  Node getNode() { result = this.asSource() }
 }
 
 /**
