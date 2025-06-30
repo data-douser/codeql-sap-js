@@ -66,7 +66,7 @@ try {
         }
     }
     else {
-        (0, logging_1.cdsExtractorLog)('warn', 'No CDS projects were detected. This may indicate an issue with project detection logic.');
+        (0, logging_1.cdsExtractorLog)('error', 'No CDS projects were detected. This is an unrecoverable error as there is nothing to scan.');
         // Let's also try to find CDS files directly as a backup check
         try {
             const allCdsFiles = Array.from(new Set([
@@ -77,11 +77,18 @@ try {
             (0, logging_1.cdsExtractorLog)('info', `Direct search found ${allCdsFiles.length} CDS files in the source tree.`);
             if (allCdsFiles.length > 0) {
                 (0, logging_1.cdsExtractorLog)('info', `Sample CDS files: ${allCdsFiles.slice(0, 5).join(', ')}${allCdsFiles.length > 5 ? ', ...' : ''}`);
+                (0, logging_1.cdsExtractorLog)('error', 'CDS files were found but no projects were detected. This indicates a problem with project detection logic.');
+            }
+            else {
+                (0, logging_1.cdsExtractorLog)('info', 'No CDS files found in the source tree. This may be expected if the source does not contain CAP/CDS projects.');
             }
         }
         catch (globError) {
             (0, logging_1.cdsExtractorLog)('warn', `Could not perform direct CDS file search: ${String(globError)}`);
         }
+        // Exit early since we have no CDS projects to process
+        (0, logging_1.logExtractorStop)(false, 'Terminated: No CDS projects detected');
+        process.exit(1);
     }
 }
 catch (error) {
@@ -93,6 +100,18 @@ catch (error) {
 (0, logging_1.startPerformanceTracking)('Dependency Installation');
 const projectCacheDirMap = (0, packageManager_1.installDependencies)(dependencyGraph, sourceRoot, codeqlExePath);
 (0, logging_1.endPerformanceTracking)('Dependency Installation');
+// Check if dependency installation resulted in any usable project mappings
+if (projectCacheDirMap.size === 0) {
+    (0, logging_1.cdsExtractorLog)('error', 'No project cache directory mappings were created. This indicates that dependency installation failed for all discovered projects.');
+    // This is a critical error if we have projects but no cache mappings
+    if (dependencyGraph.projects.size > 0) {
+        (0, logging_1.cdsExtractorLog)('error', `Found ${dependencyGraph.projects.size} CDS projects but failed to install dependencies for any of them. Cannot proceed with compilation.`);
+        (0, logging_1.logExtractorStop)(false, 'Terminated: Dependency installation failed for all projects');
+        process.exit(1);
+    }
+    // If we have no projects and no cache mappings, this should have been caught earlier
+    (0, logging_1.cdsExtractorLog)('warn', 'No projects and no cache mappings - this should have been detected earlier.');
+}
 const cdsFilePathsToProcess = [];
 // Use the enhanced dependency graph to collect all `.cds` files from each project.
 // We want to "extract" all `.cds` files from all projects so that we have a copy

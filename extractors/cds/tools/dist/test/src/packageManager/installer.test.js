@@ -68,6 +68,7 @@ jest.mock('../../../src/logging', () => ({
 // Mock the version resolver
 jest.mock('../../../src/packageManager/versionResolver', () => ({
     resolveCdsVersions: jest.fn(),
+    logCacheStatistics: jest.fn(),
 }));
 describe('installer', () => {
     // Helper function to create a minimal mock dependency graph
@@ -349,6 +350,201 @@ describe('installer', () => {
             // Projects should use different cache directories
             const cacheDirs = Array.from(result.values());
             expect(new Set(cacheDirs).size).toBe(2); // Two unique cache directories
+        });
+        it('should handle projects with no @sap/cds dependencies and return empty map', () => {
+            // Reset the mock to not return any CDS dependencies
+            const mockResolveCdsVersions = jest.mocked(jest.requireMock('../../../src/packageManager/versionResolver').resolveCdsVersions);
+            mockResolveCdsVersions.mockReturnValue({
+                resolvedCdsVersion: null,
+                resolvedCdsDkVersion: null,
+                cdsExactMatch: false,
+                cdsDkExactMatch: false,
+            });
+            const dependencyGraph = createMockDependencyGraph([
+                {
+                    projectDir: '/project1',
+                    packageJson: {
+                        name: 'project1',
+                        dependencies: { 'some-other-package': '1.0.0' },
+                    },
+                },
+            ]);
+            const result = (0, packageManager_1.installDependencies)(dependencyGraph, '/source', '/codeql');
+            expect(result.size).toBe(0);
+        });
+        it('should add diagnostic warning when using fallback versions', () => {
+            // Mock version resolver to return fallback versions
+            const mockResolveCdsVersions = jest.mocked(jest.requireMock('../../../src/packageManager/versionResolver').resolveCdsVersions);
+            mockResolveCdsVersions.mockReturnValue({
+                resolvedCdsVersion: '6.1.3',
+                resolvedCdsDkVersion: '6.0.0',
+                cdsExactMatch: false,
+                cdsDkExactMatch: false,
+                isFallback: true,
+                warning: 'Using fallback versions due to compatibility issues',
+            });
+            // Mock existing cached dependencies
+            fs.existsSync.mockImplementation((path) => {
+                if (path.includes('.cds-extractor-cache') && !path.includes('node_modules')) {
+                    return true;
+                }
+                if (path.includes('.cds-extractor-cache/cds-') && path.endsWith('node_modules/@sap/cds')) {
+                    return true;
+                }
+                if (path.includes('.cds-extractor-cache/cds-') &&
+                    path.endsWith('node_modules/@sap/cds-dk')) {
+                    return true;
+                }
+                return false;
+            });
+            const dependencyGraph = createMockDependencyGraph([
+                {
+                    projectDir: '/project1',
+                    packageJson: {
+                        name: 'project1',
+                        dependencies: { '@sap/cds': '^6.0.0' },
+                        devDependencies: { '@sap/cds-dk': '^6.0.0' },
+                    },
+                },
+            ]);
+            const result = (0, packageManager_1.installDependencies)(dependencyGraph, '/source', '/codeql');
+            // Should add diagnostic warning for fallback versions
+            expect(childProcess.execFileSync).toHaveBeenCalledWith('/codeql', expect.arrayContaining([
+                'database',
+                'add-diagnostic',
+                '--extractor-name=cds',
+                '--source-id=cds/dependency-version-fallback',
+                expect.stringContaining('Using fallback versions due to compatibility issues'),
+            ]));
+            expect(result.size).toBe(1);
+        });
+        it('should handle diagnostic creation failure gracefully', () => {
+            // Mock version resolver to return fallback versions
+            const mockResolveCdsVersions = jest.mocked(jest.requireMock('../../../src/packageManager/versionResolver').resolveCdsVersions);
+            mockResolveCdsVersions.mockReturnValue({
+                resolvedCdsVersion: '6.1.3',
+                resolvedCdsDkVersion: '6.0.0',
+                cdsExactMatch: false,
+                cdsDkExactMatch: false,
+                isFallback: true,
+                warning: 'Using fallback versions',
+            });
+            // Mock existing cached dependencies
+            fs.existsSync.mockImplementation((path) => {
+                if (path.includes('.cds-extractor-cache') && !path.includes('node_modules')) {
+                    return true;
+                }
+                if (path.includes('.cds-extractor-cache/cds-') && path.endsWith('node_modules/@sap/cds')) {
+                    return true;
+                }
+                if (path.includes('.cds-extractor-cache/cds-') &&
+                    path.endsWith('node_modules/@sap/cds-dk')) {
+                    return true;
+                }
+                return false;
+            });
+            // Mock execFileSync to fail for diagnostic commands
+            childProcess.execFileSync.mockImplementation((command, args) => {
+                if (command === '/codeql' && args.includes('add-diagnostic')) {
+                    throw new Error('Failed to add diagnostic');
+                }
+                return '';
+            });
+            const dependencyGraph = createMockDependencyGraph([
+                {
+                    projectDir: '/project1',
+                    packageJson: {
+                        name: 'project1',
+                        dependencies: { '@sap/cds': '^6.0.0' },
+                        devDependencies: { '@sap/cds-dk': '^6.0.0' },
+                    },
+                },
+            ]);
+            const result = (0, packageManager_1.installDependencies)(dependencyGraph, '/source', '/codeql');
+            // Should still succeed even if diagnostic fails
+            expect(result.size).toBe(1);
+        });
+        it('should handle projects with no resolved versions', () => {
+            const mockResolveCdsVersions = jest.mocked(jest.requireMock('../../../src/packageManager/versionResolver').resolveCdsVersions);
+            mockResolveCdsVersions.mockReturnValue({
+                resolvedCdsVersion: null,
+                resolvedCdsDkVersion: null,
+                cdsExactMatch: false,
+                cdsDkExactMatch: false,
+            });
+            const dependencyGraph = createMockDependencyGraph([
+                {
+                    projectDir: '/project1',
+                    packageJson: {
+                        name: 'project1',
+                        dependencies: { '@sap/cds': 'invalid-version' },
+                        devDependencies: { '@sap/cds-dk': 'invalid-version' },
+                    },
+                },
+            ]);
+            const result = (0, packageManager_1.installDependencies)(dependencyGraph, '/source', '/codeql');
+            expect(result.size).toBe(0);
+        });
+        it('should handle projects with incomplete package.json', () => {
+            // Reset the mock to not return any CDS dependencies
+            const mockResolveCdsVersions = jest.mocked(jest.requireMock('../../../src/packageManager/versionResolver').resolveCdsVersions);
+            mockResolveCdsVersions.mockReturnValue({
+                resolvedCdsVersion: null,
+                resolvedCdsDkVersion: null,
+                cdsExactMatch: false,
+                cdsDkExactMatch: false,
+            });
+            const dependencyGraph = createMockDependencyGraph([
+                {
+                    projectDir: '/project1',
+                    packageJson: {
+                        name: 'project1',
+                        // Missing dependencies and devDependencies
+                    },
+                },
+            ]);
+            const result = (0, packageManager_1.installDependencies)(dependencyGraph, '/source', '/codeql');
+            expect(result.size).toBe(0);
+        });
+        it('should handle projects with undefined package.json', () => {
+            const dependencyGraph = createMockDependencyGraph([
+                {
+                    projectDir: '/project1',
+                    // packageJson is undefined
+                },
+            ]);
+            const result = (0, packageManager_1.installDependencies)(dependencyGraph, '/source', '/codeql');
+            expect(result.size).toBe(0);
+        });
+        it('should handle failure when no package.json path can be determined', () => {
+            const mockResolveCdsVersions = jest.mocked(jest.requireMock('../../../src/packageManager/versionResolver').resolveCdsVersions);
+            mockResolveCdsVersions.mockReturnValue({
+                resolvedCdsVersion: '6.1.3',
+                resolvedCdsDkVersion: '6.0.0',
+                cdsExactMatch: true,
+                cdsDkExactMatch: true,
+            });
+            const dependencyGraph = createMockDependencyGraph([]);
+            // Add a project map entry manually without package.json
+            const projectsMap = new Map();
+            projectsMap.set('/project1', {
+                id: 'project-/project1',
+                projectDir: '/project1',
+                cdsFiles: ['/project1/src/file.cds'],
+                cdsFilesToCompile: ['/project1/src/file.cds'],
+                expectedOutputFiles: ['/project1/src/file.json'],
+                packageJson: undefined, // No package.json
+                status: 'discovered',
+                compilationTasks: [],
+                timestamps: { discovered: new Date() },
+            });
+            dependencyGraph.projects = projectsMap;
+            // Mock the fs operations to force an install attempt even without package.json
+            fs.existsSync.mockReturnValue(false);
+            fs.mkdirSync.mockReturnValue(undefined);
+            fs.writeFileSync.mockReturnValue(undefined);
+            const result = (0, packageManager_1.installDependencies)(dependencyGraph, '/source', '/codeql');
+            expect(result.size).toBe(0);
         });
     });
 });

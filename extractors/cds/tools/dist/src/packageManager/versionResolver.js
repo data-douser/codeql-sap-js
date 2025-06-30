@@ -1,14 +1,157 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseSemanticVersion = parseSemanticVersion;
+exports.checkVersionCompatibility = checkVersionCompatibility;
 exports.compareVersions = compareVersions;
-exports.satisfiesRange = satisfiesRange;
 exports.findBestAvailableVersion = findBestAvailableVersion;
 exports.getAvailableVersions = getAvailableVersions;
+exports.parseSemanticVersion = parseSemanticVersion;
 exports.resolveCdsVersions = resolveCdsVersions;
-exports.checkVersionCompatibility = checkVersionCompatibility;
+exports.satisfiesRange = satisfiesRange;
+exports.getCacheStatistics = getCacheStatistics;
+exports.clearVersionCache = clearVersionCache;
+exports.logCacheStatistics = logCacheStatistics;
 const child_process_1 = require("child_process");
 const logging_1 = require("../logging");
+/**
+ * Cache for storing available versions for npm packages to avoid duplicate npm view calls
+ */
+const availableVersionsCache = new Map();
+/**
+ * Cache statistics for debugging purposes
+ */
+const cacheStats = {
+    hits: 0,
+    misses: 0,
+    get hitRate() {
+        const total = this.hits + this.misses;
+        return total > 0 ? ((this.hits / total) * 100).toFixed(1) : '0.0';
+    },
+};
+/**
+ * Check if @sap/cds and @sap/cds-dk versions are likely compatible
+ * @param cdsVersion The @sap/cds version
+ * @param cdsDkVersion The @sap/cds-dk version
+ * @returns Object with compatibility information and warnings
+ */
+function checkVersionCompatibility(cdsVersion, cdsDkVersion) {
+    // If either version is 'latest', assume they are compatible
+    if (cdsVersion === 'latest' || cdsDkVersion === 'latest') {
+        return { isCompatible: true };
+    }
+    const parsedCds = parseSemanticVersion(cdsVersion);
+    const parsedCdsDk = parseSemanticVersion(cdsDkVersion);
+    if (!parsedCds || !parsedCdsDk) {
+        return {
+            isCompatible: false,
+            warning: 'Unable to parse version numbers for compatibility check',
+        };
+    }
+    // Generally, @sap/cds and @sap/cds-dk should have the same major version
+    // and ideally the same minor version for best compatibility
+    const majorVersionsMatch = parsedCds.major === parsedCdsDk.major;
+    const minorVersionsMatch = parsedCds.minor === parsedCdsDk.minor;
+    if (!majorVersionsMatch) {
+        return {
+            isCompatible: false,
+            warning: `Major version mismatch: @sap/cds ${cdsVersion} and @sap/cds-dk ${cdsDkVersion} may not be compatible`,
+        };
+    }
+    if (!minorVersionsMatch) {
+        return {
+            isCompatible: true,
+            warning: `Minor version difference: @sap/cds ${cdsVersion} and @sap/cds-dk ${cdsDkVersion} - consider aligning versions for best compatibility`,
+        };
+    }
+    return { isCompatible: true };
+}
+/**
+ * Compare two semantic versions
+ * @param a First version
+ * @param b Second version
+ * @returns Negative if a < b, 0 if equal, positive if a > b
+ */
+function compareVersions(a, b) {
+    if (a.major !== b.major)
+        return a.major - b.major;
+    if (a.minor !== b.minor)
+        return a.minor - b.minor;
+    if (a.patch !== b.patch)
+        return a.patch - b.patch;
+    // Handle prerelease versions (prerelease < release)
+    if (a.prerelease && !b.prerelease)
+        return -1;
+    if (!a.prerelease && b.prerelease)
+        return 1;
+    if (a.prerelease && b.prerelease) {
+        return a.prerelease.localeCompare(b.prerelease);
+    }
+    return 0;
+}
+/**
+ * Find the best available version from a list of versions for a given requirement
+ * @param availableVersions List of available version strings
+ * @param requiredVersion Required version string
+ * @returns Best matching version or null if no compatible version found
+ */
+function findBestAvailableVersion(availableVersions, requiredVersion) {
+    const parsedVersions = availableVersions
+        .map(v => parseSemanticVersion(v))
+        .filter((v) => v !== null);
+    if (parsedVersions.length === 0) {
+        return null;
+    }
+    // First, try to find versions that satisfy the range
+    const satisfyingVersions = parsedVersions.filter(v => satisfiesRange(v, requiredVersion));
+    if (satisfyingVersions.length > 0) {
+        // Sort in descending order (newest first) and return the best match
+        satisfyingVersions.sort((a, b) => compareVersions(b, a));
+        return satisfyingVersions[0].original;
+    }
+    // If no exact match, prefer newer versions over older ones
+    // Sort all versions in descending order and return the newest
+    parsedVersions.sort((a, b) => compareVersions(b, a));
+    return parsedVersions[0].original;
+}
+/**
+ * Get available versions for an npm package with caching to avoid duplicate npm view calls
+ * @param packageName Name of the npm package
+ * @returns Array of available version strings
+ */
+function getAvailableVersions(packageName) {
+    // Check cache first
+    if (availableVersionsCache.has(packageName)) {
+        cacheStats.hits++;
+        (0, logging_1.cdsExtractorLog)('info', `Using cached versions for ${packageName} (cache hit rate: ${cacheStats.hitRate}%)`);
+        return availableVersionsCache.get(packageName);
+    }
+    // Cache miss - fetch from npm
+    cacheStats.misses++;
+    try {
+        (0, logging_1.cdsExtractorLog)('info', `Fetching available versions for ${packageName} from npm registry (cache miss ${cacheStats.misses})...`);
+        const output = (0, child_process_1.execSync)(`npm view ${packageName} versions --json`, {
+            encoding: 'utf8',
+            timeout: 30000, // 30 second timeout
+        });
+        const versions = JSON.parse(output);
+        let versionArray = [];
+        if (Array.isArray(versions)) {
+            versionArray = versions.filter((v) => typeof v === 'string');
+        }
+        else if (typeof versions === 'string') {
+            versionArray = [versions];
+        }
+        // Cache the result
+        availableVersionsCache.set(packageName, versionArray);
+        (0, logging_1.cdsExtractorLog)('info', `Cached ${versionArray.length} versions for ${packageName} (cache hit rate: ${cacheStats.hitRate}%)`);
+        return versionArray;
+    }
+    catch (error) {
+        (0, logging_1.cdsExtractorLog)('warn', `Failed to fetch versions for ${packageName}: ${String(error)}`);
+        // Cache empty array to avoid repeated failures
+        availableVersionsCache.set(packageName, []);
+        return [];
+    }
+}
 /**
  * Parse a semantic version string
  * @param version Version string to parse (e.g., "6.1.3", "^6.0.0", "~6.1.0", "latest")
@@ -42,27 +185,58 @@ function parseSemanticVersion(version) {
     };
 }
 /**
- * Compare two semantic versions
- * @param a First version
- * @param b Second version
- * @returns Negative if a < b, 0 if equal, positive if a > b
+ * Resolve the best available version for CDS dependencies
+ * @param cdsVersion Required @sap/cds version
+ * @param cdsDkVersion Required @sap/cds-dk version
+ * @returns Object with resolved versions and compatibility info
  */
-function compareVersions(a, b) {
-    if (a.major !== b.major)
-        return a.major - b.major;
-    if (a.minor !== b.minor)
-        return a.minor - b.minor;
-    if (a.patch !== b.patch)
-        return a.patch - b.patch;
-    // Handle prerelease versions (prerelease < release)
-    if (a.prerelease && !b.prerelease)
-        return -1;
-    if (!a.prerelease && b.prerelease)
-        return 1;
-    if (a.prerelease && b.prerelease) {
-        return a.prerelease.localeCompare(b.prerelease);
+function resolveCdsVersions(cdsVersion, cdsDkVersion) {
+    (0, logging_1.cdsExtractorLog)('info', `Resolving CDS dependencies: @sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}`);
+    const cdsVersions = getAvailableVersions('@sap/cds');
+    const cdsDkVersions = getAvailableVersions('@sap/cds-dk');
+    const resolvedCdsVersion = findBestAvailableVersion(cdsVersions, cdsVersion);
+    const resolvedCdsDkVersion = findBestAvailableVersion(cdsDkVersions, cdsDkVersion);
+    const cdsExactMatch = resolvedCdsVersion === cdsVersion || (cdsVersion === 'latest' && resolvedCdsVersion !== null);
+    const cdsDkExactMatch = resolvedCdsDkVersion === cdsDkVersion ||
+        (cdsDkVersion === 'latest' && resolvedCdsDkVersion !== null);
+    let warning;
+    const warnings = [];
+    let isFallback = false;
+    if (!cdsExactMatch || !cdsDkExactMatch) {
+        isFallback = true;
+        if (!cdsExactMatch) {
+            warnings.push(`@sap/cds: requested ${cdsVersion}, using ${resolvedCdsVersion !== null && resolvedCdsVersion !== void 0 ? resolvedCdsVersion : 'none available'}`);
+        }
+        if (!cdsDkExactMatch) {
+            warnings.push(`@sap/cds-dk: requested ${cdsDkVersion}, using ${resolvedCdsDkVersion !== null && resolvedCdsDkVersion !== void 0 ? resolvedCdsDkVersion : 'none available'}`);
+        }
     }
-    return 0;
+    // Check compatibility between resolved versions
+    if (resolvedCdsVersion && resolvedCdsDkVersion) {
+        const compatibility = checkVersionCompatibility(resolvedCdsVersion, resolvedCdsDkVersion);
+        if (!compatibility.isCompatible && compatibility.warning) {
+            warnings.push(compatibility.warning);
+        }
+    }
+    if (warnings.length > 0) {
+        warning = `CDS dependency issues: ${warnings.join('; ')}`;
+    }
+    // Log the resolution result
+    if (resolvedCdsVersion && resolvedCdsDkVersion) {
+        const statusMsg = isFallback ? ' (using fallback versions)' : ' (exact match)';
+        (0, logging_1.cdsExtractorLog)('info', `Resolved to: @sap/cds@${resolvedCdsVersion}, @sap/cds-dk@${resolvedCdsDkVersion}${statusMsg}`);
+    }
+    else {
+        (0, logging_1.cdsExtractorLog)('error', `Failed to resolve CDS dependencies: @sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}`);
+    }
+    return {
+        resolvedCdsVersion,
+        resolvedCdsDkVersion,
+        cdsExactMatch,
+        cdsDkExactMatch,
+        warning,
+        isFallback,
+    };
 }
 /**
  * Check if version satisfies a version range
@@ -110,133 +284,31 @@ function satisfiesRange(version, range) {
     }
 }
 /**
- * Find the best available version from a list of versions for a given requirement
- * @param availableVersions List of available version strings
- * @param requiredVersion Required version string
- * @returns Best matching version or null if no compatible version found
+ * Get cache statistics for debugging purposes
+ * @returns Object with cache hit/miss statistics
  */
-function findBestAvailableVersion(availableVersions, requiredVersion) {
-    const parsedVersions = availableVersions
-        .map(v => parseSemanticVersion(v))
-        .filter((v) => v !== null);
-    if (parsedVersions.length === 0) {
-        return null;
-    }
-    // First, try to find versions that satisfy the range
-    const satisfyingVersions = parsedVersions.filter(v => satisfiesRange(v, requiredVersion));
-    if (satisfyingVersions.length > 0) {
-        // Sort in descending order (newest first) and return the best match
-        satisfyingVersions.sort((a, b) => compareVersions(b, a));
-        return satisfyingVersions[0].original;
-    }
-    // If no exact match, prefer newer versions over older ones
-    // Sort all versions in descending order and return the newest
-    parsedVersions.sort((a, b) => compareVersions(b, a));
-    return parsedVersions[0].original;
-}
-/**
- * Get available versions for an npm package
- * @param packageName Name of the npm package
- * @returns Array of available version strings
- */
-function getAvailableVersions(packageName) {
-    try {
-        (0, logging_1.cdsExtractorLog)('info', `Fetching available versions for ${packageName}...`);
-        const output = (0, child_process_1.execSync)(`npm view ${packageName} versions --json`, {
-            encoding: 'utf8',
-            timeout: 30000, // 30 second timeout
-        });
-        const versions = JSON.parse(output);
-        if (Array.isArray(versions)) {
-            return versions.filter((v) => typeof v === 'string');
-        }
-        else if (typeof versions === 'string') {
-            return [versions];
-        }
-        return [];
-    }
-    catch (error) {
-        (0, logging_1.cdsExtractorLog)('warn', `Failed to fetch versions for ${packageName}: ${String(error)}`);
-        return [];
-    }
-}
-/**
- * Resolve the best available version for CDS dependencies
- * @param cdsVersion Required @sap/cds version
- * @param cdsDkVersion Required @sap/cds-dk version
- * @returns Object with resolved versions and compatibility info
- */
-function resolveCdsVersions(cdsVersion, cdsDkVersion) {
-    const cdsVersions = getAvailableVersions('@sap/cds');
-    const cdsDkVersions = getAvailableVersions('@sap/cds-dk');
-    const resolvedCdsVersion = findBestAvailableVersion(cdsVersions, cdsVersion);
-    const resolvedCdsDkVersion = findBestAvailableVersion(cdsDkVersions, cdsDkVersion);
-    const cdsExactMatch = resolvedCdsVersion === cdsVersion || (cdsVersion === 'latest' && resolvedCdsVersion !== null);
-    const cdsDkExactMatch = resolvedCdsDkVersion === cdsDkVersion ||
-        (cdsDkVersion === 'latest' && resolvedCdsDkVersion !== null);
-    let warning;
-    const warnings = [];
-    if (!cdsExactMatch || !cdsDkExactMatch) {
-        if (!cdsExactMatch) {
-            warnings.push(`@sap/cds: requested ${cdsVersion}, using ${resolvedCdsVersion !== null && resolvedCdsVersion !== void 0 ? resolvedCdsVersion : 'none available'}`);
-        }
-        if (!cdsDkExactMatch) {
-            warnings.push(`@sap/cds-dk: requested ${cdsDkVersion}, using ${resolvedCdsDkVersion !== null && resolvedCdsDkVersion !== void 0 ? resolvedCdsDkVersion : 'none available'}`);
-        }
-    }
-    // Check compatibility between resolved versions
-    if (resolvedCdsVersion && resolvedCdsDkVersion) {
-        const compatibility = checkVersionCompatibility(resolvedCdsVersion, resolvedCdsDkVersion);
-        if (!compatibility.isCompatible && compatibility.warning) {
-            warnings.push(compatibility.warning);
-        }
-    }
-    if (warnings.length > 0) {
-        warning = `CDS dependency issues: ${warnings.join('; ')}`;
-    }
+function getCacheStatistics() {
     return {
-        resolvedCdsVersion,
-        resolvedCdsDkVersion,
-        cdsExactMatch,
-        cdsDkExactMatch,
-        warning,
+        hits: cacheStats.hits,
+        misses: cacheStats.misses,
+        hitRate: cacheStats.hitRate,
+        cachedPackages: Array.from(availableVersionsCache.keys()),
     };
 }
 /**
- * Check if @sap/cds and @sap/cds-dk versions are likely compatible
- * @param cdsVersion The @sap/cds version
- * @param cdsDkVersion The @sap/cds-dk version
- * @returns Object with compatibility information and warnings
+ * Clear the version cache (useful for testing or memory management)
  */
-function checkVersionCompatibility(cdsVersion, cdsDkVersion) {
-    // If either version is 'latest', assume they are compatible
-    if (cdsVersion === 'latest' || cdsDkVersion === 'latest') {
-        return { isCompatible: true };
-    }
-    const parsedCds = parseSemanticVersion(cdsVersion);
-    const parsedCdsDk = parseSemanticVersion(cdsDkVersion);
-    if (!parsedCds || !parsedCdsDk) {
-        return {
-            isCompatible: false,
-            warning: 'Unable to parse version numbers for compatibility check',
-        };
-    }
-    // Generally, @sap/cds and @sap/cds-dk should have the same major version
-    // and ideally the same minor version for best compatibility
-    const majorVersionsMatch = parsedCds.major === parsedCdsDk.major;
-    const minorVersionsMatch = parsedCds.minor === parsedCdsDk.minor;
-    if (!majorVersionsMatch) {
-        return {
-            isCompatible: false,
-            warning: `Major version mismatch: @sap/cds ${cdsVersion} and @sap/cds-dk ${cdsDkVersion} may not be compatible`,
-        };
-    }
-    if (!minorVersionsMatch) {
-        return {
-            isCompatible: true,
-            warning: `Minor version difference: @sap/cds ${cdsVersion} and @sap/cds-dk ${cdsDkVersion} - consider aligning versions for best compatibility`,
-        };
-    }
-    return { isCompatible: true };
+function clearVersionCache() {
+    availableVersionsCache.clear();
+    cacheStats.hits = 0;
+    cacheStats.misses = 0;
+    (0, logging_1.cdsExtractorLog)('info', 'Cleared package version cache and reset statistics');
+}
+/**
+ * Log current cache statistics
+ */
+function logCacheStatistics() {
+    const stats = getCacheStatistics();
+    (0, logging_1.cdsExtractorLog)('info', `Package version cache statistics: ${stats.hits} hits, ${stats.misses} misses, ${stats.hitRate}% hit rate, ${stats.cachedPackages.length} packages cached: [${stats.cachedPackages.join(', ')}]`);
 }
 //# sourceMappingURL=versionResolver.js.map

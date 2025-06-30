@@ -3,33 +3,49 @@ import { createHash } from 'crypto';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
+import type { CdsDependencyCombination } from './types';
 import { CdsDependencyGraph, EnhancedCdsProject } from '../cds/parser/types';
 import { DiagnosticSeverity } from '../diagnostics';
 import { cdsExtractorLog } from '../logging';
-import { resolveCdsVersions } from './versionResolver';
+import { resolveCdsVersions, logCacheStatistics } from './versionResolver';
 
 const cacheSubDirName = '.cds-extractor-cache';
 
 /**
- * Interface for package.json structure
+ * Add a warning diagnostic for dependency version fallback
+ * @param packageJsonPath Path to the package.json file
+ * @param warningMessage The warning message
+ * @param codeqlExePath Path to the CodeQL executable
+ * @returns True if the diagnostic was added, false otherwise
  */
-export interface PackageJson {
-  name?: string;
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-}
-
-/**
- * Represents a unique combination of @sap/cds and @sap/cds-dk dependencies
- */
-export interface CdsDependencyCombination {
-  cdsVersion: string;
-  cdsDkVersion: string;
-  hash: string;
-  resolvedCdsVersion?: string;
-  resolvedCdsDkVersion?: string;
-  isFallback?: boolean;
-  warning?: string;
+function addDependencyVersionWarning(
+  packageJsonPath: string,
+  warningMessage: string,
+  codeqlExePath: string,
+): boolean {
+  try {
+    execFileSync(codeqlExePath, [
+      'database',
+      'add-diagnostic',
+      '--extractor-name=cds',
+      '--ready-for-status-page',
+      '--source-id=cds/dependency-version-fallback',
+      '--source-name=Using fallback versions for SAP CAP CDS dependencies',
+      `--severity=${DiagnosticSeverity.Warning}`,
+      `--markdown-message=${warningMessage}`,
+      `--file-path=${resolve(packageJsonPath)}`,
+      '--',
+      `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE ?? ''}`,
+    ]);
+    cdsExtractorLog('info', `Added warning diagnostic for dependency fallback: ${packageJsonPath}`);
+    return true;
+  } catch (err) {
+    cdsExtractorLog(
+      'error',
+      `Failed to add warning diagnostic for ${packageJsonPath}: ${String(err)}`,
+    );
+    return false;
+  }
 }
 
 /**
@@ -77,114 +93,6 @@ function extractUniqueDependencyCombinations(
 }
 
 /**
- * Add a warning diagnostic for dependency version fallback
- * @param packageJsonPath Path to the package.json file
- * @param warningMessage The warning message
- * @param codeqlExePath Path to the CodeQL executable
- * @returns True if the diagnostic was added, false otherwise
- */
-function addDependencyVersionWarning(
-  packageJsonPath: string,
-  warningMessage: string,
-  codeqlExePath: string,
-): boolean {
-  try {
-    execFileSync(codeqlExePath, [
-      'database',
-      'add-diagnostic',
-      '--extractor-name=cds',
-      '--ready-for-status-page',
-      '--source-id=cds/dependency-version-fallback',
-      '--source-name=Using fallback versions for SAP CAP CDS dependencies',
-      `--severity=${DiagnosticSeverity.Warning}`,
-      `--markdown-message=${warningMessage}`,
-      `--file-path=${resolve(packageJsonPath)}`,
-      '--',
-      `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE ?? ''}`,
-    ]);
-    cdsExtractorLog('info', `Added warning diagnostic for dependency fallback: ${packageJsonPath}`);
-    return true;
-  } catch (err) {
-    cdsExtractorLog(
-      'error',
-      `Failed to add warning diagnostic for ${packageJsonPath}: ${String(err)}`,
-    );
-    return false;
-  }
-}
-
-/**
- * Attempt to install dependencies in a cache directory with fallback logic
- * @param cacheDir Cache directory path
- * @param combination Dependency combination to install
- * @param cacheDirName Name of the cache directory for logging
- * @param packageJsonPath Optional package.json path for diagnostics
- * @param codeqlExePath Optional CodeQL executable path for diagnostics
- * @returns True if installation succeeded, false otherwise
- */
-function installDependenciesInCache(
-  cacheDir: string,
-  combination: CdsDependencyCombination,
-  cacheDirName: string,
-  packageJsonPath?: string,
-  codeqlExePath?: string,
-): boolean {
-  const { resolvedCdsVersion, resolvedCdsDkVersion, isFallback, warning } = combination;
-
-  // Check if node_modules directory already exists in the cache dir
-  const nodeModulesExists =
-    existsSync(join(cacheDir, 'node_modules', '@sap', 'cds')) &&
-    existsSync(join(cacheDir, 'node_modules', '@sap', 'cds-dk'));
-
-  if (nodeModulesExists) {
-    cdsExtractorLog(
-      'info',
-      `Using cached dependencies for @sap/cds@${resolvedCdsVersion} and @sap/cds-dk@${resolvedCdsDkVersion} from ${cacheDirName}`,
-    );
-
-    // Add warning diagnostic if using fallback versions
-    if (isFallback && warning && packageJsonPath && codeqlExePath) {
-      addDependencyVersionWarning(packageJsonPath, warning, codeqlExePath);
-    }
-
-    return true;
-  }
-
-  if (!resolvedCdsVersion || !resolvedCdsDkVersion) {
-    cdsExtractorLog('error', 'Cannot install dependencies: no compatible versions found');
-    return false;
-  }
-
-  // Install dependencies in the cache directory
-  cdsExtractorLog(
-    'info',
-    `Installing @sap/cds@${resolvedCdsVersion} and @sap/cds-dk@${resolvedCdsDkVersion} in cache directory: ${cacheDirName}`,
-  );
-
-  if (isFallback && warning) {
-    cdsExtractorLog('warn', warning);
-  }
-
-  try {
-    execFileSync('npm', ['install', '--quiet', '--no-audit', '--no-fund'], {
-      cwd: cacheDir,
-      stdio: 'inherit',
-    });
-
-    // Add warning diagnostic if using fallback versions
-    if (isFallback && warning && packageJsonPath && codeqlExePath) {
-      addDependencyVersionWarning(packageJsonPath, warning, codeqlExePath);
-    }
-
-    return true;
-  } catch (err) {
-    const errorMessage = `Failed to install resolved dependencies in cache directory ${cacheDir}: ${err instanceof Error ? err.message : String(err)}`;
-    cdsExtractorLog('error', errorMessage);
-    return false;
-  }
-}
-
-/**
  * Install dependencies for CDS projects using a robust cache strategy with fallback logic
  * @param dependencyGraph The dependency graph of the project
  * @param sourceRoot Source root directory
@@ -198,8 +106,11 @@ export function installDependencies(
 ): Map<string, string> {
   // Sanity check that we found at least one project
   if (dependencyGraph.projects.size === 0) {
-    cdsExtractorLog('warn', 'failed to detect any CDS projects for dependency installation.');
-    cdsExtractorLog('info', 'This is expected if the source contains no CAP/CDS projects.');
+    cdsExtractorLog('info', 'No CDS projects found for dependency installation.');
+    cdsExtractorLog(
+      'info',
+      'This is expected if the source contains no CAP/CDS projects and should be handled by the caller.',
+    );
     return new Map<string, string>();
   }
 
@@ -207,8 +118,14 @@ export function installDependencies(
   const dependencyCombinations = extractUniqueDependencyCombinations(dependencyGraph.projects);
 
   if (dependencyCombinations.length === 0) {
-    cdsExtractorLog('warn', 'No CDS dependencies found in any project.');
-    cdsExtractorLog('info', 'Will attempt to use system-installed CDS tools if available.');
+    cdsExtractorLog(
+      'error',
+      'No CDS dependencies found in any project. This means projects were detected but lack proper @sap/cds dependencies.',
+    );
+    cdsExtractorLog(
+      'info',
+      'Will attempt to use system-installed CDS tools if available, but compilation may fail.',
+    );
     return new Map<string, string>();
   }
 
@@ -370,7 +287,13 @@ export function installDependencies(
 
   // Log final status
   if (successfulInstallations === 0) {
-    cdsExtractorLog('warn', 'Failed to install any dependency combinations.');
+    cdsExtractorLog('error', 'Failed to install any dependency combinations.');
+    if (dependencyCombinations.length > 0) {
+      cdsExtractorLog(
+        'error',
+        `All ${dependencyCombinations.length} dependency combination(s) failed to install. This will likely cause compilation failures.`,
+      );
+    }
   } else if (successfulInstallations < dependencyCombinations.length) {
     cdsExtractorLog(
       'warn',
@@ -387,7 +310,86 @@ export function installDependencies(
       const cacheDirName = join(cacheDir).split('/').pop() ?? 'unknown';
       cdsExtractorLog('info', `  ${projectDir} → ${cacheDirName}`);
     }
+  } else {
+    cdsExtractorLog(
+      'warn',
+      'No project to cache directory mappings created. Projects may not have compatible dependencies installed.',
+    );
   }
 
+  // Log cache statistics for debugging and performance monitoring
+  logCacheStatistics();
+
   return projectCacheDirMap;
+}
+
+/**
+ * Attempt to install dependencies in a cache directory with fallback logic
+ * @param cacheDir Cache directory path
+ * @param combination Dependency combination to install
+ * @param cacheDirName Name of the cache directory for logging
+ * @param packageJsonPath Optional package.json path for diagnostics
+ * @param codeqlExePath Optional CodeQL executable path for diagnostics
+ * @returns True if installation succeeded, false otherwise
+ */
+function installDependenciesInCache(
+  cacheDir: string,
+  combination: CdsDependencyCombination,
+  cacheDirName: string,
+  packageJsonPath?: string,
+  codeqlExePath?: string,
+): boolean {
+  const { resolvedCdsVersion, resolvedCdsDkVersion, isFallback, warning } = combination;
+
+  // Check if node_modules directory already exists in the cache dir
+  const nodeModulesExists =
+    existsSync(join(cacheDir, 'node_modules', '@sap', 'cds')) &&
+    existsSync(join(cacheDir, 'node_modules', '@sap', 'cds-dk'));
+
+  if (nodeModulesExists) {
+    cdsExtractorLog(
+      'info',
+      `Using cached dependencies for @sap/cds@${resolvedCdsVersion} and @sap/cds-dk@${resolvedCdsDkVersion} from ${cacheDirName}`,
+    );
+
+    // Add warning diagnostic if using fallback versions
+    if (isFallback && warning && packageJsonPath && codeqlExePath) {
+      addDependencyVersionWarning(packageJsonPath, warning, codeqlExePath);
+    }
+
+    return true;
+  }
+
+  if (!resolvedCdsVersion || !resolvedCdsDkVersion) {
+    cdsExtractorLog('error', 'Cannot install dependencies: no compatible versions found');
+    return false;
+  }
+
+  // Install dependencies in the cache directory
+  cdsExtractorLog(
+    'info',
+    `Installing @sap/cds@${resolvedCdsVersion} and @sap/cds-dk@${resolvedCdsDkVersion} in cache directory: ${cacheDirName}`,
+  );
+
+  if (isFallback && warning) {
+    cdsExtractorLog('warn', warning);
+  }
+
+  try {
+    execFileSync('npm', ['install', '--quiet', '--no-audit', '--no-fund'], {
+      cwd: cacheDir,
+      stdio: 'inherit',
+    });
+
+    // Add warning diagnostic if using fallback versions
+    if (isFallback && warning && packageJsonPath && codeqlExePath) {
+      addDependencyVersionWarning(packageJsonPath, warning, codeqlExePath);
+    }
+
+    return true;
+  } catch (err) {
+    const errorMessage = `Failed to install resolved dependencies in cache directory ${cacheDir}: ${err instanceof Error ? err.message : String(err)}`;
+    cdsExtractorLog('error', errorMessage);
+    return false;
+  }
 }

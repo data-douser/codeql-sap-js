@@ -108,8 +108,8 @@ try {
     }
   } else {
     cdsExtractorLog(
-      'warn',
-      'No CDS projects were detected. This may indicate an issue with project detection logic.',
+      'error',
+      'No CDS projects were detected. This is an unrecoverable error as there is nothing to scan.',
     );
     // Let's also try to find CDS files directly as a backup check
     try {
@@ -129,10 +129,23 @@ try {
           'info',
           `Sample CDS files: ${allCdsFiles.slice(0, 5).join(', ')}${allCdsFiles.length > 5 ? ', ...' : ''}`,
         );
+        cdsExtractorLog(
+          'error',
+          'CDS files were found but no projects were detected. This indicates a problem with project detection logic.',
+        );
+      } else {
+        cdsExtractorLog(
+          'info',
+          'No CDS files found in the source tree. This may be expected if the source does not contain CAP/CDS projects.',
+        );
       }
     } catch (globError) {
       cdsExtractorLog('warn', `Could not perform direct CDS file search: ${String(globError)}`);
     }
+
+    // Exit early since we have no CDS projects to process
+    logExtractorStop(false, 'Terminated: No CDS projects detected');
+    process.exit(1);
   }
 } catch (error) {
   cdsExtractorLog('error', `Failed to build enhanced dependency graph: ${String(error)}`);
@@ -144,6 +157,30 @@ try {
 startPerformanceTracking('Dependency Installation');
 const projectCacheDirMap = installDependencies(dependencyGraph, sourceRoot, codeqlExePath);
 endPerformanceTracking('Dependency Installation');
+
+// Check if dependency installation resulted in any usable project mappings
+if (projectCacheDirMap.size === 0) {
+  cdsExtractorLog(
+    'error',
+    'No project cache directory mappings were created. This indicates that dependency installation failed for all discovered projects.',
+  );
+
+  // This is a critical error if we have projects but no cache mappings
+  if (dependencyGraph.projects.size > 0) {
+    cdsExtractorLog(
+      'error',
+      `Found ${dependencyGraph.projects.size} CDS projects but failed to install dependencies for any of them. Cannot proceed with compilation.`,
+    );
+    logExtractorStop(false, 'Terminated: Dependency installation failed for all projects');
+    process.exit(1);
+  }
+
+  // If we have no projects and no cache mappings, this should have been caught earlier
+  cdsExtractorLog(
+    'warn',
+    'No projects and no cache mappings - this should have been detected earlier.',
+  );
+}
 
 const cdsFilePathsToProcess: string[] = [];
 
