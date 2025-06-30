@@ -4,6 +4,14 @@ import advanced_security.javascript.frameworks.cap.CQL
 import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 import advanced_security.javascript.frameworks.cap.dataflow.FlowSteps
 
+abstract class CqlInjectionSink extends DataFlow::Node {
+  /**
+   * Gets the data flow node that represents the query being run, for
+   * accurate reporting.
+   */
+  abstract DataFlow::Node getQuery();
+}
+
 /**
  * A CQL clause parameterized with a string concatentation expression.
  */
@@ -26,12 +34,35 @@ class CqlClauseWithStringConcatParameter instanceof CqlClause {
   string toString() { result = super.toString() }
 }
 
+class AwaitCqlClauseWithStringConcatParameter extends CqlInjectionSink {
+  DataFlow::Node queryParameter;
+  DataFlow::Node query;
+  CqlClauseWithStringConcatParameter cqlClauseWithStringConcat;
+
+  AwaitCqlClauseWithStringConcatParameter() {
+    exists(AwaitExpr await |
+      this = await.flow() and
+      await.getOperand() = cqlClauseWithStringConcat.(CqlClause).asExpr()
+    )
+  }
+
+  override DataFlow::Node getQuery() { result = cqlClauseWithStringConcat.(CqlClause).flow() }
+}
+
+class ParameterOfCqlRunMethodQueryArgument extends CqlInjectionSink {
+  CqlRunMethodCall cqlRunMethodCall;
+
+  ParameterOfCqlRunMethodQueryArgument() { this = cqlRunMethodCall.getAQueryParameter() }
+
+  override DataFlow::Node getQuery() { result = this }
+}
+
 /**
  * A CQL shortcut method call (`read`, `create`, ...) parameterized with a string
  * concatenation expression.
  */
 class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
-  DataFlow::Node stringConcatParameter; 
+  DataFlow::Node stringConcatParameter;
 
   CqlShortcutMethodCallWithStringConcat() {
     stringConcatParameter = super.getAQueryParameter() and
@@ -43,6 +74,16 @@ class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
   string toString() { result = super.toString() }
 
   DataFlow::Node getStringConcatParameter() { result = stringConcatParameter }
+}
+
+class StringConcatParameterOfCqlShortcutMethodCall extends CqlInjectionSink {
+  CqlShortcutMethodCallWithStringConcat cqlShortcutMethodCallWithStringConcat;
+
+  StringConcatParameterOfCqlShortcutMethodCall() {
+    this = cqlShortcutMethodCallWithStringConcat.getStringConcatParameter()
+  }
+
+  override DataFlow::Node getQuery() { result = cqlShortcutMethodCallWithStringConcat }
 }
 
 /**
@@ -65,20 +106,7 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
 
   override predicate isSource(DataFlow::Node source) { source instanceof RemoteFlowSource }
 
-  override predicate isSink(DataFlow::Node node) {
-    exists(CqlRunMethodCall cqlRunMethodCall |
-      node = cqlRunMethodCall.(CqlRunMethodCall).getAQueryParameter()
-    )
-    or
-    exists(CqlShortcutMethodCallWithStringConcat queryRunnerCall |
-      node = queryRunnerCall.getStringConcatParameter()
-    )
-    or
-    exists(AwaitExpr await, CqlClauseWithStringConcatParameter cqlClauseWithStringConcat |
-      node = await.flow() and
-      await.getOperand() = cqlClauseWithStringConcat.(CqlClause).asExpr()
-    )
-  }
+  override predicate isSink(DataFlow::Node node) { node instanceof CqlInjectionSink }
 
   override predicate isSanitizer(DataFlow::Node node) { node instanceof SqlInjection::Sanitizer }
 

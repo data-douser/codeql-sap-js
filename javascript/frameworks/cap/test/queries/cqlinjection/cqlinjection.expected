@@ -1,6 +1,6 @@
 WARNING: module 'PathGraph' has been deprecated and may be removed in future (CqlInjection.ql:14,8-27)
-WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:35,37-55)
-WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:35,64-82)
+WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:17,37-55)
+WARNING: type 'PathNode' has been deprecated and may be removed in future (CqlInjection.ql:17,64-82)
 nodes
 | srv/service1.js:6:33:6:35 | req |
 | srv/service1.js:6:33:6:35 | req |
