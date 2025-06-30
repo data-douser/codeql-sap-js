@@ -38,9 +38,7 @@ class CdsEntitiesCall extends DataFlow::CallNode {
   /**
    * Gets the namespace that this entity belongs to.
    */
-  string getNamespace() {
-    result = this.getArgument(0).getALocalSource().asExpr().(StringLiteral).getValue()
-  }
+  string getNamespace() { result = this.getArgument(0).getStringValue() }
 }
 
 /**
