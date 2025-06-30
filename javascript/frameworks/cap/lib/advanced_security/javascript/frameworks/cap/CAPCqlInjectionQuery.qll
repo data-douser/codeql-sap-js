@@ -21,7 +21,15 @@ class CqlClauseWithStringConcatParameter instanceof CqlClause {
       (
         if this instanceof CqlInsertClause or this instanceof CqlUpsertClause
         then
-          queryParameter = this.getArgument().flow() or
+          queryParameter = this.getArgument().flow()
+          or
+          /*
+           * Account for cases where an object with a string concatenation is passed. e.g.
+           * ``` javascript
+           * let insertQuery = INSERT.into`SomeEntity`.entries({col1: "column_" + col});
+           * ```
+           */
+
           queryParameter = this.getArgument().flow().(SourceNode).getAPropertyWrite().getRhs()
         else queryParameter = this.getArgument().flow()
       ) and
@@ -34,6 +42,10 @@ class CqlClauseWithStringConcatParameter instanceof CqlClause {
   string toString() { result = super.toString() }
 }
 
+/**
+ * An await expression that has as its operand a CQL clause that includes a
+ * string concatenation operation.
+ */
 class AwaitCqlClauseWithStringConcatParameter extends CqlInjectionSink {
   DataFlow::Node queryParameter;
   DataFlow::Node query;
@@ -49,17 +61,46 @@ class AwaitCqlClauseWithStringConcatParameter extends CqlInjectionSink {
   override DataFlow::Node getQuery() { result = cqlClauseWithStringConcat.(CqlClause).flow() }
 }
 
-class ParameterOfCqlRunMethodQueryArgument extends CqlInjectionSink {
+/**
+ * The first argument passed to the call to `cds.run`, `cds.db.run`, or `srv.run`
+ * whose value is a CQL query object that includes a string concatenation. e.g.
+ * ``` javascript
+ * // 1. CQN object constructed from Fluent API
+ * const query = SELECT.from`Entity1`.where("ID=" + id);
+ * cds.run(query);
+ *
+ * // 2. CQN object parsed from a string
+ * const query = cds.parse.cql("SELECT * from Entity1 where ID =" + id);
+ * cds.run(query);
+ *
+ * // 3. An unparsed CQL string (only valid in old versions of CAP)
+ * const query = "SELECT * from Entity1 where ID =" + id;
+ * Service2.run(query);
+ * ```
+ * The `getQuery/0` member predicate gets the `query` argument of the above calls
+ * to `run`
+ */
+class StringConcatParameterOfCqlRunMethodQueryArgument extends CqlInjectionSink {
   CqlRunMethodCall cqlRunMethodCall;
 
-  ParameterOfCqlRunMethodQueryArgument() { this = cqlRunMethodCall.getAQueryParameter() }
+  StringConcatParameterOfCqlRunMethodQueryArgument() {
+    this = cqlRunMethodCall.getAQueryParameter()
+  }
 
   override DataFlow::Node getQuery() { result = this }
 }
 
 /**
  * A CQL shortcut method call (`read`, `create`, ...) parameterized with a string
- * concatenation expression.
+ * concatenation expression. e.g.
+ * ``` javascript
+ * cds.read("Entity1").where(`ID=${id}`); // Notice the surrounding parentheses!
+ * cds.create("Entity1").entries({id: "" + id});
+ * cds.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);
+ * cds.insert("Entity1").entries({id: "" + id});
+ * cds.upsert("Entity1").entries({id: "" + id});
+ * cds.delete("Entity1").where("ID =" + id);
+ * ```
  */
 class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
   DataFlow::Node stringConcatParameter;
@@ -76,6 +117,23 @@ class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
   DataFlow::Node getStringConcatParameter() { result = stringConcatParameter }
 }
 
+/**
+ * A string concatenation expression included in a CQL shortcut method call. e.g.
+ * ``` javascript
+ * cds.read("Entity1").where(`ID=${id}`); // Notice the surrounding parentheses!
+ * cds.create("Entity1").entries({id: "" + id});
+ * cds.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);
+ * cds.insert("Entity1").entries({id: "" + id});
+ * cds.upsert("Entity1").entries({id: "" + id});
+ * cds.delete("Entity1").where("ID =" + id);
+ * ```
+ * This class captures the string concatenation expressions appearing above:
+ * 1. `ID=${id}`
+ * 2. `"" + id`
+ * 3. `"col1 = col1" + amount`
+ * 4. `"col1 = " + id`
+ * 5. `"ID =" + id`
+ */
 class StringConcatParameterOfCqlShortcutMethodCall extends CqlInjectionSink {
   CqlShortcutMethodCallWithStringConcat cqlShortcutMethodCallWithStringConcat;
 
