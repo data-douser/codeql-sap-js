@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'fs';
-import { dirname, join, relative, sep } from 'path';
+import { basename, dirname, join, relative, sep } from 'path';
 
 import { sync } from 'glob';
 
@@ -218,109 +218,100 @@ export function determineCdsProjectsUnderSourceDir(sourceRootDir: string): strin
     throw new Error(`Source root directory '${sourceRootDir}' does not exist.`);
   }
 
-  const projectDirs: string[] = [];
-  const processedDirectories = new Set<string>();
+  const foundProjects = new Set<string>();
 
-  // Find all package.json files under the source directory, excluding node_modules
+  // Find all potential project directories by looking for package.json files and CDS files
   const packageJsonFiles = sync(join(sourceRootDir, '**/package.json'), {
     nodir: true,
     ignore: ['**/node_modules/**', '**/*.testproj/**'],
   });
 
-  // Check each directory containing a package.json file
-  for (const packageJsonFile of packageJsonFiles) {
-    const dir = dirname(packageJsonFile);
-
-    // Skip if we've already processed this directory
-    if (processedDirectories.has(dir)) {
-      continue;
-    }
-
-    // Only consider this directory if it's likely a CDS project
-    if (isLikelyCdsProject(dir)) {
-      // Add the directory relative to sourceRootDir
-      const relativePath = relative(sourceRootDir, dir);
-      // Handle the case where the project is at the root (relative path becomes empty string)
-      const projectDir = relativePath || '.';
-      projectDirs.push(projectDir);
-      processedDirectories.add(dir);
-    }
-  }
-
-  // Also check directories that have .cds files but no package.json, excluding node_modules
   const cdsFiles = sync(join(sourceRootDir, '**/*.cds'), {
     nodir: true,
     ignore: ['**/node_modules/**', '**/*.testproj/**'],
   });
-  const cdsDirsSet = new Set(cdsFiles.map(file => dirname(file)));
-  const cdsDirs = Array.from(cdsDirsSet);
 
-  for (const dir of cdsDirs) {
-    // Skip if we've already processed this directory or a parent
-    if (isDirectoryProcessed(dir, processedDirectories)) {
-      continue;
+  // Collect all potential project directories
+  const candidateDirectories = new Set<string>();
+
+  // Add directories with package.json files
+  for (const packageJsonFile of packageJsonFiles) {
+    candidateDirectories.add(dirname(packageJsonFile));
+  }
+
+  // Add directories with CDS files and try to find their project roots
+  for (const cdsFile of cdsFiles) {
+    const cdsDir = dirname(cdsFile);
+    const projectRoot = findProjectRootFromCdsFile(cdsDir, sourceRootDir);
+    if (projectRoot) {
+      candidateDirectories.add(projectRoot);
+    } else {
+      candidateDirectories.add(cdsDir);
     }
+  }
 
-    // Only proceed if this directory is likely a CDS project on its own
-    // But first check if it's part of an already identified project
-    let isPartOfExistingProject = false;
-    for (const processedDir of processedDirectories) {
-      if (dir.startsWith(processedDir + sep) || dir === processedDir) {
-        isPartOfExistingProject = true;
-        break;
-      }
-    }
-
-    if (isPartOfExistingProject) {
-      continue;
-    }
-
+  // Filter candidates to only include likely CDS projects
+  for (const dir of candidateDirectories) {
     if (isLikelyCdsProject(dir)) {
-      // Check if this directory appears to be a standalone CDS project
-      const standaloneProjectDir = findProjectRootFromCdsFile(dir, sourceRootDir);
-      if (standaloneProjectDir) {
-        const relativePath = relative(sourceRootDir, standaloneProjectDir);
-        // Handle the case where the project is at the root (relative path becomes empty string)
-        const projectDir = relativePath || '.';
-        if (!projectDirs.includes(projectDir)) {
-          projectDirs.push(projectDir);
-          processedDirectories.add(standaloneProjectDir);
+      const relativePath = relative(sourceRootDir, dir);
+      const projectDir = relativePath || '.';
+
+      // Check if this project is already included as a parent or child of an existing project
+      let shouldAdd = true;
+      const existingProjects = Array.from(foundProjects);
+
+      for (const existingProject of existingProjects) {
+        const existingAbsPath = join(sourceRootDir, existingProject);
+
+        // Skip if this directory is a subdirectory of an existing project,
+        // but only if the parent is not a monorepo with its own CDS content
+        if (dir.startsWith(existingAbsPath + sep)) {
+          // Check if parent is a monorepo root with its own CDS content
+          const parentPackageJsonPath = join(existingAbsPath, 'package.json');
+          const parentPackageJson = readPackageJsonWithCache(parentPackageJsonPath);
+          const isParentMonorepo =
+            parentPackageJson?.workspaces &&
+            Array.isArray(parentPackageJson.workspaces) &&
+            parentPackageJson.workspaces.length > 0;
+
+          // If parent is a monorepo with CDS content, allow both parent and child
+          if (
+            isParentMonorepo &&
+            (hasStandardCdsContent(existingAbsPath) || hasDirectCdsContent(existingAbsPath))
+          ) {
+            // Both parent and child can coexist as separate CDS projects
+            shouldAdd = true;
+          } else {
+            // Traditional case: exclude subdirectory
+            shouldAdd = false;
+          }
+          break;
+        }
+
+        // Remove existing project if it's a subdirectory of the current directory,
+        // unless the current directory is a monorepo root and the existing project has its own CDS content
+        if (existingAbsPath.startsWith(dir + sep)) {
+          const currentPackageJsonPath = join(dir, 'package.json');
+          const currentPackageJson = readPackageJsonWithCache(currentPackageJsonPath);
+          const isCurrentMonorepo =
+            currentPackageJson?.workspaces &&
+            Array.isArray(currentPackageJson.workspaces) &&
+            currentPackageJson.workspaces.length > 0;
+
+          // If current is a monorepo and the existing project is a legitimate CDS project, keep both
+          if (!(isCurrentMonorepo && isLikelyCdsProject(existingAbsPath))) {
+            foundProjects.delete(existingProject);
+          }
         }
       }
+
+      if (shouldAdd) {
+        foundProjects.add(projectDir);
+      }
     }
   }
 
-  return projectDirs;
-}
-
-/**
- * Checks if a directory or any of its parent directories has already been processed
- * @param dir - Directory to check
- * @param processedDirectories - Set of already processed directories
- * @returns true if the directory or a parent has been processed
- */
-export function isDirectoryProcessed(dir: string, processedDirectories: Set<string>): boolean {
-  // Skip node_modules and testproj directories entirely
-  if (dir.includes('node_modules') || dir.includes('.testproj')) {
-    return true; // Consider these as already processed to skip them
-  }
-
-  let currentDir = dir;
-
-  while (currentDir) {
-    if (processedDirectories.has(currentDir)) {
-      return true;
-    }
-
-    const parentDir = dirname(currentDir);
-    if (parentDir === currentDir) {
-      break;
-    }
-
-    currentDir = parentDir;
-  }
-
-  return false;
+  return Array.from(foundProjects).sort();
 }
 
 /**
@@ -565,8 +556,27 @@ export function findProjectRootFromCdsFile(
   while (currentDir.startsWith(sourceRootDir)) {
     // Check if this directory looks like a project root
     if (isLikelyCdsProject(currentDir)) {
-      // Instead of returning immediately, check for parent directories that might
-      // be the real project root containing both db and srv directories
+      // If this is a standard CAP subdirectory (srv, db, app), check if the parent
+      // directory should be the real project root
+      const currentDirName = basename(currentDir);
+      const isStandardSubdir = ['srv', 'db', 'app'].includes(currentDirName);
+
+      if (isStandardSubdir) {
+        const parentDir = dirname(currentDir);
+
+        if (
+          parentDir !== currentDir &&
+          parentDir.startsWith(sourceRootDir) &&
+          !parentDir.includes('node_modules') &&
+          !parentDir.includes('.testproj') &&
+          isLikelyCdsProject(parentDir)
+        ) {
+          // The parent is also a CDS project, so it's likely the real project root
+          return parentDir;
+        }
+      }
+
+      // For non-standard subdirectories, also check if the parent might be a better project root
       const parentDir = dirname(currentDir);
 
       if (
@@ -579,8 +589,11 @@ export function findProjectRootFromCdsFile(
           existsSync(join(parentDir, 'db')) && statSync(join(parentDir, 'db')).isDirectory();
         const hasSrvDir =
           existsSync(join(parentDir, 'srv')) && statSync(join(parentDir, 'srv')).isDirectory();
+        const hasAppDir =
+          existsSync(join(parentDir, 'app')) && statSync(join(parentDir, 'app')).isDirectory();
 
-        if (hasDbDir && hasSrvDir) {
+        // Use the same CAP project structure logic as below
+        if ((hasDbDir && hasSrvDir) || (hasSrvDir && hasAppDir)) {
           return parentDir;
         }
       }
