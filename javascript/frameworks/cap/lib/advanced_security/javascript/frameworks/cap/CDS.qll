@@ -607,7 +607,7 @@ class CdsTransaction extends SourceNode {
 
   SourceNode getContextObject() {
     /* 1. An object node passed as the first argument to a call to `srv.tx`. */
-    result = txCall.getAnArgument().getALocalSource() and not result instanceof FunctionNode
+    result = txCall.getArgument(0).getALocalSource() and not result instanceof FunctionNode
     or
     /* 2. A manually overriden `cds.context`. */
     exists(Stmt stmt, CdsFacade cds |
