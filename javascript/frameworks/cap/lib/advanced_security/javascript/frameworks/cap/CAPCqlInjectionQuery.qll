@@ -189,7 +189,7 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
      */
 
     exists(CqlClause cqlClause |
-      start = cqlClause.getArgument().flow() and
+      start = cqlClause.getArgument().flow().getAPredecessor*().(StringOps::Concatenation) and
       end = cqlClause.flow()
     )
     or
@@ -209,8 +209,8 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
     exists(CqlClause cqlClause, PropWrite propWrite |
       (cqlClause instanceof CqlInsertClause or cqlClause instanceof CqlUpsertClause) and
       cqlClause.getArgument().flow() = propWrite.getBase() and
-      start = propWrite.getRhs() and
-      end = propWrite.getBase()
+      start = propWrite.getRhs().getAPredecessor*().(StringOps::Concatenation) and
+      end = cqlClause.flow()
     )
   }
 }
