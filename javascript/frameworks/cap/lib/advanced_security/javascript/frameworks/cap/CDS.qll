@@ -265,7 +265,7 @@ abstract class CdsDbService extends ServiceInstance {
 }
 
 /**
- * The property `db` of on a CDS facade, often accessed as `cds.db`.
+ * The property `db` of a CDS facade, often accessed as `cds.db`.
  */
 class CdsDb extends SourceNode, CdsDbService {
   CdsDb() {
