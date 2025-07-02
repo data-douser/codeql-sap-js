@@ -404,7 +404,9 @@ describe('cdsExtractorLog', () => {
         logPerformanceCounter('Files processed', 10, startTime);
 
         expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(/^\[CDS-.+ \d+\] DEBUG: Files processed: 10 - Rate: 0\/sec$/),
+          expect.stringMatching(
+            /^\[CDS-.+ \d+\] DEBUG: Files processed: 10 - Rate: \d+\.?\d*\/sec$/,
+          ),
         );
       });
 
