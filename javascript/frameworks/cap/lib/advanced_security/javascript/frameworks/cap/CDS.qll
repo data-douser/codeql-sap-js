@@ -586,6 +586,38 @@ class CdsUser extends API::Node {
   }
 }
 
+/**
+ * A transaction object to be carried out by a service that it is initialized
+ * with through a call to `tx`. Note that there are two types of styles when
+ * it comes to using the transaction object, that is, within a callback or in a 
+ * `try`-`catch` block:
+ *
+ * ``` javascript
+ * // 1. The transaction object is bound to a callback and is used in its body.
+ * await srv.tx({ user: someUser }, async (tx) => {
+ *  tx.run(SELECT.from`Entity`.where`attr=${attr}`);
+ * });
+ *
+ * // 2. The transaction object is used in a try-catch block, in a manual manner.
+ * let tx = this.tx();
+ * try {
+ *   tx.run(SELECT.from`Entity`.where`attr=${attr}`);
+ *   await tx.commit();
+ * } catch (e) {
+ *   await tx.rollback(e);
+ * }
+ * ```
+ * 
+ * The former style allows for automatic transaction management by the framework
+ * (notice there are no `commit` and `rollback` calls), while the latter style
+ * makes the low-level transaction operations explicit.
+ * 
+ * To accommodate for both styles, this class captures both the transaction call
+ * itself, and the parameter of the callback.
+ * 
+ * Note that the call to `tx` can optionally take a context object as its first
+ * parameter that lets overriding of certain options such as `user`.
+ */
 class CdsTransaction extends SourceNode {
   ServiceInstance srv;
   CallNode txCall;
