@@ -159,6 +159,26 @@ class CqlClauseParserCallWithStringConcat instanceof CqlClauseParserCall {
   string toString() { result = super.toString() }
 }
 
+/**
+ * A data flow configuration from a remote flow source to a handful of sinks that run a CQL
+ * query, either directly or indirectly by assembling one under the hood.
+ *
+ * The CQL injection happens if a fluent API builder (`SELECT`, `INSERT`, ...) or a
+ * shortcut method call (`srv.read`, `srv.create`, ...) are called with a string
+ * concatentation as one of its argument, which in practice can take one of its
+ * following forms:
+ *
+ * 1. Concatentation with a string value with the `+` operator:
+ *    - Concatenation with a string: `"ID=" + expr`
+ *    - Concatenation with a template literal: `` `ID=` + expr ``
+ * 2. Template literal that interpolates an expression in it but is not a tagged
+ * template literal: `` SELECT.from`Entity`.where(`ID=${expr}`) ``
+ *
+ * The second case should be distinguished from the ones that have tagged template literals
+ * for all of its builder calls: if the example were `` SELECT.from`Entity`.where`ID=${expr}` ``
+ * instead (notice the lack of parentheses around the template literal), then the `where` call
+ * becomes a parser call of the template literal following it and thus acts as a sanitizer.
+ */
 class CqlInjectionConfiguration extends TaintTracking::Configuration {
   CqlInjectionConfiguration() { this = "CQL injection from untrusted data" }
 
