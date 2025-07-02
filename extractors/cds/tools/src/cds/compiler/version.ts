@@ -2,10 +2,10 @@ import { spawnSync, SpawnSyncOptions } from 'child_process';
 import { join, delimiter } from 'path';
 
 /**
- * Get the CDS compiler version from a specific command or cache directory
- * @param cdsCommand The CDS command to use
- * @param cacheDir Optional path to a directory containing installed dependencies
- * @returns The CDS compiler version string, or undefined if it couldn't be determined
+ * Get the CDS compiler version from a specific command or cache directory.
+ * @param cdsCommand The CDS command to use.
+ * @param cacheDir Optional path to a directory containing installed dependencies.
+ * @returns The CDS compiler version string, or undefined if it couldn't be determined.
  */
 export function getCdsVersion(cdsCommand: string, cacheDir?: string): string | undefined {
   try {

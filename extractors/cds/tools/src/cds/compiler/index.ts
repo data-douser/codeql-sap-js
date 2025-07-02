@@ -1,13 +1,19 @@
-export { determineCdsCommand, resetCdsCommandCache, getCommandAnalysisForDebug } from './command';
+export { determineCdsCommand, getCommandAnalysisForDebug, resetCdsCommandCache } from './command';
 export type { CdsCommandAnalysis } from './command';
 export { compileCdsToJson } from './compile';
-export { configureProjectCompilations, determineProjectCompilationConfig } from './configuration';
-export { findProjectForCdsFile } from './project';
-export * from './types';
-export { getCdsVersion } from './version';
 export {
-  orchestrateCompilation,
-  planCompilationTasks,
   executeCompilationTasks,
   generateStatusReport,
+  orchestrateCompilation,
+  planCompilationTasks,
 } from './graph';
+export { findProjectForCdsFile } from './project';
+export type {
+  AlternativeCdsCommand,
+  CdsCompilationResult,
+  CompilationAttempt,
+  CompilationStatus,
+  CompilationTask,
+  EnhancedCompilationConfig,
+} from './types';
+export { getCdsVersion } from './version';

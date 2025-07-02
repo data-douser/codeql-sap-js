@@ -212,7 +212,7 @@ cdsExtractorLog(
 startPerformanceTracking('CDS Compilation');
 try {
   // Use the new orchestrated compilation approach (autobuild mode, no debug)
-  orchestrateCompilation(dependencyGraph, projectCacheDirMap, codeqlExePath, false);
+  orchestrateCompilation(dependencyGraph, projectCacheDirMap, codeqlExePath);
 
   // Handle compilation failures for normal mode
   if (!dependencyGraph.statusSummary.overallSuccess) {

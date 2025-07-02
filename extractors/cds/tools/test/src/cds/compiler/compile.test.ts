@@ -5,6 +5,7 @@ import { globSync } from 'glob';
 
 import { compileCdsToJson } from '../../../../src/cds/compiler';
 import { getCdsVersion } from '../../../../src/cds/compiler/version';
+import { CdsProject } from '../../../../src/cds/parser/types';
 import * as filesystem from '../../../../src/filesystem';
 
 // Mock dependencies
@@ -62,8 +63,19 @@ describe('compile .cds to .cds.json', () => {
       // Setup
       (filesystem.fileExists as jest.Mock).mockReturnValueOnce(false);
 
+      // Create a basic project map for the test
+      const projectMap = new Map<string, CdsProject>();
+      const projectDir = 'test-project';
+
       // Execute
-      const result = compileCdsToJson('test.cds', '/source/root', 'cds');
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
 
       // Verify
       expect(result.success).toBe(false);
@@ -77,6 +89,17 @@ describe('compile .cds to .cds.json', () => {
       const cdsJsonOutPath = `${resolvedCdsPath}.json`;
       const relativeCdsPath = 'project/file.cds'; // This comes from the mocked path.relative
 
+      // Create a basic project map for the test
+      const projectMap = new Map<string, CdsProject>();
+      const projectDir = 'test-project';
+      const project: CdsProject = {
+        cdsFiles: ['project/file.cds'],
+        cdsFilesToCompile: ['project/file.cds'],
+        expectedOutputFiles: ['project/file.cds.json'],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
       // Mock successful spawn process
       (childProcess.spawnSync as jest.Mock).mockReturnValue({
         status: 0,
@@ -85,15 +108,20 @@ describe('compile .cds to .cds.json', () => {
       });
 
       // Execute
-      const result = compileCdsToJson('test.cds', '/source/root', 'cds');
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
 
       // Verify
       expect(result.success).toBe(true);
       expect(result.outputPath).toBe(cdsJsonOutPath);
-      expect(result.compiledAsProject).toBe(false);
-      expect(result.message).toBe(
-        'Standalone file compiled using project-aware compilation approach',
-      );
+      expect(result.compiledAsProject).toBe(true);
+      expect(result.message).toBe('Root file compiled using project-aware compilation');
 
       // Check that getCdsVersion was called first
       expect(getCdsVersion).toHaveBeenCalledWith('cds', undefined);
@@ -123,6 +151,17 @@ describe('compile .cds to .cds.json', () => {
       const sourceRoot = '/my/source/root';
       const cacheDir = '/cache/dir';
 
+      // Create a basic project map for the test
+      const projectMap = new Map<string, CdsProject>();
+      const projectDir = 'test-project';
+      const project: CdsProject = {
+        cdsFiles: ['project/file.cds'],
+        cdsFilesToCompile: ['project/file.cds'],
+        expectedOutputFiles: ['project/file.cds.json'],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
       // Mock successful spawn process
       (childProcess.spawnSync as jest.Mock).mockReturnValue({
         status: 0,
@@ -131,7 +170,7 @@ describe('compile .cds to .cds.json', () => {
       });
 
       // Execute
-      compileCdsToJson('test.cds', sourceRoot, 'cds', cacheDir);
+      compileCdsToJson('test.cds', sourceRoot, 'cds', cacheDir, projectMap, projectDir);
 
       // Verify that all spawnSync calls use sourceRoot as cwd
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
@@ -145,6 +184,17 @@ describe('compile .cds to .cds.json', () => {
 
     it('should handle compilation errors', () => {
       // Setup
+      // Create a basic project map for the test
+      const projectMap = new Map<string, CdsProject>();
+      const projectDir = 'test-project';
+      const project: CdsProject = {
+        cdsFiles: ['project/file.cds'],
+        cdsFilesToCompile: ['project/file.cds'],
+        expectedOutputFiles: ['project/file.cds.json'],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
       // Mock failed spawn process
       (childProcess.spawnSync as jest.Mock).mockReturnValue({
         status: 1,
@@ -153,7 +203,14 @@ describe('compile .cds to .cds.json', () => {
       });
 
       // Execute
-      const result = compileCdsToJson('test.cds', '/source/root', 'cds');
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
 
       // Verify
       expect(result.success).toBe(false);
@@ -165,6 +222,17 @@ describe('compile .cds to .cds.json', () => {
       // Setup
       const resolvedCdsPath = '/resolved/test.cds';
       const cdsJsonOutPath = `${resolvedCdsPath}.json`;
+
+      // Create a basic project map for the test
+      const projectMap = new Map<string, CdsProject>();
+      const projectDir = 'test-project';
+      const project: CdsProject = {
+        cdsFiles: ['project/file.cds'],
+        cdsFilesToCompile: ['project/file.cds'],
+        expectedOutputFiles: ['project/file.cds.json'],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
 
       // Mock successful spawn process
       (childProcess.spawnSync as jest.Mock).mockReturnValue({
@@ -185,15 +253,20 @@ describe('compile .cds to .cds.json', () => {
       });
 
       // Execute
-      const result = compileCdsToJson('test.cds', '/source/root', 'cds');
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
 
       // Verify
       expect(result.success).toBe(true);
       expect(result.outputPath).toBe(cdsJsonOutPath);
-      expect(result.compiledAsProject).toBe(false);
-      expect(result.message).toBe(
-        'Standalone file compiled using project-aware compilation approach',
-      );
+      expect(result.compiledAsProject).toBe(true);
+      expect(result.message).toBe('Root file compiled using project-aware compilation');
       expect(filesystem.recursivelyRenameJsonFiles).toHaveBeenCalledWith(cdsJsonOutPath);
     });
 
@@ -204,6 +277,17 @@ describe('compile .cds to .cds.json', () => {
       const nodePath = '/cache/dir/node_modules';
       const binPath = '/cache/dir/node_modules/.bin';
 
+      // Create a basic project map for the test
+      const projectMap = new Map<string, CdsProject>();
+      const projectDir = 'test-project';
+      const project: CdsProject = {
+        cdsFiles: ['project/file.cds'],
+        cdsFilesToCompile: ['project/file.cds'],
+        expectedOutputFiles: ['project/file.cds.json'],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
       // Mock successful spawn process
       (childProcess.spawnSync as jest.Mock).mockReturnValue({
         status: 0,
@@ -212,7 +296,7 @@ describe('compile .cds to .cds.json', () => {
       });
 
       // Execute
-      compileCdsToJson('test.cds', sourceRoot, 'cds', cacheDir);
+      compileCdsToJson('test.cds', sourceRoot, 'cds', cacheDir, projectMap, projectDir);
 
       // Verify
       expect(childProcess.spawnSync).toHaveBeenCalledWith(

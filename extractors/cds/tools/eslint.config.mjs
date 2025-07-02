@@ -50,6 +50,7 @@ export default defineConfig([
         ...globals.node,
       },
       // @ts-expect-error - tsParser is a valid parser
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       parser: tsParser,
       ecmaVersion: 2018,
       sourceType: 'module',
@@ -141,7 +142,7 @@ export default defineConfig([
       sourceType: 'script',
       parserOptions: {
         project: './tsconfig.json',
-        tsconfigRootDir: '/Users/data-douser/Git/data-douser/codeql-sap-js/extractors/cds/tools',
+        tsconfigRootDir: __dirname,
       },
     },
   },
@@ -156,7 +157,7 @@ export default defineConfig([
       sourceType: 'module',
       parserOptions: {
         project: './tsconfig.json',
-        tsconfigRootDir: '/Users/data-douser/Git/data-douser/codeql-sap-js/extractors/cds/tools',
+        tsconfigRootDir: __dirname,
       },
     },
     rules: {

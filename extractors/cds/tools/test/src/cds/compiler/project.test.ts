@@ -1,4 +1,4 @@
-// filepath: /Users/data-douser/Git/data-douser/codeql-sap-js/extractors/cds/tools/test/src/cds/compiler/projectMapping.test.ts
+// filepath: test/src/cds/compiler/projectMapping.test.ts
 import { findProjectForCdsFile } from '../../../../src/cds/compiler';
 
 describe('projectMapping', () => {

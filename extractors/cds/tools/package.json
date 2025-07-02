@@ -8,7 +8,7 @@
     "build:all": "npm run lint:fix && npm run test:coverage && npm run build",
     "clean": "rm -rf coverage dist",
     "prebuild": "npm run clean",
-    "lint": "eslint --ext .ts src/",
+    "lint": "eslint --ext .ts cds-extractor.ts src/ test/src/",
     "lint:fix": "eslint --ext .ts --fix cds-extractor.ts src/ test/src/",
     "format": "prettier --write 'src/**/*.ts'",
     "test": "jest",

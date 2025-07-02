@@ -1,13 +1,22 @@
+/** Types for the `src/cds/compiler` package. */
+
 /**
- * Compilation status for tracking compilation attempts and results
+ * Alternative CDS command configuration for retry scenarios
  */
-export type CompilationStatus =
-  | 'pending' // File/project is scheduled for compilation
-  | 'in_progress' // Compilation is currently running
-  | 'success' // Compilation completed successfully
-  | 'failed' // Compilation failed
-  | 'skipped' // Compilation was skipped (e.g., already compiled)
-  | 'retry'; // Marked for retry with different configuration
+export interface AlternativeCdsCommand {
+  /** The command string */
+  command: string;
+  /** Cache directory to use with this command */
+  cacheDir?: string;
+  /** Strategy identifier (e.g., 'global-cds', 'npx-cds-dk') */
+  strategy: string;
+  /** Version information if available */
+  version?: string;
+  /** Priority for trying this command (higher = try first) */
+  priority: number;
+  /** Whether this command has been tested successfully */
+  tested: boolean;
+}
 
 /**
  * Result of a CDS compilation attempt
@@ -51,6 +60,17 @@ export interface CompilationAttempt {
 }
 
 /**
+ * Compilation status for tracking compilation attempts and results
+ */
+export type CompilationStatus =
+  | 'pending' // File/project is scheduled for compilation
+  | 'in_progress' // Compilation is currently running
+  | 'success' // Compilation completed successfully
+  | 'failed' // Compilation failed
+  | 'skipped' // Compilation was skipped (e.g., already compiled)
+  | 'retry'; // Marked for retry with different configuration
+
+/**
  * Compilation task representing a unit of work (file or project-level compilation)
  */
 export interface CompilationTask {
@@ -76,24 +96,6 @@ export interface CompilationTask {
   dependencies: string[];
   /** Error summary if all attempts failed */
   errorSummary?: string;
-}
-
-/**
- * Alternative CDS command configuration for retry scenarios
- */
-export interface AlternativeCdsCommand {
-  /** The command string */
-  command: string;
-  /** Cache directory to use with this command */
-  cacheDir?: string;
-  /** Strategy identifier (e.g., 'global-cds', 'npx-cds-dk') */
-  strategy: string;
-  /** Version information if available */
-  version?: string;
-  /** Priority for trying this command (higher = try first) */
-  priority: number;
-  /** Whether this command has been tested successfully */
-  tested: boolean;
 }
 
 /**

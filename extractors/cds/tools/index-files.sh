@@ -27,12 +27,6 @@ _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 _cds_extractor_js_path="${_script_dir}/dist/cds-extractor.js"
 _cds_extractor_node_modules_dir="${_script_dir}/node_modules"
 
-if [ ! -f "${_cds_extractor_js_path}" ]; then
-    echo "Error: The 'cds-extractor.js' script does not exist at the expected path: ${_cds_extractor_js_path}"
-    echo "Please ensure that the script has been built and is available in the 'dist' directory."
-    exit 3
-fi
-
 # Change to the directory of this shell script to ensure that npm looks up the
 # package.json file in the correct directory and installs the dependencies
 # (i.e. node_modules) relative to this directory. This is technically a violation
