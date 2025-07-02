@@ -1,9 +1,0 @@
-# Ignore files create just for debugging the CDS extractor.
-debug/
-
-# Override the repository-level .gitignore to explicitly include the "dist" and
-#"node_modules" sub-directories, which are used to store the CDS extractor JS build
-#files and their Node.js dependencies, respectively.
-!dist/
-!node_modules/
-
