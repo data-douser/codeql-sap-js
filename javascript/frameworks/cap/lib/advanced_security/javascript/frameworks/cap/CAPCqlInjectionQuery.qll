@@ -36,15 +36,20 @@ class AwaitCqlClauseWithStringConcatParameter extends CqlInjectionSink {
   DataFlow::Node queryParameter;
   DataFlow::Node query;
   CqlClauseWithStringConcatParameter cqlClauseWithStringConcat;
+  CqlClause finalAncestorCqlClauseOfCqlClauseWithStringConcat;
 
   AwaitCqlClauseWithStringConcatParameter() {
     exists(AwaitExpr await |
       this = await.flow() and
-      await.getOperand() = cqlClauseWithStringConcat.(CqlClause).asExpr()
+      await.getOperand() = finalAncestorCqlClauseOfCqlClauseWithStringConcat.asExpr() and
+      finalAncestorCqlClauseOfCqlClauseWithStringConcat =
+        cqlClauseWithStringConcat.(CqlClause).getFinalClause()
     )
   }
 
-  override DataFlow::Node getQuery() { result = cqlClauseWithStringConcat.(CqlClause).flow() }
+  override DataFlow::Node getQuery() {
+    result = finalAncestorCqlClauseOfCqlClauseWithStringConcat.flow()
+  }
 }
 
 /**
@@ -189,7 +194,7 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
 
     exists(CqlClause cqlClause |
       start = cqlClause.getArgument().flow().getAPredecessor*().(StringOps::Concatenation) and
-      end = cqlClause.flow()
+      end = cqlClause.getFinalClause().flow()
     )
   }
 }

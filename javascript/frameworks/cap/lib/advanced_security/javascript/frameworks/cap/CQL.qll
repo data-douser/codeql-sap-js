@@ -265,6 +265,17 @@ class CqlClause extends TCqlClause {
   predicate isFinal() { not exists(this.getParentCqlClause()) }
 
   /**
+   * Gets the final CQL clause that this clause is a part of.
+   */
+  CqlClause getFinalClause() {
+    if this.isFinal()
+    then result = this
+    else (
+      result = this.getAnAncestorCqlClause() and result.isFinal()
+    )
+  }
+
+  /**
    * Matches the given `CqlClause` to its method/property name, nested at arbitrary depth.
    */
   string getAnAPIName() {
