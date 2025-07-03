@@ -929,8 +929,7 @@ class CqlCreateMethodCall extends CqlShortcutMethodCall {
     exists(DataFlow::CallNode chainedMethodCall |
       chainedMethodCall = this.getAChainedMethodCall(_)
     |
-      result = chainedMethodCall.getAnArgument() or
-      result = chainedMethodCall.getAnArgument().(SourceNode).getAPropertyWrite().getRhs()
+      result = chainedMethodCall.getAnArgument()
     )
   }
 }
@@ -958,8 +957,7 @@ class CqlInsertMethodCall extends CqlShortcutMethodCall {
     exists(DataFlow::CallNode chainedMethodCall |
       chainedMethodCall = this.getAChainedMethodCall(_)
     |
-      result = chainedMethodCall.getAnArgument() or
-      result = chainedMethodCall.getAnArgument().(SourceNode).getAPropertyWrite().getRhs()
+      result = chainedMethodCall.getAnArgument()
     )
   }
 }
@@ -971,8 +969,7 @@ class CqlUpsertMethodCall extends CqlShortcutMethodCall {
     exists(DataFlow::CallNode chainedMethodCall |
       chainedMethodCall = this.getAChainedMethodCall(_)
     |
-      result = chainedMethodCall.getAnArgument() or
-      result = chainedMethodCall.getAnArgument().(SourceNode).getAPropertyWrite().getRhs()
+      result = chainedMethodCall.getAnArgument()
     )
   }
 }
