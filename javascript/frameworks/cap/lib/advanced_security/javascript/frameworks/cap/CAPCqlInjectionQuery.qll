@@ -212,25 +212,5 @@ class CqlInjectionConfiguration extends TaintTracking::Configuration {
       start = cqlClause.getArgument().flow().getAPredecessor*().(StringOps::Concatenation) and
       end = cqlClause.flow()
     )
-    or
-    /*
-     * 3. In case of INSERT and UPSERT, jump from an object write to a query parameter to the argument itself.
-     * e.g. Given below code:
-     *
-     * ``` javascript
-     * await INSERT.into(Service1Entity).entries({ id: "" + id });
-     * ```
-     *
-     * This step jumps from `id` in the property value expression to the enclosing object `{ id: "" + id }`.
-     * This in conjunction with the above step 2 will make the taint tracker jump from `id` to the entire
-     * INSERT clause.
-     */
-
-    exists(CqlClause cqlClause, PropWrite propWrite |
-      (cqlClause instanceof CqlInsertClause or cqlClause instanceof CqlUpsertClause) and
-      cqlClause.getArgument().flow() = propWrite.getBase() and
-      start = propWrite.getRhs().getAPredecessor*().(StringOps::Concatenation) and
-      end = cqlClause.flow()
-    )
   }
 }
