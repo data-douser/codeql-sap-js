@@ -288,8 +288,8 @@ module.exports = class Service1 extends cds.ApplicationService {
     this.on("send41", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
-      const query = SELECT.from`Service1Entity`.where("ID=" + id);  // UNSAFE: direct concatenation with `+`
-      Service2.run(query);
+      const query = SELECT.from`Service1Entity`.where("ID=" + id);
+      Service2.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send42", async (req) => {
@@ -332,101 +332,101 @@ module.exports = class Service1 extends cds.ApplicationService {
     this.on("send51", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
-      const query = cds.ql("SELECT * from Service1Entity where ID =" + id);  // UNSAFE: direct concatenation with `+`
-      Service2.run(query);
+      const query = cds.ql("SELECT * from Service1Entity where ID =" + id);
+      Service2.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send51", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
-      const query = cds.ql(`SELECT * from Service1Entity where ID =` + id);  // UNSAFE: direct concatenation with `+`
-      Service2.run(query);
+      const query = cds.ql(`SELECT * from Service1Entity where ID =` + id);
+      Service2.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send53", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
-      const query = cds.ql(`SELECT * from Service1Entity where ID = ${id}`);  // UNSAFE: direct concatenation with `+`
-      Service2.run(query);
+      const query = cds.ql(`SELECT * from Service1Entity where ID = ${id}`);
+      Service2.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send54", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
-      const query = cds.ql`SELECT * from Service1Entity where ID = ${id}`;  // SAFE: tagged template expression
-      Service2.run(query);
+      const query = cds.ql`SELECT * from Service1Entity where ID = ${id}`;
+      Service2.run(query);  // SAFE: tagged template expression
     });
 
     /* ========== 6. Service1 running query on the database service using CQN parsed with `cds.parse.cql` ========== */
     this.on("send61", async (req) => {
       const { id } = req.data;
-      const query = cds.parse.cql("SELECT * from Entity1 where ID =" + id);  // UNSAFE: direct concatenation with `+`
-      cds.run(query);
+      const query = cds.parse.cql("SELECT * from Entity1 where ID =" + id);
+      cds.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send62", async (req) => {
       const { id } = req.data;
-      const query = cds.parse.cql(`SELECT * from Entity1 where ID =` + id);  // UNSAFE: direct concatenation with `+`
-      cds.run(query);
+      const query = cds.parse.cql(`SELECT * from Entity1 where ID =` + id);
+      cds.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send63", async (req) => {
       const { id } = req.data;
-      const query = cds.parse.cql(`SELECT * from Entity1 where ID = ${id}`);  // UNSAFE: direct interpolation in a template literal
-      cds.run(query);
+      const query = cds.parse.cql(`SELECT * from Entity1 where ID = ${id}`);
+      cds.run(query);  // UNSAFE: direct interpolation in a template literal
     });
 
     this.on("send64", async (req) => {
       const { id } = req.data;
-      const query = cds.parse.cql`SELECT * from Entity1 where ID = ${id}`;  // SAFE: tagged template expression
-      cds.run(query);
+      const query = cds.parse.cql`SELECT * from Entity1 where ID = ${id}`;
+      cds.run(query);  // SAFE: tagged template expression
     });
 
     /* ========== 7. Service1 running query on the database service using CQN parsed with global function `CQL` ========== */
     this.on("send71", async (req) => {
       const { id } = req.data;
-      const query = CQL("SELECT * from Entity1 where ID =" + id);  // UNSAFE: direct concatenation with `+`
-      cds.run(query);
+      const query = CQL("SELECT * from Entity1 where ID =" + id);
+      cds.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send72", async (req) => {
       const { id } = req.data;
-      const query = CQL(`SELECT * from Entity1 where ID =` + id);  // UNSAFE: direct concatenation with `+`
-      cds.run(query);
+      const query = CQL(`SELECT * from Entity1 where ID =` + id);
+      cds.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send73", async (req) => {
       const { id } = req.data;
-      const query = CQL(`SELECT * from Entity1 where ID = ${id}`);  // UNSAFE: direct interpolation in a template literal
-      cds.run(query);
+      const query = CQL(`SELECT * from Entity1 where ID = ${id}`);
+      cds.run(query);  // UNSAFE: direct interpolation in a template literal
     });
 
     this.on("send74", async (req) => {
       const { id } = req.data;
-      const query = CQL`SELECT * from Entity1 where ID = ${id}`;  // SAFE: tagged template expression
-      cds.run(query);
+      const query = CQL`SELECT * from Entity1 where ID = ${id}`;
+      cds.run(query);  // SAFE: tagged template expression
     });
 
     /* ========== 8. Service1 running query on Service2 using an unparsed CDL string (only valid in old versions of CAP) ========== */
     this.on("send81", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
-      const query = "SELECT * from Entity1 where ID =" + id;  // UNSAFE: direct concatenation with `+`
-      Service2.run(query);
+      const query = "SELECT * from Entity1 where ID =" + id;
+      Service2.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send82", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
-      const query = `SELECT * from Entity1 where ID =` + id;  // UNSAFE: direct concatenation with `+`
-      Service2.run(query);
+      const query = `SELECT * from Entity1 where ID =` + id;
+      Service2.run(query);  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send83", async (req) => {
       const { id } = req.data;
       const Service2 = await cds.connect.to("Service2");
-      const query = `SELECT * from Entity1 where ID = ${id}`;  // SAFE: tagged template expression
-      Service2.run(query);
+      const query = `SELECT * from Entity1 where ID = ${id}`;
+      Service2.run(query);  // UNSAFE: direct interpolation in a template literal
     });
 
     /* ========== 9. Service1 running query on Service2 using `Service2.tx( tx => tx.run(...) )` and friends ========== */
