@@ -53,21 +53,6 @@ module.exports = class Service1 extends cds.ApplicationService {
       cds.read("Entity1").where`ID=${id}`;  // SAFE: tagged template expression
     });
 
-    this.on("send00131", async (req) => {
-      const { id } = req.data;
-      cds.create("Entity1").entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00132", async (req) => {
-      const { id } = req.data;
-      cds.create("Entity1").entries({id: `` + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00133", async (req) => {
-      const { id } = req.data;
-      cds.create("Entity1").entries({id: `${id}`});  // UNSAFE: direct interpolation in a template literal
-    });
-
     this.on("send00141", async (req) => {
       const { id, amount } = req.data;
       cds.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);  // UNSAFE: direct concatenation with `+`
@@ -86,36 +71,6 @@ module.exports = class Service1 extends cds.ApplicationService {
     this.on("send00144", async (req) => {
       const { id, amount } = req.data;
       cds.update("Entity1").set("col1 = col1" + amount).where`col1 = ${id}`;  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00151", async (req) => {
-      const { id } = req.data;
-      cds.insert("Entity1").entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00152", async (req) => {
-      const { id } = req.data;
-      cds.insert("Entity1").entries({id: `` + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00153", async (req) => {
-      const { id } = req.data;
-      cds.insert("Entity1").entries({id: `${id}`});  // UNSAFE: direct interpolation in a template literal
-    });
-
-    this.on("send00161", async (req) => {
-      const { id } = req.data;
-      cds.upsert("Entity1").entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00162", async (req) => {
-      const { id } = req.data;
-      cds.upsert("Entity1").entries({id: `` + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00163", async (req) => {
-      const { id } = req.data;
-      cds.upsert("Entity1").entries({id: `${id}`});  // UNSAFE: direct interpolation in a template literal
     });
 
     this.on("send00171", async (req) => {
@@ -163,30 +118,6 @@ module.exports = class Service1 extends cds.ApplicationService {
       await SELECT.from(Service1Entity).where`ID=${id}`;  // SAFE: tagged template expression
     });
 
-    this.on("send00221", async (req) => {
-      const { id } = req.data;
-      const { Service1Entity } = this.entities;
-      await INSERT.into(Service1Entity).entries("ID =" + id);  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00222", async (req) => {
-      const { id } = req.data;
-      const { Service1Entity } = this.entities;
-      await INSERT.into(Service1Entity).entries(`ID =` + id);  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00223", async (req) => {
-      const { id } = req.data;
-      const { Service1Entity } = this.entities;
-      await INSERT.into(Service1Entity).entries(`ID = ${id}`);  // UNSAFE: direct interpolation in a template literal
-    });
-
-    this.on("send00224", async (req) => {
-      const { id } = req.data;
-      const { Service1Entity } = this.entities;
-      await INSERT.into(Service1Entity).entries`ID = ${id}`;  // SAFE: tagged template expression
-    });
-
     this.on("send00231", async (req) => {
       const { id } = req.data;
       const { Service1Entity } = this.entities;
@@ -209,24 +140,6 @@ module.exports = class Service1 extends cds.ApplicationService {
       const { id } = req.data;
       const { Service1Entity } = this.entities;
       await UPDATE.entity(Service1Entity).set("col1 = col1 + " + id).where`ID = ${id}`;  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00241", async (req) => {
-      const { id } = req.data;
-      const { Service1Entity } = this.entities;
-      await UPSERT.into(Service1Entity).entries({ id: "" + id });  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00242", async (req) => {
-      const { id } = req.data;
-      const { Service1Entity } = this.entities;
-      await UPSERT.into(Service1Entity).entries({ id: `` + id });  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send00243", async (req) => {
-      const { id } = req.data;
-      const { Service1Entity } = this.entities;
-      await UPSERT.into(Service1Entity).entries({ id: `${id}` });  // UNSAFE: direct interpolation in a template literal
     });
 
     this.on("send00251", async (req) => {
@@ -265,26 +178,6 @@ module.exports = class Service1 extends cds.ApplicationService {
       this.read(`Service1Entity`).where("ID =" + id);  // UNSAFE: direct concatenation with `+`
     });
 
-    this.on("send33", async (req) => {
-      const { id } = req.data;
-      this.create(`Service1Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send34", async (req) => {
-      const { id, amount } = req.data;
-      this.update(`Service1Entity`).set("col1 = col1" + amount).where("col1 = " + id);  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send35", async (req) => {
-      const { id } = req.data;
-      this.insert(`Service1Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send36", async (req) => {
-      const { id } = req.data;
-      this.upsert(`Service1Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
     this.on("send37", async (req) => {
       const { id } = req.data;
       this.delete(`Service1Entity`).where("ID =" + id);  // UNSAFE: direct concatenation with `+`
@@ -304,28 +197,10 @@ module.exports = class Service1 extends cds.ApplicationService {
       Service2.read(`Service2Entity`).where("ID =" + id);  // UNSAFE: direct concatenation with `+`
     });
 
-    this.on("send43", async (req) => {
-      const { id } = req.data;
-      const Service2 = await cds.connect.to("Service2");
-      Service2.create(`Service2Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
     this.on("send44", async (req) => {
       const { id, amount } = req.data;
       const Service2 = await cds.connect.to("Service2");
       Service2.update(`Service2Entity`).set("col1 = col1" + amount).where("col1 = " + id);  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send45", async (req) => {
-      const { id } = req.data;
-      const Service2 = await cds.connect.to("Service2");
-      Service2.insert(`Service2Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send46", async (req) => {
-      const { id } = req.data;
-      const Service2 = await cds.connect.to("Service2");
-      Service2.upsert(`Service2Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
     });
 
     this.on("send47", async (req) => {
@@ -453,35 +328,11 @@ module.exports = class Service1 extends cds.ApplicationService {
       });
     });
 
-    this.on("send93", async (req) => {
-      const { id } = req.data;
-      const Service2 = await cds.connect.to("Service2");
-      Service2.tx(async (tx) => {
-        tx.create(`Service2Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
     this.on("send94", async (req) => {
       const { id, amount } = req.data;
       const Service2 = await cds.connect.to("Service2");
       Service2.tx(async (tx) => {
         tx.update(`Service2Entity`).set("col1 = col1" + amount).where("col1 = " + id);  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
-    this.on("send95", async (req) => {
-      const { id } = req.data;
-      const Service2 = await cds.connect.to("Service2");
-      Service2.tx(async (tx) => {
-        tx.insert(`Service2Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
-    this.on("send96", async (req) => {
-      const { id } = req.data;
-      const Service2 = await cds.connect.to("Service2");
-      Service2.tx(async (tx) => {
-        tx.upsert(`Service2Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
       });
     });
 
@@ -509,31 +360,10 @@ module.exports = class Service1 extends cds.ApplicationService {
       });
     });
 
-    this.on("send103", async (req) => {
-      const { id } = req.data;
-      this.tx(async (tx) => {
-        tx.create(`Service1Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
     this.on("send104", async (req) => {
       const { id, amount } = req.data;
       this.tx(async (tx) => {
         tx.update(`Service1Entity`).set("col1 = col1" + amount).where("col1 = " + id);  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
-    this.on("send105", async (req) => {
-      const { id } = req.data;
-      this.tx(async (tx) => {
-        tx.insert(`Service1Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
-    this.on("send106", async (req) => {
-      const { id } = req.data;
-      this.tx(async (tx) => {
-        tx.upsert(`Service1Entity`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
       });
     });
 
@@ -560,31 +390,10 @@ module.exports = class Service1 extends cds.ApplicationService {
       });
     });
 
-    this.on("send113", async (req) => {
-      const { id } = req.data;
-      cds.tx(async (tx) => {
-        tx.create(`Entity1`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
     this.on("send114", async (req) => {
       const { id, amount } = req.data;
       cds.tx(async (tx) => {
         tx.update(`Entity1`).set("col1 = col1" + amount).where("col1 = " + id);  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
-    this.on("send115", async (req) => {
-      const { id } = req.data;
-      cds.tx(async (tx) => {
-        tx.insert(`Entity1`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
-    this.on("send116", async (req) => {
-      const { id } = req.data;
-      cds.tx(async (tx) => {
-        tx.upsert(`Entity1`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
       });
     });
 
@@ -611,31 +420,10 @@ module.exports = class Service1 extends cds.ApplicationService {
       });
     });
 
-    this.on("send123", async (req) => {
-      const { id } = req.data;
-      cds.db.tx(async (tx) => {
-        tx.create(`Entity1`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
     this.on("send124", async (req) => {
       const { id, amount } = req.data;
       cds.db.tx(async (tx) => {
         tx.update(`Entity1`).set("col1 = col1" + amount).where("col1 = " + id);  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
-    this.on("send125", async (req) => {
-      const { id } = req.data;
-      cds.db.tx(async (tx) => {
-        tx.insert(`Entity1`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-      });
-    });
-
-    this.on("send126", async (req) => {
-      const { id } = req.data;
-      cds.db.tx(async (tx) => {
-        tx.upsert(`Entity1`).entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
       });
     });
 
@@ -691,21 +479,6 @@ module.exports = class Service1 extends cds.ApplicationService {
       cds.db.read("Entity1").where`ID=${id}`;  // SAFE: tagged template expression
     });
 
-    this.on("send001331", async (req) => {
-      const { id } = req.data;
-      cds.db.create("Entity1").entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send001332", async (req) => {
-      const { id } = req.data;
-      cds.db.create("Entity1").entries({id: `` + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send001333", async (req) => {
-      const { id } = req.data;
-      cds.db.create("Entity1").entries({id: `${id}`});  // UNSAFE: direct interpolation in a template literal
-    });
-
     this.on("send001341", async (req) => {
       const { id, amount } = req.data;
       cds.db.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);  // UNSAFE: direct concatenation with `+`
@@ -724,36 +497,6 @@ module.exports = class Service1 extends cds.ApplicationService {
     this.on("send001344", async (req) => {
       const { id, amount } = req.data;
       cds.db.update("Entity1").set("col1 = col1" + amount).where`col1 = ${id}`;  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send001351", async (req) => {
-      const { id } = req.data;
-      cds.db.insert("Entity1").entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send001352", async (req) => {
-      const { id } = req.data;
-      cds.db.insert("Entity1").entries({id: `` + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send001353", async (req) => {
-      const { id } = req.data;
-      cds.db.insert("Entity1").entries({id: `${id}`});  // UNSAFE: direct interpolation in a template literal
-    });
-
-    this.on("send001361", async (req) => {
-      const { id } = req.data;
-      cds.db.upsert("Entity1").entries({id: "" + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send001362", async (req) => {
-      const { id } = req.data;
-      cds.db.upsert("Entity1").entries({id: `` + id});  // UNSAFE: direct concatenation with `+`
-    });
-
-    this.on("send001363", async (req) => {
-      const { id } = req.data;
-      cds.db.upsert("Entity1").entries({id: `${id}`});  // UNSAFE: direct interpolation in a template literal
     });
 
     this.on("send001371", async (req) => {
