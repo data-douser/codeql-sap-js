@@ -18,21 +18,7 @@ abstract class CqlInjectionSink extends DataFlow::Node {
 class CqlClauseWithStringConcatParameter instanceof CqlClause {
   CqlClauseWithStringConcatParameter() {
     exists(DataFlow::Node queryParameter |
-      (
-        if this instanceof CqlInsertClause or this instanceof CqlUpsertClause
-        then
-          queryParameter = this.getArgument().flow()
-          or
-          /*
-           * Account for cases where an object with a string concatenation is passed. e.g.
-           * ``` javascript
-           * let insertQuery = INSERT.into`SomeEntity`.entries({col1: "column_" + col});
-           * ```
-           */
-
-          queryParameter = this.getArgument().flow().(SourceNode).getAPropertyWrite().getRhs()
-        else queryParameter = this.getArgument().flow()
-      ) and
+      queryParameter = this.getArgument().flow() and
       exists(StringConcatenation::getAnOperand(queryParameter))
     )
   }
@@ -95,10 +81,7 @@ class StringConcatParameterOfCqlRunMethodQueryArgument extends CqlInjectionSink 
  * concatenation expression. e.g.
  * ``` javascript
  * cds.read("Entity1").where(`ID=${id}`); // Notice the surrounding parentheses!
- * cds.create("Entity1").entries({id: "" + id});
  * cds.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);
- * cds.insert("Entity1").entries({id: "" + id});
- * cds.upsert("Entity1").entries({id: "" + id});
  * cds.delete("Entity1").where("ID =" + id);
  * ```
  */
@@ -121,18 +104,14 @@ class CqlShortcutMethodCallWithStringConcat instanceof CqlShortcutMethodCall {
  * A string concatenation expression included in a CQL shortcut method call. e.g.
  * ``` javascript
  * cds.read("Entity1").where(`ID=${id}`); // Notice the surrounding parentheses!
- * cds.create("Entity1").entries({id: "" + id});
  * cds.update("Entity1").set("col1 = col1" + amount).where("col1 = " + id);
- * cds.insert("Entity1").entries({id: "" + id});
- * cds.upsert("Entity1").entries({id: "" + id});
  * cds.delete("Entity1").where("ID =" + id);
  * ```
  * This class captures the string concatenation expressions appearing above:
  * 1. `ID=${id}`
- * 2. `"" + id`
- * 3. `"col1 = col1" + amount`
- * 4. `"col1 = " + id`
- * 5. `"ID =" + id`
+ * 2. `"col1 = col1" + amount`
+ * 3. `"col1 = " + id`
+ * 4. `"ID =" + id`
  */
 class StringConcatParameterOfCqlShortcutMethodCall extends CqlInjectionSink {
   CqlShortcutMethodCallWithStringConcat cqlShortcutMethodCallWithStringConcat;
