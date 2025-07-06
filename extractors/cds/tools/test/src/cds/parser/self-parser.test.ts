@@ -1,14 +1,12 @@
-import { join, dirname } from 'path';
+import { join } from 'path';
 
 import mockFs from 'mock-fs';
 
 import { buildCdsProjectDependencyGraph } from '../../../../src/cds/parser';
 import {
-  clearFileCache,
   determineCdsFilesForProjectDir,
   determineCdsProjectsUnderSourceDir,
   extractCdsImports,
-  findProjectRootFromCdsFile,
   isLikelyCdsProject,
 } from '../../../../src/cds/parser/functions';
 
@@ -20,9 +18,6 @@ const SOURCE_ROOT = '/source';
  * Creates a mock file system with CDS projects based on actual patterns found in the repository
  */
 function createMockFileSystemFromActualRepoPatterns() {
-  // Clear file cache between tests
-  clearFileCache();
-
   // Create a complex mock file system based on real repository patterns
   return mockFs({
     [SOURCE_ROOT]: {
@@ -193,7 +188,6 @@ function createMockFileSystemFromActualRepoPatterns() {
 describe('CDS Parser Self-Test Suite', () => {
   afterEach(() => {
     mockFs.restore();
-    clearFileCache();
   });
 
   describe('buildCdsProjectDependencyGraph - Repository Patterns', () => {
@@ -202,7 +196,8 @@ describe('CDS Parser Self-Test Suite', () => {
     });
 
     test('should detect all CDS projects in the test repository structure', () => {
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // Check the number of detected projects
       expect(projectMap.size).toBe(5);
@@ -225,7 +220,8 @@ describe('CDS Parser Self-Test Suite', () => {
     });
 
     test('should correctly identify CDS files for each project', () => {
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // Check CDS files for the log-injection-without-protocol-none project
       const project1 = projectMap.get(
@@ -258,7 +254,8 @@ describe('CDS Parser Self-Test Suite', () => {
     });
 
     test('should correctly identify package.json for each project', () => {
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // Check package.json for projects
       const projectDirs = Array.from(projectMap.keys());
@@ -273,7 +270,6 @@ describe('CDS Parser Self-Test Suite', () => {
     test('should identify project dependencies through import statements', () => {
       // Create a more complex file system with cross-project dependencies
       mockFs.restore();
-      clearFileCache();
 
       // Create a file system with inter-project dependencies
       mockFs({
@@ -326,7 +322,8 @@ describe('CDS Parser Self-Test Suite', () => {
         },
       });
 
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // Verify that app-service depends on common-lib
       const appService = projectMap.get('app-service');
@@ -336,7 +333,7 @@ describe('CDS Parser Self-Test Suite', () => {
       const commonLib = projectMap.get('common-lib');
       expect(commonLib).toBeDefined();
 
-      expect(appService?.dependencies?.[0]).toBe(commonLib);
+      expect(appService?.dependencies?.[0]?.projectDir).toBe(commonLib?.projectDir);
     });
   });
 
@@ -433,7 +430,6 @@ describe('CDS Parser Self-Test Suite', () => {
     test('should extract relative imports correctly', () => {
       // Re-create the mock file system with a specific content to ensure consistent importing
       mockFs.restore();
-      clearFileCache();
 
       mockFs({
         [SOURCE_ROOT]: {
@@ -497,7 +493,6 @@ describe('CDS Parser Self-Test Suite', () => {
     test('should identify directories with .cds files as CDS projects', () => {
       // Create a directory with only .cds files and no package.json
       mockFs.restore();
-      clearFileCache();
 
       mockFs({
         '/cds-only-project': {
@@ -516,7 +511,6 @@ describe('CDS Parser Self-Test Suite', () => {
 
     test('should not identify directories without package.json or .cds files as CDS projects', () => {
       mockFs.restore();
-      clearFileCache();
 
       mockFs({
         '/not-a-cds-project': {
@@ -528,71 +522,14 @@ describe('CDS Parser Self-Test Suite', () => {
     });
   });
 
-  describe('findProjectRootFromCdsFile - Repository Patterns', () => {
-    beforeEach(() => {
-      createMockFileSystemFromActualRepoPatterns();
-    });
-
-    test('should find project root directory from a CDS file path', () => {
-      // We need to create a file structure with package.json at the project root
-      mockFs.restore();
-      clearFileCache();
-
-      // Set up a simpler structure with package.json at the project root
-      mockFs({
-        '/source-root': {
-          'project-dir': {
-            'package.json': JSON.stringify({
-              name: 'test-project',
-              dependencies: {
-                '@sap/cds': '^6.0.0',
-              },
-            }),
-            srv: {
-              'service.cds': 'namespace test;',
-            },
-            db: {
-              'schema.cds': 'namespace test;',
-            },
-          },
-        },
-      });
-
-      const cdsFilePath = '/source-root/project-dir/srv/service.cds';
-      const expectedRoot = '/source-root/project-dir';
-
-      const result = findProjectRootFromCdsFile(dirname(cdsFilePath), '/source-root');
-      expect(result).toBe(expectedRoot);
-    });
-
-    test('should return null if no project root is found', () => {
-      mockFs.restore();
-      clearFileCache();
-
-      // Create a structure with no package.json
-      mockFs({
-        '/source-root': {
-          standalone: {
-            'file.cds': 'namespace test;',
-          },
-        },
-      });
-
-      // When the function fails to find a project root, it should return the original directory
-      // based on the implementation in functions.ts
-      const result = findProjectRootFromCdsFile('/source-root/standalone', '/source-root');
-      // The function returns the original directory if it can't find a project root
-      expect(result).toBe('/source-root/standalone');
-    });
-  });
-
   describe('Edge Cases and Error Handling', () => {
     test('should handle empty source directory gracefully', () => {
       mockFs({
         '/empty': {},
       });
 
-      const projectMap = buildCdsProjectDependencyGraph('/empty');
+      const dependencyGraph = buildCdsProjectDependencyGraph('/empty');
+      const projectMap = dependencyGraph.projects;
       expect(projectMap.size).toBe(0);
     });
 
@@ -609,7 +546,8 @@ describe('CDS Parser Self-Test Suite', () => {
         },
       });
 
-      const projectMap = buildCdsProjectDependencyGraph('/no-cds');
+      const dependencyGraph = buildCdsProjectDependencyGraph('/no-cds');
+      const projectMap = dependencyGraph.projects;
       expect(projectMap.size).toBe(0);
     });
 
@@ -618,7 +556,6 @@ describe('CDS Parser Self-Test Suite', () => {
 
       // Mock the debug output directory
       mockFs.restore();
-      clearFileCache();
 
       mockFs({
         [SOURCE_ROOT]: {
@@ -645,7 +582,8 @@ describe('CDS Parser Self-Test Suite', () => {
         },
       });
 
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT, '/script-dir');
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT, '/script-dir');
+      const projectMap = dependencyGraph.projects;
       expect(projectMap.size).toBe(1);
 
       // The debug file would be created, but we can't easily test that with mockFs
@@ -655,7 +593,6 @@ describe('CDS Parser Self-Test Suite', () => {
   describe('Complex project structures with nested dependencies', () => {
     test('should handle complex project structures with multiple levels of dependencies', () => {
       mockFs.restore();
-      clearFileCache();
 
       mockFs({
         [SOURCE_ROOT]: {
@@ -721,7 +658,8 @@ describe('CDS Parser Self-Test Suite', () => {
         },
       });
 
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // Check the number of detected projects
       expect(projectMap.size).toBe(3);
@@ -737,17 +675,16 @@ describe('CDS Parser Self-Test Suite', () => {
 
       // Check dependencies
       expect(commonLib?.dependencies?.length).toBe(1);
-      expect(commonLib?.dependencies?.[0]).toBe(baseLib);
+      expect(commonLib?.dependencies?.[0]?.projectDir).toBe(baseLib?.projectDir);
 
       expect(appService?.dependencies?.length).toBe(1);
-      expect(appService?.dependencies?.[0]).toBe(commonLib);
+      expect(appService?.dependencies?.[0]?.projectDir).toBe(commonLib?.projectDir);
     });
   });
 
   describe('Circular Dependencies Between CDS Projects', () => {
     test('should handle circular dependencies gracefully', () => {
       mockFs.restore();
-      clearFileCache();
 
       // Create a file system with circular dependencies
       mockFs({
@@ -792,7 +729,8 @@ describe('CDS Parser Self-Test Suite', () => {
       });
 
       // The parser should handle circular dependencies without infinite loops
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // We should detect both projects
       expect(projectMap.size).toBe(2);
@@ -806,17 +744,16 @@ describe('CDS Parser Self-Test Suite', () => {
 
       // Both projects should have dependencies on each other
       expect(projectA?.dependencies?.length).toBe(1);
-      expect(projectA?.dependencies?.[0]).toBe(projectB);
+      expect(projectA?.dependencies?.[0]?.projectDir).toBe(projectB?.projectDir);
 
       expect(projectB?.dependencies?.length).toBe(1);
-      expect(projectB?.dependencies?.[0]).toBe(projectA);
+      expect(projectB?.dependencies?.[0]?.projectDir).toBe(projectA?.projectDir);
     });
   });
 
   describe('Deeply Nested Project Structures', () => {
     test('should handle deeply nested project structures with multiple imports', () => {
       mockFs.restore();
-      clearFileCache();
 
       // Create a complex file system with multiple levels of nested imports
       mockFs({
@@ -923,7 +860,8 @@ describe('CDS Parser Self-Test Suite', () => {
         },
       });
 
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // We should detect all four projects
       expect(projectMap.size).toBe(4);
@@ -941,17 +879,17 @@ describe('CDS Parser Self-Test Suite', () => {
 
       // Check dependencies: root-app depends on ui5-models, common-lib, and services/api
       expect(rootApp?.dependencies?.length).toBe(3);
-      expect(rootApp?.dependencies).toContain(ui5Models);
-      expect(rootApp?.dependencies).toContain(commonLib);
-      expect(rootApp?.dependencies).toContain(serviceApi);
+      expect(rootApp?.dependencies?.map(dep => dep.projectDir)).toContain(ui5Models?.projectDir);
+      expect(rootApp?.dependencies?.map(dep => dep.projectDir)).toContain(commonLib?.projectDir);
+      expect(rootApp?.dependencies?.map(dep => dep.projectDir)).toContain(serviceApi?.projectDir);
 
       // ui5-models depends on common-lib
       expect(ui5Models?.dependencies?.length).toBe(1);
-      expect(ui5Models?.dependencies?.[0]).toBe(commonLib);
+      expect(ui5Models?.dependencies?.[0]?.projectDir).toBe(commonLib?.projectDir);
 
       // services/api depends on common-lib
       expect(serviceApi?.dependencies?.length).toBe(1);
-      expect(serviceApi?.dependencies?.[0]).toBe(commonLib);
+      expect(serviceApi?.dependencies?.[0]?.projectDir).toBe(commonLib?.projectDir);
 
       // common-lib has no dependencies
       expect(commonLib?.dependencies?.length).toBe(0);
@@ -961,7 +899,6 @@ describe('CDS Parser Self-Test Suite', () => {
   describe('Handling Malformed CDS Files', () => {
     test('should handle malformed CDS files gracefully', () => {
       mockFs.restore();
-      clearFileCache();
 
       // Create a file system with some malformed CDS files
       mockFs({
@@ -1008,7 +945,8 @@ describe('CDS Parser Self-Test Suite', () => {
       });
 
       // The parser should still identify the project and valid files
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // The project should still be detected
       expect(projectMap.size).toBe(1);
@@ -1036,7 +974,6 @@ describe('CDS Parser Self-Test Suite', () => {
 
     test('should handle CDS files with partially valid content', () => {
       mockFs.restore();
-      clearFileCache();
 
       // Create a file with mixed valid and invalid content
       mockFs({
@@ -1082,7 +1019,8 @@ describe('CDS Parser Self-Test Suite', () => {
       expect(imports[0].isModule).toBe(true);
 
       // The project should be detected
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
       expect(projectMap.size).toBe(1);
     });
   });
@@ -1090,7 +1028,6 @@ describe('CDS Parser Self-Test Suite', () => {
   describe('CDS Projects with Special Annotations and Protocols', () => {
     test('should handle projects with various protocol and annotation patterns', () => {
       mockFs.restore();
-      clearFileCache();
 
       // Create a file system with projects using various protocol annotations
       mockFs({
@@ -1216,7 +1153,8 @@ describe('CDS Parser Self-Test Suite', () => {
       });
 
       // The parser should handle all these special annotations
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
 
       // We should detect all four projects
       expect(projectMap.size).toBe(4);
@@ -1243,7 +1181,6 @@ describe('CDS Parser Self-Test Suite', () => {
 
     test('should handle CDS service implementations with custom handlers', () => {
       mockFs.restore();
-      clearFileCache();
 
       // Create a project with implementation file references
       mockFs({
@@ -1295,7 +1232,8 @@ describe('CDS Parser Self-Test Suite', () => {
       });
 
       // The parser should handle the @impl annotation
-      const projectMap = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
+      const projectMap = dependencyGraph.projects;
       expect(projectMap.size).toBe(1);
 
       const customImpl = projectMap.get('custom-impl');

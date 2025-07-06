@@ -14,6 +14,6 @@ export type {
   CompilationAttempt,
   CompilationStatus,
   CompilationTask,
-  EnhancedCompilationConfig,
+  CompilationConfig,
 } from './types';
 export { getCdsVersion } from './version';

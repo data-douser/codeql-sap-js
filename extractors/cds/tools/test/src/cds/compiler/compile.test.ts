@@ -5,7 +5,7 @@ import { globSync } from 'glob';
 
 import { compileCdsToJson } from '../../../../src/cds/compiler';
 import { getCdsVersion } from '../../../../src/cds/compiler/version';
-import { CdsProject } from '../../../../src/cds/parser/types';
+import { BasicCdsProject } from '../../../../src/cds/parser/types';
 import * as filesystem from '../../../../src/filesystem';
 
 // Mock dependencies
@@ -64,7 +64,7 @@ describe('compile .cds to .cds.json', () => {
       (filesystem.fileExists as jest.Mock).mockReturnValueOnce(false);
 
       // Create a basic project map for the test
-      const projectMap = new Map<string, CdsProject>();
+      const projectMap = new Map<string, BasicCdsProject>();
       const projectDir = 'test-project';
 
       // Execute
@@ -90,9 +90,9 @@ describe('compile .cds to .cds.json', () => {
       const relativeCdsPath = 'project/file.cds'; // This comes from the mocked path.relative
 
       // Create a basic project map for the test
-      const projectMap = new Map<string, CdsProject>();
+      const projectMap = new Map<string, BasicCdsProject>();
       const projectDir = 'test-project';
-      const project: CdsProject = {
+      const project: BasicCdsProject = {
         cdsFiles: ['project/file.cds'],
         cdsFilesToCompile: ['project/file.cds'],
         expectedOutputFiles: ['project/file.cds.json'],
@@ -152,9 +152,9 @@ describe('compile .cds to .cds.json', () => {
       const cacheDir = '/cache/dir';
 
       // Create a basic project map for the test
-      const projectMap = new Map<string, CdsProject>();
+      const projectMap = new Map<string, BasicCdsProject>();
       const projectDir = 'test-project';
-      const project: CdsProject = {
+      const project: BasicCdsProject = {
         cdsFiles: ['project/file.cds'],
         cdsFilesToCompile: ['project/file.cds'],
         expectedOutputFiles: ['project/file.cds.json'],
@@ -185,9 +185,9 @@ describe('compile .cds to .cds.json', () => {
     it('should handle compilation errors', () => {
       // Setup
       // Create a basic project map for the test
-      const projectMap = new Map<string, CdsProject>();
+      const projectMap = new Map<string, BasicCdsProject>();
       const projectDir = 'test-project';
-      const project: CdsProject = {
+      const project: BasicCdsProject = {
         cdsFiles: ['project/file.cds'],
         cdsFilesToCompile: ['project/file.cds'],
         expectedOutputFiles: ['project/file.cds.json'],
@@ -224,9 +224,9 @@ describe('compile .cds to .cds.json', () => {
       const cdsJsonOutPath = `${resolvedCdsPath}.json`;
 
       // Create a basic project map for the test
-      const projectMap = new Map<string, CdsProject>();
+      const projectMap = new Map<string, BasicCdsProject>();
       const projectDir = 'test-project';
-      const project: CdsProject = {
+      const project: BasicCdsProject = {
         cdsFiles: ['project/file.cds'],
         cdsFilesToCompile: ['project/file.cds'],
         expectedOutputFiles: ['project/file.cds.json'],
@@ -278,9 +278,9 @@ describe('compile .cds to .cds.json', () => {
       const binPath = '/cache/dir/node_modules/.bin';
 
       // Create a basic project map for the test
-      const projectMap = new Map<string, CdsProject>();
+      const projectMap = new Map<string, BasicCdsProject>();
       const projectDir = 'test-project';
-      const project: CdsProject = {
+      const project: BasicCdsProject = {
         cdsFiles: ['project/file.cds'],
         cdsFilesToCompile: ['project/file.cds'],
         expectedOutputFiles: ['project/file.cds.json'],

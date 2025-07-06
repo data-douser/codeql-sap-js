@@ -4,13 +4,11 @@ import {
   determineCdsFilesForProjectDir,
   determineCdsProjectsUnderSourceDir,
   isLikelyCdsProject,
-  clearFileCache,
 } from '../../../../src/cds/parser/functions';
 
 describe('CDS Parser - Subdirectory File Detection', () => {
   afterEach(() => {
     mockFs.restore();
-    clearFileCache();
   });
 
   describe('determineCdsFilesForProjectDir', () => {
@@ -389,7 +387,7 @@ describe('CDS Parser - Subdirectory File Detection', () => {
         },
       });
 
-      expect(isLikelyCdsProject('/cds-with-deps')).toBe(true);
+      expect(isLikelyCdsProject('/cds-with-deps')).toBe(false); // CAP deps but no CDS files - nothing to do
       expect(isLikelyCdsProject('/cds-with-files')).toBe(true);
       expect(isLikelyCdsProject('/standalone-cds')).toBe(true);
       expect(isLikelyCdsProject('/not-cds')).toBe(false);

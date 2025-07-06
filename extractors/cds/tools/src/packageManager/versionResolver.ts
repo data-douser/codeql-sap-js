@@ -4,7 +4,8 @@ import type { SemanticVersion } from './types';
 import { cdsExtractorLog } from '../logging';
 
 /**
- * Cache for storing available versions for npm packages to avoid duplicate npm view calls
+ * Cache for storing available versions for npm packages to avoid duplicate
+ * `npm view` calls.
  */
 const availableVersionsCache = new Map<string, string[]>();
 
@@ -178,6 +179,35 @@ export function getAvailableVersions(packageName: string): string[] {
 }
 
 /**
+ * Get cache statistics for debugging purposes
+ * @returns Object with cache hit/miss statistics
+ */
+export function getCacheStatistics(): {
+  hits: number;
+  misses: number;
+  hitRate: string;
+  cachedPackages: string[];
+} {
+  return {
+    hits: cacheStats.hits,
+    misses: cacheStats.misses,
+    hitRate: cacheStats.hitRate,
+    cachedPackages: Array.from(availableVersionsCache.keys()),
+  };
+}
+
+/**
+ * Log current cache statistics
+ */
+export function logCacheStatistics(): void {
+  const stats = getCacheStatistics();
+  cdsExtractorLog(
+    'info',
+    `Package version cache statistics: ${stats.hits} hits, ${stats.misses} misses, ${stats.hitRate}% hit rate, ${stats.cachedPackages.length} packages cached: [${stats.cachedPackages.join(', ')}]`,
+  );
+}
+
+/**
  * Parse a semantic version string
  * @param version Version string to parse (e.g., "6.1.3", "^6.0.0", "~6.1.0", "latest")
  * @returns Parsed semantic version or null if invalid
@@ -347,40 +377,10 @@ export function satisfiesRange(version: SemanticVersion, range: string): boolean
 }
 
 /**
- * Get cache statistics for debugging purposes
- * @returns Object with cache hit/miss statistics
+ * Test-only exports - DO NOT USE IN PRODUCTION CODE
+ * These are exported only for testing purposes
  */
-export function getCacheStatistics(): {
-  hits: number;
-  misses: number;
-  hitRate: string;
-  cachedPackages: string[];
-} {
-  return {
-    hits: cacheStats.hits,
-    misses: cacheStats.misses,
-    hitRate: cacheStats.hitRate,
-    cachedPackages: Array.from(availableVersionsCache.keys()),
-  };
-}
-
-/**
- * Clear the version cache (useful for testing or memory management)
- */
-export function clearVersionCache(): void {
-  availableVersionsCache.clear();
-  cacheStats.hits = 0;
-  cacheStats.misses = 0;
-  cdsExtractorLog('info', 'Cleared package version cache and reset statistics');
-}
-
-/**
- * Log current cache statistics
- */
-export function logCacheStatistics(): void {
-  const stats = getCacheStatistics();
-  cdsExtractorLog(
-    'info',
-    `Package version cache statistics: ${stats.hits} hits, ${stats.misses} misses, ${stats.hitRate}% hit rate, ${stats.cachedPackages.length} packages cached: [${stats.cachedPackages.join(', ')}]`,
-  );
-}
+export const __testOnly__ = {
+  availableVersionsCache,
+  cacheStats,
+};

@@ -101,7 +101,7 @@ export interface CompilationTask {
 /**
  * Compilation configuration with retry alternatives
  */
-export interface EnhancedCompilationConfig {
+export interface CompilationConfig {
   /** Primary CDS command to use */
   primaryCdsCommand: string;
   /** Primary cache directory */

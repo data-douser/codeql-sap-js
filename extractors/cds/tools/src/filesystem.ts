@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, renameSync, statSync } from 'fs';
+import { existsSync, readdirSync, renameSync, statSync } from 'fs';
 import { format, join, parse } from 'path';
 
 import { cdsExtractorLog } from './logging';
@@ -19,79 +19,6 @@ export function dirExists(dirPath: string): boolean {
  */
 export function fileExists(filePath: string): boolean {
   return existsSync(filePath) && statSync(filePath).isFile();
-}
-
-/**
- * Read and validate a response file to get the list of CDS files to process
- * @param responseFile Path to the response file
- * @param platformInfo Platform information object with isWindows property
- * @returns Object containing success status, CDS file paths to process, and error message if any
- */
-export function getCdsFilePathsToProcess(
-  responseFile: string,
-  platformInfo: { isWindows: boolean },
-): {
-  success: boolean;
-  cdsFilePaths: string[];
-  errorMessage?: string;
-} {
-  // First validate the response file exists
-  const responseFileValidation = validateResponseFile(responseFile);
-  if (!responseFileValidation.success) {
-    return {
-      success: false,
-      cdsFilePaths: [],
-      errorMessage: `'${
-        platformInfo.isWindows ? 'codeql.exe' : 'codeql'
-      } database index-files --language cds' terminated early as ${responseFileValidation.errorMessage}`,
-    };
-  }
-
-  // Now read the file paths from the response file
-  try {
-    const cdsFilePathsToProcess = readResponseFile(responseFile);
-
-    // Check if there are any file paths to process
-    if (!cdsFilePathsToProcess.length) {
-      return {
-        success: false,
-        cdsFilePaths: [],
-        errorMessage: `'${
-          platformInfo.isWindows ? 'codeql.exe' : 'codeql'
-        } database index-files --language cds' terminated early as response file '${responseFile}' is empty. This is because no CDS files were selected or found.`,
-      };
-    }
-
-    return {
-      success: true,
-      cdsFilePaths: cdsFilePathsToProcess,
-    };
-  } catch (err) {
-    return {
-      success: false,
-      cdsFilePaths: [],
-      errorMessage: `'${
-        platformInfo.isWindows ? 'codeql.exe' : 'codeql'
-      } database index-files --language cds' terminated early as response file '${responseFile}' could not be read due to an error: ${String(err)}`,
-    };
-  }
-}
-
-/**
- * Read response file contents and split into lines
- * @param responseFile Path to the response file
- * @returns Array of file paths from the response file
- */
-export function readResponseFile(responseFile: string): string[] {
-  try {
-    // Read the response file and split it into lines, removing empty lines
-    const responseFiles = readFileSync(responseFile, 'utf-8').split('\n').filter(Boolean);
-    return responseFiles;
-  } catch (err) {
-    throw new Error(
-      `Response file '${responseFile}' could not be read due to an error: ${String(err)}`,
-    );
-  }
 }
 
 /**
@@ -128,22 +55,4 @@ export function recursivelyRenameJsonFiles(dirPath: string): void {
       cdsExtractorLog('info', `Renamed CDS output file from ${fullPath} to ${newPath}`);
     }
   }
-}
-
-/**
- * Validate a response file exists and can be read
- * @param responseFile Path to the response file
- * @returns Object containing success status and error message if any
- */
-export function validateResponseFile(responseFile: string): {
-  success: boolean;
-  errorMessage?: string;
-} {
-  if (!fileExists(responseFile)) {
-    return {
-      success: false,
-      errorMessage: `response file '${responseFile}' does not exist. This is because no CDS files were selected or found`,
-    };
-  }
-  return { success: true };
 }

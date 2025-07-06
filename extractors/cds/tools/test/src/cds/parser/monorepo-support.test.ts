@@ -4,13 +4,11 @@ import mockFs from 'mock-fs';
 import {
   determineCdsProjectsUnderSourceDir,
   isLikelyCdsProject,
-  clearFileCache,
 } from '../../../../src/cds/parser/functions';
 
 describe('Monorepo Support Tests', () => {
   afterEach(() => {
     mockFs.restore();
-    clearFileCache();
   });
 
   describe('isLikelyCdsProject - Monorepo Detection', () => {

@@ -1,13 +1,11 @@
 import {
   cdsExtractorLog,
   setSourceRootDirectory,
-  startPerformanceTracking,
-  endPerformanceTracking,
+  logPerformanceTrackingStart,
+  logPerformanceTrackingStop,
   logPerformanceMilestone,
   logExtractorStart,
   logExtractorStop,
-  logMemoryUsage,
-  logPerformanceCounter,
 } from '../../../src/logging';
 
 // Mock console functions to test output
@@ -170,11 +168,11 @@ describe('cdsExtractorLog', () => {
       setSourceRootDirectory('/test/source-root');
     });
 
-    describe('startPerformanceTracking and endPerformanceTracking', () => {
+    describe('logPerformanceTrackingStart and logPerformanceTrackingStop', () => {
       it('should track performance for an operation', () => {
         const operationName = 'test-operation';
 
-        startPerformanceTracking(operationName);
+        logPerformanceTrackingStart(operationName);
 
         expect(mockConsoleLog).toHaveBeenCalledWith(
           expect.stringMatching(/^\[CDS-.+ \d+\] DEBUG: Started: test-operation$/),
@@ -188,7 +186,7 @@ describe('cdsExtractorLog', () => {
           // busy wait
         }
 
-        endPerformanceTracking(operationName);
+        logPerformanceTrackingStop(operationName);
 
         expect(mockConsoleLog).toHaveBeenCalledWith(
           expect.stringMatching(/^\[CDS-.+ \d+\] INFO: Completed: test-operation \(took \d+ms\)$/),
@@ -196,7 +194,7 @@ describe('cdsExtractorLog', () => {
       });
 
       it('should handle ending tracking for unknown operation', () => {
-        endPerformanceTracking('unknown-operation');
+        logPerformanceTrackingStop('unknown-operation');
 
         expect(mockConsoleWarn).toHaveBeenCalledWith(
           expect.stringMatching(
@@ -297,135 +295,6 @@ describe('cdsExtractorLog', () => {
         );
       });
     });
-
-    describe('logMemoryUsage', () => {
-      it('should log memory usage when process.memoryUsage is available', () => {
-        // Mock process.memoryUsage
-        const mockMemoryUsage = jest.spyOn(process, 'memoryUsage').mockReturnValue({
-          rss: 1024 * 1024 * 50, // 50 MB
-          heapUsed: 1024 * 1024 * 30, // 30 MB
-          heapTotal: 1024 * 1024 * 40, // 40 MB
-          external: 1024 * 1024 * 5, // 5 MB
-          arrayBuffers: 0,
-        });
-
-        logMemoryUsage('After compilation');
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(
-            /^\[CDS-.+ \d+\] DEBUG: Memory usage - After compilation: RSS=50 MB, Heap Used=30 MB, Heap Total=40 MB, External=5 MB$/,
-          ),
-        );
-
-        // Restore original memoryUsage
-        mockMemoryUsage.mockRestore();
-      });
-
-      it('should handle when process.memoryUsage is not available', () => {
-        // Test graceful handling when memoryUsage throws
-        const mockMemoryUsage = jest.spyOn(process, 'memoryUsage').mockImplementation(() => {
-          throw new Error('memoryUsage not available');
-        });
-
-        // This should not throw an error
-        expect(() => {
-          logMemoryUsage('Test context');
-        }).not.toThrow();
-
-        // Should not log anything when memoryUsage is not available
-        expect(mockConsoleLog).not.toHaveBeenCalled();
-
-        // Restore original memoryUsage
-        mockMemoryUsage.mockRestore();
-      });
-
-      it('should format bytes correctly', () => {
-        const mockMemoryUsage = jest.spyOn(process, 'memoryUsage').mockReturnValue({
-          rss: 0,
-          heapUsed: 512,
-          heapTotal: 1024 * 2,
-          external: 1024 * 1024 * 1.5,
-          arrayBuffers: 0,
-        });
-
-        logMemoryUsage('Byte formatting test');
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(
-            /^\[CDS-.+ \d+\] DEBUG: Memory usage - Byte formatting test: RSS=0 B, Heap Used=512 B, Heap Total=2 KB, External=1.5 MB$/,
-          ),
-        );
-
-        mockMemoryUsage.mockRestore();
-      });
-    });
-
-    describe('logPerformanceCounter', () => {
-      it('should log basic counter information', () => {
-        logPerformanceCounter('Files processed', 25);
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(/^\[CDS-.+ \d+\] DEBUG: Files processed: 25$/),
-        );
-      });
-
-      it('should log counter with progress percentage', () => {
-        logPerformanceCounter('Files processed', 25, undefined, 100);
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(/^\[CDS-.+ \d+\] DEBUG: Files processed: 25 \/ 100 \(25\.0%\)$/),
-        );
-      });
-
-      it('should log counter with rate information', () => {
-        const startTime = Date.now() - 1000; // 1 second ago
-        logPerformanceCounter('Files processed', 10, startTime);
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(
-            /^\[CDS-.+ \d+\] DEBUG: Files processed: 10 - Rate: \d+\.\d+\/sec$/,
-          ),
-        );
-      });
-
-      it('should log counter with both percentage and rate', () => {
-        const startTime = Date.now() - 2000; // 2 seconds ago
-        logPerformanceCounter('Files processed', 20, startTime, 50);
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(
-            /^\[CDS-.+ \d+\] DEBUG: Files processed: 20 \/ 50 \(40\.0%\) - Rate: \d+\.\d+\/sec$/,
-          ),
-        );
-      });
-
-      it('should handle zero elapsed time gracefully', () => {
-        const startTime = Date.now(); // Current time (essentially zero elapsed)
-        logPerformanceCounter('Files processed', 10, startTime);
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(
-            /^\[CDS-.+ \d+\] DEBUG: Files processed: 10 - Rate: \d+\.?\d*\/sec$/,
-          ),
-        );
-      });
-
-      it('should handle zero or negative total expected', () => {
-        logPerformanceCounter('Files processed', 10, undefined, 0);
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(/^\[CDS-.+ \d+\] DEBUG: Files processed: 10$/),
-        );
-
-        mockConsoleLog.mockClear();
-
-        logPerformanceCounter('Files processed', 10, undefined, -5);
-
-        expect(mockConsoleLog).toHaveBeenCalledWith(
-          expect.stringMatching(/^\[CDS-.+ \d+\] DEBUG: Files processed: 10$/),
-        );
-      });
-    });
   });
 
   describe('formatDuration helper function behavior', () => {
@@ -448,7 +317,7 @@ describe('cdsExtractorLog', () => {
     it('should handle durations over 1 second in performance tracking', () => {
       const operationName = 'long-operation';
 
-      startPerformanceTracking(operationName);
+      logPerformanceTrackingStart(operationName);
       mockConsoleLog.mockClear();
 
       // Add a small delay to ensure measurable time difference
@@ -457,7 +326,7 @@ describe('cdsExtractorLog', () => {
         // busy wait for ~10ms
       }
 
-      endPerformanceTracking(operationName);
+      logPerformanceTrackingStop(operationName);
 
       expect(mockConsoleLog).toHaveBeenCalledWith(
         expect.stringMatching(/^\[CDS-.+ \d+\] INFO: Completed: long-operation \(took \d+ms\)$/),

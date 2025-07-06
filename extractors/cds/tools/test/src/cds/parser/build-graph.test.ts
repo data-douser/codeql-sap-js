@@ -3,7 +3,6 @@ import { resolve, relative } from 'path';
 
 import * as tmp from 'tmp';
 
-import { clearFileCache } from '../../../../src/cds/parser/functions';
 import { buildCdsProjectDependencyGraph } from '../../../../src/cds/parser/graph';
 
 /**
@@ -32,9 +31,6 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     const tmpObj = tmp.dirSync({ unsafeCleanup: true });
     tempDir = tmpObj.name;
     tmpCleanup = tmpObj.removeCallback;
-
-    // Clear file cache between tests
-    clearFileCache();
   });
 
   afterEach(() => {
@@ -49,7 +45,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       // Create a complex structure with multiple nested projects
       createComplexMultiProjectStructure(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
 
       expect(projectMap.size).toBe(3);
 
@@ -84,7 +81,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       // Verify imports are properly resolved
       const mainServiceImports = mainProject!.imports!.get('main-service/srv/main.cds');
       expect(mainServiceImports).toBeDefined();
-      expect(mainServiceImports!).toHaveLength(2);
+      expect(mainServiceImports).toHaveLength(2);
 
       // Check relative import
       const relativeImport = mainServiceImports!.find(imp => imp.path === '../db/main-schema');
@@ -104,7 +101,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     it('should handle deeply nested projects with circular import chains', () => {
       createCircularImportStructure(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
 
       expect(projectMap.size).toBe(3);
 
@@ -131,7 +129,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     it('should handle module imports with package.json dependencies', () => {
       createModuleImportStructure(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
 
       expect(projectMap.size).toBe(1);
       const project = projectMap.get('cap-app');
@@ -145,7 +144,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       // Verify module imports are tracked
       const serviceImports = project!.imports!.get('cap-app/srv/service.cds');
       expect(serviceImports).toBeDefined();
-      expect(serviceImports!).toHaveLength(2);
+      expect(serviceImports).toHaveLength(2);
 
       // Check @sap/cds import
       const cdsImport = serviceImports!.find(imp => imp.path === '@sap/cds/common');
@@ -162,7 +161,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     it('should handle malformed imports gracefully', () => {
       createMalformedImportStructure(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
 
       expect(projectMap.size).toBe(1);
       const project = projectMap.get('test-project');
@@ -181,7 +181,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
 
   describe('Edge Cases and Error Handling', () => {
     it('should handle empty source directory', () => {
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
       expect(projectMap.size).toBe(0);
     });
 
@@ -199,14 +200,16 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
 
       mkdirSync(validateSafePath(tempDir, 'empty-dir'), { recursive: true });
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
       expect(projectMap.size).toBe(0);
     });
 
     it('should handle debug-parser mode correctly', () => {
       createSimpleProject(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir, tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir, tempDir);
+      const projectMap = dependencyGraph.projects;
 
       // In debug mode, should return normal project map without debug signals
       // (debug handling is now responsibility of cds-extractor.ts)
@@ -217,7 +220,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     });
 
     it('should handle debug-parser mode with empty project map', () => {
-      const projectMap = buildCdsProjectDependencyGraph(tempDir, tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir, tempDir);
+      const projectMap = dependencyGraph.projects;
 
       // In debug mode with no projects, should just return empty map (no special signal in the actual implementation)
       expect(projectMap.size).toBe(0);
@@ -227,7 +231,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       // Create a project where determineCdsFilesToCompile might fail
       createProjectWithCompilationIssues(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
 
       expect(projectMap.size).toBe(1);
       const project = projectMap.get('problematic-project');
@@ -240,7 +245,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     it('should handle import resolution errors gracefully', () => {
       createProjectWithResolutionErrors(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
 
       expect(projectMap.size).toBe(1);
       const project = projectMap.get('resolution-error-project');
@@ -256,7 +262,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     it('should detect CAP project structure and use project-level compilation', () => {
       createTypicalCAPProject(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
 
       expect(projectMap.size).toBe(1);
       const project = projectMap.get('typical-cap-app');
@@ -276,7 +283,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     it('should handle non-CAP projects with individual file compilation', () => {
       createNonCAPProject(tempDir);
 
-      const projectMap = buildCdsProjectDependencyGraph(tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
+      const projectMap = dependencyGraph.projects;
 
       expect(projectMap.size).toBe(1);
       const project = projectMap.get('simple-cds-project');

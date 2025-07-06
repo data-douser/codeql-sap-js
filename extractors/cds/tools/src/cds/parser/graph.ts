@@ -6,35 +6,35 @@ import {
   determineCdsProjectsUnderSourceDir,
   determineExpectedOutputFiles,
   extractCdsImports,
-  readPackageJsonWithCache,
+  readPackageJsonFile,
 } from './functions';
-import { CdsDependencyGraph, CdsImport, CdsProject, EnhancedCdsProject } from './types';
+import { CdsDependencyGraph, CdsImport, CdsProject, BasicCdsProject } from './types';
 import { cdsExtractorLog } from '../../logging';
 
 /**
- * Builds a dependency graph of CDS projects and performs the initial parsing stage of the CDS extractor.
- * This is the top-level function for the parser stage of the CDS extractor.
+ * Builds a basic dependency graph of CDS projects and performs the initial parsing stage of the CDS extractor.
+ * This is the internal function that creates basic project structures.
  *
  * @param sourceRootDir - Source root directory
  * @param _scriptDir - Directory where the script is running (for debug output) [unused]
- * @returns Map of project directories to their CdsProject objects with dependency information
+ * @returns Map of project directories to their BasicCdsProject objects with dependency information
  */
-export function buildCdsProjectDependencyGraph(
+function buildBasicCdsProjectDependencyGraph(
   sourceRootDir: string,
   _scriptDir?: string,
-): Map<string, CdsProject> {
+): Map<string, BasicCdsProject> {
   // Find all CDS projects under the source directory
   cdsExtractorLog('info', 'Detecting CDS projects...');
   const projectDirs = determineCdsProjectsUnderSourceDir(sourceRootDir);
 
   if (projectDirs.length === 0) {
     cdsExtractorLog('info', 'No CDS projects found.');
-    return new Map<string, CdsProject>();
+    return new Map<string, BasicCdsProject>();
   }
 
   cdsExtractorLog('info', `Found ${projectDirs.length} CDS project(s) under source directory.`);
 
-  const projectMap = new Map<string, CdsProject>();
+  const projectMap = new Map<string, BasicCdsProject>();
 
   // First pass: create CdsProject objects for each project directory
   for (const projectDir of projectDirs) {
@@ -43,7 +43,7 @@ export function buildCdsProjectDependencyGraph(
 
     // Try to load package.json if it exists
     const packageJsonPath = join(absoluteProjectDir, 'package.json');
-    const packageJson = readPackageJsonWithCache(packageJsonPath);
+    const packageJson = readPackageJsonFile(packageJsonPath);
 
     projectMap.set(projectDir, {
       projectDir,
@@ -200,15 +200,15 @@ export function buildCdsProjectDependencyGraph(
 }
 
 /**
- * Builds an enhanced CDS dependency graph with comprehensive tracking and debug information.
- * This is the new enhanced version that returns a CdsDependencyGraph instead of a simple Map.
+ * Builds a CDS dependency graph with comprehensive tracking and debug information.
+ * This is the main function that returns a CdsDependencyGraph instead of a simple Map.
  * The extractor now runs in autobuild mode by default.
  *
  * @param sourceRootDir - Source root directory
  * @param _scriptDir - Directory where the script is running (for debug output) [unused]
- * @returns Enhanced CDS dependency graph with comprehensive tracking
+ * @returns CDS dependency graph with comprehensive tracking
  */
-export function buildEnhancedCdsProjectDependencyGraph(
+export function buildCdsProjectDependencyGraph(
   sourceRootDir: string,
   _scriptDir?: string,
 ): CdsDependencyGraph {
@@ -219,7 +219,7 @@ export function buildEnhancedCdsProjectDependencyGraph(
     id: `cds_graph_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     sourceRootDir,
     scriptDir: _scriptDir ?? sourceRootDir,
-    projects: new Map<string, EnhancedCdsProject>(),
+    projects: new Map<string, CdsProject>(),
     globalCacheDirectories: new Map<string, string>(),
     debugInfo: {
       extractor: {
@@ -268,11 +268,6 @@ export function buildEnhancedCdsProjectDependencyGraph(
         extractionDurationMs: 0,
       },
     },
-    fileCache: {
-      fileContents: new Map<string, string>(),
-      packageJsonCache: new Map<string, import('./types').PackageJson>(),
-      cdsParseCache: new Map<string, import('./types').CdsParseResult>(),
-    },
     config: {
       maxRetryAttempts: 3,
       enableDetailedLogging: false, // Debug modes removed
@@ -287,11 +282,11 @@ export function buildEnhancedCdsProjectDependencyGraph(
 
   try {
     // Use the existing function to build the basic project map
-    const basicProjectMap = buildCdsProjectDependencyGraph(sourceRootDir, _scriptDir);
+    const basicProjectMap = buildBasicCdsProjectDependencyGraph(sourceRootDir, _scriptDir);
 
-    // Convert basic projects to enhanced projects
+    // Convert basic projects to CDS projects
     for (const [projectDir, basicProject] of basicProjectMap.entries()) {
-      const enhancedProject: EnhancedCdsProject = {
+      const cdsProject: CdsProject = {
         ...basicProject,
         id: `project_${projectDir.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`,
         enhancedCompilationConfig: undefined, // Will be set during compilation planning
@@ -307,7 +302,7 @@ export function buildEnhancedCdsProjectDependencyGraph(
         },
       };
 
-      dependencyGraph.projects.set(projectDir, enhancedProject);
+      dependencyGraph.projects.set(projectDir, cdsProject);
     }
 
     // Update summary statistics
@@ -330,12 +325,12 @@ export function buildEnhancedCdsProjectDependencyGraph(
 
     cdsExtractorLog(
       'info',
-      `Enhanced dependency graph created with ${dependencyGraph.projects.size} projects and ${dependencyGraph.statusSummary.totalCdsFiles} CDS files`,
+      `CDS dependency graph created with ${dependencyGraph.projects.size} projects and ${dependencyGraph.statusSummary.totalCdsFiles} CDS files`,
     );
 
     return dependencyGraph;
   } catch (error) {
-    const errorMessage = `Failed to build enhanced dependency graph: ${String(error)}`;
+    const errorMessage = `Failed to build CDS dependency graph: ${String(error)}`;
     cdsExtractorLog('error', errorMessage);
 
     dependencyGraph.errors.critical.push({

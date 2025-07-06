@@ -1,3 +1,3 @@
-export { buildCdsProjectDependencyGraph, buildEnhancedCdsProjectDependencyGraph } from './graph';
+export { buildCdsProjectDependencyGraph } from './graph';
 export * from './functions';
 export * from './types';

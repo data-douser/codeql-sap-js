@@ -8,7 +8,6 @@ describe('packageManager index', () => {
 
     it('should export version resolver functions', () => {
       expect(typeof packageManager.checkVersionCompatibility).toBe('function');
-      expect(typeof packageManager.clearVersionCache).toBe('function');
       expect(typeof packageManager.compareVersions).toBe('function');
       expect(typeof packageManager.findBestAvailableVersion).toBe('function');
       expect(typeof packageManager.getAvailableVersions).toBe('function');
@@ -23,7 +22,6 @@ describe('packageManager index', () => {
       const expectedExports = [
         'installDependencies',
         'checkVersionCompatibility',
-        'clearVersionCache',
         'compareVersions',
         'findBestAvailableVersion',
         'getAvailableVersions',
@@ -53,7 +51,6 @@ describe('packageManager index', () => {
   describe('integration', () => {
     it('should allow all functions to be called without errors', () => {
       // Test basic function calls don't throw (without mocking dependencies)
-      expect(() => packageManager.clearVersionCache()).not.toThrow();
       expect(() => packageManager.getCacheStatistics()).not.toThrow();
       expect(() => packageManager.logCacheStatistics()).not.toThrow();
 

@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, resolve } from 'path';
 
 import type { CdsDependencyCombination } from './types';
-import { CdsDependencyGraph, EnhancedCdsProject } from '../cds/parser/types';
+import { CdsDependencyGraph, CdsProject } from '../cds/parser/types';
 import { DiagnosticSeverity } from '../diagnostics';
 import { cdsExtractorLog } from '../logging';
 import { resolveCdsVersions, logCacheStatistics } from './versionResolver';
@@ -54,7 +54,7 @@ function addDependencyVersionWarning(
  * @returns An array of unique dependency combinations.
  */
 function extractUniqueDependencyCombinations(
-  projects: Map<string, EnhancedCdsProject>,
+  projects: Map<string, CdsProject>,
 ): CdsDependencyCombination[] {
   const combinations = new Map<string, CdsDependencyCombination>();
 

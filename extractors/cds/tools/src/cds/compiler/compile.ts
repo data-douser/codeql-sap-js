@@ -7,7 +7,7 @@ import { CdsCompilationResult } from './types';
 import { getCdsVersion } from './version';
 import { fileExists, dirExists, recursivelyRenameJsonFiles } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
-import { CdsProject } from '../parser/types';
+import { BasicCdsProject } from '../parser/types';
 
 /**
  * Compiles a CDS file to JSON using robust, project-aware compilation only.
@@ -24,7 +24,7 @@ import { CdsProject } from '../parser/types';
  *
  * @param cdsCommand The actual shell command to use for `cds compile`.
  * @param cacheDir Full path to the cache directory where dependencies are stored.
- * @param projectMap Map of project directories to {@link CdsProject} instances.
+ * @param projectMap Map of project directories to {@link BasicCdsProject} instances.
  * @param projectDir The project directory to which `cdsFilePath` belongs.
  *
  * @returns The {@link CdsCompilationResult} of the compilation attempt.
@@ -34,7 +34,7 @@ export function compileCdsToJson(
   sourceRoot: string,
   cdsCommand: string,
   cacheDir: string | undefined,
-  projectMap: Map<string, CdsProject>,
+  projectMap: Map<string, BasicCdsProject>,
   projectDir: string,
 ): CdsCompilationResult {
   try {
@@ -422,7 +422,10 @@ function createSpawnOptions(
  * @param relativePath The relative path of the file being checked
  * @returns true if the file should be compiled individually
  */
-function shouldCompileIndividually(project: CdsProject | undefined, relativePath: string): boolean {
+function shouldCompileIndividually(
+  project: BasicCdsProject | undefined,
+  relativePath: string,
+): boolean {
   return project?.cdsFilesToCompile?.includes(relativePath) ?? true;
 }
 
@@ -432,6 +435,6 @@ function shouldCompileIndividually(project: CdsProject | undefined, relativePath
  * @param project The CDS project to check
  * @returns true if project-level compilation should be used
  */
-function shouldUseProjectLevelCompilation(project: CdsProject | undefined): boolean {
+function shouldUseProjectLevelCompilation(project: BasicCdsProject | undefined): boolean {
   return project?.cdsFilesToCompile?.includes('__PROJECT_LEVEL_COMPILATION__') ?? false;
 }

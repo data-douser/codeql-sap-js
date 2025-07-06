@@ -2,7 +2,7 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { CdsDependencyGraph, EnhancedCdsProject } from '../../../src/cds/parser/types';
+import { CdsDependencyGraph, CdsProject } from '../../../src/cds/parser/types';
 import { installDependencies } from '../../../src/packageManager';
 
 // Mock dependencies
@@ -56,10 +56,10 @@ describe('installer', () => {
       };
     }>,
   ): CdsDependencyGraph => {
-    const projectsMap = new Map<string, EnhancedCdsProject>();
+    const projectsMap = new Map<string, CdsProject>();
 
     projects.forEach(({ projectDir, packageJson }) => {
-      const enhancedProject: EnhancedCdsProject = {
+      const cdsProject: CdsProject = {
         id: `project-${projectDir}`,
         projectDir,
         cdsFiles: [`${projectDir}/src/file.cds`],
@@ -72,7 +72,7 @@ describe('installer', () => {
           discovered: new Date(),
         },
       };
-      projectsMap.set(projectDir, enhancedProject);
+      projectsMap.set(projectDir, cdsProject);
     });
 
     return {
@@ -81,11 +81,6 @@ describe('installer', () => {
       scriptDir: '/script',
       projects: projectsMap,
       globalCacheDirectories: new Map(),
-      fileCache: {
-        fileContents: new Map(),
-        packageJsonCache: new Map(),
-        cdsParseCache: new Map(),
-      },
       config: {
         maxRetryAttempts: 3,
         enableDetailedLogging: false,

@@ -5,7 +5,6 @@ export type { CdsDependencyCombination } from './types';
 // Export version resolver functionality
 export {
   checkVersionCompatibility,
-  clearVersionCache,
   compareVersions,
   findBestAvailableVersion,
   getAvailableVersions,

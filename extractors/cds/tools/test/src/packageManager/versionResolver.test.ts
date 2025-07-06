@@ -1,15 +1,16 @@
+import { cdsExtractorLog } from '../../../src/logging';
 import {
   parseSemanticVersion,
   compareVersions,
   satisfiesRange,
   findBestAvailableVersion,
   resolveCdsVersions,
-  clearVersionCache,
   checkVersionCompatibility,
   getAvailableVersions,
   getCacheStatistics,
   logCacheStatistics,
-} from '../../../src/packageManager';
+  __testOnly__,
+} from '../../../src/packageManager/versionResolver';
 
 // Mock the execSync function and logging
 jest.mock('child_process', () => ({
@@ -19,6 +20,16 @@ jest.mock('child_process', () => ({
 jest.mock('../../../src/logging', () => ({
   cdsExtractorLog: jest.fn(),
 }));
+
+/**
+ * Clear the version cache (test-only function)
+ */
+function clearVersionCache(): void {
+  __testOnly__.availableVersionsCache.clear();
+  __testOnly__.cacheStats.hits = 0;
+  __testOnly__.cacheStats.misses = 0;
+  cdsExtractorLog('info', 'Cleared package version cache and reset statistics');
+}
 
 describe('versionResolver', () => {
   beforeEach(() => {

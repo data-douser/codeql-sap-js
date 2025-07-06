@@ -26,7 +26,7 @@ export enum DiagnosticSeverity {
  * @param logPrefix Prefix for the log message
  * @returns True if the diagnostic was added, false otherwise
  */
-export function addDiagnostic(
+function addDiagnostic(
   filePath: string,
   message: string,
   codeqlExePath: string,
@@ -83,52 +83,6 @@ export function addCompilationDiagnostic(
     'Failure to compile one or more SAP CAP CDS files',
     DiagnosticSeverity.Error,
     'source file',
-  );
-}
-
-/**
- * Add a diagnostic error to the CodeQL database for a dependency installation failure
- * @param packageJsonPath Path to the package.json file that has installation issues
- * @param errorMessage The error message from the installation
- * @param codeqlExePath Path to the CodeQL executable
- * @returns True if the diagnostic was added, false otherwise
- */
-export function addDependencyDiagnostic(
-  packageJsonPath: string,
-  errorMessage: string,
-  codeqlExePath: string,
-): boolean {
-  return addDiagnostic(
-    packageJsonPath,
-    errorMessage,
-    codeqlExePath,
-    'cds/dependency-failure',
-    'Failure to install SAP CAP CDS dependencies',
-    DiagnosticSeverity.Error,
-    'package.json file',
-  );
-}
-
-/**
- * Add a diagnostic warning to the CodeQL database for a package.json parsing failure
- * @param packageJsonPath Path to the package.json file that couldn't be parsed
- * @param errorMessage The error message from the parsing attempt
- * @param codeqlExePath Path to the CodeQL executable
- * @returns True if the diagnostic was added, false otherwise
- */
-export function addPackageJsonParsingDiagnostic(
-  packageJsonPath: string,
-  errorMessage: string,
-  codeqlExePath: string,
-): boolean {
-  return addDiagnostic(
-    packageJsonPath,
-    errorMessage,
-    codeqlExePath,
-    'cds/package-json-parsing-failure',
-    'Failure to parse package.json file for SAP CAP CDS project',
-    DiagnosticSeverity.Warning,
-    'package.json file',
   );
 }
 

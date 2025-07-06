@@ -4,9 +4,7 @@ export {
   logExtractorStart,
   logExtractorStop,
   logPerformanceMilestone,
-  startPerformanceTracking,
-  endPerformanceTracking,
-  logMemoryUsage,
-  logPerformanceCounter,
+  logPerformanceTrackingStart,
+  logPerformanceTrackingStop,
 } from './cdsExtractorLog';
 export type { LogLevel } from './types';

@@ -4,11 +4,11 @@ import {
   AlternativeCdsCommand,
   CompilationAttempt,
   CompilationTask,
-  EnhancedCompilationConfig,
+  CompilationConfig,
 } from './types';
 import { addCompilationDiagnostic } from '../../diagnostics';
 import { cdsExtractorLog } from '../../logging';
-import { CdsDependencyGraph, EnhancedCdsProject } from '../parser/types';
+import { CdsDependencyGraph, CdsProject } from '../parser/types';
 
 /**
  * Attempt compilation with a specific command and configuration
@@ -43,11 +43,20 @@ function attemptCompilation(
       dependencyGraph.sourceRootDir,
       cdsCommand,
       cacheDir,
-      // Convert enhanced projects back to the format expected by compileCdsToJson
+      // Convert CDS projects to BasicCdsProject format expected by compileCdsToJson
       new Map(
         Array.from(dependencyGraph.projects.entries()).map(([key, value]) => [
           key,
-          value as import('../parser/types').CdsProject,
+          {
+            cdsFiles: value.cdsFiles,
+            cdsFilesToCompile: value.cdsFilesToCompile,
+            expectedOutputFiles: value.expectedOutputFiles,
+            projectDir: value.projectDir,
+            dependencies: value.dependencies,
+            imports: value.imports,
+            packageJson: value.packageJson,
+            compilationConfig: value.compilationConfig,
+          },
         ]),
       ),
       task.projectDir,
@@ -105,14 +114,14 @@ function createCompilationTask(
 }
 
 /**
- * Create enhanced compilation configuration with retry alternatives
+ * Create compilation configuration with retry alternatives
  */
-function createEnhancedCompilationConfig(
+function createCompilationConfig(
   primaryCommand: string,
   primaryCacheDir: string | undefined,
   useProjectLevel: boolean,
   alternatives: AlternativeCdsCommand[] = [],
-): EnhancedCompilationConfig {
+): CompilationConfig {
   return {
     primaryCdsCommand: primaryCommand,
     primaryCacheDir,
@@ -130,7 +139,7 @@ function createEnhancedCompilationConfig(
  */
 function executeCompilationTask(
   task: CompilationTask,
-  project: EnhancedCdsProject,
+  project: CdsProject,
   dependencyGraph: CdsDependencyGraph,
   codeqlExePath: string,
 ): void {
@@ -216,7 +225,7 @@ export function executeCompilationTasks(
   const compilationStartTime = new Date();
 
   // Collect all tasks and sort by priority
-  const allTasks: Array<{ task: CompilationTask; project: EnhancedCdsProject }> = [];
+  const allTasks: Array<{ task: CompilationTask; project: CdsProject }> = [];
 
   for (const project of dependencyGraph.projects.values()) {
     for (const task of project.compilationTasks) {
@@ -395,14 +404,14 @@ export function planCompilationTasks(
       // Determine primary CDS command
       const cdsCommand = determineCdsCommand(cacheDir, dependencyGraph.sourceRootDir);
 
-      // Create enhanced compilation configuration
-      const enhancedConfig = createEnhancedCompilationConfig(
+      // Create compilation configuration
+      const compilationConfig = createCompilationConfig(
         cdsCommand,
         cacheDir,
         project.cdsFilesToCompile.includes('__PROJECT_LEVEL_COMPILATION__'),
       );
 
-      project.enhancedCompilationConfig = enhancedConfig;
+      project.enhancedCompilationConfig = compilationConfig;
 
       // Create compilation tasks
       if (project.cdsFilesToCompile.includes('__PROJECT_LEVEL_COMPILATION__')) {
