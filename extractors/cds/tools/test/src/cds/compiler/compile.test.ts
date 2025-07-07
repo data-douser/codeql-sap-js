@@ -421,7 +421,7 @@ describe('compile .cds to .cds.json', () => {
       );
     });
 
-    it('should use sourceRoot as cwd for project-level compilation', () => {
+    it('should use sourceRoot as cwd for project-level compilation with simplified approach', () => {
       // Setup
       const sourceRoot = '/source/root';
       const projectDir = 'test-project';
@@ -433,9 +433,6 @@ describe('compile .cds to .cds.json', () => {
       (globSync as jest.Mock).mockImplementation((pattern: string) => {
         if (pattern.includes('**/*.cds')) {
           return ['test-project/srv/service.cds', 'test-project/db/schema.cds'];
-        }
-        if (pattern.includes('*.cds')) {
-          return [];
         }
         return [];
       });
@@ -449,12 +446,6 @@ describe('compile .cds to .cds.json', () => {
         imports: new Map(),
       };
       projectMap.set(projectDir, projectInfo);
-
-      // Mock filesystem checks
-      (filesystem.dirExists as jest.Mock).mockImplementation(path => {
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-        return path.includes('/db') || path.includes('/srv');
-      });
 
       // Mock successful spawn process
       (childProcess.spawnSync as jest.Mock).mockReturnValue({
@@ -477,14 +468,173 @@ describe('compile .cds to .cds.json', () => {
       expect(result.success).toBe(true);
       expect(result.compiledAsProject).toBe(true);
 
-      // CRITICAL: Verify that project-level compilation uses sourceRoot as cwd
+      // CRITICAL: Verify that project-level compilation uses sourceRoot as cwd with simplified approach
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
         'cds',
-        expect.arrayContaining(['compile', 'test-project/db', 'test-project/srv']),
+        expect.arrayContaining(['compile', 'test-project']), // Just the project directory
         expect.objectContaining({
           cwd: sourceRoot, // CRITICAL: Must be sourceRoot, not projectAbsolutePath
         }),
       );
+
+      // Ensure no specific subdirectories are passed with simplified approach
+      const actualCall = (childProcess.spawnSync as jest.Mock).mock.calls[0];
+      const actualArgs = actualCall[1];
+      expect(actualArgs).not.toContain('test-project/db');
+      expect(actualArgs).not.toContain('test-project/srv');
+      expect(actualArgs).toContain('test-project'); // Just the base project directory
+    });
+
+    it('should use simplified project-level compilation with entire directory', () => {
+      // Setup
+      const sourceRoot = '/source/root';
+      const projectDir = 'bookshop-project';
+
+      // Set up the path.relative mock
+      (path.relative as jest.Mock).mockImplementation(() => 'bookshop-project/index.cds');
+
+      // Mock globSync to return CDS files including root-level index.cds
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          // Return all CDS files in the project
+          return [
+            'bookshop-project/index.cds',
+            'bookshop-project/srv/cat-service.cds',
+            'bookshop-project/db/schema.cds',
+          ];
+        }
+        return [];
+      });
+
+      // Create project dependency map with project-level compilation marker
+      const projectMap = new Map();
+      const projectInfo = {
+        projectDir,
+        cdsFiles: [
+          'bookshop-project/index.cds',
+          'bookshop-project/srv/cat-service.cds',
+          'bookshop-project/db/schema.cds',
+        ],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        imports: new Map(),
+      };
+      projectMap.set(projectDir, projectInfo);
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from('Compilation successful'),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'index.cds',
+        sourceRoot,
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+
+      // With simplified approach: just pass the project directory, let cds compile handle everything
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        'cds',
+        expect.arrayContaining([
+          'compile',
+          'bookshop-project', // Only the project directory is needed
+        ]),
+        expect.objectContaining({
+          cwd: sourceRoot,
+        }),
+      );
+
+      // Ensure no specific subdirectories are passed - cds compile handles them automatically
+      const actualCall = (childProcess.spawnSync as jest.Mock).mock.calls[0];
+      const actualArgs = actualCall[1];
+      expect(actualArgs).not.toContain('bookshop-project/db');
+      expect(actualArgs).not.toContain('bookshop-project/srv');
+      expect(actualArgs).toContain('bookshop-project'); // Just the base project directory
+    });
+
+    it('should compile entire project directory with simplified approach', () => {
+      // This test verifies the simplified approach: instead of determining specific subdirectories,
+      // we just pass the project directory to cds compile and let it handle everything.
+
+      // Setup
+      const sourceRoot = '/source/root';
+      const projectDir = 'bookshop-project';
+
+      // Set up the path.relative mock
+      (path.relative as jest.Mock).mockImplementation(() => 'bookshop-project/index.cds');
+
+      // Mock globSync to return CDS files including root-level index.cds
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          // Return all CDS files in the project
+          return [
+            'bookshop-project/index.cds',
+            'bookshop-project/srv/cat-service.cds',
+            'bookshop-project/db/schema.cds',
+          ];
+        }
+        return [];
+      });
+
+      // Create project dependency map with project-level compilation marker
+      const projectMap = new Map();
+      const projectInfo = {
+        projectDir,
+        cdsFiles: [
+          'bookshop-project/index.cds',
+          'bookshop-project/srv/cat-service.cds',
+          'bookshop-project/db/schema.cds',
+        ],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        imports: new Map(),
+      };
+      projectMap.set(projectDir, projectInfo);
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from('Compilation successful'),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'index.cds',
+        sourceRoot,
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+
+      // With the simplified approach, we should just pass the project directory
+      // and let cds compile handle all subdirectories automatically
+      const actualCall = (childProcess.spawnSync as jest.Mock).mock.calls[0];
+      const actualArgs = actualCall[1]; // Second argument is the args array
+
+      // The compile command should include only the project directory
+      expect(actualArgs).toContain('bookshop-project');
+
+      // Verify the simplified command structure
+      const compileIndex = actualArgs.indexOf('compile');
+      const destIndex = actualArgs.indexOf('--to');
+      const directoryArgs = actualArgs.slice(compileIndex + 1, destIndex);
+
+      // Should only contain the project directory - no need to specify subdirectories
+      expect(directoryArgs).toEqual(['bookshop-project']);
     });
   });
 });
