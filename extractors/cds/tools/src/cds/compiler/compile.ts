@@ -131,8 +131,19 @@ function compileProjectLevel(
   );
 
   // For project-level compilation, compile the entire project together
-  // Simply pass the project directory to cds compile and let it handle all subdirectories
+  // This follows the CAP best practice of compiling db and srv directories together
   const projectAbsolutePath = join(sourceRoot, projectDir);
+
+  // Common directories in CAP projects that should be compiled together
+  const capDirectories = ['db', 'srv', 'app'];
+  const existingDirectories: string[] = [];
+
+  for (const dir of capDirectories) {
+    const dirPath = join(projectAbsolutePath, dir);
+    if (dirExists(dirPath)) {
+      existingDirectories.push(dir);
+    }
+  }
 
   // Check if there are any CDS files in the project at all before proceeding
   const allCdsFiles = globSync(join(projectAbsolutePath, '**/*.cds'), {
@@ -146,6 +157,24 @@ function compileProjectLevel(
     );
   }
 
+  if (existingDirectories.length === 0) {
+    // If no standard directories, check if there are CDS files in the root
+    const rootCdsFiles = globSync(join(projectAbsolutePath, '*.cds'));
+    if (rootCdsFiles.length > 0) {
+      existingDirectories.push('.');
+    } else {
+      // Find directories that contain CDS files
+      const cdsFileParents = new Set(
+        allCdsFiles.map((file: string) => {
+          const relativePath = relative(projectAbsolutePath, file);
+          const firstDir = relativePath.split('/')[0];
+          return firstDir === relativePath ? '.' : firstDir;
+        }),
+      );
+      existingDirectories.push(...Array.from(cdsFileParents));
+    }
+  }
+
   // Generate output path for the compiled model - relative to sourceRoot for consistency
   const relativeOutputPath = join(projectDir, 'model.cds.json');
   const projectJsonOutPath = join(sourceRoot, relativeOutputPath);
@@ -156,10 +185,14 @@ function compileProjectLevel(
     cwd: sourceRoot, // Use sourceRoot as working directory for consistency
   };
 
-  // Simply compile the entire project directory - let cds compile handle all subdirectories
+  // Convert directories to be relative to sourceRoot (include project prefix)
+  const projectRelativeDirectories = existingDirectories.map(dir =>
+    dir === '.' ? projectDir : join(projectDir, dir),
+  );
+
   const compileArgs = [
     'compile',
-    projectDir, // Just pass the project directory, cds will find all relevant files
+    ...projectRelativeDirectories, // Use paths relative to sourceRoot
     '--to',
     'json',
     '--dest',
@@ -169,7 +202,7 @@ function compileProjectLevel(
     'warn',
   ];
 
-  cdsExtractorLog('info', `Compiling CAP project directory: ${projectDir}`);
+  cdsExtractorLog('info', `Compiling CAP project directories: ${existingDirectories.join(', ')}`);
   cdsExtractorLog(
     'info',
     `Executing CDS command in directory ${projectAbsolutePath}: command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
