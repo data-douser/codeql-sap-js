@@ -589,7 +589,7 @@ class CdsUser extends API::Node {
 /**
  * A transaction object to be carried out by a service that it is initialized
  * with through a call to `tx`. Note that there are two types of styles when
- * it comes to using the transaction object, that is, within a callback or in a 
+ * it comes to using the transaction object, that is, within a callback or in a
  * `try`-`catch` block:
  *
  * ``` javascript
@@ -607,14 +607,14 @@ class CdsUser extends API::Node {
  *   await tx.rollback(e);
  * }
  * ```
- * 
+ *
  * The former style allows for automatic transaction management by the framework
  * (notice there are no `commit` and `rollback` calls), while the latter style
  * makes the low-level transaction operations explicit.
- * 
+ *
  * To accommodate for both styles, this class captures both the transaction call
  * itself, and the parameter of the callback.
- * 
+ *
  * Note that the call to `tx` can optionally take a context object as its first
  * parameter that lets overriding of certain options such as `user`.
  */
@@ -912,6 +912,22 @@ class CqlShortcutMethodCall extends CqlQueryRunnerCall {
   }
 
   abstract override DataFlow::Node getAQueryParameter();
+
+  /**
+   * Gets the final method call that is transitively chained on this method call. e.g.
+   * given these fluent API calls on `srv.update`:
+   * ``` javascript
+   * srv.update(Entity1).set("col=col+1").where("col=" + id)
+   * srv.update(Entity1).set("col=col+1").where`col=${id}`
+   * srv.update(Entity1).set`col=col+1`.where("col=${id}")
+   * srv.update(Entity1).set`col=col+1`.where`col=${id}`
+   * ```
+   * This predicate gets the entire `srv.update(Entity1).set....where...` call.
+   */
+  DataFlow::CallNode getFinalChainedMethodCall() {
+    result = this.getAChainedMethodCall(_) and
+    not exists(result.asExpr().getParentExpr())
+  }
 }
 
 class CqlReadMethodCall extends CqlShortcutMethodCall {

@@ -125,7 +125,10 @@ class StringConcatParameterOfCqlShortcutMethodCall extends CqlInjectionSink {
     this = cqlShortcutMethodCallWithStringConcat.getStringConcatParameter()
   }
 
-  override DataFlow::Node getQuery() { result = cqlShortcutMethodCallWithStringConcat }
+  override DataFlow::Node getQuery() {
+    result =
+      cqlShortcutMethodCallWithStringConcat.(CqlShortcutMethodCall).getFinalChainedMethodCall()
+  }
 }
 
 /**
