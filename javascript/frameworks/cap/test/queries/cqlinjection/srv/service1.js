@@ -592,9 +592,9 @@ module.exports = class Service1 extends cds.ApplicationService {
     /* ========== 12. Service1 running query on the database service using `cds.db.tx( tx => tx.run(...) )` and friends ========== */
     this.on("send121", async (req) => {
       const { id } = req.data;
-      const query = SELECT.from`Entity1`.where("ID=" + id);  // UNSAFE: direct concatenation with `+`
+      const query = SELECT.from`Entity1`.where("ID=" + id);
       cds.db.tx(async (tx) => {
-        tx.run(query);
+        tx.run(query);  // UNSAFE: direct concatenation with `+`
       });
     });
 
