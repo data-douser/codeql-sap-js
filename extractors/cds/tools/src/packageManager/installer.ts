@@ -7,7 +7,7 @@ import type { CdsDependencyCombination } from './types';
 import { CdsDependencyGraph, CdsProject } from '../cds/parser/types';
 import { DiagnosticSeverity } from '../diagnostics';
 import { cdsExtractorLog } from '../logging';
-import { resolveCdsVersions, logCacheStatistics } from './versionResolver';
+import { resolveCdsVersions } from './versionResolver';
 
 const cacheSubDirName = '.cds-extractor-cache';
 
@@ -67,6 +67,10 @@ function extractUniqueDependencyCombinations(
     const cdsDkVersion = project.packageJson.devDependencies?.['@sap/cds-dk'] ?? cdsVersion;
 
     // Resolve versions first to ensure we cache based on actual resolved versions
+    cdsExtractorLog(
+      'info',
+      `Resolving available dependency versions for project '${project.projectDir}' with dependencies: [@sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}]`,
+    );
     const resolvedVersions = resolveCdsVersions(cdsVersion, cdsDkVersion);
     const { resolvedCdsVersion, resolvedCdsDkVersion, ...rest } = resolvedVersions;
 
@@ -303,7 +307,7 @@ export function installDependencies(
     cdsExtractorLog('info', 'All dependency combinations installed successfully.');
   }
 
-  // Log project to cache directory mappings for transparency
+  // Log project-to-cache-directory mappings for transparency.
   if (projectCacheDirMap.size > 0) {
     cdsExtractorLog('info', `Project to cache directory mappings:`);
     for (const [projectDir, cacheDir] of Array.from(projectCacheDirMap.entries())) {
@@ -316,9 +320,6 @@ export function installDependencies(
       'No project to cache directory mappings created. Projects may not have compatible dependencies installed.',
     );
   }
-
-  // Log cache statistics for debugging and performance monitoring
-  logCacheStatistics();
 
   return projectCacheDirMap;
 }

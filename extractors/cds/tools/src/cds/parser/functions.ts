@@ -410,23 +410,19 @@ export function determineCdsFilesToCompile(
     return [];
   }
 
-  // If there's only one CDS file, it should be compiled individually
+  // If there's only one CDS file, it should be compiled individually.
   if (project.cdsFiles.length === 1) {
     return [...project.cdsFiles];
   }
 
-  // Check if this looks like a CAP project with typical directory structure
   const absoluteProjectDir = join(sourceRootDir, project.projectDir);
   const hasCapStructure = hasTypicalCapDirectoryStructure(project.cdsFiles);
-  const isCapProject = isLikelyCdsProject(absoluteProjectDir);
+  const hasCapDeps = hasPackageJsonWithCapDeps(absoluteProjectDir);
 
   // Use project-level compilation only if:
-  // 1. It has CAP package.json dependencies OR
+  // 1. It has CAP package.json dependencies, OR
   // 2. It has the typical CAP directory structure (db/, srv/ etc.)
-  if (
-    project.cdsFiles.length > 1 &&
-    (hasCapStructure || (isCapProject && hasPackageJsonWithCapDeps(absoluteProjectDir)))
-  ) {
+  if (project.cdsFiles.length > 1 && (hasCapStructure || hasCapDeps)) {
     // For CAP projects, we should use project-level compilation
     // Return a special marker that indicates the entire project should be compiled together
     return ['__PROJECT_LEVEL_COMPILATION__'];

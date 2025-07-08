@@ -9,7 +9,6 @@ export {
 } from './graph';
 export { findProjectForCdsFile } from './project';
 export type {
-  AlternativeCdsCommand,
   CdsCompilationResult,
   CompilationAttempt,
   CompilationStatus,

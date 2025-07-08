@@ -2,7 +2,6 @@ import { join } from 'path';
 
 import { sync as globSync } from 'glob';
 
-import { determineCdsCommand } from './src/cds';
 import { orchestrateCompilation } from './src/cds/compiler';
 import { buildCdsProjectDependencyGraph } from './src/cds/parser';
 import { runJavaScriptExtractor } from './src/codeql';
@@ -99,7 +98,7 @@ try {
     for (const [projectDir, project] of dependencyGraph.projects.entries()) {
       cdsExtractorLog(
         'info',
-        `Project: ${projectDir}, Status: ${project.status}, CDS files: ${project.cdsFiles.length}, Files to compile: ${project.cdsFilesToCompile.length}`,
+        `Project: ${projectDir}, Status: ${project.status}, CDS files: ${project.cdsFiles.length}, Compilations to run: ${project.cdsFilesToCompile.length}`,
       );
     }
   } else {
@@ -185,18 +184,6 @@ const cdsFilePathsToProcess: string[] = [];
 // of each `.cds` source file in the CodeQL database.
 for (const project of dependencyGraph.projects.values()) {
   cdsFilePathsToProcess.push(...project.cdsFiles);
-}
-
-// Initialize CDS command cache early to avoid repeated testing during compilation.
-// This is a critical optimization that avoids testing commands for every single file.
-logPerformanceTrackingStart('CDS Command Cache Initialization');
-try {
-  determineCdsCommand(undefined, sourceRoot);
-  logPerformanceTrackingStop('CDS Command Cache Initialization');
-  cdsExtractorLog('info', 'CDS command cache initialized successfully');
-} catch (error) {
-  logPerformanceTrackingStop('CDS Command Cache Initialization');
-  cdsExtractorLog('warn', `CDS command cache initialization failed: ${String(error)}`);
 }
 
 // TODO : Improve logging / debugging of dependencyGraph.statusSummary. Just log the JSON?

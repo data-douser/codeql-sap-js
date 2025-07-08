@@ -134,20 +134,12 @@ export function getAvailableVersions(packageName: string): string[] {
   // Check cache first
   if (availableVersionsCache.has(packageName)) {
     cacheStats.hits++;
-    cdsExtractorLog(
-      'info',
-      `Using cached versions for ${packageName} (cache hit rate: ${cacheStats.hitRate}%)`,
-    );
     return availableVersionsCache.get(packageName)!;
   }
 
   // Cache miss - fetch from npm
   cacheStats.misses++;
   try {
-    cdsExtractorLog(
-      'info',
-      `Fetching available versions for ${packageName} from npm registry (cache miss ${cacheStats.misses})...`,
-    );
     const output = execSync(`npm view ${packageName} versions --json`, {
       encoding: 'utf8',
       timeout: 30000, // 30 second timeout
@@ -164,10 +156,6 @@ export function getAvailableVersions(packageName: string): string[] {
 
     // Cache the result
     availableVersionsCache.set(packageName, versionArray);
-    cdsExtractorLog(
-      'info',
-      `Cached ${versionArray.length} versions for ${packageName} (cache hit rate: ${cacheStats.hitRate}%)`,
-    );
 
     return versionArray;
   } catch (error) {
@@ -194,17 +182,6 @@ export function getCacheStatistics(): {
     hitRate: cacheStats.hitRate,
     cachedPackages: Array.from(availableVersionsCache.keys()),
   };
-}
-
-/**
- * Log current cache statistics
- */
-export function logCacheStatistics(): void {
-  const stats = getCacheStatistics();
-  cdsExtractorLog(
-    'info',
-    `Package version cache statistics: ${stats.hits} hits, ${stats.misses} misses, ${stats.hitRate}% hit rate, ${stats.cachedPackages.length} packages cached: [${stats.cachedPackages.join(', ')}]`,
-  );
 }
 
 /**

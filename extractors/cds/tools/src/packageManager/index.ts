@@ -9,7 +9,6 @@ export {
   findBestAvailableVersion,
   getAvailableVersions,
   getCacheStatistics,
-  logCacheStatistics,
   parseSemanticVersion,
   resolveCdsVersions,
   satisfiesRange,

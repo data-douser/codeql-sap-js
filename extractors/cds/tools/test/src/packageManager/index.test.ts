@@ -12,7 +12,6 @@ describe('packageManager index', () => {
       expect(typeof packageManager.findBestAvailableVersion).toBe('function');
       expect(typeof packageManager.getAvailableVersions).toBe('function');
       expect(typeof packageManager.getCacheStatistics).toBe('function');
-      expect(typeof packageManager.logCacheStatistics).toBe('function');
       expect(typeof packageManager.parseSemanticVersion).toBe('function');
       expect(typeof packageManager.resolveCdsVersions).toBe('function');
       expect(typeof packageManager.satisfiesRange).toBe('function');
@@ -26,7 +25,6 @@ describe('packageManager index', () => {
         'findBestAvailableVersion',
         'getAvailableVersions',
         'getCacheStatistics',
-        'logCacheStatistics',
         'parseSemanticVersion',
         'resolveCdsVersions',
         'satisfiesRange',
@@ -52,7 +50,6 @@ describe('packageManager index', () => {
     it('should allow all functions to be called without errors', () => {
       // Test basic function calls don't throw (without mocking dependencies)
       expect(() => packageManager.getCacheStatistics()).not.toThrow();
-      expect(() => packageManager.logCacheStatistics()).not.toThrow();
 
       // Test parsing functions with basic inputs
       const parsedVersion = packageManager.parseSemanticVersion('6.1.3');

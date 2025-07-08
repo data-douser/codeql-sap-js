@@ -8,7 +8,6 @@ import {
   checkVersionCompatibility,
   getAvailableVersions,
   getCacheStatistics,
-  logCacheStatistics,
   __testOnly__,
 } from '../../../src/packageManager/versionResolver';
 
@@ -509,11 +508,6 @@ describe('versionResolver', () => {
       expect(stats.hits).toBe(0);
       expect(stats.misses).toBe(0);
       expect(stats.cachedPackages.length).toBe(0);
-    });
-
-    it('should log cache statistics', () => {
-      // This test ensures logCacheStatistics doesn't throw
-      expect(() => logCacheStatistics()).not.toThrow();
     });
   });
 });

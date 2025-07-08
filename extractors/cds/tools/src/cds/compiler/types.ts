@@ -1,24 +1,6 @@
 /** Types for the `src/cds/compiler` package. */
 
 /**
- * Alternative CDS command configuration for retry scenarios
- */
-export interface AlternativeCdsCommand {
-  /** The command string */
-  command: string;
-  /** Cache directory to use with this command */
-  cacheDir?: string;
-  /** Strategy identifier (e.g., 'global-cds', 'npx-cds-dk') */
-  strategy: string;
-  /** Version information if available */
-  version?: string;
-  /** Priority for trying this command (higher = try first) */
-  priority: number;
-  /** Whether this command has been tested successfully */
-  tested: boolean;
-}
-
-/**
  * Result of a CDS compilation attempt
  */
 export interface CdsCompilationResult {
@@ -67,8 +49,7 @@ export type CompilationStatus =
   | 'in_progress' // Compilation is currently running
   | 'success' // Compilation completed successfully
   | 'failed' // Compilation failed
-  | 'skipped' // Compilation was skipped (e.g., already compiled)
-  | 'retry'; // Marked for retry with different configuration
+  | 'skipped'; // Compilation was skipped (e.g., already compiled)
 
 /**
  * Compilation task representing a unit of work (file or project-level compilation)
@@ -99,17 +80,15 @@ export interface CompilationTask {
 }
 
 /**
- * Compilation configuration with retry alternatives
+ * Compilation configuration for managing compilation commands and retries.
  */
 export interface CompilationConfig {
-  /** Primary CDS command to use */
-  primaryCdsCommand: string;
-  /** Primary cache directory */
-  primaryCacheDir?: string;
+  /** CDS command to use */
+  cdsCommand: string;
+  /** Cache directory */
+  cacheDir?: string;
   /** Whether to use project-level compilation */
   useProjectLevelCompilation: boolean;
-  /** Alternative commands to try if primary fails */
-  alternativeCommands: AlternativeCdsCommand[];
   /** Version compatibility information */
   versionCompatibility: {
     isCompatible: boolean;

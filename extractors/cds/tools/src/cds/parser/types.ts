@@ -141,8 +141,6 @@ export interface ExtractionStatusSummary {
   failedCompilations: number;
   /** Skipped compilation tasks */
   skippedCompilations: number;
-  /** Tasks that required retries */
-  retriedCompilations: number;
   /** JSON files generated */
   jsonFilesGenerated: number;
   /** Critical errors that stopped extraction */
@@ -192,7 +190,7 @@ export interface CdsProject extends BasicCdsProject {
   /** Unique identifier for this project */
   id: string;
 
-  /** Compilation configuration with retry support */
+  /** Compilation configuration */
   enhancedCompilationConfig?: import('../compiler/types.js').CompilationConfig;
 
   /** Compilation tasks for this project */
@@ -268,7 +266,7 @@ export interface CdsDependencyGraph {
 
   /** Configuration and settings */
   config: {
-    /** Maximum retry attempts for compilation */
+    /** Maximum retry attempts for task re-execution */
     maxRetryAttempts: number;
     /** Whether to enable detailed logging */
     enableDetailedLogging: boolean;

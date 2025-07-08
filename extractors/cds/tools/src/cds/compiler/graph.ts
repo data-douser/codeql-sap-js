@@ -1,11 +1,6 @@
 import { determineCdsCommand } from './command';
 import { compileCdsToJson } from './compile';
-import {
-  AlternativeCdsCommand,
-  CompilationAttempt,
-  CompilationTask,
-  CompilationConfig,
-} from './types';
+import { CompilationAttempt, CompilationTask, CompilationConfig } from './types';
 import { addCompilationDiagnostic } from '../../diagnostics';
 import { cdsExtractorLog } from '../../logging';
 import { CdsDependencyGraph, CdsProject } from '../parser/types';
@@ -113,20 +108,15 @@ function createCompilationTask(
   };
 }
 
-/**
- * Create compilation configuration with retry alternatives
- */
 function createCompilationConfig(
-  primaryCommand: string,
-  primaryCacheDir: string | undefined,
+  cdsCommand: string,
+  cacheDir: string | undefined,
   useProjectLevel: boolean,
-  alternatives: AlternativeCdsCommand[] = [],
 ): CompilationConfig {
   return {
-    primaryCdsCommand: primaryCommand,
-    primaryCacheDir,
+    cdsCommand: cdsCommand,
+    cacheDir: cacheDir,
     useProjectLevelCompilation: useProjectLevel,
-    alternativeCommands: alternatives,
     versionCompatibility: {
       isCompatible: true, // Will be validated during planning
     },
@@ -135,7 +125,7 @@ function createCompilationConfig(
 }
 
 /**
- * Execute a single compilation task with retry logic
+ * Execute a single compilation task
  */
 function executeCompilationTask(
   task: CompilationTask,
@@ -150,58 +140,26 @@ function executeCompilationTask(
     throw new Error(`No compilation configuration found for project ${project.projectDir}`);
   }
 
-  let lastError: Error | undefined;
-
-  // Try primary command first
-  const primaryAttempt = attemptCompilation(
+  const compilationAttempt = attemptCompilation(
     task,
-    config.primaryCdsCommand,
-    config.primaryCacheDir,
+    config.cdsCommand,
+    config.cacheDir,
     dependencyGraph,
   );
 
-  if (primaryAttempt.result.success) {
+  if (compilationAttempt.result.success) {
     task.status = 'success';
     dependencyGraph.statusSummary.successfulCompilations++;
     return;
   }
 
-  lastError = primaryAttempt.error
-    ? new Error(primaryAttempt.error.message)
-    : new Error('Primary compilation failed');
-  task.status = 'retry';
+  // Compilation failed - mark task as failed
+  const lastError = compilationAttempt.error
+    ? new Error(compilationAttempt.error.message)
+    : new Error('Compilation failed');
 
-  // Try alternative commands if primary failed
-  for (const alternative of config.alternativeCommands) {
-    if (task.attempts.length >= config.maxRetryAttempts) {
-      break;
-    }
-
-    cdsExtractorLog(
-      'info',
-      `Retrying compilation for ${task.sourceFiles[0]} with alternative command: ${alternative.strategy}`,
-    );
-
-    const retryAttempt = attemptCompilation(
-      task,
-      alternative.command,
-      alternative.cacheDir,
-      dependencyGraph,
-    );
-
-    if (retryAttempt.result.success) {
-      task.status = 'success';
-      dependencyGraph.statusSummary.successfulCompilations++;
-      dependencyGraph.statusSummary.retriedCompilations++;
-      return;
-    }
-
-    lastError = retryAttempt.error ? new Error(retryAttempt.error.message) : lastError;
-  }
-
-  // All attempts failed
   task.status = 'failed';
-  task.errorSummary = lastError?.message || 'All compilation attempts failed';
+  task.errorSummary = lastError?.message || 'Compilation failed';
   dependencyGraph.statusSummary.failedCompilations++;
 
   // Add diagnostic for failed compilation
@@ -308,7 +266,6 @@ export function generateStatusReport(dependencyGraph: CdsDependencyGraph): strin
   lines.push(`  Successful: ${summary.successfulCompilations}`);
   lines.push(`  Failed: ${summary.failedCompilations}`);
   lines.push(`  Skipped: ${summary.skippedCompilations}`);
-  lines.push(`  Retried: ${summary.retriedCompilations}`);
   lines.push('');
 
   // Performance metrics
@@ -401,7 +358,7 @@ export function planCompilationTasks(
     try {
       const cacheDir = projectCacheDirMap.get(projectDir);
 
-      // Determine primary CDS command
+      // Determine CDS command
       const cdsCommand = determineCdsCommand(cacheDir, dependencyGraph.sourceRootDir);
 
       // Create compilation configuration
