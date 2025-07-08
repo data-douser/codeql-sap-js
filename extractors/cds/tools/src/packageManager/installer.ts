@@ -74,6 +74,27 @@ function extractUniqueDependencyCombinations(
     const resolvedVersions = resolveCdsVersions(cdsVersion, cdsDkVersion);
     const { resolvedCdsVersion, resolvedCdsDkVersion, ...rest } = resolvedVersions;
 
+    // Log the resolved CDS dependency versions for the project
+    if (resolvedCdsVersion && resolvedCdsDkVersion) {
+      let statusMsg: string;
+      if (resolvedVersions.cdsExactMatch && resolvedVersions.cdsDkExactMatch) {
+        statusMsg = ' (exact match)';
+      } else if (!resolvedVersions.isFallback) {
+        statusMsg = ' (compatible versions)';
+      } else {
+        statusMsg = ' (using fallback versions)';
+      }
+      cdsExtractorLog(
+        'info',
+        `Resolved to: @sap/cds@${resolvedCdsVersion}, @sap/cds-dk@${resolvedCdsDkVersion}${statusMsg}`,
+      );
+    } else {
+      cdsExtractorLog(
+        'error',
+        `Failed to resolve CDS dependencies: @sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}`,
+      );
+    }
+
     // Calculate hash based on resolved versions to ensure proper cache reuse
     const actualCdsVersion = resolvedCdsVersion ?? cdsVersion;
     const actualCdsDkVersion = resolvedCdsDkVersion ?? cdsDkVersion;

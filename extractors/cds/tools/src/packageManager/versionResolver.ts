@@ -22,7 +22,7 @@ const cacheStats = {
 };
 
 /**
- * Check if @sap/cds and @sap/cds-dk versions are likely compatible
+ * Check if @sap/cds and @sap/cds-dk versions are likely compatible.
  * @param cdsVersion The @sap/cds version
  * @param cdsDkVersion The @sap/cds-dk version
  * @returns Object with compatibility information and warnings
@@ -222,6 +222,26 @@ export function parseSemanticVersion(version: string): SemanticVersion | null {
 }
 
 /**
+ * Check if a resolved version satisfies the originally requested version.
+ * @param resolvedVersion The version that was resolved
+ * @param requestedVersion The originally requested version
+ * @returns true if the resolved version satisfies the requested version range
+ */
+function isSatisfyingVersion(resolvedVersion: string, requestedVersion: string): boolean {
+  // Exact string match or 'latest' case
+  if (resolvedVersion === requestedVersion || requestedVersion === 'latest') {
+    return true;
+  }
+
+  const parsedResolved = parseSemanticVersion(resolvedVersion);
+  if (!parsedResolved) {
+    return false;
+  }
+
+  return satisfiesRange(parsedResolved, requestedVersion);
+}
+
+/**
  * Resolve the best available version for CDS dependencies
  * @param cdsVersion Required @sap/cds version
  * @param cdsDkVersion Required @sap/cds-dk version
@@ -238,65 +258,49 @@ export function resolveCdsVersions(
   warning?: string;
   isFallback?: boolean;
 } {
-  cdsExtractorLog(
-    'info',
-    `Resolving CDS dependencies: @sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}`,
-  );
-
   const cdsVersions = getAvailableVersions('@sap/cds');
   const cdsDkVersions = getAvailableVersions('@sap/cds-dk');
 
   const resolvedCdsVersion = findBestAvailableVersion(cdsVersions, cdsVersion);
   const resolvedCdsDkVersion = findBestAvailableVersion(cdsDkVersions, cdsDkVersion);
 
+  // Check if resolved versions are exact matches (string equality or 'latest' case).
   const cdsExactMatch =
     resolvedCdsVersion === cdsVersion || (cdsVersion === 'latest' && resolvedCdsVersion !== null);
   const cdsDkExactMatch =
     resolvedCdsDkVersion === cdsDkVersion ||
     (cdsDkVersion === 'latest' && resolvedCdsDkVersion !== null);
 
+  // Check if resolved versions satisfy the requested ranges (including exact matches).
+  const cdsSatisfiesRange = resolvedCdsVersion
+    ? isSatisfyingVersion(resolvedCdsVersion, cdsVersion)
+    : false;
+  const cdsDkSatisfiesRange = resolvedCdsDkVersion
+    ? isSatisfyingVersion(resolvedCdsDkVersion, cdsDkVersion)
+    : false;
+
+  // Only consider it a fallback if we couldn't find a satisfying version.
+  const isFallback = !cdsSatisfiesRange || !cdsDkSatisfiesRange;
+
   let warning: string | undefined;
-  const warnings: string[] = [];
-  let isFallback = false;
 
-  if (!cdsExactMatch || !cdsDkExactMatch) {
-    isFallback = true;
-    if (!cdsExactMatch) {
-      warnings.push(
-        `@sap/cds: requested ${cdsVersion}, using ${resolvedCdsVersion ?? 'none available'}`,
-      );
-    }
-    if (!cdsDkExactMatch) {
-      warnings.push(
-        `@sap/cds-dk: requested ${cdsDkVersion}, using ${resolvedCdsDkVersion ?? 'none available'}`,
-      );
-    }
-  }
-
-  // Check compatibility between resolved versions
+  // Check compatibility between resolved versions (only if both were resolved).
+  // Show warnings when:
+  // 1. We're using fallback versions (couldn't find compatible versions), OR
+  // 2. At least one version isn't an exact match (version range was used), OR
+  // 3. Resolved versions have actual compatibility issues (e.g., major version mismatch).
   if (resolvedCdsVersion && resolvedCdsDkVersion) {
     const compatibility = checkVersionCompatibility(resolvedCdsVersion, resolvedCdsDkVersion);
-    if (!compatibility.isCompatible && compatibility.warning) {
-      warnings.push(compatibility.warning);
+
+    const shouldShowWarning =
+      isFallback ||
+      !cdsExactMatch ||
+      !cdsDkExactMatch ||
+      (compatibility.warning && !compatibility.isCompatible);
+
+    if (compatibility.warning && shouldShowWarning) {
+      warning = compatibility.warning;
     }
-  }
-
-  if (warnings.length > 0) {
-    warning = `CDS dependency issues: ${warnings.join('; ')}`;
-  }
-
-  // Log the resolution result
-  if (resolvedCdsVersion && resolvedCdsDkVersion) {
-    const statusMsg = isFallback ? ' (using fallback versions)' : ' (exact match)';
-    cdsExtractorLog(
-      'info',
-      `Resolved to: @sap/cds@${resolvedCdsVersion}, @sap/cds-dk@${resolvedCdsDkVersion}${statusMsg}`,
-    );
-  } else {
-    cdsExtractorLog(
-      'error',
-      `Failed to resolve CDS dependencies: @sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}`,
-    );
   }
 
   return {
@@ -310,7 +314,7 @@ export function resolveCdsVersions(
 }
 
 /**
- * Check if version satisfies a version range
+ * Check if version satisfies a version range.
  * @param version Version to check
  * @param range Version range (e.g., "^6.0.0", "~6.1.0", ">=6.0.0")
  * @returns true if version satisfies the range

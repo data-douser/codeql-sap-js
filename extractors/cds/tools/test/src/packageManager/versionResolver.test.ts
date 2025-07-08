@@ -242,7 +242,8 @@ describe('versionResolver', () => {
       expect(result.resolvedCdsDkVersion).toBe('6.1.0'); // Latest compatible
       expect(result.cdsExactMatch).toBe(false);
       expect(result.cdsDkExactMatch).toBe(false);
-      expect(result.warning).toContain('CDS dependency issues:');
+      // Should have a compatibility warning due to minor version difference
+      expect(result.warning).toContain('Minor version difference');
     });
 
     it('should handle unavailable versions gracefully', () => {
@@ -252,7 +253,8 @@ describe('versionResolver', () => {
       expect(result.resolvedCdsDkVersion).toBe('6.1.0'); // Fallback to newest
       expect(result.cdsExactMatch).toBe(false);
       expect(result.cdsDkExactMatch).toBe(false);
-      expect(result.warning).toContain('CDS dependency issues:');
+      // Should have a compatibility warning due to major version mismatch
+      expect(result.warning).toContain('Major version mismatch');
     });
 
     it('should handle latest versions correctly', () => {
@@ -278,7 +280,8 @@ describe('versionResolver', () => {
       expect(result.resolvedCdsDkVersion).toBeNull();
       expect(result.cdsExactMatch).toBe(false);
       expect(result.cdsDkExactMatch).toBe(false);
-      expect(result.warning).toContain('CDS dependency issues:');
+      // No warning should be present when resolution fails completely
+      expect(result.warning).toBeUndefined();
     });
 
     it('should handle single version string from npm view', () => {

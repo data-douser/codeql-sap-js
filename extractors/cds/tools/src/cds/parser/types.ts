@@ -1,5 +1,14 @@
 /** Types for CDS parsing. */
 
+/** Result of determining CDS files to compile and their expected outputs */
+export interface CdsFilesToCompile {
+  /** CDS files that should be compiled (or special markers like __PROJECT_LEVEL_COMPILATION__) */
+  filesToCompile: string[];
+
+  /** Expected JSON output files that will be generated (relative to source root) */
+  expectedOutputFiles: string[];
+}
+
 /** Represents an import reference in a CDS file. */
 export interface CdsImport {
   /** Whether the import is from a module (node_modules). */

@@ -4,7 +4,6 @@ import {
   determineCdsFilesForProjectDir,
   determineCdsFilesToCompile,
   determineCdsProjectsUnderSourceDir,
-  determineExpectedOutputFiles,
   extractCdsImports,
   readPackageJsonFile,
 } from './functions';
@@ -156,16 +155,35 @@ function buildBasicCdsProjectDependencyGraph(
     }
   }
 
-  // Third pass: determine which CDS files should be compiled for each project
-  cdsExtractorLog('info', 'Determining CDS files to compile for each project...');
+  // Third pass: determine CDS files to compile and expected output files for each project
+  cdsExtractorLog(
+    'info',
+    'Determining CDS files to compile and expected output files for each project...',
+  );
   for (const [, project] of projectMap.entries()) {
     try {
-      const filesToCompile = determineCdsFilesToCompile(sourceRootDir, project);
-      project.cdsFilesToCompile = filesToCompile;
-      cdsExtractorLog(
-        'info',
-        `Project ${project.projectDir}: ${filesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files`,
+      const projectPlan = determineCdsFilesToCompile(sourceRootDir, project);
+
+      // Assign the calculated values back to the project
+      project.cdsFilesToCompile = projectPlan.filesToCompile;
+      project.expectedOutputFiles = projectPlan.expectedOutputFiles;
+
+      // Check if using project-level compilation
+      const usesProjectLevelCompilation = projectPlan.filesToCompile.includes(
+        '__PROJECT_LEVEL_COMPILATION__',
       );
+
+      if (usesProjectLevelCompilation) {
+        cdsExtractorLog(
+          'info',
+          `Project ${project.projectDir}: using project-level compilation for all ${project.cdsFiles.length} CDS files, expecting ${projectPlan.expectedOutputFiles.length} output files`,
+        );
+      } else {
+        cdsExtractorLog(
+          'info',
+          `Project ${project.projectDir}: ${projectPlan.filesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files, expecting ${projectPlan.expectedOutputFiles.length} output files`,
+        );
+      }
     } catch (error) {
       cdsExtractorLog(
         'warn',
@@ -173,25 +191,6 @@ function buildBasicCdsProjectDependencyGraph(
       );
       // Fall back to compiling all files on error
       project.cdsFilesToCompile = [...project.cdsFiles];
-    }
-  }
-
-  // Fourth pass: determine expected output files for each project
-  cdsExtractorLog('info', 'Determining expected output files for each project...');
-  for (const [, project] of projectMap.entries()) {
-    try {
-      const expectedOutputFiles = determineExpectedOutputFiles(project);
-      project.expectedOutputFiles = expectedOutputFiles;
-      cdsExtractorLog(
-        'info',
-        `Project ${project.projectDir}: expecting ${expectedOutputFiles.length} output files`,
-      );
-    } catch (error) {
-      cdsExtractorLog(
-        'warn',
-        `Error determining expected output files for project ${project.projectDir}: ${String(error)}`,
-      );
-      // Fall back to empty array on error
       project.expectedOutputFiles = [];
     }
   }

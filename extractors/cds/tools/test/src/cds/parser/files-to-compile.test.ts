@@ -51,7 +51,8 @@ describe('determineCdsFilesToCompile', () => {
 
     const result = determineCdsFilesToCompile(sourceRoot, project);
 
-    expect(result).toEqual(['service.cds']);
+    expect(result.filesToCompile).toEqual(['service.cds']);
+    expect(result.expectedOutputFiles).toEqual(['service.cds.json']);
   });
 
   it('should return all files when there are no imports', () => {
@@ -63,7 +64,8 @@ describe('determineCdsFilesToCompile', () => {
 
     const result = determineCdsFilesToCompile(sourceRoot, project);
 
-    expect(result).toEqual(['service1.cds', 'service2.cds']);
+    expect(result.filesToCompile).toEqual(['service1.cds', 'service2.cds']);
+    expect(result.expectedOutputFiles).toEqual(['service1.cds.json', 'service2.cds.json']);
   });
 
   it('should return only root files for non-CAP projects with imports', () => {
@@ -93,8 +95,9 @@ describe('determineCdsFilesToCompile', () => {
     const result = determineCdsFilesToCompile(sourceRoot, project);
 
     // For non-CAP projects, should use the old behavior
-    expect(result).toEqual(['service.cds']);
-    expect(result).not.toContain('schema.cds');
+    expect(result.filesToCompile).toEqual(['service.cds']);
+    expect(result.filesToCompile).not.toContain('schema.cds');
+    expect(result.expectedOutputFiles).toEqual(['service.cds.json']);
   });
 
   it('should use project-level compilation for CAP projects with srv and db directories', () => {
@@ -126,7 +129,8 @@ describe('determineCdsFilesToCompile', () => {
     const result = determineCdsFilesToCompile(sourceRoot, project);
 
     // For CAP projects, should use project-level compilation
-    expect(result).toEqual(['__PROJECT_LEVEL_COMPILATION__']);
+    expect(result.filesToCompile).toEqual(['__PROJECT_LEVEL_COMPILATION__']);
+    expect(result.expectedOutputFiles).toEqual(['model.cds.json']);
   });
 
   it('should use project-level compilation for CAP projects with multiple services', () => {
@@ -171,7 +175,8 @@ describe('determineCdsFilesToCompile', () => {
     const result = determineCdsFilesToCompile(sourceRoot, project);
 
     // For CAP projects, should use project-level compilation
-    expect(result).toEqual(['__PROJECT_LEVEL_COMPILATION__']);
+    expect(result.filesToCompile).toEqual(['__PROJECT_LEVEL_COMPILATION__']);
+    expect(result.expectedOutputFiles).toEqual(['model.cds.json']);
   });
 
   it('should return empty array when project has no CDS files', () => {
@@ -183,7 +188,8 @@ describe('determineCdsFilesToCompile', () => {
 
     const result = determineCdsFilesToCompile(sourceRoot, project);
 
-    expect(result).toEqual([]);
+    expect(result.filesToCompile).toEqual([]);
+    expect(result.expectedOutputFiles).toEqual([]);
   });
 
   it('should fall back to all files when no imports map is provided', () => {
@@ -194,7 +200,8 @@ describe('determineCdsFilesToCompile', () => {
 
     const result = determineCdsFilesToCompile(sourceRoot, project);
 
-    expect(result).toEqual(['service1.cds', 'service2.cds']);
+    expect(result.filesToCompile).toEqual(['service1.cds', 'service2.cds']);
+    expect(result.expectedOutputFiles).toEqual(['service1.cds.json', 'service2.cds.json']);
   });
 
   it('should handle projects with no root files by returning all files', () => {
@@ -234,6 +241,7 @@ describe('determineCdsFilesToCompile', () => {
 
     // In a circular dependency scenario, the function should still identify that
     // both files are imported and fall back to compiling all files
-    expect(result).toEqual(['file1.cds', 'file2.cds']);
+    expect(result.filesToCompile).toEqual(['file1.cds', 'file2.cds']);
+    expect(result.expectedOutputFiles).toEqual(['file1.cds.json', 'file2.cds.json']);
   });
 });

@@ -3,7 +3,7 @@ import { basename, dirname, join, relative, sep } from 'path';
 
 import { sync } from 'glob';
 
-import { CdsImport, PackageJson } from './types';
+import { CdsFilesToCompile, CdsImport, PackageJson } from './types';
 import { cdsExtractorLog } from '../../logging';
 
 /**
@@ -390,13 +390,19 @@ export function readPackageJsonFile(filePath: string): PackageJson | undefined {
 }
 
 /**
- * Determines which CDS files in a project should be compiled to JSON.
- * For CAP projects with typical directory structure (db/, srv/), we should use project-aware compilation.
- * For other projects, we fall back to the previous approach of identifying root files.
+ * Determines which CDS files should be compiled for a given project and what output files to expect.
+ * This function analyzes the project structure and dependencies to decide
+ * whether to use project-level compilation or individual file compilation.
+ *
+ * For CAP projects (identified by either having @sap/cds dependencies or
+ * typical CAP directory structure), it returns a special marker indicating
+ * project-level compilation should be used. For other projects, it attempts
+ * to identify root files (files that are not imported by others) and returns
+ * those for individual compilation.
  *
  * @param sourceRootDir - The source root directory
- * @param project - The CDS project to analyze
- * @returns Array of CDS file paths (relative to source root) that should be compiled
+ * @param project - The project to analyze, containing cdsFiles, imports, and projectDir
+ * @returns Object containing files to compile and expected output files
  */
 export function determineCdsFilesToCompile(
   sourceRootDir: string,
@@ -405,14 +411,21 @@ export function determineCdsFilesToCompile(
     imports?: Map<string, CdsImport[]>;
     projectDir: string;
   },
-): string[] {
+): CdsFilesToCompile {
   if (!project.cdsFiles || project.cdsFiles.length === 0) {
-    return [];
+    return {
+      filesToCompile: [],
+      expectedOutputFiles: [],
+    };
   }
 
   // If there's only one CDS file, it should be compiled individually.
   if (project.cdsFiles.length === 1) {
-    return [...project.cdsFiles];
+    const filesToCompile = [...project.cdsFiles];
+    return {
+      filesToCompile,
+      expectedOutputFiles: computeExpectedOutputFiles(filesToCompile, project.projectDir),
+    };
   }
 
   const absoluteProjectDir = join(sourceRootDir, project.projectDir);
@@ -425,13 +438,21 @@ export function determineCdsFilesToCompile(
   if (project.cdsFiles.length > 1 && (hasCapStructure || hasCapDeps)) {
     // For CAP projects, we should use project-level compilation
     // Return a special marker that indicates the entire project should be compiled together
-    return ['__PROJECT_LEVEL_COMPILATION__'];
+    const filesToCompile = ['__PROJECT_LEVEL_COMPILATION__'];
+    return {
+      filesToCompile,
+      expectedOutputFiles: computeExpectedOutputFiles(filesToCompile, project.projectDir),
+    };
   }
 
   // For non-CAP projects or when we can't determine project type,
   // fall back to the original logic of identifying root files
   if (!project.imports || project.imports.size === 0) {
-    return [...project.cdsFiles];
+    const filesToCompile = [...project.cdsFiles];
+    return {
+      filesToCompile,
+      expectedOutputFiles: computeExpectedOutputFiles(filesToCompile, project.projectDir),
+    };
   }
 
   try {
@@ -475,18 +496,67 @@ export function determineCdsFilesToCompile(
         'warn',
         `No root CDS files identified in project ${project.projectDir}, will compile all files`,
       );
-      return [...project.cdsFiles];
+      const filesToCompile = [...project.cdsFiles];
+      return {
+        filesToCompile,
+        expectedOutputFiles: computeExpectedOutputFiles(filesToCompile, project.projectDir),
+      };
     }
 
-    return rootFiles;
+    return {
+      filesToCompile: rootFiles,
+      expectedOutputFiles: computeExpectedOutputFiles(rootFiles, project.projectDir),
+    };
   } catch (error) {
     cdsExtractorLog(
       'warn',
       `Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
     );
     // Fall back to compiling all files on error
-    return [...project.cdsFiles];
+    const filesToCompile = [...project.cdsFiles];
+    return {
+      filesToCompile,
+      expectedOutputFiles: computeExpectedOutputFiles(filesToCompile, project.projectDir),
+    };
   }
+}
+
+/**
+ * Computes the expected output files for a given set of files to compile.
+ * This function predicts what .cds.json files will be generated during compilation.
+ *
+ * @param filesToCompile - Array of files to compile (may include special markers)
+ * @param projectDir - The project directory
+ * @returns Array of expected output file paths (relative to source root)
+ */
+function computeExpectedOutputFiles(filesToCompile: string[], projectDir: string): string[] {
+  const expectedFiles: string[] = [];
+
+  // Check if this project uses project-level compilation.
+  const usesProjectLevelCompilation = filesToCompile.includes('__PROJECT_LEVEL_COMPILATION__');
+
+  // Validate that __PROJECT_LEVEL_COMPILATION__ element does not coexist with other
+  // files. We either expect a single project-level compilation marker or a list of
+  // individual files to compile, not both.
+  if (usesProjectLevelCompilation && filesToCompile.length !== 1) {
+    throw new Error(
+      `Invalid compilation configuration: '__PROJECT_LEVEL_COMPILATION__' must be the only element in filesToCompile array, but found ${filesToCompile.length} elements: ${filesToCompile.join(', ')}`,
+    );
+  }
+
+  if (usesProjectLevelCompilation) {
+    // For project-level compilation, expect a single model.cds.json file in the project
+    // root directory.
+    const projectModelFile = join(projectDir, 'model.cds.json');
+    expectedFiles.push(projectModelFile);
+  } else {
+    // For individual file compilation, expect a .cds.json file for each .cds file compiled.
+    for (const cdsFile of filesToCompile) {
+      expectedFiles.push(`${cdsFile}.json`);
+    }
+  }
+
+  return expectedFiles;
 }
 
 /**
@@ -497,27 +567,33 @@ export function determineCdsFilesToCompile(
  * @returns Array of expected output file paths (relative to source root)
  */
 export function determineExpectedOutputFiles(project: {
-  cdsFiles: string[];
   cdsFilesToCompile: string[];
   projectDir: string;
 }): string[] {
   const expectedFiles: string[] = [];
 
-  // Check if this project uses project-level compilation
+  // Check if this project uses project-level compilation.
   const usesProjectLevelCompilation = project.cdsFilesToCompile.includes(
     '__PROJECT_LEVEL_COMPILATION__',
   );
+  // Validate that __PROJECT_LEVEL_COMPILATION__ element does not coexist with other
+  // files. We either expect a single project-level compilation marker or a list of
+  // individual files to compile, not both.
+  if (usesProjectLevelCompilation && project.cdsFilesToCompile.length !== 1) {
+    throw new Error(
+      `Invalid compilation configuration: '__PROJECT_LEVEL_COMPILATION__' must be the only element in cdsFilesToCompile array, but found ${project.cdsFilesToCompile.length} elements: ${project.cdsFilesToCompile.join(', ')}`,
+    );
+  }
 
   if (usesProjectLevelCompilation) {
-    // For project-level compilation, expect a single model.cds.json file in the project root
+    // For project-level compilation, expect a single model.cds.json file in the project
+    // root directory.
     const projectModelFile = join(project.projectDir, 'model.cds.json');
     expectedFiles.push(projectModelFile);
   } else {
-    // For individual file compilation, expect a .cds.json file for each file to compile
+    // For individual file compilation, expect a .cds.json file for each .cds file compiled.
     for (const cdsFile of project.cdsFilesToCompile) {
-      if (cdsFile !== '__PROJECT_LEVEL_COMPILATION__') {
-        expectedFiles.push(`${cdsFile}.json`);
-      }
+      expectedFiles.push(`${cdsFile}.json`);
     }
   }
 

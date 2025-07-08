@@ -138,7 +138,10 @@ service Service2 @(path: '/service-2') {
     const result = determineCdsFilesToCompile(tempDir, project);
 
     // The result should indicate project-level compilation
-    expect(result).toEqual(['__PROJECT_LEVEL_COMPILATION__']);
+    expect(result.filesToCompile).toEqual(['__PROJECT_LEVEL_COMPILATION__']);
+    expect(result.expectedOutputFiles).toEqual([
+      'log-injection-without-protocol-none/model.cds.json',
+    ]);
 
     // This verifies that db/schema.cds will be compiled as part of the project
     // rather than being skipped because it's imported by other files
@@ -191,7 +194,8 @@ entity Item {
     const result = determineCdsFilesToCompile(tempDir, project);
 
     // Should use the old behavior for non-CAP projects
-    expect(result).toEqual(['simple-project/main.cds']);
-    expect(result).not.toContain('simple-project/model.cds');
+    expect(result.filesToCompile).toEqual(['simple-project/main.cds']);
+    expect(result.filesToCompile).not.toContain('simple-project/model.cds');
+    expect(result.expectedOutputFiles).toEqual(['simple-project/main.cds.json']);
   });
 });
