@@ -877,65 +877,6 @@ nodes
 | srv/service1.js:765:38:765:49 | `ID = ${id}` |
 | srv/service1.js:765:38:765:49 | `ID = ${id}` |
 | srv/service1.js:765:46:765:47 | id |
-| temp2/temp2.js:5:33:5:35 | req |
-| temp2/temp2.js:5:33:5:35 | req |
-| temp2/temp2.js:6:13:6:26 | { id, amount } |
-| temp2/temp2.js:6:13:6:37 | amount |
-| temp2/temp2.js:6:13:6:37 | id |
-| temp2/temp2.js:6:15:6:16 | id |
-| temp2/temp2.js:6:19:6:24 | amount |
-| temp2/temp2.js:6:30:6:32 | req |
-| temp2/temp2.js:6:30:6:37 | req.data |
-| temp2/temp2.js:7:34:7:52 | "col=col+" + amount |
-| temp2/temp2.js:7:34:7:52 | "col=col+" + amount |
-| temp2/temp2.js:7:47:7:52 | amount |
-| temp2/temp2.js:7:61:7:71 | "col=" + id |
-| temp2/temp2.js:7:61:7:71 | "col=" + id |
-| temp2/temp2.js:7:70:7:71 | id |
-| temp2/temp2.js:10:33:10:35 | req |
-| temp2/temp2.js:10:33:10:35 | req |
-| temp2/temp2.js:11:13:11:26 | { id, amount } |
-| temp2/temp2.js:11:13:11:37 | amount |
-| temp2/temp2.js:11:19:11:24 | amount |
-| temp2/temp2.js:11:30:11:32 | req |
-| temp2/temp2.js:11:30:11:37 | req.data |
-| temp2/temp2.js:12:34:12:52 | "col=col+" + amount |
-| temp2/temp2.js:12:34:12:52 | "col=col+" + amount |
-| temp2/temp2.js:12:47:12:52 | amount |
-| temp2/temp2.js:15:33:15:35 | req |
-| temp2/temp2.js:15:33:15:35 | req |
-| temp2/temp2.js:16:13:16:26 | { id, amount } |
-| temp2/temp2.js:16:13:16:37 | id |
-| temp2/temp2.js:16:15:16:16 | id |
-| temp2/temp2.js:16:30:16:32 | req |
-| temp2/temp2.js:16:30:16:37 | req.data |
-| temp2/temp2.js:17:59:17:69 | "col=" + id |
-| temp2/temp2.js:17:59:17:69 | "col=" + id |
-| temp2/temp2.js:17:68:17:69 | id |
-| temp/temp.js:5:33:5:35 | req |
-| temp/temp.js:5:33:5:35 | req |
-| temp/temp.js:6:13:6:18 | { id } |
-| temp/temp.js:6:13:6:29 | id |
-| temp/temp.js:6:15:6:16 | id |
-| temp/temp.js:6:22:6:24 | req |
-| temp/temp.js:6:22:6:29 | req.data |
-| temp/temp.js:8:7:8:57 | await S ... " + id) |
-| temp/temp.js:8:7:8:57 | await S ... " + id) |
-| temp/temp.js:8:13:8:57 | SELECT. ... " + id) |
-| temp/temp.js:8:47:8:56 | "ID=" + id |
-| temp/temp.js:8:55:8:56 | id |
-| temp/temp.js:11:33:11:35 | req |
-| temp/temp.js:11:33:11:35 | req |
-| temp/temp.js:12:13:12:18 | { id } |
-| temp/temp.js:12:13:12:29 | id |
-| temp/temp.js:12:15:12:16 | id |
-| temp/temp.js:12:22:12:24 | req |
-| temp/temp.js:12:22:12:29 | req.data |
-| temp/temp.js:14:7:14:86 | await U ...  ${id}` |
-| temp/temp.js:14:7:14:86 | await U ...  ${id}` |
-| temp/temp.js:14:13:14:86 | UPDATE. ...  ${id}` |
-| temp/temp.js:14:47:14:67 | "col1 = ...  " + id |
-| temp/temp.js:14:66:14:67 | id |
 edges
 | srv/service1.js:12:33:12:35 | req | srv/service1.js:13:22:13:24 | req |
 | srv/service1.js:12:33:12:35 | req | srv/service1.js:13:22:13:24 | req |
@@ -1743,60 +1684,6 @@ edges
 | srv/service1.js:764:22:764:29 | req.data | srv/service1.js:764:13:764:18 | { id } |
 | srv/service1.js:765:46:765:47 | id | srv/service1.js:765:38:765:49 | `ID = ${id}` |
 | srv/service1.js:765:46:765:47 | id | srv/service1.js:765:38:765:49 | `ID = ${id}` |
-| temp2/temp2.js:5:33:5:35 | req | temp2/temp2.js:6:30:6:32 | req |
-| temp2/temp2.js:5:33:5:35 | req | temp2/temp2.js:6:30:6:32 | req |
-| temp2/temp2.js:6:13:6:26 | { id, amount } | temp2/temp2.js:6:15:6:16 | id |
-| temp2/temp2.js:6:13:6:26 | { id, amount } | temp2/temp2.js:6:19:6:24 | amount |
-| temp2/temp2.js:6:13:6:37 | amount | temp2/temp2.js:7:47:7:52 | amount |
-| temp2/temp2.js:6:13:6:37 | id | temp2/temp2.js:7:70:7:71 | id |
-| temp2/temp2.js:6:15:6:16 | id | temp2/temp2.js:6:13:6:37 | id |
-| temp2/temp2.js:6:19:6:24 | amount | temp2/temp2.js:6:13:6:37 | amount |
-| temp2/temp2.js:6:30:6:32 | req | temp2/temp2.js:6:30:6:37 | req.data |
-| temp2/temp2.js:6:30:6:37 | req.data | temp2/temp2.js:6:13:6:26 | { id, amount } |
-| temp2/temp2.js:7:47:7:52 | amount | temp2/temp2.js:7:34:7:52 | "col=col+" + amount |
-| temp2/temp2.js:7:47:7:52 | amount | temp2/temp2.js:7:34:7:52 | "col=col+" + amount |
-| temp2/temp2.js:7:70:7:71 | id | temp2/temp2.js:7:61:7:71 | "col=" + id |
-| temp2/temp2.js:7:70:7:71 | id | temp2/temp2.js:7:61:7:71 | "col=" + id |
-| temp2/temp2.js:10:33:10:35 | req | temp2/temp2.js:11:30:11:32 | req |
-| temp2/temp2.js:10:33:10:35 | req | temp2/temp2.js:11:30:11:32 | req |
-| temp2/temp2.js:11:13:11:26 | { id, amount } | temp2/temp2.js:11:19:11:24 | amount |
-| temp2/temp2.js:11:13:11:37 | amount | temp2/temp2.js:12:47:12:52 | amount |
-| temp2/temp2.js:11:19:11:24 | amount | temp2/temp2.js:11:13:11:37 | amount |
-| temp2/temp2.js:11:30:11:32 | req | temp2/temp2.js:11:30:11:37 | req.data |
-| temp2/temp2.js:11:30:11:37 | req.data | temp2/temp2.js:11:13:11:26 | { id, amount } |
-| temp2/temp2.js:12:47:12:52 | amount | temp2/temp2.js:12:34:12:52 | "col=col+" + amount |
-| temp2/temp2.js:12:47:12:52 | amount | temp2/temp2.js:12:34:12:52 | "col=col+" + amount |
-| temp2/temp2.js:15:33:15:35 | req | temp2/temp2.js:16:30:16:32 | req |
-| temp2/temp2.js:15:33:15:35 | req | temp2/temp2.js:16:30:16:32 | req |
-| temp2/temp2.js:16:13:16:26 | { id, amount } | temp2/temp2.js:16:15:16:16 | id |
-| temp2/temp2.js:16:13:16:37 | id | temp2/temp2.js:17:68:17:69 | id |
-| temp2/temp2.js:16:15:16:16 | id | temp2/temp2.js:16:13:16:37 | id |
-| temp2/temp2.js:16:30:16:32 | req | temp2/temp2.js:16:30:16:37 | req.data |
-| temp2/temp2.js:16:30:16:37 | req.data | temp2/temp2.js:16:13:16:26 | { id, amount } |
-| temp2/temp2.js:17:68:17:69 | id | temp2/temp2.js:17:59:17:69 | "col=" + id |
-| temp2/temp2.js:17:68:17:69 | id | temp2/temp2.js:17:59:17:69 | "col=" + id |
-| temp/temp.js:5:33:5:35 | req | temp/temp.js:6:22:6:24 | req |
-| temp/temp.js:5:33:5:35 | req | temp/temp.js:6:22:6:24 | req |
-| temp/temp.js:6:13:6:18 | { id } | temp/temp.js:6:15:6:16 | id |
-| temp/temp.js:6:13:6:29 | id | temp/temp.js:8:55:8:56 | id |
-| temp/temp.js:6:15:6:16 | id | temp/temp.js:6:13:6:29 | id |
-| temp/temp.js:6:22:6:24 | req | temp/temp.js:6:22:6:29 | req.data |
-| temp/temp.js:6:22:6:29 | req.data | temp/temp.js:6:13:6:18 | { id } |
-| temp/temp.js:8:13:8:57 | SELECT. ... " + id) | temp/temp.js:8:7:8:57 | await S ... " + id) |
-| temp/temp.js:8:13:8:57 | SELECT. ... " + id) | temp/temp.js:8:7:8:57 | await S ... " + id) |
-| temp/temp.js:8:47:8:56 | "ID=" + id | temp/temp.js:8:13:8:57 | SELECT. ... " + id) |
-| temp/temp.js:8:55:8:56 | id | temp/temp.js:8:47:8:56 | "ID=" + id |
-| temp/temp.js:11:33:11:35 | req | temp/temp.js:12:22:12:24 | req |
-| temp/temp.js:11:33:11:35 | req | temp/temp.js:12:22:12:24 | req |
-| temp/temp.js:12:13:12:18 | { id } | temp/temp.js:12:15:12:16 | id |
-| temp/temp.js:12:13:12:29 | id | temp/temp.js:14:66:14:67 | id |
-| temp/temp.js:12:15:12:16 | id | temp/temp.js:12:13:12:29 | id |
-| temp/temp.js:12:22:12:24 | req | temp/temp.js:12:22:12:29 | req.data |
-| temp/temp.js:12:22:12:29 | req.data | temp/temp.js:12:13:12:18 | { id } |
-| temp/temp.js:14:13:14:86 | UPDATE. ...  ${id}` | temp/temp.js:14:7:14:86 | await U ...  ${id}` |
-| temp/temp.js:14:13:14:86 | UPDATE. ...  ${id}` | temp/temp.js:14:7:14:86 | await U ...  ${id}` |
-| temp/temp.js:14:47:14:67 | "col1 = ...  " + id | temp/temp.js:14:13:14:86 | UPDATE. ...  ${id}` |
-| temp/temp.js:14:66:14:67 | id | temp/temp.js:14:47:14:67 | "col1 = ...  " + id |
 #select
 | srv/service1.js:15:15:15:19 | query | srv/service1.js:12:33:12:35 | req | srv/service1.js:15:15:15:19 | query | This CQL query contains a string concatenation with a $@. | srv/service1.js:12:33:12:35 | req | user-provided value |
 | srv/service1.js:21:15:21:19 | query | srv/service1.js:18:33:18:35 | req | srv/service1.js:21:15:21:19 | query | This CQL query contains a string concatenation with a $@. | srv/service1.js:18:33:18:35 | req | user-provided value |
@@ -1882,9 +1769,3 @@ edges
 | srv/service1.js:755:7:755:49 | cds.db. ... " + id) | srv/service1.js:753:34:753:36 | req | srv/service1.js:755:38:755:48 | "ID =" + id | This CQL query contains a string concatenation with a $@. | srv/service1.js:753:34:753:36 | req | user-provided value |
 | srv/service1.js:760:7:760:49 | cds.db. ... ` + id) | srv/service1.js:758:34:758:36 | req | srv/service1.js:760:38:760:48 | `ID =` + id | This CQL query contains a string concatenation with a $@. | srv/service1.js:758:34:758:36 | req | user-provided value |
 | srv/service1.js:765:7:765:50 | cds.db. ... ${id}`) | srv/service1.js:763:34:763:36 | req | srv/service1.js:765:38:765:49 | `ID = ${id}` | This CQL query contains a string concatenation with a $@. | srv/service1.js:763:34:763:36 | req | user-provided value |
-| temp2/temp2.js:7:7:7:72 | cds.db. ... " + id) | temp2/temp2.js:5:33:5:35 | req | temp2/temp2.js:7:34:7:52 | "col=col+" + amount | This CQL query contains a string concatenation with a $@. | temp2/temp2.js:5:33:5:35 | req | user-provided value |
-| temp2/temp2.js:7:7:7:72 | cds.db. ... " + id) | temp2/temp2.js:5:33:5:35 | req | temp2/temp2.js:7:61:7:71 | "col=" + id | This CQL query contains a string concatenation with a $@. | temp2/temp2.js:5:33:5:35 | req | user-provided value |
-| temp2/temp2.js:12:7:12:70 | cds.db. ... =${id}` | temp2/temp2.js:10:33:10:35 | req | temp2/temp2.js:12:34:12:52 | "col=col+" + amount | This CQL query contains a string concatenation with a $@. | temp2/temp2.js:10:33:10:35 | req | user-provided value |
-| temp2/temp2.js:17:7:17:70 | cds.db. ... " + id) | temp2/temp2.js:15:33:15:35 | req | temp2/temp2.js:17:59:17:69 | "col=" + id | This CQL query contains a string concatenation with a $@. | temp2/temp2.js:15:33:15:35 | req | user-provided value |
-| temp/temp.js:8:13:8:57 | SELECT. ... " + id) | temp/temp.js:5:33:5:35 | req | temp/temp.js:8:7:8:57 | await S ... " + id) | This CQL query contains a string concatenation with a $@. | temp/temp.js:5:33:5:35 | req | user-provided value |
-| temp/temp.js:14:13:14:86 | UPDATE. ...  ${id}` | temp/temp.js:11:33:11:35 | req | temp/temp.js:14:7:14:86 | await U ...  ${id}` | This CQL query contains a string concatenation with a $@. | temp/temp.js:11:33:11:35 | req | user-provided value |
