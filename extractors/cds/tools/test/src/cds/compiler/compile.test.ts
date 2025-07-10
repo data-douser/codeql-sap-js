@@ -486,5 +486,669 @@ describe('compile .cds to .cds.json', () => {
         }),
       );
     });
+
+    it('should throw error when projectDir is not found in projectMap', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'nonexistent-project';
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain(
+        "Project directory 'nonexistent-project' not found in projectMap",
+      );
+    });
+
+    it('should throw error when projectMap is null', () => {
+      // Setup
+      const projectMap = null as unknown as Map<string, BasicCdsProject>;
+      const projectDir = 'test-project';
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Project directory 'test-project' not found in projectMap");
+    });
+
+    it('should throw error when projectDir is empty', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = '';
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Project directory '' not found in projectMap");
+    });
+
+    it('should handle project-level compilation when project directory contains no CDS files', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: [],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Mock globSync to return no CDS files
+      (globSync as jest.Mock).mockReturnValue([]);
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain(
+        "Project directory 'test-project' does not contain any CDS files and cannot be compiled",
+      );
+    });
+
+    it('should handle project-level compilation with CDS files in root directory', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/schema.cds'],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Mock globSync to return CDS files
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          return ['test-project/schema.cds'];
+        }
+        if (pattern.includes('*.cds')) {
+          return ['test-project/schema.cds'];
+        }
+        return [];
+      });
+
+      // Mock dirExists to return false for standard directories
+      (filesystem.dirExists as jest.Mock).mockReturnValue(false);
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        'cds',
+        expect.arrayContaining(['compile', 'test-project']),
+        expect.any(Object),
+      );
+    });
+
+    it('should handle project-level compilation with CDS files in subdirectories', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/custom/schema.cds', 'test-project/services/service.cds'],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Mock path.join to handle project absolute path calculation
+      (path.join as jest.Mock).mockImplementation((...parts) => parts.join('/'));
+
+      // Mock globSync to return CDS files
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          return [
+            '/source/root/test-project/custom/schema.cds',
+            '/source/root/test-project/services/service.cds',
+          ];
+        }
+        if (pattern.includes('*.cds')) {
+          return [];
+        }
+        return [];
+      });
+
+      // Mock path.relative to return the correct relative paths
+      (path.relative as jest.Mock).mockImplementation((from: string, to: string) => {
+        if (
+          from === '/source/root/test-project' &&
+          to === '/source/root/test-project/custom/schema.cds'
+        ) {
+          return 'custom/schema.cds';
+        }
+        if (
+          from === '/source/root/test-project' &&
+          to === '/source/root/test-project/services/service.cds'
+        ) {
+          return 'services/service.cds';
+        }
+        return 'test-project/file.cds';
+      });
+
+      // Mock dirExists to return false for standard directories
+      (filesystem.dirExists as jest.Mock).mockReturnValue(false);
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+      // The actual call will be with the discovered subdirectories
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        'cds',
+        expect.arrayContaining(['compile', 'test-project/custom', 'test-project/services']),
+        expect.any(Object),
+      );
+    });
+
+    it('should handle spawn sync error in project-level compilation', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/srv/service.cds'],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Mock globSync to return CDS files
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          return ['test-project/srv/service.cds'];
+        }
+        return [];
+      });
+
+      // Mock dirExists to return true for srv directory
+      (filesystem.dirExists as jest.Mock).mockReturnValue(true);
+
+      // Mock spawn sync with error
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        error: new Error('Command not found'),
+        status: null,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Error executing CDS compiler: Command not found');
+    });
+
+    it('should log stderr output for project-level compilation', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/srv/service.cds'],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Mock globSync to return CDS files
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          return ['test-project/srv/service.cds'];
+        }
+        return [];
+      });
+
+      // Mock dirExists to return true for srv directory
+      (filesystem.dirExists as jest.Mock).mockReturnValue(true);
+
+      // Mock spawn sync with stderr output
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from('Warning: deprecated syntax'),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+    });
+
+    it('should handle non-zero exit status in project-level compilation', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/srv/service.cds'],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Mock globSync to return CDS files
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          return ['test-project/srv/service.cds'];
+        }
+        return [];
+      });
+
+      // Mock dirExists to return true for srv directory
+      (filesystem.dirExists as jest.Mock).mockReturnValue(true);
+
+      // Mock spawn sync with non-zero exit status
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 1,
+        stdout: Buffer.from('Compilation output'),
+        stderr: Buffer.from('Compilation error'),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Could not compile the CAP project test-project');
+      expect(result.message).toContain('Compilation error');
+    });
+
+    it('should handle missing output after successful project-level compilation', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/srv/service.cds'],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Mock globSync to return CDS files
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          return ['test-project/srv/service.cds'];
+        }
+        return [];
+      });
+
+      // Mock dirExists to return true for srv directory
+      (filesystem.dirExists as jest.Mock).mockReturnValue(true);
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Mock fileExists and dirExists to return false for output
+      (filesystem.fileExists as jest.Mock).mockImplementation(path => {
+        if (path.includes('test.cds')) return true; // Source file exists
+        return false; // Output file does not exist
+      });
+      (filesystem.dirExists as jest.Mock).mockImplementation(path => {
+        if (path.includes('srv')) return true; // Source directory exists
+        return false; // Output directory does not exist
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("CAP project 'test-project' was not compiled to JSON");
+    });
+
+    it('should handle directory output in project-level compilation', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/srv/service.cds'],
+        cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Mock globSync to return CDS files
+      (globSync as jest.Mock).mockImplementation((pattern: string) => {
+        if (pattern.includes('**/*.cds')) {
+          return ['test-project/srv/service.cds'];
+        }
+        return [];
+      });
+
+      // Mock dirExists to return true for srv directory and output directory
+      (filesystem.dirExists as jest.Mock).mockImplementation(_path => {
+        return true; // All directories exist
+      });
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Mock fileExists to return false for output file
+      (filesystem.fileExists as jest.Mock).mockImplementation(path => {
+        if (path.includes('test.cds')) return true; // Source file exists
+        return false; // Output file does not exist (directory was created instead)
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+      expect(filesystem.recursivelyRenameJsonFiles).toHaveBeenCalled();
+    });
+
+    it('should handle spawn sync error in root file compilation', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/file.cds'],
+        cdsFilesToCompile: ['test-project/file.cds'], // This file should be compiled individually
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Set up path.relative to match the expectation
+      (path.relative as jest.Mock).mockReturnValue('test-project/file.cds');
+
+      // Mock spawn sync with error
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        error: new Error('Command not found'),
+        status: null,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Error executing CDS compiler: Command not found');
+    });
+
+    it('should handle missing output after successful root file compilation', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/file.cds'],
+        cdsFilesToCompile: ['test-project/file.cds'], // This file should be compiled individually
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Set up path.relative to match the expectation
+      (path.relative as jest.Mock).mockReturnValue('test-project/file.cds');
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Mock fileExists and dirExists to return false for output
+      (filesystem.fileExists as jest.Mock).mockImplementation(path => {
+        if (path.includes('test.cds') && !path.includes('.json')) return true; // Source file exists
+        return false; // Output file does not exist
+      });
+      (filesystem.dirExists as jest.Mock).mockReturnValue(false);
+
+      // Execute
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(false);
+      expect(result.message).toContain(
+        "Root CDS file 'test-project/file.cds' was not compiled to JSON",
+      );
+    });
+
+    it('should handle direct binary execution with environment cleanup', () => {
+      // Setup
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/file.cds'],
+        cdsFilesToCompile: ['test-project/file.cds'], // This file should be compiled individually
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Set up path.relative to match the expectation
+      (path.relative as jest.Mock).mockReturnValue('test-project/file.cds');
+
+      // Set up environment variables that should be cleaned up
+      process.env.NODE_PATH = '/original/node_path';
+      process.env.npm_config_prefix = '/original/prefix';
+      process.env.npm_config_global = 'true';
+      process.env.CDS_HOME = '/original/cds_home';
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute with direct binary command
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        '/path/to/node_modules/.bin/cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+
+      // Verify that spawnSync was called with cleaned environment
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        '/path/to/node_modules/.bin/cds',
+        expect.any(Array),
+        expect.objectContaining({
+          env: expect.not.objectContaining({
+            NODE_PATH: expect.any(String),
+            npm_config_prefix: expect.any(String),
+            npm_config_global: expect.any(String),
+            CDS_HOME: expect.any(String),
+          }),
+        }),
+      );
+    });
+
+    it('should handle cache directory setup for non-direct binary commands', () => {
+      // Setup
+      const cacheDir = '/cache/dir';
+      const projectMap = new Map<string, BasicCdsProject>();
+      const projectDir = 'test-project';
+      const project: BasicCdsProject = {
+        cdsFiles: ['test-project/file.cds'],
+        cdsFilesToCompile: ['test-project/file.cds'], // This file should be compiled individually
+        expectedOutputFiles: [],
+        projectDir,
+      };
+      projectMap.set(projectDir, project);
+
+      // Set up path.relative to match the expectation
+      (path.relative as jest.Mock).mockReturnValue('test-project/file.cds');
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute with non-direct binary command and cache directory
+      const result = compileCdsToJson(
+        'test.cds',
+        '/source/root',
+        'cds',
+        cacheDir,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.compiledAsProject).toBe(true);
+
+      // Verify that spawnSync was called with cache directory environment
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        'cds',
+        expect.any(Array),
+        expect.objectContaining({
+          env: expect.objectContaining({
+            NODE_PATH: expect.stringContaining('/cache/dir/node_modules'),
+            PATH: expect.stringContaining('/cache/dir/node_modules/.bin'),
+            npm_config_prefix: '/cache/dir',
+            npm_config_global: 'false',
+            CDS_HOME: '/cache/dir',
+          }),
+        }),
+      );
+    });
   });
 });
