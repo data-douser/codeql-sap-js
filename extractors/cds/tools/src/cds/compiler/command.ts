@@ -8,21 +8,7 @@ import { fileExists } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
 
 /**
- * Interface for detailed CDS command analysis results
- */
-export interface CdsCommandAnalysis {
-  selectedCommand: string;
-  selectedVersion?: string;
-  availableCommands: Array<{
-    strategy: string;
-    command: string;
-    version?: string;
-    error?: string;
-  }>;
-}
-
-/**
- * Cache for CDS command test results to avoid repeated testing
+ * Cache for CDS command test results to avoid running the same CLI commands repeatedly.
  */
 interface CdsCommandCache {
   /** Map of command strings to their test results */
@@ -143,94 +129,6 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
 
   // Return the default fallback even if it doesn't work, as tests expect this behavior
   return 'npx -y --package @sap/cds-dk cds';
-}
-
-/**
- * Get detailed command analysis for debug purposes
- * This replaces the old performComprehensiveAnalysis function
- */
-export function getCommandAnalysisForDebug(
-  cacheDir: string | undefined,
-  sourceRoot: string,
-): CdsCommandAnalysis {
-  try {
-    initializeCdsCommandCache(sourceRoot);
-
-    const availableCommands: CdsCommandAnalysis['availableCommands'] = [];
-    let selectedCommand: string | null = null;
-    let selectedVersion: string | undefined;
-
-    // Test cache directory if provided
-    if (cacheDir) {
-      const localCdsBin = join(cacheDir, 'node_modules', '.bin', 'cds');
-      const result = testCdsCommand(localCdsBin, sourceRoot);
-
-      availableCommands.push({
-        strategy: 'provided-cache',
-        command: localCdsBin,
-        version: result.version,
-        error: result.error,
-      });
-
-      if (result.works && !selectedCommand) {
-        selectedCommand = localCdsBin;
-        selectedVersion = result.version;
-      }
-    }
-
-    // Test all available cache directories
-    for (const availableCacheDir of cdsCommandCache.availableCacheDirs) {
-      const localCdsBin = join(availableCacheDir, 'node_modules', '.bin', 'cds');
-      const result = testCdsCommand(localCdsBin, sourceRoot);
-
-      availableCommands.push({
-        strategy: 'cached-local',
-        command: localCdsBin,
-        version: result.version,
-        error: result.error,
-      });
-
-      if (result.works && !selectedCommand) {
-        selectedCommand = localCdsBin;
-        selectedVersion = result.version;
-      }
-    }
-
-    // Test global commands
-    const globalCommands = [
-      { command: 'cds', strategy: 'global-cds' },
-      { command: 'npx -y --package @sap/cds-dk cds', strategy: 'npx-cds-dk' },
-      { command: 'npx -y --package @sap/cds cds', strategy: 'npx-cds' },
-    ];
-
-    for (const { command, strategy } of globalCommands) {
-      const result = testCdsCommand(command, sourceRoot);
-
-      availableCommands.push({
-        strategy,
-        command,
-        version: result.version,
-        error: result.error,
-      });
-
-      if (result.works && !selectedCommand) {
-        selectedCommand = command;
-        selectedVersion = result.version;
-      }
-    }
-
-    if (!selectedCommand) {
-      throw new Error(`No working CDS command found. Tested ${availableCommands.length} options.`);
-    }
-
-    return {
-      selectedCommand,
-      selectedVersion,
-      availableCommands,
-    };
-  } catch (error) {
-    throw new Error(`Failed to analyze CDS commands: ${String(error)}`);
-  }
 }
 
 /**

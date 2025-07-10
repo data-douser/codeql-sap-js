@@ -15,13 +15,9 @@ import { cdsExtractorLog } from '../../logging';
  * This is the internal function that creates basic project structures.
  *
  * @param sourceRootDir - Source root directory
- * @param _scriptDir - Directory where the script is running (for debug output) [unused]
  * @returns Map of project directories to their BasicCdsProject objects with dependency information
  */
-function buildBasicCdsProjectDependencyGraph(
-  sourceRootDir: string,
-  _scriptDir?: string,
-): Map<string, BasicCdsProject> {
+function buildBasicCdsProjectDependencyGraph(sourceRootDir: string): Map<string, BasicCdsProject> {
   // Find all CDS projects under the source directory
   cdsExtractorLog('info', 'Detecting CDS projects...');
   const projectDirs = determineCdsProjectsUnderSourceDir(sourceRootDir);
@@ -204,27 +200,20 @@ function buildBasicCdsProjectDependencyGraph(
  * The extractor now runs in autobuild mode by default.
  *
  * @param sourceRootDir - Source root directory
- * @param _scriptDir - Directory where the script is running (for debug output) [unused]
  * @returns CDS dependency graph with comprehensive tracking
  */
-export function buildCdsProjectDependencyGraph(
-  sourceRootDir: string,
-  _scriptDir?: string,
-): CdsDependencyGraph {
+export function buildCdsProjectDependencyGraph(sourceRootDir: string): CdsDependencyGraph {
   const startTime = new Date();
 
   // Create the initial dependency graph structure
   const dependencyGraph: CdsDependencyGraph = {
     id: `cds_graph_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     sourceRootDir,
-    scriptDir: _scriptDir ?? sourceRootDir,
     projects: new Map<string, CdsProject>(),
-    globalCacheDirectories: new Map<string, string>(),
     debugInfo: {
       extractor: {
         runMode: 'autobuild',
         sourceRootDir,
-        scriptDir: _scriptDir,
         startTime,
         environment: {
           nodeVersion: process.version,
@@ -280,7 +269,7 @@ export function buildCdsProjectDependencyGraph(
 
   try {
     // Use the existing function to build the basic project map
-    const basicProjectMap = buildBasicCdsProjectDependencyGraph(sourceRootDir, _scriptDir);
+    const basicProjectMap = buildBasicCdsProjectDependencyGraph(sourceRootDir);
 
     // Convert basic projects to CDS projects
     for (const [projectDir, basicProject] of basicProjectMap.entries()) {

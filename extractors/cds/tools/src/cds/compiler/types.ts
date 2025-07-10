@@ -1,8 +1,6 @@
 /** Types for the `src/cds/compiler` package. */
 
-/**
- * Result of a CDS compilation attempt
- */
+/** Result of a CDS compilation attempt. */
 export interface CdsCompilationResult {
   success: boolean;
   message?: string;
@@ -19,9 +17,7 @@ export interface CdsCompilationResult {
   cacheDir?: string;
 }
 
-/**
- * Compilation attempt tracking for retry logic
- */
+/** Compilation attempt tracking for retry logic. */
 export interface CompilationAttempt {
   /** Unique identifier for this attempt */
   id: string;
@@ -41,47 +37,7 @@ export interface CompilationAttempt {
   };
 }
 
-/**
- * Compilation status for tracking compilation attempts and results
- */
-export type CompilationStatus =
-  | 'pending' // File/project is scheduled for compilation
-  | 'in_progress' // Compilation is currently running
-  | 'success' // Compilation completed successfully
-  | 'failed' // Compilation failed
-  | 'skipped'; // Compilation was skipped (e.g., already compiled)
-
-/**
- * Compilation task representing a unit of work (file or project-level compilation)
- */
-export interface CompilationTask {
-  /** Unique identifier for this task */
-  id: string;
-  /** Type of compilation task */
-  type: 'file' | 'project';
-  /** Current status of the task */
-  status: CompilationStatus;
-  /** Source file(s) involved in this task */
-  sourceFiles: string[];
-  /** Expected output file(s) */
-  expectedOutputFiles: string[];
-  /** Project directory this task belongs to */
-  projectDir: string;
-  /** All compilation attempts for this task */
-  attempts: CompilationAttempt[];
-  /** Whether this task uses project-level compilation */
-  useProjectLevelCompilation: boolean;
-  /** Priority for task execution (higher = execute first) */
-  priority: number;
-  /** Tasks that this task depends on */
-  dependencies: string[];
-  /** Error summary if all attempts failed */
-  errorSummary?: string;
-}
-
-/**
- * Compilation configuration for managing compilation commands and retries.
- */
+/** Compilation configuration for managing compilation commands and retries. */
 export interface CompilationConfig {
   /** CDS command to use */
   cdsCommand: string;
@@ -100,4 +56,36 @@ export interface CompilationConfig {
   maxRetryAttempts: number;
   /** Command analysis details for debugging */
   commandAnalysis?: Record<string, unknown>;
+}
+
+/** Compilation status for tracking compilation attempts and results. */
+export type CompilationStatus =
+  | 'pending' // File/project is scheduled for compilation
+  | 'in_progress' // Compilation is currently running
+  | 'success' // Compilation completed successfully
+  | 'failed' // Compilation failed
+  | 'skipped'; // Compilation was skipped (e.g., already compiled)
+
+/** Represents an expected CDS compilation task for a file or project. */
+export interface CompilationTask {
+  /** Unique identifier for this task */
+  id: string;
+  /** Type of compilation task */
+  type: 'file' | 'project';
+  /** Current status of the task */
+  status: CompilationStatus;
+  /** Source file(s) involved in this task */
+  sourceFiles: string[];
+  /** Expected output file(s) */
+  expectedOutputFiles: string[];
+  /** Project directory this task belongs to */
+  projectDir: string;
+  /** All compilation attempts for this task */
+  attempts: CompilationAttempt[];
+  /** Whether this task uses project-level compilation */
+  useProjectLevelCompilation: boolean;
+  /** Tasks that this task depends on */
+  dependencies: string[];
+  /** Error summary if all attempts failed */
+  errorSummary?: string;
 }

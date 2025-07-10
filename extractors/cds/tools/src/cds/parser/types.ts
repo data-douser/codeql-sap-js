@@ -77,8 +77,6 @@ export interface ExtractorDebugInfo {
   runMode: string;
   /** Source root directory */
   sourceRootDir: string;
-  /** Script directory where extractor is running */
-  scriptDir?: string;
   /** Timestamp when extraction started */
   startTime: Date;
   /** Timestamp when extraction completed */
@@ -243,14 +241,8 @@ export interface CdsDependencyGraph {
   /** Source root directory */
   sourceRootDir: string;
 
-  /** Script directory where extractor is running */
-  scriptDir: string;
-
   /** CDS projects with comprehensive tracking */
   projects: Map<string, CdsProject>;
-
-  /** Global cache directories available */
-  globalCacheDirectories: Map<string, string>;
 
   /** Debug information for the entire extraction process */
   debugInfo: {

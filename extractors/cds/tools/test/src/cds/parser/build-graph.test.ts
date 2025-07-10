@@ -208,7 +208,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     it('should handle debug-parser mode correctly', () => {
       createSimpleProject(tempDir);
 
-      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir, tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
       const projectMap = dependencyGraph.projects;
 
       // In debug mode, should return normal project map without debug signals
@@ -220,7 +220,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
     });
 
     it('should handle debug-parser mode with empty project map', () => {
-      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir, tempDir);
+      const dependencyGraph = buildCdsProjectDependencyGraph(tempDir);
       const projectMap = dependencyGraph.projects;
 
       // In debug mode with no projects, should just return empty map (no special signal in the actual implementation)

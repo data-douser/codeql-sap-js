@@ -2,12 +2,10 @@ import { determineCdsCommand } from './command';
 import { compileCdsToJson } from './compile';
 import { CompilationAttempt, CompilationTask, CompilationConfig } from './types';
 import { addCompilationDiagnostic } from '../../diagnostics';
-import { cdsExtractorLog } from '../../logging';
+import { cdsExtractorLog, generateStatusReport } from '../../logging';
 import { CdsDependencyGraph, CdsProject } from '../parser/types';
 
-/**
- * Attempt compilation with a specific command and configuration
- */
+/** Attempt compilation with a specific command and configuration. */
 function attemptCompilation(
   task: CompilationTask,
   cdsCommand: string,
@@ -92,7 +90,6 @@ function createCompilationTask(
   expectedOutputFiles: string[],
   projectDir: string,
   useProjectLevelCompilation: boolean,
-  priority: number = 0,
 ): CompilationTask {
   return {
     id: `${type}_${projectDir}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -103,7 +100,6 @@ function createCompilationTask(
     projectDir,
     attempts: [],
     useProjectLevelCompilation,
-    priority,
     dependencies: [],
   };
 }
@@ -171,18 +167,18 @@ function executeCompilationTask(
 }
 
 /**
- * Execute all compilation tasks for the dependency graph
+ * Executes all compilation tasks for the provided {@link CdsDependencyGraph}.
+ * Uses the provided `codeqlExePath` to run the CodeQL CLI, as needed, for
+ * generating diagnositic warnings and/or errors for problems encountered while
+ * running the CodeQL CDS extractor.
  */
-export function executeCompilationTasks(
-  dependencyGraph: CdsDependencyGraph,
-  codeqlExePath: string,
-): void {
+function executeCompilationTasks(dependencyGraph: CdsDependencyGraph, codeqlExePath: string): void {
   cdsExtractorLog('info', 'Starting compilation execution for all projects...');
 
   dependencyGraph.currentPhase = 'compiling';
   const compilationStartTime = new Date();
 
-  // Collect all tasks and sort by priority
+  // Collect all compilation tasks from all projects.
   const allTasks: Array<{ task: CompilationTask; project: CdsProject }> = [];
 
   for (const project of dependencyGraph.projects.values()) {
@@ -191,10 +187,9 @@ export function executeCompilationTasks(
     }
   }
 
-  // Sort by priority (higher priority first)
-  allTasks.sort((a, b) => b.task.priority - a.task.priority);
-
-  // Execute tasks sequentially (could be parallelized in the future)
+  // Execute compilation tasks sequentially. There is room for optimization in the future.
+  // For now, we keep it simple to ensure consistent debug information collection.
+  cdsExtractorLog('info', `Executing ${allTasks.length} compilation task(s)...`);
   for (const { task, project } of allTasks) {
     try {
       executeCompilationTask(task, project, dependencyGraph, codeqlExePath);
@@ -239,68 +234,17 @@ export function executeCompilationTasks(
 }
 
 /**
- * Generate a comprehensive status report for the dependency graph
- * Supports both normal execution and debug modes
- */
-export function generateStatusReport(dependencyGraph: CdsDependencyGraph): string {
-  const summary = dependencyGraph.statusSummary;
-  const lines: string[] = [];
-
-  lines.push('='.repeat(80));
-  lines.push(`CDS EXTRACTOR STATUS REPORT`);
-  lines.push('='.repeat(80));
-  lines.push('');
-
-  // Overall summary
-  lines.push('OVERALL SUMMARY:');
-  lines.push(`  Status: ${summary.overallSuccess ? 'SUCCESS' : 'FAILED'}`);
-  lines.push(`  Current Phase: ${dependencyGraph.currentPhase.toUpperCase()}`);
-  lines.push(`  Projects: ${summary.totalProjects}`);
-  lines.push(`  CDS Files: ${summary.totalCdsFiles}`);
-  lines.push(`  JSON Files Generated: ${summary.jsonFilesGenerated}`);
-  lines.push('');
-
-  // Compilation summary
-  lines.push('COMPILATION SUMMARY:');
-  lines.push(`  Total Tasks: ${summary.totalCompilationTasks}`);
-  lines.push(`  Successful: ${summary.successfulCompilations}`);
-  lines.push(`  Failed: ${summary.failedCompilations}`);
-  lines.push(`  Skipped: ${summary.skippedCompilations}`);
-  lines.push('');
-
-  // Performance metrics
-  lines.push('PERFORMANCE:');
-  lines.push(`  Total Duration: ${summary.performance.totalDurationMs}ms`);
-  lines.push(`  Parsing: ${summary.performance.parsingDurationMs}ms`);
-  lines.push(`  Compilation: ${summary.performance.compilationDurationMs}ms`);
-  lines.push(`  Extraction: ${summary.performance.extractionDurationMs}ms`);
-  lines.push('');
-
-  // Errors and warnings
-  if (summary.criticalErrors.length > 0) {
-    lines.push('CRITICAL ERRORS:');
-    for (const error of summary.criticalErrors) {
-      lines.push(`  - ${error}`);
-    }
-    lines.push('');
-  }
-
-  if (summary.warnings.length > 0) {
-    lines.push('WARNINGS:');
-    for (const warning of summary.warnings) {
-      lines.push(`  - ${warning}`);
-    }
-    lines.push('');
-  }
-
-  lines.push('='.repeat(80));
-
-  return lines.join('\n');
-}
-
-/**
- * Main compilation orchestration function to replace the big for loop in cds-extractor.ts
- * Now supports consistent debug information collection
+ * Orchestrates the compilation process for CDS files based on a dependency graph.
+ *
+ * This function coordinates the planning and execution of compilation tasks,
+ * tracks the compilation status, and generates a post-compilation report.
+ *
+ * @param dependencyGraph - The {@link CdsDependencyGraph} representing the CDS projects,
+ * project dependencies, expected compilation tasks, and their statuses.
+ * @param projectCacheDirMap - A map from project identifiers to their cache directory paths.
+ * @param codeqlExePath - The path to the CodeQL executable. Used for generating diagnostic
+ * messages as part of the broader CodeQL (JavaScript) extraction process.
+ * @throws Will rethrow any errors encountered during compilation, after logging them.
  */
 export function orchestrateCompilation(
   dependencyGraph: CdsDependencyGraph,
@@ -308,10 +252,8 @@ export function orchestrateCompilation(
   codeqlExePath: string,
 ): void {
   try {
-    // Plan compilation tasks
     planCompilationTasks(dependencyGraph, projectCacheDirMap);
 
-    // Execute compilation tasks
     executeCompilationTasks(dependencyGraph, codeqlExePath);
 
     // Update overall status
@@ -322,9 +264,9 @@ export function orchestrateCompilation(
     dependencyGraph.statusSummary.overallSuccess = !hasFailures;
     dependencyGraph.currentPhase = hasFailures ? 'failed' : 'completed';
 
-    // Generate and log status report
+    // Generate and log a "Post-Compilation" status report, aka before the JavaScript extractor runs.
     const statusReport = generateStatusReport(dependencyGraph);
-    cdsExtractorLog('info', 'Final Status Report:\n' + statusReport);
+    cdsExtractorLog('info', 'CDS Extractor Status Report : Post-Compilation...\n' + statusReport);
   } catch (error) {
     const errorMessage = `Compilation orchestration failed: ${String(error)}`;
     cdsExtractorLog('error', errorMessage);
@@ -343,10 +285,8 @@ export function orchestrateCompilation(
   }
 }
 
-/**
- * Plan compilation tasks for all projects in the dependency graph
- */
-export function planCompilationTasks(
+/** Plan compilation tasks for all projects in the dependency graph. */
+function planCompilationTasks(
   dependencyGraph: CdsDependencyGraph,
   projectCacheDirMap: Map<string, string>,
 ): void {
@@ -379,7 +319,6 @@ export function planCompilationTasks(
           project.expectedOutputFiles,
           projectDir,
           true,
-          10, // Higher priority for project-level compilation
         );
         project.compilationTasks = [task];
       } else {
@@ -393,7 +332,6 @@ export function planCompilationTasks(
             [expectedOutput],
             projectDir,
             false,
-            5, // Lower priority for individual files
           );
           tasks.push(task);
         }

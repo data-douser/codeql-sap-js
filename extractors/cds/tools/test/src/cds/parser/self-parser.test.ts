@@ -582,7 +582,7 @@ describe('CDS Parser Self-Test Suite', () => {
         },
       });
 
-      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT, '/script-dir');
+      const dependencyGraph = buildCdsProjectDependencyGraph(SOURCE_ROOT);
       const projectMap = dependencyGraph.projects;
       expect(projectMap.size).toBe(1);
 

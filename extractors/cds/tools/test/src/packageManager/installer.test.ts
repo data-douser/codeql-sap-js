@@ -78,9 +78,7 @@ describe('installer', () => {
     return {
       id: 'test-graph',
       sourceRootDir: '/source',
-      scriptDir: '/script',
       projects: projectsMap,
-      globalCacheDirectories: new Map(),
       config: {
         maxRetryAttempts: 3,
         enableDetailedLogging: false,
