@@ -170,7 +170,64 @@ The extractor uses a sophisticated compilation approach:
 - **Parallel Processing**: Where possible, processes independent projects concurrently
 - **Resource Management**: Cleans up temporary files and cached dependencies
 
-## Integration with CodeQL
+## Integration with `cds` CLI
+
+### Installation of CDS (Node) Dependencies
+
+#### Installation of `@sap/cds` and `@sap/cds-dk`
+
+The CDS extractor attempts to optimize performance for most projects by caching the installation of the unique combinations of resolved CDS dependencies across all projects under a given source root.
+
+The "unique combinations of resolved CDS dependencies" means that we resolve the **latest** available version **within the semantic version range** for each `@sap/cds` and `@sap/cds-dk` dependency specified in the `package.json` file for a given CAP project.
+
+In practice, this means that if "project-a" requires `@sap/cds@^6.0.0` and "project-b" requires `@sap/cds@^7.0.0` while the latest available version is `@sap/cds@9.0.0` (as a trivial example), the extractor will install `@sap/cds@9.0.0` once and reuse it for both projects.
+
+This is much faster than installing all dependencies for every project individually, especially for large projects with many CDS files. However, this approach has some limitations and trade-offs:
+
+- This latest-first approach is more likely to choose the same version for multiple projects, which can reduce analysis time and can improve consistency in analysis between projects.
+- This approach does not read (or respect) the `package-lock.json` file, which means that we are more likely to use a `cds` version that is different from the one most recently tested/used by the project developers.
+- We are more likely to encounter incompatibility issues where a particular project hasn't been tested with the latest version of `@sap/cds` or `@sap/cds-dk`.
+
+We can mitigate some of these issues through a (to be implemented) compilation retry mechanism for projects where some CDS compilation task(s) fail to produce the expected `.cds.json` output file(s).
+The proposed retry mechanism would install the full set of dependencies for the affected project(s) while respecting the `package-lock.json` file, and then re-run the compilation for the affected project(s).
+
+```text
+TODO: retry mechanism expected before next release of the CDS extractor
+```
+
+#### Installation of Additional Project-Specific Dependencies
+
+```text
+TODO: implement installation of dependencies required for compilation to succeed for a given project
+```
+
+### Integration with `cds compile` command
+
+The CDS extractor uses the `cds compile` command to compile `.cds` files into `.cds.json` files, which are then processed by CodeQL's JavaScript extractor.
+
+Where possible, a single `model.cds.json` file is generated for each project, containing all the compiled definitions from the project's `.cds` files. This results in a faster extraction process overall with minimal duplication of CDS code elements (e.g., annotations, entities, services, etc.) within the CodeQL database created from the extraction process.
+
+Where project-level compilation is not possible (e.g., due to project structure), the extractor generates individual `.cds.json` files for each `.cds` file in the project. The main downside to this approach is that if one `.cds` file imports another `.cds` file, the imported definitions will be duplicated in the CodeQL database, which can lead to false positives in queries that expect unique definitions.
+
+```text
+TODO: use the unique (session) ID of the CDS extractor run to as the `<session>` part of `<basename>.<session>.cds.json` and set JS extractor env vars to only extractor `.<session>.cds.json` files
+```
+
+### Integration with `cds env` command
+
+The current version of the CDS extractor expects CAP projects to follow the [default project structure][CAP-project-structure], particularly regarding the names of the (`app`, `db`, & `srv`) subdirectories in which the extractor will look for `.cds` files to process (in addition to the root directory of the project).
+
+The proposed solution will use the `cds env` command to discover configurations that affect the structure of the project and/or the expected "compilation tasks" for the project, such as any user customization of environment configurations such as:
+
+- `cds.folders.app`
+- `cds.folders.db`
+- `cds.folders.srv`
+
+```text
+TODO : add support for integration with `cds env` CLI command as a means of consistently getting configurations for CAP projects
+```
+
+## Integration with `codeql` CLI
 
 ### File Processing
 
@@ -199,7 +256,7 @@ The extractor processes both:
 The extractor provides comprehensive logging:
 
 - **Performance Tracking**: Times for each extraction phase
-- **Memory Usage**: Memory consumption at key milestones  
+- **Memory Usage**: Memory consumption at key milestones
 - **Error Reporting**: Detailed error messages with context
 - **Project Discovery**: Information about detected CDS projects
 
@@ -212,10 +269,14 @@ The extractor provides comprehensive logging:
 ## References
 
 - [SAP Cloud Application Programming Model][CAP]
+  - [Default Structure of a CAP Project][CAP-project-structure]
 - [Core Data Services (CDS)][CDS]
+  - [Project-Specific Configurations][CDS-ENV-project-configs]
 - [Conceptual Definition Language (CDL)][CDL]
 - [CodeQL Documentation](https://codeql.github.com/docs/)
 
 [CAP]: https://cap.cloud.sap/docs/about/
+[CAP-project-structure]: https://cap.cloud.sap/docs/get-started/#project-structure
 [CDS]: https://cap.cloud.sap/docs/cds/
+[CDS-ENV-project-configs]: https://cap.cloud.sap/docs/node.js/cds-env#project-specific-configurations
 [CDL]: https://cap.cloud.sap/docs/cds/cdl
