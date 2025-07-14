@@ -60,13 +60,14 @@ class CdsServeCall extends DataFlow::CallNode {
 
   Expr getServiceRepresentation() { result = serviceRepresentation }
 
-  UserDefinedApplicationService getServiceDefinition() {
+  ServiceInstance getServiceDefinition() {
     /* 1. The argument to cds.serve is "all" */
     this.getServiceRepresentation().getStringValue() = "all" and
     result = any(UserDefinedApplicationService service)
     or
     /* 2. The argument to cds.serve is a name of the service */
-    result.getUnqualifiedName() = this.getServiceRepresentation().getStringValue()
+    result.(UserDefinedApplicationService).getUnqualifiedName() =
+      this.getServiceRepresentation().getStringValue()
     or
     /* 3. The argument to cds.serve is a name by which the service is required */
     exists(RequiredService requiredService |
@@ -217,26 +218,27 @@ class CdsServeWithCall extends MethodCallNode {
  */
 class ServiceInstanceFromServeWithParameter extends ServiceInstance {
   CdsServeCall cdsServe;
+  CdsServeWithCall cdsServeWith;
 
   ServiceInstanceFromServeWithParameter() {
-    exists(CdsServeWithCall cdsServeWith |
-      /*
-       * cds.serve('./srv/some-service1').with ((srv) => {  // Parameter `srv` is captured.
-       *   srv.on ('READ','SomeEntity1', (req) => req.reply([...]))
-       * })
-       */
+    /*
+     * cds.serve('./srv/some-service1').with ((srv) => {  // Parameter `srv` is captured.
+     *   srv.on ('READ','SomeEntity1', (req) => req.reply([...]))
+     * })
+     */
 
-      this.(ThisNode).getBinder().asExpr() = cdsServeWith.getDecorator().(FunctionExpr)
-      or
-      /*
-       * cds.serve('./srv/some-service2').with (function() {  // Parameter `this` is captured.
-       *   this.on ('READ','SomeEntity2', (req) => req.reply([...]))
-       * })
-       */
+    this.(ThisNode).getBinder().asExpr() = cdsServeWith.getDecorator().(FunctionExpr)
+    or
+    /*
+     * cds.serve('./srv/some-service2').with (function() {  // Parameter `this` is captured.
+     *   this.on ('READ','SomeEntity2', (req) => req.reply([...]))
+     * })
+     */
 
-      this = cdsServeWith.getDecorator().(ArrowFunctionExpr).getParameter(0).flow()
-    )
+    this = cdsServeWith.getDecorator().(ArrowFunctionExpr).getParameter(0).flow()
   }
+
+  HandlerRegistration getAHandlerRegistration() { result = cdsServeWith.getAHandlerRegistration() }
 
   override UserDefinedApplicationService getDefinition() {
     /* 1. The argument to cds.serve is "all" */

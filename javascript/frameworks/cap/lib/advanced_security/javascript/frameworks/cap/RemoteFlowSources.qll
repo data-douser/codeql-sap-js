@@ -10,6 +10,8 @@ import advanced_security.javascript.frameworks.cap.CDS
  * SomeService.after("SomeEvent", "SomeEntity", (msg) => { ... });
  * ```
  * All the parameters named `req` and `msg` are captured in the above example.
+ *
+ * REQUIRES that a `UserDefinedApplicationService` is explicitly defined
  */
 class HandlerParameter extends ParameterNode, RemoteFlowSource {
   Handler handler;
@@ -49,9 +51,11 @@ class HandlerParameter extends ParameterNode, RemoteFlowSource {
  * }
  * ```
  * parameters named `req` are captured in the above example.
+ *
+ * REQUIRES that a cds file has compiled AND that a service name is explicitly provided in the handler registration
  */
-class ServiceinCDSHandlerParameter extends ParameterNode, RemoteFlowSource {
-  ServiceinCDSHandlerParameter() {
+class ServiceinCDSHandlerParameterWithName extends ParameterNode, RemoteFlowSource {
+  ServiceinCDSHandlerParameterWithName() {
     exists(MethodCallNode m, CdlEntity entity, string entityName |
       entity.getName().regexpReplaceAll(".*\\.", "") = entityName and
       m.getArgument(1).asExpr().getStringValue().regexpReplaceAll("'", "") = entityName and
@@ -63,4 +67,47 @@ class ServiceinCDSHandlerParameter extends ParameterNode, RemoteFlowSource {
   override string getSourceType() {
     result = "Parameter of an event handler belonging to an exposed service defined in a cds file"
   }
+}
+
+/**
+ * A parameter of a handler registered for a service on an event. e.g.
+ * ```javascript
+ * cds.serve('./test-service').with((srv) => {
+ *  srv.before('READ', '*', (req) => req.reply([]))
+ * })
+ * ```
+ * The parameter named `req` is captured in the above example.
+ *
+ * DOES NOT REQUIRE that a `UserDefinedApplicationService` is explicitly defined
+ * DOES NOT REQUIRE that the name is provided explicitly
+ */
+class HandlerParameterImplicitService extends ParameterNode, RemoteFlowSource {
+  Handler handler;
+  HandlerRegistration handlerRegistration;
+
+  HandlerParameterImplicitService() {
+    exists(ServiceInstanceFromServeWithParameter service |
+      handler = handlerRegistration.getHandler() and
+      this = handler.getParameter(0) and
+      service.getAHandlerRegistration() = handlerRegistration and
+      //this will otherwise duplicate on the case where we do actually know the
+      //name from the cds file and it matches up
+      //only relevant if you are using the specific type anyhow (as opposed to RemoteFlowSource)
+      not this instanceof ServiceinCDSHandlerParameterWithName
+    )
+  }
+
+  override string getSourceType() {
+    result = "Parameter of an event handler belonging to an implicitly defined service"
+  }
+
+  /**
+   * Gets the handler this is a parameter of.
+   */
+  Handler getHandler() { result = handler }
+
+  /**
+   * Gets the handler registration registering the handler it is a parameter of.
+   */
+  HandlerRegistration getHandlerRegistration() { result = handlerRegistration }
 }
