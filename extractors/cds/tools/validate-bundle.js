@@ -4,9 +4,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const DEFAULT_TIMEOUT_MS = 5000; // Default timeout for execution in milliseconds
+const MAX_BUNDLE_SIZE_MB = 50; // Set a reasonable max bundle size
+
 const bundlePath = path.join(__dirname, 'dist', 'cds-extractor.bundle.js');
 
-console.log('🔍 Validating CDS extractor bundle...');
+console.log('🔍 Validating CDS extractor bundle at', bundlePath);
 
 // Check bundle exists
 if (!fs.existsSync(bundlePath)) {
@@ -21,7 +24,7 @@ const stats = fs.statSync(bundlePath);
 const sizeInMB = stats.size / (1024 * 1024);
 console.log(`📦 Bundle size: ${sizeInMB.toFixed(2)} MB`);
 
-if (sizeInMB > 50) {
+if (sizeInMB > MAX_BUNDLE_SIZE_MB) {
   console.warn('⚠️  Bundle size is quite large, consider optimizing');
 }
 
@@ -51,7 +54,7 @@ try {
     execSync(nodeCmd, {
       stdio: 'pipe',
       cwd: testDir,
-      timeout: 5000, // 5 second timeout
+      timeout: DEFAULT_TIMEOUT_MS,
       encoding: 'utf8',
     });
     console.log('✅ Bundle execution completed successfully');

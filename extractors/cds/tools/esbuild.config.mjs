@@ -2,51 +2,54 @@ import { statSync } from 'fs';
 
 import { build as esbuildFunc } from 'esbuild';
 
+const NODE_VERSION_TARGET = 'node18';
+
 const buildOptions = {
-  entryPoints: ['cds-extractor.ts'],
-  bundle: true,
-  platform: 'node',
-  target: 'node18',
-  outfile: 'dist/cds-extractor.bundle.js',
-  external: [
-    // Node.js built-in modules
-    'fs',
-    'path',
-    'os',
-    'child_process',
-    'util',
-    'events',
-    'stream',
-    'url',
-    'crypto',
-    'process',
-    'buffer',
-    'assert',
-    'module',
-    'net',
-    'tls',
-    'http',
-    'https',
-    'zlib',
-    'readline',
-    'worker_threads',
-  ],
-  minify: true,
-  sourcemap: true,
-  format: 'cjs',
   banner: {
     js: '#!/usr/bin/env node',
   },
-  logLevel: 'info',
+  bundle: true,
+  conditions: ['node'],
+  entryPoints: ['cds-extractor.ts'],
+  external: [
+    // Node.js built-in modules
+    'assert',
+    'buffer',
+    'child_process',
+    'crypto',
+    'events',
+    'fs',
+    'http',
+    'https',
+    'module',
+    'net',
+    'os',
+    'path',
+    'process',
+    'readline',
+    'shell-quote',
+    'stream',
+    'tls',
+    'url',
+    'util',
+    'worker_threads',
+    'zlib',
+  ],
+  format: 'cjs',
   // Handle TypeScript files
   loader: {
     '.ts': 'ts',
   },
-  // Resolve TypeScript paths
-  resolveExtensions: ['.ts', '.js'],
+  logLevel: 'info',
   // Ensure proper module resolution
   mainFields: ['main', 'module'],
-  conditions: ['node'],
+  minify: true,
+  outfile: 'dist/cds-extractor.bundle.js',
+  platform: 'node',
+  // Resolve TypeScript paths
+  resolveExtensions: ['.ts'],
+  sourcemap: true,
+  target: NODE_VERSION_TARGET,
 };
 
 async function build() {

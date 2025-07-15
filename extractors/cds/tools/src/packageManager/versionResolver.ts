@@ -1,5 +1,7 @@
 import { execSync } from 'child_process';
 
+import { quote } from 'shell-quote';
+
 import type { SemanticVersion } from './types';
 import { cdsExtractorLog } from '../logging';
 
@@ -140,7 +142,9 @@ export function getAvailableVersions(packageName: string): string[] {
   // Cache miss - fetch from npm
   cacheStats.misses++;
   try {
-    const output = execSync(`npm view ${packageName} versions --json`, {
+    // Use shell-quote to properly escape the package name to prevent injection
+    const escapedPackageName = quote([packageName]);
+    const output = execSync(`npm view ${escapedPackageName} versions --json`, {
       encoding: 'utf8',
       timeout: 30000, // 30 second timeout
     });
