@@ -11,7 +11,7 @@ import advanced_security.javascript.frameworks.cap.CDS
  * ```
  * All the parameters named `req` and `msg` are captured in the above example.
  *
- * REQUIRES that a `UserDefinedApplicationService` is explicitly defined
+ * This REQUIRES that a `UserDefinedApplicationService` is explicitly defined.
  */
 class HandlerParameter extends ParameterNode, RemoteFlowSource {
   Handler handler;
@@ -52,7 +52,8 @@ class HandlerParameter extends ParameterNode, RemoteFlowSource {
  * ```
  * parameters named `req` are captured in the above example.
  *
- * REQUIRES that a cds file has compiled AND that a service name is explicitly provided in the handler registration
+ * This REQUIRES that a CDS file has successfully compiled
+ * AND that a service name is explicitly provided in the handler registration.
  */
 class ServiceinCDSHandlerParameterWithName extends ParameterNode, RemoteFlowSource {
   ServiceinCDSHandlerParameterWithName() {
@@ -73,13 +74,13 @@ class ServiceinCDSHandlerParameterWithName extends ParameterNode, RemoteFlowSour
  * A parameter of a handler registered for a service on an event. e.g.
  * ```javascript
  * cds.serve('./test-service').with((srv) => {
- *  srv.before('READ', '*', (req) => req.reply([]))
+ *   srv.before('READ', '*', (req) => req.reply([]))
  * })
  * ```
  * The parameter named `req` is captured in the above example.
  *
- * DOES NOT REQUIRE that a `UserDefinedApplicationService` is explicitly defined
- * DOES NOT REQUIRE that the name is provided explicitly
+ * This DOES NOT REQUIRE that a `UserDefinedApplicationService` is explicitly defined and
+ * this also DOES NOT REQUIRE that the name is provided explicitly.
  */
 class HandlerParameterImplicitService extends ParameterNode, RemoteFlowSource {
   Handler handler;
@@ -90,9 +91,26 @@ class HandlerParameterImplicitService extends ParameterNode, RemoteFlowSource {
       handler = handlerRegistration.getHandler() and
       this = handler.getParameter(0) and
       service.getAHandlerRegistration() = handlerRegistration and
-      //this will otherwise duplicate on the case where we do actually know the
-      //name from the cds file and it matches up
-      //only relevant if you are using the specific type anyhow (as opposed to RemoteFlowSource)
+      /*
+       * this will otherwise duplicate on the case where we do actually know the
+       * name from the cds file and it matches up
+       * example:
+       * ```
+       * srv.before('READ', 'Service1', (req) => req.reply([]))
+       * ```
+       * where Service1 is also defined in:
+       * Service1.cds
+       * ```
+       * {
+       *   "namespace": "sap.capire.test",
+       *   "definitions": {
+       *     "sap.capire.test.Test": {
+       *       "kind": "entity",
+       * ...
+       * ```
+       * only relevant if you are using the specific type anyhow (as opposed to RemoteFlowSource)
+       */
+
       not this instanceof ServiceinCDSHandlerParameterWithName
     )
   }
