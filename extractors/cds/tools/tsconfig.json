@@ -23,8 +23,11 @@
   },
   "include": [
     "*.ts",
+    "*.js",
+    "esbuild.config.mjs",
     "eslint.config.mjs",
     "jest.config.js",
+    "validate-bundle.js",
     "src/**/*.ts",
     "test/**/*.ts"
   ],
