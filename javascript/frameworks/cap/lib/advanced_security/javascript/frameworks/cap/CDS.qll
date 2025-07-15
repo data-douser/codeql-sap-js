@@ -60,14 +60,13 @@ class CdsServeCall extends DataFlow::CallNode {
 
   Expr getServiceRepresentation() { result = serviceRepresentation }
 
-  ServiceInstance getServiceDefinition() {
+  UserDefinedApplicationService getServiceDefinition() {
     /* 1. The argument to cds.serve is "all" */
     this.getServiceRepresentation().getStringValue() = "all" and
     result = any(UserDefinedApplicationService service)
     or
     /* 2. The argument to cds.serve is a name of the service */
-    result.(UserDefinedApplicationService).getUnqualifiedName() =
-      this.getServiceRepresentation().getStringValue()
+    result.getUnqualifiedName() = this.getServiceRepresentation().getStringValue()
     or
     /* 3. The argument to cds.serve is a name by which the service is required */
     exists(RequiredService requiredService |
