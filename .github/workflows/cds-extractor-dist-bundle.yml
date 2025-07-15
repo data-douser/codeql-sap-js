@@ -1,0 +1,83 @@
+name: CDS Extractor Distribution Bundle
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'extractors/cds/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'extractors/cds/**'
+  workflow_dispatch:
+    # This job can be manually triggered to validate the CDS extractor bundle
+
+jobs:
+  bundle-validation:
+    name: CDS extractor bundle validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'extractors/cds/tools/package-lock.json'
+    
+    - name: Install node dependencies
+      working-directory: extractors/cds/tools
+      run: npm ci
+    
+    - name: Run TS code linter
+      working-directory: extractors/cds/tools
+      run: npm run lint
+    
+    - name: Run TS code unit tests
+      working-directory: extractors/cds/tools
+      run: npm run test
+    
+    - name: Compile TS code to create minified JS bundle
+      working-directory: extractors/cds/tools
+      run: npm run bundle
+    
+    - name: Validate JS bundle
+      working-directory: extractors/cds/tools
+      run: npm run bundle:validate
+    
+    - name: Check JS bundle size and properties
+      working-directory: extractors/cds/tools
+      run: |
+        _bundle_file="dist/cds-extractor.bundle.js"
+        # Test that bundle exists and get detailed info
+        if [ -f "$_bundle_file" ]; then
+          echo "✅ Bundle file exists"
+          
+          # Check if bundle has shebang
+          if head -n 1 "${_bundle_file}" | grep -q "#!/usr/bin/env node"; then
+            echo "✅ Bundle has Node.js shebang"
+          else
+            echo "⚠️  Bundle missing Node.js shebang"
+          fi
+          
+          # Check if source map exists
+          if [ -f "${_bundle_file}.map" ]; then
+            echo "✅ Source map exists"
+          else
+            echo "⚠️  Source map not found"
+          fi
+        else
+          echo "❌ Bundle file not found"
+          exit 1
+        fi
+    
+#    - name: Upload bundle artifact
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: cds-extractor-bundle
+#        path: |
+#          extractors/cds/tools/dist/cds-extractor.bundle.js
+#          extractors/cds/tools/dist/cds-extractor.bundle.js.map
