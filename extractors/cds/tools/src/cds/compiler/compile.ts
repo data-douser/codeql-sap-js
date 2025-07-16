@@ -205,7 +205,7 @@ function compileProjectLevel(
   cdsExtractorLog('info', `Compiling CAP project directories: ${existingDirectories.join(', ')}`);
   cdsExtractorLog(
     'info',
-    `Executing CDS command in directory ${projectAbsolutePath}: command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
+    `Running compilation task for CDS project '${projectDir}': command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
   );
 
   // CRITICAL: Use the project directory as cwd

@@ -4,15 +4,15 @@
   "description": "CodeQL extractor for DB indexing of .cds.json files produced by the 'cds' compiler.",
   "main": "dist/cds-extractor.bundle.js",
   "scripts": {
-    "bundle": "node esbuild.config.mjs",
-    "bundle:all": "npm run lint:fix && npm run test:coverage && npm run bundle:test",
-    "bundle:test": "npm run bundle && npm run bundle:validate",
+    "build": "node esbuild.config.mjs",
+    "build:all": "npm run lint:fix && npm run test:coverage && npm run build:validate",
+    "build:validate": "npm run prebuild && npm run build && npm run bundle:validate",
     "bundle:validate": "node validate-bundle.js",
     "clean": "rm -rf coverage dist",
-    "prebuild": "npm run clean",
     "lint": "eslint --ext .ts cds-extractor.ts src/ test/src/",
     "lint:fix": "eslint --ext .ts --fix cds-extractor.ts src/ test/src/",
     "format": "prettier --write 'src/**/*.ts'",
+    "prebuild": "npm run clean",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --collectCoverageFrom='src/**/*.ts'"
@@ -24,7 +24,6 @@
     "glob": "^11.0.3",
     "os": "^0.1.2",
     "path": "^0.12.7",
-    "shell-quote": "^1.8.3",
     "tmp": "^0.2.3"
   },
   "devDependencies": {
@@ -35,7 +34,6 @@
     "@types/jest": "^30.0.0",
     "@types/mock-fs": "^4.13.4",
     "@types/node": "^24.0.7",
-    "@types/shell-quote": "^1.7.5",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
     "esbuild": "^0.19.0",

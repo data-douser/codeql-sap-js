@@ -1,11 +1,92 @@
 import { execFileSync } from 'child_process';
 import { existsSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
-import { quote } from 'shell-quote';
-
+import type { ValidatedCdsCommand } from './types';
 import { fileExists } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
+
+/**
+ * Predefined secure CDS command patterns
+ */
+const ALLOWED_CDS_COMMANDS = {
+  // Global CDS command
+  cds: {
+    executable: 'cds',
+    args: [] as string[],
+    commandString: 'cds',
+  },
+  // NPX with @sap/cds package
+  'npx-cds': {
+    executable: 'npx',
+    args: ['--yes', '--package', '@sap/cds', 'cds'] as string[],
+    commandString: 'npx --yes --package @sap/cds cds',
+  },
+  // NPX with @sap/cds-dk package
+  'npx-cds-dk': {
+    executable: 'npx',
+    args: ['--yes', '--package', '@sap/cds-dk', 'cds'] as string[],
+    commandString: 'npx --yes --package @sap/cds-dk cds',
+  },
+  // NPX with @sap/cds-dk package (alternative flag)
+  'npx-cds-dk-alt': {
+    executable: 'npx',
+    args: ['--yes', '@sap/cds-dk', 'cds'] as string[],
+    commandString: 'npx --yes @sap/cds-dk cds',
+  },
+} as const;
+
+/** Default timeout for command execution in milliseconds. **/
+export const DEFAULT_COMMAND_TIMEOUT_MS = 10000;
+
+/**
+ * Creates a validated CDS command for an absolute path to a CDS executable.
+ * @param absolutePath The absolute path to the CDS executable
+ * @returns A {@link ValidatedCdsCommand} if the path exists and is valid, null otherwise
+ */
+function createValidatedCdsCommand(absolutePath: string): ValidatedCdsCommand | null {
+  try {
+    const resolvedPath = resolve(absolutePath);
+    if (resolvedPath && fileExists(resolvedPath)) {
+      return {
+        executable: resolvedPath,
+        args: [],
+        originalCommand: absolutePath,
+      };
+    }
+  } catch {
+    // Ignore path resolution errors
+  }
+  return null;
+}
+
+/**
+ * Validates a CDS command string against allowed patterns and absolute paths.
+ * @param command The command string to validate
+ * @returns A {@link ValidatedCdsCommand} if valid, null if invalid
+ */
+function validateCdsCommand(command: string): ValidatedCdsCommand | null {
+  const trimmed = command.trim();
+
+  // First try as an absolute path (createValidatedCdsCommand handles all path validation)
+  const pathResult = createValidatedCdsCommand(trimmed);
+  if (pathResult) {
+    return pathResult;
+  }
+
+  // Check against predefined allowed commands
+  for (const [_key, pattern] of Object.entries(ALLOWED_CDS_COMMANDS)) {
+    if (trimmed === pattern.commandString) {
+      return {
+        executable: pattern.executable,
+        args: [...pattern.args],
+        originalCommand: command,
+      };
+    }
+  }
+
+  return null;
+}
 
 /**
  * Cache for CDS command test results to avoid running the same CLI commands repeatedly.
@@ -118,7 +199,10 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
   }
 
   // Final fallback: test remaining npx options
-  const fallbackCommands = ['npx -y --package @sap/cds cds', 'npx --yes @sap/cds-dk cds'];
+  const fallbackCommands = [
+    ALLOWED_CDS_COMMANDS['npx-cds'].commandString,
+    ALLOWED_CDS_COMMANDS['npx-cds-dk'].commandString,
+  ];
 
   for (const command of fallbackCommands) {
     const result = testCdsCommand(command, sourceRoot, true);
@@ -128,7 +212,7 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
   }
 
   // Return the default fallback even if it doesn't work, as tests expect this behavior
-  return 'npx -y --package @sap/cds-dk cds';
+  return ALLOWED_CDS_COMMANDS['npx-cds-dk'].commandString;
 }
 
 /**
@@ -143,7 +227,10 @@ function initializeCdsCommandCache(sourceRoot: string): void {
   cdsExtractorLog('info', 'Initializing CDS command cache...');
 
   // Test global commands first (most commonly used)
-  const globalCommands = ['cds', 'npx -y --package @sap/cds-dk cds'];
+  const globalCommands = [
+    ALLOWED_CDS_COMMANDS.cds.commandString,
+    ALLOWED_CDS_COMMANDS['npx-cds-dk'].commandString,
+  ];
 
   for (const command of globalCommands) {
     const result = testCdsCommand(command, sourceRoot, true); // Silent testing
@@ -197,41 +284,38 @@ function testCdsCommand(
     return cachedResult;
   }
 
-  try {
-    // Try to run the command with --version to see if it works
-    // CRITICAL: Use sourceRoot as cwd and clean environment to avoid conflicts
-    let result: string;
+  // Validate the `cds` command before running it.
+  const validatedCommand = validateCdsCommand(command);
+  if (!validatedCommand) {
+    const errorMessage = `Invalid CDS command: ${command}`;
+    if (!silent) {
+      cdsExtractorLog('debug', `Command validation failed: ${errorMessage}`);
+    }
+    const testResult = { works: false, error: errorMessage };
+    cdsCommandCache.commandResults.set(command, testResult);
+    return testResult;
+  }
 
+  try {
+    // Run the validated `cds` command with `--version` to test if it works.
     const cleanEnv = {
       ...process.env,
-      // Remove any CodeQL-specific environment variables that might interfere
+      // Remove any CodeQL-specific environment variables that might interfere.
       CODEQL_EXTRACTOR_CDS_WIP_DATABASE: undefined,
       CODEQL_RUNNER: undefined,
     };
 
-    if (command.includes('node ')) {
-      // For node commands, we need to split and execute properly
-      const parts = command.split(' ');
-      const nodeExecutable = parts[0]; // 'node'
-      const scriptPath = parts[1].replace(/"/g, ''); // Remove quotes from path
-      result = execFileSync(nodeExecutable, [scriptPath, '--version'], {
+    const result = execFileSync(
+      validatedCommand.executable,
+      [...validatedCommand.args, '--version'],
+      {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 5000, // Reduced timeout for faster failure
+        timeout: 10000, // timeout after 10 seconds
         cwd: sourceRoot,
         env: cleanEnv,
-      }).toString();
-    } else {
-      // Use shell-quote to properly escape the command and prevent injection
-      const escapedCommand = quote([command, '--version']);
-      result = execFileSync('sh', ['-c', escapedCommand], {
-        encoding: 'utf8',
-        stdio: 'pipe',
-        timeout: 5000, // Reduced timeout for faster failure
-        cwd: sourceRoot,
-        env: cleanEnv,
-      }).toString();
-    }
+      },
+    ).toString();
 
     // Extract version from output (typically in format "@sap/cds-dk: 6.1.3" or just "6.1.3")
     const versionMatch = result.match(/(\d+\.\d+\.\d+)/);

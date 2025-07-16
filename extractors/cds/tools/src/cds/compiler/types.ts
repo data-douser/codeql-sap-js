@@ -89,3 +89,13 @@ export interface CompilationTask {
   /** Error summary if all attempts failed */
   errorSummary?: string;
 }
+
+/** Validated CDS command descriptor. */
+export interface ValidatedCdsCommand {
+  /** The executable name or path */
+  executable: string;
+  /** Command arguments */
+  args: string[];
+  /** Original command string for caching */
+  originalCommand: string;
+}

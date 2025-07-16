@@ -6,9 +6,6 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -25,236 +22,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
-
-// node_modules/shell-quote/quote.js
-var require_quote = __commonJS({
-  "node_modules/shell-quote/quote.js"(exports2, module2) {
-    "use strict";
-    module2.exports = function quote2(xs) {
-      return xs.map(function(s) {
-        if (s === "") {
-          return "''";
-        }
-        if (s && typeof s === "object") {
-          return s.op.replace(/(.)/g, "\\$1");
-        }
-        if (/["\s\\]/.test(s) && !/'/.test(s)) {
-          return "'" + s.replace(/(['])/g, "\\$1") + "'";
-        }
-        if (/["'\s]/.test(s)) {
-          return '"' + s.replace(/(["\\$`!])/g, "\\$1") + '"';
-        }
-        return String(s).replace(/([A-Za-z]:)?([#!"$&'()*,:;<=>?@[\\\]^`{|}])/g, "$1\\$2");
-      }).join(" ");
-    };
-  }
-});
-
-// node_modules/shell-quote/parse.js
-var require_parse = __commonJS({
-  "node_modules/shell-quote/parse.js"(exports2, module2) {
-    "use strict";
-    var CONTROL = "(?:" + [
-      "\\|\\|",
-      "\\&\\&",
-      ";;",
-      "\\|\\&",
-      "\\<\\(",
-      "\\<\\<\\<",
-      ">>",
-      ">\\&",
-      "<\\&",
-      "[&;()|<>]"
-    ].join("|") + ")";
-    var controlRE = new RegExp("^" + CONTROL + "$");
-    var META = "|&;()<> \\t";
-    var SINGLE_QUOTE = '"((\\\\"|[^"])*?)"';
-    var DOUBLE_QUOTE = "'((\\\\'|[^'])*?)'";
-    var hash = /^#$/;
-    var SQ = "'";
-    var DQ = '"';
-    var DS = "$";
-    var TOKEN = "";
-    var mult = 4294967296;
-    for (i = 0; i < 4; i++) {
-      TOKEN += (mult * Math.random()).toString(16);
-    }
-    var i;
-    var startsWithToken = new RegExp("^" + TOKEN);
-    function matchAll(s, r) {
-      var origIndex = r.lastIndex;
-      var matches = [];
-      var matchObj;
-      while (matchObj = r.exec(s)) {
-        matches.push(matchObj);
-        if (r.lastIndex === matchObj.index) {
-          r.lastIndex += 1;
-        }
-      }
-      r.lastIndex = origIndex;
-      return matches;
-    }
-    function getVar(env, pre, key) {
-      var r = typeof env === "function" ? env(key) : env[key];
-      if (typeof r === "undefined" && key != "") {
-        r = "";
-      } else if (typeof r === "undefined") {
-        r = "$";
-      }
-      if (typeof r === "object") {
-        return pre + TOKEN + JSON.stringify(r) + TOKEN;
-      }
-      return pre + r;
-    }
-    function parseInternal(string, env, opts) {
-      if (!opts) {
-        opts = {};
-      }
-      var BS = opts.escape || "\\";
-      var BAREWORD = "(\\" + BS + `['"` + META + `]|[^\\s'"` + META + "])+";
-      var chunker = new RegExp([
-        "(" + CONTROL + ")",
-        // control chars
-        "(" + BAREWORD + "|" + SINGLE_QUOTE + "|" + DOUBLE_QUOTE + ")+"
-      ].join("|"), "g");
-      var matches = matchAll(string, chunker);
-      if (matches.length === 0) {
-        return [];
-      }
-      if (!env) {
-        env = {};
-      }
-      var commented = false;
-      return matches.map(function(match2) {
-        var s = match2[0];
-        if (!s || commented) {
-          return void 0;
-        }
-        if (controlRE.test(s)) {
-          return { op: s };
-        }
-        var quote2 = false;
-        var esc = false;
-        var out = "";
-        var isGlob = false;
-        var i2;
-        function parseEnvVar() {
-          i2 += 1;
-          var varend;
-          var varname;
-          var char = s.charAt(i2);
-          if (char === "{") {
-            i2 += 1;
-            if (s.charAt(i2) === "}") {
-              throw new Error("Bad substitution: " + s.slice(i2 - 2, i2 + 1));
-            }
-            varend = s.indexOf("}", i2);
-            if (varend < 0) {
-              throw new Error("Bad substitution: " + s.slice(i2));
-            }
-            varname = s.slice(i2, varend);
-            i2 = varend;
-          } else if (/[*@#?$!_-]/.test(char)) {
-            varname = char;
-            i2 += 1;
-          } else {
-            var slicedFromI = s.slice(i2);
-            varend = slicedFromI.match(/[^\w\d_]/);
-            if (!varend) {
-              varname = slicedFromI;
-              i2 = s.length;
-            } else {
-              varname = slicedFromI.slice(0, varend.index);
-              i2 += varend.index - 1;
-            }
-          }
-          return getVar(env, "", varname);
-        }
-        for (i2 = 0; i2 < s.length; i2++) {
-          var c = s.charAt(i2);
-          isGlob = isGlob || !quote2 && (c === "*" || c === "?");
-          if (esc) {
-            out += c;
-            esc = false;
-          } else if (quote2) {
-            if (c === quote2) {
-              quote2 = false;
-            } else if (quote2 == SQ) {
-              out += c;
-            } else {
-              if (c === BS) {
-                i2 += 1;
-                c = s.charAt(i2);
-                if (c === DQ || c === BS || c === DS) {
-                  out += c;
-                } else {
-                  out += BS + c;
-                }
-              } else if (c === DS) {
-                out += parseEnvVar();
-              } else {
-                out += c;
-              }
-            }
-          } else if (c === DQ || c === SQ) {
-            quote2 = c;
-          } else if (controlRE.test(c)) {
-            return { op: s };
-          } else if (hash.test(c)) {
-            commented = true;
-            var commentObj = { comment: string.slice(match2.index + i2 + 1) };
-            if (out.length) {
-              return [out, commentObj];
-            }
-            return [commentObj];
-          } else if (c === BS) {
-            esc = true;
-          } else if (c === DS) {
-            out += parseEnvVar();
-          } else {
-            out += c;
-          }
-        }
-        if (isGlob) {
-          return { op: "glob", pattern: out };
-        }
-        return out;
-      }).reduce(function(prev, arg) {
-        return typeof arg === "undefined" ? prev : prev.concat(arg);
-      }, []);
-    }
-    module2.exports = function parse2(s, env, opts) {
-      var mapped = parseInternal(s, env, opts);
-      if (typeof env !== "function") {
-        return mapped;
-      }
-      return mapped.reduce(function(acc, s2) {
-        if (typeof s2 === "object") {
-          return acc.concat(s2);
-        }
-        var xs = s2.split(RegExp("(" + TOKEN + ".*?" + TOKEN + ")", "g"));
-        if (xs.length === 1) {
-          return acc.concat(xs[0]);
-        }
-        return acc.concat(xs.filter(Boolean).map(function(x) {
-          if (startsWithToken.test(x)) {
-            return JSON.parse(x.split(TOKEN)[1]);
-          }
-          return x;
-        }));
-      }, []);
-    };
-  }
-});
-
-// node_modules/shell-quote/index.js
-var require_shell_quote = __commonJS({
-  "node_modules/shell-quote/index.js"(exports2) {
-    "use strict";
-    exports2.quote = require_quote();
-    exports2.parse = require_parse();
-  }
-});
 
 // cds-extractor.ts
 var import_path12 = require("path");
@@ -3924,10 +3691,10 @@ var Minipass = class extends import_node_events.EventEmitter {
    * Return a void Promise that resolves once the stream ends.
    */
   async promise() {
-    return new Promise((resolve7, reject) => {
+    return new Promise((resolve8, reject) => {
       this.on(DESTROYED, () => reject(new Error("stream destroyed")));
       this.on("error", (er) => reject(er));
-      this.on("end", () => resolve7());
+      this.on("end", () => resolve8());
     });
   }
   /**
@@ -3951,7 +3718,7 @@ var Minipass = class extends import_node_events.EventEmitter {
         return Promise.resolve({ done: false, value: res });
       if (this[EOF])
         return stop();
-      let resolve7;
+      let resolve8;
       let reject;
       const onerr = (er) => {
         this.off("data", ondata);
@@ -3965,19 +3732,19 @@ var Minipass = class extends import_node_events.EventEmitter {
         this.off("end", onend);
         this.off(DESTROYED, ondestroy);
         this.pause();
-        resolve7({ value, done: !!this[EOF] });
+        resolve8({ value, done: !!this[EOF] });
       };
       const onend = () => {
         this.off("error", onerr);
         this.off("data", ondata);
         this.off(DESTROYED, ondestroy);
         stop();
-        resolve7({ done: true, value: void 0 });
+        resolve8({ done: true, value: void 0 });
       };
       const ondestroy = () => onerr(new Error("stream destroyed"));
       return new Promise((res2, rej) => {
         reject = rej;
-        resolve7 = res2;
+        resolve8 = res2;
         this.once(DESTROYED, ondestroy);
         this.once("error", onerr);
         this.once("end", onend);
@@ -4947,9 +4714,9 @@ var PathBase = class {
     if (this.#asyncReaddirInFlight) {
       await this.#asyncReaddirInFlight;
     } else {
-      let resolve7 = () => {
+      let resolve8 = () => {
       };
-      this.#asyncReaddirInFlight = new Promise((res) => resolve7 = res);
+      this.#asyncReaddirInFlight = new Promise((res) => resolve8 = res);
       try {
         for (const e of await this.#fs.promises.readdir(fullpath, {
           withFileTypes: true
@@ -4962,7 +4729,7 @@ var PathBase = class {
         children.provisional = 0;
       }
       this.#asyncReaddirInFlight = void 0;
-      resolve7();
+      resolve8();
     }
     return children.slice(0, children.provisional);
   }
@@ -6863,7 +6630,6 @@ glob.glob = glob;
 var import_child_process = require("child_process");
 var import_fs3 = require("fs");
 var import_path2 = require("path");
-var import_shell_quote = __toESM(require_shell_quote());
 
 // src/filesystem.ts
 var import_fs2 = require("fs");
@@ -7045,6 +6811,63 @@ function recursivelyRenameJsonFiles(dirPath) {
 }
 
 // src/cds/compiler/command.ts
+var ALLOWED_CDS_COMMANDS = {
+  // Global CDS command
+  cds: {
+    executable: "cds",
+    args: [],
+    commandString: "cds"
+  },
+  // NPX with @sap/cds package
+  "npx-cds": {
+    executable: "npx",
+    args: ["--yes", "--package", "@sap/cds", "cds"],
+    commandString: "npx --yes --package @sap/cds cds"
+  },
+  // NPX with @sap/cds-dk package
+  "npx-cds-dk": {
+    executable: "npx",
+    args: ["--yes", "--package", "@sap/cds-dk", "cds"],
+    commandString: "npx --yes --package @sap/cds-dk cds"
+  },
+  // NPX with @sap/cds-dk package (alternative flag)
+  "npx-cds-dk-alt": {
+    executable: "npx",
+    args: ["--yes", "@sap/cds-dk", "cds"],
+    commandString: "npx --yes @sap/cds-dk cds"
+  }
+};
+function createValidatedCdsCommand(absolutePath) {
+  try {
+    const resolvedPath = (0, import_path2.resolve)(absolutePath);
+    if (resolvedPath && fileExists(resolvedPath)) {
+      return {
+        executable: resolvedPath,
+        args: [],
+        originalCommand: absolutePath
+      };
+    }
+  } catch {
+  }
+  return null;
+}
+function validateCdsCommand(command) {
+  const trimmed = command.trim();
+  const pathResult = createValidatedCdsCommand(trimmed);
+  if (pathResult) {
+    return pathResult;
+  }
+  for (const [_key, pattern] of Object.entries(ALLOWED_CDS_COMMANDS)) {
+    if (trimmed === pattern.commandString) {
+      return {
+        executable: pattern.executable,
+        args: [...pattern.args],
+        originalCommand: command
+      };
+    }
+  }
+  return null;
+}
 var cdsCommandCache = {
   commandResults: /* @__PURE__ */ new Map(),
   availableCacheDirs: [],
@@ -7105,21 +6928,27 @@ function getBestCdsCommand(cacheDir, sourceRoot2) {
   if (cdsCommandCache.globalCommand) {
     return cdsCommandCache.globalCommand;
   }
-  const fallbackCommands = ["npx -y --package @sap/cds cds", "npx --yes @sap/cds-dk cds"];
+  const fallbackCommands = [
+    ALLOWED_CDS_COMMANDS["npx-cds"].commandString,
+    ALLOWED_CDS_COMMANDS["npx-cds-dk"].commandString
+  ];
   for (const command of fallbackCommands) {
     const result = testCdsCommand(command, sourceRoot2, true);
     if (result.works) {
       return command;
     }
   }
-  return "npx -y --package @sap/cds-dk cds";
+  return ALLOWED_CDS_COMMANDS["npx-cds-dk"].commandString;
 }
 function initializeCdsCommandCache(sourceRoot2) {
   if (cdsCommandCache.initialized) {
     return;
   }
   cdsExtractorLog("info", "Initializing CDS command cache...");
-  const globalCommands = ["cds", "npx -y --package @sap/cds-dk cds"];
+  const globalCommands = [
+    ALLOWED_CDS_COMMANDS.cds.commandString,
+    ALLOWED_CDS_COMMANDS["npx-cds-dk"].commandString
+  ];
   for (const command of globalCommands) {
     const result = testCdsCommand(command, sourceRoot2, true);
     if (result.works) {
@@ -7145,37 +6974,35 @@ function testCdsCommand(command, sourceRoot2, silent = false) {
   if (cachedResult) {
     return cachedResult;
   }
+  const validatedCommand = validateCdsCommand(command);
+  if (!validatedCommand) {
+    const errorMessage = `Invalid CDS command: ${command}`;
+    if (!silent) {
+      cdsExtractorLog("debug", `Command validation failed: ${errorMessage}`);
+    }
+    const testResult = { works: false, error: errorMessage };
+    cdsCommandCache.commandResults.set(command, testResult);
+    return testResult;
+  }
   try {
-    let result;
     const cleanEnv = {
       ...process.env,
-      // Remove any CodeQL-specific environment variables that might interfere
+      // Remove any CodeQL-specific environment variables that might interfere.
       CODEQL_EXTRACTOR_CDS_WIP_DATABASE: void 0,
       CODEQL_RUNNER: void 0
     };
-    if (command.includes("node ")) {
-      const parts = command.split(" ");
-      const nodeExecutable = parts[0];
-      const scriptPath = parts[1].replace(/"/g, "");
-      result = (0, import_child_process.execFileSync)(nodeExecutable, [scriptPath, "--version"], {
+    const result = (0, import_child_process.execFileSync)(
+      validatedCommand.executable,
+      [...validatedCommand.args, "--version"],
+      {
         encoding: "utf8",
         stdio: "pipe",
-        timeout: 5e3,
-        // Reduced timeout for faster failure
+        timeout: 1e4,
+        // timeout after 10 seconds
         cwd: sourceRoot2,
         env: cleanEnv
-      }).toString();
-    } else {
-      const escapedCommand = (0, import_shell_quote.quote)([command, "--version"]);
-      result = (0, import_child_process.execFileSync)("sh", ["-c", escapedCommand], {
-        encoding: "utf8",
-        stdio: "pipe",
-        timeout: 5e3,
-        // Reduced timeout for faster failure
-        cwd: sourceRoot2,
-        env: cleanEnv
-      }).toString();
-    }
+      }
+    ).toString();
     const versionMatch = result.match(/(\d+\.\d+\.\d+)/);
     const version = versionMatch ? versionMatch[1] : void 0;
     const testResult = { works: true, version };
@@ -7351,7 +7178,7 @@ function compileProjectLevel(resolvedCdsFilePath, sourceRoot2, projectDir, cdsCo
   cdsExtractorLog("info", `Compiling CAP project directories: ${existingDirectories.join(", ")}`);
   cdsExtractorLog(
     "info",
-    `Executing CDS command in directory ${projectAbsolutePath}: command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`
+    `Running compilation task for CDS project '${projectDir}': command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`
   );
   const result = (0, import_child_process3.spawnSync)(cdsCommand, compileArgs, projectSpawnOptions);
   if (result.error) {

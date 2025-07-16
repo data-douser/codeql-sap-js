@@ -36,15 +36,11 @@ jobs:
       working-directory: extractors/cds/tools
       run: npm run lint
     
-    - name: Run TS code unit tests
+    - name: Run TS code unit tests with coverage report
       working-directory: extractors/cds/tools
-      run: npm run test
+      run: npm run test:coverage
     
-    - name: Compile TS code to create minified JS bundle
-      working-directory: extractors/cds/tools
-      run: npm run bundle
-    
-    - name: Validate JS bundle
+    - name: Build and validate the CDS extractor bundle
       working-directory: extractors/cds/tools
       run: npm run bundle:validate
     
