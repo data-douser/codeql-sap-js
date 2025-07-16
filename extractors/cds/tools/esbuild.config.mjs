@@ -2,7 +2,7 @@ import { statSync } from 'fs';
 
 import { build as esbuildFunc } from 'esbuild';
 
-const NODE_VERSION_TARGET = 'node18';
+const NODE_VERSION_TARGET = 'node20';
 
 const buildOptions = {
   banner: {
