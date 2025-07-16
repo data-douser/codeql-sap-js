@@ -94,7 +94,7 @@ describe('diagnostics', () => {
   describe('addJavaScriptExtractorDiagnostic', () => {
     it('should add JavaScript extractor diagnostic successfully', () => {
       const filePath = '/path/to/source/root';
-      const errorMessage = 'Message: JavaScript extracutor failed';
+      const errorMessage = 'Message: JavaScript extractor failed';
       const codeqlExePath = '/path/to/codeql';
 
       // Mock process.env to include necessary environment variable

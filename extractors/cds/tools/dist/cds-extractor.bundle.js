@@ -6837,6 +6837,7 @@ var ALLOWED_CDS_COMMANDS = {
     commandString: "npx --yes @sap/cds-dk cds"
   }
 };
+var DEFAULT_COMMAND_TIMEOUT_MS = 1e4;
 function createValidatedCdsCommand(absolutePath) {
   try {
     const resolvedPath = (0, import_path2.resolve)(absolutePath);
@@ -6997,7 +6998,7 @@ function testCdsCommand(command, sourceRoot2, silent = false) {
       {
         encoding: "utf8",
         stdio: "pipe",
-        timeout: 1e4,
+        timeout: DEFAULT_COMMAND_TIMEOUT_MS,
         // timeout after 10 seconds
         cwd: sourceRoot2,
         env: cleanEnv

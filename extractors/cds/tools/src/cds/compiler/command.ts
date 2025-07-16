@@ -311,7 +311,7 @@ function testCdsCommand(
       {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 10000, // timeout after 10 seconds
+        timeout: DEFAULT_COMMAND_TIMEOUT_MS, // timeout after 10 seconds
         cwd: sourceRoot,
         env: cleanEnv,
       },

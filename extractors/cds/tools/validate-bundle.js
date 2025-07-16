@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const DEFAULT_TIMEOUT_MS = 5000; // Default timeout for execution in milliseconds
+const CMD_TIMEOUT_MS = 5000; // Default timeout for execution in milliseconds
 const MAX_BUNDLE_SIZE_MB = 0.5; // We expect the bundle to be quite small
 
 const bundlePath = path.join(__dirname, 'dist', 'cds-extractor.bundle.js');
@@ -45,22 +45,19 @@ try {
     fs.mkdirSync(testDir, { recursive: true });
   }
 
-  // Test with a timeout to avoid hanging
-  // We expect this to fail or timeout since we're not providing proper arguments
-  // but it should at least start execution
-  const nodeCmd = `node "${bundlePath}" "${testDir}"`;
-
+  // Test with a timeout to avoid hanging. We expect this to fail or timeout since
+  // we are not providing proper arguments but it should at least start execution.
   try {
-    execSync(nodeCmd, {
+    execSync(`node "${bundlePath}" "${testDir}"`, {
       stdio: 'pipe',
       cwd: testDir,
-      timeout: DEFAULT_TIMEOUT_MS,
+      timeout: CMD_TIMEOUT_MS,
       encoding: 'utf8',
     });
     console.log('✅ Bundle execution completed successfully');
   } catch (error) {
     // We expect this to fail or timeout in test environment
-    if (error.code === 'TIMEOUT' || error.signal === 'SIGTERM') {
+    if (error.killed) {
       console.log('✅ Bundle execution test passed (timed out as expected)');
     } else if (error.status !== 0) {
       // Check if it's a controlled exit (expected behavior)
