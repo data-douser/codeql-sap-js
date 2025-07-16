@@ -282,66 +282,65 @@ var parseClass = (glob2, position) => {
   let negate = false;
   let endPos = pos;
   let rangeStart = "";
-  WHILE:
-    while (i < glob2.length) {
-      const c = glob2.charAt(i);
-      if ((c === "!" || c === "^") && i === pos + 1) {
-        negate = true;
-        i++;
-        continue;
-      }
-      if (c === "]" && sawStart && !escaping) {
-        endPos = i + 1;
-        break;
-      }
-      sawStart = true;
-      if (c === "\\") {
-        if (!escaping) {
-          escaping = true;
-          i++;
-          continue;
-        }
-      }
-      if (c === "[" && !escaping) {
-        for (const [cls, [unip, u, neg]] of Object.entries(posixClasses)) {
-          if (glob2.startsWith(cls, i)) {
-            if (rangeStart) {
-              return ["$.", false, glob2.length - pos, true];
-            }
-            i += cls.length;
-            if (neg)
-              negs.push(unip);
-            else
-              ranges.push(unip);
-            uflag = uflag || u;
-            continue WHILE;
-          }
-        }
-      }
-      escaping = false;
-      if (rangeStart) {
-        if (c > rangeStart) {
-          ranges.push(braceEscape(rangeStart) + "-" + braceEscape(c));
-        } else if (c === rangeStart) {
-          ranges.push(braceEscape(c));
-        }
-        rangeStart = "";
-        i++;
-        continue;
-      }
-      if (glob2.startsWith("-]", i + 1)) {
-        ranges.push(braceEscape(c + "-"));
-        i += 2;
-        continue;
-      }
-      if (glob2.startsWith("-", i + 1)) {
-        rangeStart = c;
-        i += 2;
-        continue;
-      }
-      ranges.push(braceEscape(c));
+  WHILE: while (i < glob2.length) {
+    const c = glob2.charAt(i);
+    if ((c === "!" || c === "^") && i === pos + 1) {
+      negate = true;
       i++;
+      continue;
     }
+    if (c === "]" && sawStart && !escaping) {
+      endPos = i + 1;
+      break;
+    }
+    sawStart = true;
+    if (c === "\\") {
+      if (!escaping) {
+        escaping = true;
+        i++;
+        continue;
+      }
+    }
+    if (c === "[" && !escaping) {
+      for (const [cls, [unip, u, neg]] of Object.entries(posixClasses)) {
+        if (glob2.startsWith(cls, i)) {
+          if (rangeStart) {
+            return ["$.", false, glob2.length - pos, true];
+          }
+          i += cls.length;
+          if (neg)
+            negs.push(unip);
+          else
+            ranges.push(unip);
+          uflag = uflag || u;
+          continue WHILE;
+        }
+      }
+    }
+    escaping = false;
+    if (rangeStart) {
+      if (c > rangeStart) {
+        ranges.push(braceEscape(rangeStart) + "-" + braceEscape(c));
+      } else if (c === rangeStart) {
+        ranges.push(braceEscape(c));
+      }
+      rangeStart = "";
+      i++;
+      continue;
+    }
+    if (glob2.startsWith("-]", i + 1)) {
+      ranges.push(braceEscape(c + "-"));
+      i += 2;
+      continue;
+    }
+    if (glob2.startsWith("-", i + 1)) {
+      rangeStart = c;
+      i += 2;
+      continue;
+    }
+    ranges.push(braceEscape(c));
+    i++;
+  }
   if (endPos < i) {
     return ["", false, 0, false];
   }
@@ -8019,8 +8018,7 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir) {
               );
             }
             for (const [otherProjectDir, otherProject] of projectMap.entries()) {
-              if (otherProjectDir === projectDir)
-                continue;
+              if (otherProjectDir === projectDir) continue;
               const otherProjectAbsoluteDir = (0, import_path8.join)(sourceRootDir, otherProjectDir);
               const isInOtherProject = otherProject.cdsFiles.some((otherFile) => {
                 const otherAbsolutePath = (0, import_path8.join)(sourceRootDir, otherFile);
@@ -8375,8 +8373,7 @@ function setupJavaScriptExtractorEnv() {
   process.env.CODEQL_EXTRACTOR_JAVASCRIPT_SOURCE_ARCHIVE_DIR = process.env.CODEQL_EXTRACTOR_CDS_SOURCE_ARCHIVE_DIR;
 }
 function getAutobuildScriptPath(jsExtractorRoot) {
-  if (!jsExtractorRoot)
-    return "";
+  if (!jsExtractorRoot) return "";
   const platformInfo2 = getPlatformInfo();
   const autobuildScriptName = platformInfo2.isWindows ? "autobuild.cmd" : "autobuild.sh";
   return (0, import_path9.resolve)((0, import_path9.join)(jsExtractorRoot, "tools", autobuildScriptName));
@@ -8491,16 +8488,11 @@ function checkVersionCompatibility(cdsVersion, cdsDkVersion) {
   return { isCompatible: true };
 }
 function compareVersions(a, b) {
-  if (a.major !== b.major)
-    return a.major - b.major;
-  if (a.minor !== b.minor)
-    return a.minor - b.minor;
-  if (a.patch !== b.patch)
-    return a.patch - b.patch;
-  if (a.prerelease && !b.prerelease)
-    return -1;
-  if (!a.prerelease && b.prerelease)
-    return 1;
+  if (a.major !== b.major) return a.major - b.major;
+  if (a.minor !== b.minor) return a.minor - b.minor;
+  if (a.patch !== b.patch) return a.patch - b.patch;
+  if (a.prerelease && !b.prerelease) return -1;
+  if (!a.prerelease && b.prerelease) return 1;
   if (a.prerelease && b.prerelease) {
     return a.prerelease.localeCompare(b.prerelease);
   }
