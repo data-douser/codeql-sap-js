@@ -1,8 +1,28 @@
 import { statSync } from 'fs';
+import { resolve } from 'path';
 
 import { build as esbuildFunc } from 'esbuild';
 
 const NODE_VERSION_TARGET = 'node18';
+
+// Plugin to handle shell-quote module resolution
+const shellQuotePlugin = {
+  name: 'shell-quote-fix',
+  setup(build) {
+    // Handle shell-quote internal module resolution
+    build.onResolve({ filter: /^\.\/quote$/ }, args => {
+      if (args.importer.includes('shell-quote')) {
+        return { path: resolve(args.resolveDir, 'quote.js') };
+      }
+    });
+
+    build.onResolve({ filter: /^\.\/parse$/ }, args => {
+      if (args.importer.includes('shell-quote')) {
+        return { path: resolve(args.resolveDir, 'parse.js') };
+      }
+    });
+  },
+};
 
 const buildOptions = {
   banner: {
@@ -27,7 +47,6 @@ const buildOptions = {
     'path',
     'process',
     'readline',
-    'shell-quote',
     'stream',
     'tls',
     'url',
@@ -46,8 +65,10 @@ const buildOptions = {
   minify: true,
   outfile: 'dist/cds-extractor.bundle.js',
   platform: 'node',
+  // Plugin to handle shell-quote module resolution
+  plugins: [shellQuotePlugin],
   // Resolve TypeScript paths
-  resolveExtensions: ['.ts'],
+  resolveExtensions: ['.ts', '.js'],
   sourcemap: true,
   target: NODE_VERSION_TARGET,
 };
