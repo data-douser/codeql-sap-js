@@ -18,7 +18,3 @@ module.exports = BooksService
 cds.serve('./test-service').with((srv) => {
     srv.before('READ', 'Books', (req) => req.reply([])) //req
 })
-
-cds.serve('./test-service').with((srv) => {
-    srv.before('READ', 'Test', (req) => req.reply([])) //req
-})
