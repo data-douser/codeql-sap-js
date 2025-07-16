@@ -62,7 +62,9 @@ const buildOptions = {
   logLevel: 'info',
   // Ensure proper module resolution
   mainFields: ['main', 'module'],
-  minify: true,
+  minifyIdentifiers: false,
+  minifySyntax: false,
+  minifyWhitespace: false,
   outfile: 'dist/cds-extractor.bundle.js',
   platform: 'node',
   // Plugin to handle shell-quote module resolution
@@ -71,6 +73,7 @@ const buildOptions = {
   resolveExtensions: ['.ts', '.js'],
   sourcemap: true,
   target: NODE_VERSION_TARGET,
+  treeShaking: true,
 };
 
 async function build() {

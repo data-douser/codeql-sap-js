@@ -1,7 +1,5 @@
 import { execSync } from 'child_process';
 
-import { quote } from 'shell-quote';
-
 import type { SemanticVersion } from './types';
 import { cdsExtractorLog } from '../logging';
 
@@ -10,6 +8,9 @@ import { cdsExtractorLog } from '../logging';
  * `npm view` calls.
  */
 const availableVersionsCache = new Map<string, string[]>();
+
+// Define the set of allowed npm packages for which we cache versions.
+type CachedPackageName = '@sap/cds' | '@sap/cds-dk';
 
 /**
  * Cache statistics for debugging purposes
@@ -128,11 +129,12 @@ export function findBestAvailableVersion(
 }
 
 /**
- * Get available versions for an npm package with caching to avoid duplicate npm view calls
- * @param packageName Name of the npm package
+ * Get available versions for an npm package with caching to avoid duplicate
+ * calls of the `npm view` command.
+ * @param packageName The {@link CachedPackageName} for which to get versions
  * @returns Array of available version strings
  */
-export function getAvailableVersions(packageName: string): string[] {
+export function getAvailableVersions(packageName: CachedPackageName): string[] {
   // Check cache first
   if (availableVersionsCache.has(packageName)) {
     cacheStats.hits++;
@@ -142,9 +144,7 @@ export function getAvailableVersions(packageName: string): string[] {
   // Cache miss - fetch from npm
   cacheStats.misses++;
   try {
-    // Use shell-quote to properly escape the package name to prevent injection
-    const escapedPackageName = quote([packageName]);
-    const output = execSync(`npm view ${escapedPackageName} versions --json`, {
+    const output = execSync(`npm view ${packageName} versions --json`, {
       encoding: 'utf8',
       timeout: 30000, // 30 second timeout
     });

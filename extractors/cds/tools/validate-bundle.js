@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 
 const DEFAULT_TIMEOUT_MS = 5000; // Default timeout for execution in milliseconds
-const MAX_BUNDLE_SIZE_MB = 50; // Set a reasonable max bundle size
+const MAX_BUNDLE_SIZE_MB = 0.5; // We expect the bundle to be quite small
 
 const bundlePath = path.join(__dirname, 'dist', 'cds-extractor.bundle.js');
 

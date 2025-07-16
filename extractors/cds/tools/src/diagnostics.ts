@@ -1,8 +1,6 @@
 import { execFileSync } from 'child_process';
 import { resolve } from 'path';
 
-import { quote } from 'shell-quote';
-
 import { cdsExtractorLog } from './logging';
 
 /**
@@ -36,9 +34,6 @@ function addDiagnostic(
   logPrefix: string,
 ): boolean {
   try {
-    // Use shell-quote to safely escape the message
-    const escapedMessage = quote([message]);
-
     execFileSync(codeqlExePath, [
       'database',
       'add-diagnostic',
@@ -47,7 +42,7 @@ function addDiagnostic(
       `--source-id=${sourceId}`,
       `--source-name=${sourceName}`,
       `--severity=${severity}`,
-      `--markdown-message=${escapedMessage.slice(1, -1)}`, // Remove the added quotes from shell-quote
+      `--markdown-message=${message}`,
       `--file-path=${resolve(filePath)}`,
       '--',
       `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE ?? ''}`,
