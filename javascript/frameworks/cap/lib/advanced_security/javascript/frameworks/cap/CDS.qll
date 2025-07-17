@@ -346,21 +346,28 @@ class HandlerRegistration extends MethodCallNode {
 }
 
 /**
+ * A parameter of a handler
+ */
+class HandlerParameter instanceof ParameterNode {
+  Handler handler;
+
+  HandlerParameter() { this = handler.getParameter(0) }
+
+  Handler getHandler() { result = handler }
+
+  string toString() { result = super.toString() }
+}
+
+/**
  * The handler that implements a service's logic to deal with the incoming request or message when a certain event is fired.
  * It is the last argument to the method calls that registers the handler: either `srv.before`, `srv.on`, or `srv.after`.
  * Its first parameter is of type `cds.Event` and handles the event in an asynchronous manner,
  * or is of type `cds.Request` and handles the event synchronously.
  */
 class Handler extends FunctionNode {
-  UserDefinedApplicationService srv;
   HandlerRegistration handlerRegistration;
 
   Handler() { this = handlerRegistration.getAnArgument() }
-
-  /**
-   * Gets the service registering this handler.
-   */
-  UserDefinedApplicationService getDefiningService() { result = srv }
 
   /**
    * Gets a name of one of the event this handler is registered for.
@@ -376,6 +383,8 @@ class Handler extends FunctionNode {
    * Gets the request that this handler is registered for, as represented as its first parameter.
    */
   CdsRequest getRequest() { result = this.getParameter(0) }
+
+  HandlerRegistration getHandlerRegistration() { result = handlerRegistration }
 }
 
 class CdsRequest extends ParameterNode {
@@ -823,7 +832,7 @@ class HandlerParameterData instanceof PropRead {
   string dataName;
 
   HandlerParameterData() {
-    this = handlerParameter.getAPropertyRead("data").getAPropertyRead(dataName)
+    this = handlerParameter.(SourceNode).getAPropertyRead("data").getAPropertyRead(dataName)
   }
 
   /**
@@ -842,7 +851,7 @@ class HandlerParameterData instanceof PropRead {
       CdlActionOrFunction cdlActionOrFunction, HandlerRegistration handlerRegistration
     |
       handlerRegistration = userDefinedApplicationService.getAHandlerRegistration() and
-      handlerRegistration = handlerParameter.getHandlerRegistration() and
+      handlerRegistration = handlerParameter.getHandler().getHandlerRegistration() and
       handlerRegistration.getAnEventName() = cdlActionOrFunction.getUnqualifiedName() and
       cdlActionOrFunction =
         userDefinedApplicationService.getCdsDeclaration().getAnActionOrFunction() and
