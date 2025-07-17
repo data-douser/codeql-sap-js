@@ -6,87 +6,8 @@ import type { ValidatedCdsCommand } from './types';
 import { fileExists } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
 
-/**
- * Predefined secure CDS command patterns
- */
-const ALLOWED_CDS_COMMANDS = {
-  // Global CDS command
-  cds: {
-    executable: 'cds',
-    args: [] as string[],
-    commandString: 'cds',
-  },
-  // NPX with @sap/cds package
-  'npx-cds': {
-    executable: 'npx',
-    args: ['--yes', '--package', '@sap/cds', 'cds'] as string[],
-    commandString: 'npx --yes --package @sap/cds cds',
-  },
-  // NPX with @sap/cds-dk package
-  'npx-cds-dk': {
-    executable: 'npx',
-    args: ['--yes', '--package', '@sap/cds-dk', 'cds'] as string[],
-    commandString: 'npx --yes --package @sap/cds-dk cds',
-  },
-  // NPX with @sap/cds-dk package (alternative flag)
-  'npx-cds-dk-alt': {
-    executable: 'npx',
-    args: ['--yes', '@sap/cds-dk', 'cds'] as string[],
-    commandString: 'npx --yes @sap/cds-dk cds',
-  },
-} as const;
-
 /** Default timeout for command execution in milliseconds. **/
 export const DEFAULT_COMMAND_TIMEOUT_MS = 10000;
-
-/**
- * Creates a validated CDS command for an absolute path to a CDS executable.
- * @param absolutePath The absolute path to the CDS executable
- * @returns A {@link ValidatedCdsCommand} if the path exists and is valid, null otherwise
- */
-function createValidatedCdsCommand(absolutePath: string): ValidatedCdsCommand | null {
-  try {
-    const resolvedPath = resolve(absolutePath);
-    if (resolvedPath && fileExists(resolvedPath)) {
-      return {
-        executable: resolvedPath,
-        args: [],
-        originalCommand: absolutePath,
-      };
-    }
-  } catch {
-    // Ignore path resolution errors
-  }
-  return null;
-}
-
-/**
- * Validates a CDS command string against allowed patterns and absolute paths.
- * @param command The command string to validate
- * @returns A {@link ValidatedCdsCommand} if valid, null if invalid
- */
-function validateCdsCommand(command: string): ValidatedCdsCommand | null {
-  const trimmed = command.trim();
-
-  // First try as an absolute path (createValidatedCdsCommand handles all path validation)
-  const pathResult = createValidatedCdsCommand(trimmed);
-  if (pathResult) {
-    return pathResult;
-  }
-
-  // Check against predefined allowed commands
-  for (const [_key, pattern] of Object.entries(ALLOWED_CDS_COMMANDS)) {
-    if (trimmed === pattern.commandString) {
-      return {
-        executable: pattern.executable,
-        args: [...pattern.args],
-        originalCommand: command,
-      };
-    }
-  }
-
-  return null;
-}
 
 /**
  * Cache for CDS command test results to avoid running the same CLI commands repeatedly.
@@ -108,6 +29,57 @@ const cdsCommandCache: CdsCommandCache = {
   availableCacheDirs: [],
   initialized: false,
 };
+
+/**
+ * Factory functions to create {@link ValidatedCdsCommand} instances.
+ */
+const createCdsCommands = {
+  // Global CDS command
+  cds: (): ValidatedCdsCommand => ({
+    executable: 'cds',
+    args: [],
+    originalCommand: 'cds',
+  }),
+  // NPX with @sap/cds package
+  npxCds: (): ValidatedCdsCommand => ({
+    executable: 'npx',
+    args: ['--yes', '--package', '@sap/cds', 'cds'],
+    originalCommand: 'npx --yes --package @sap/cds cds',
+  }),
+  // NPX with @sap/cds-dk package
+  npxCdsDk: (): ValidatedCdsCommand => ({
+    executable: 'npx',
+    args: ['--yes', '--package', '@sap/cds-dk', 'cds'],
+    originalCommand: 'npx --yes --package @sap/cds-dk cds',
+  }),
+  // NPX with @sap/cds-dk package (alternative flag)
+  npxCdsDkAlt: (): ValidatedCdsCommand => ({
+    executable: 'npx',
+    args: ['--yes', '@sap/cds-dk', 'cds'],
+    originalCommand: 'npx --yes @sap/cds-dk cds',
+  }),
+};
+
+/**
+ * Creates a validated CDS command for an absolute path to a CDS executable.
+ * @param absolutePath The absolute path to the CDS executable
+ * @returns A {@link ValidatedCdsCommand} if the path exists and is valid, null otherwise
+ */
+function createCdsCommandForPath(absolutePath: string): ValidatedCdsCommand | null {
+  try {
+    const resolvedPath = resolve(absolutePath);
+    if (resolvedPath && fileExists(resolvedPath)) {
+      return {
+        executable: resolvedPath,
+        args: [],
+        originalCommand: absolutePath,
+      };
+    }
+  } catch {
+    // Ignore path resolution errors
+  }
+  return null;
+}
 
 /**
  * Determine the `cds` command to use based on the environment and cache directory.
@@ -176,8 +148,9 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
   // If a specific cache directory is provided and valid, prefer it
   if (cacheDir) {
     const localCdsBin = join(cacheDir, 'node_modules', '.bin', 'cds');
-    if (fileExists(localCdsBin)) {
-      const result = testCdsCommand(localCdsBin, sourceRoot, true);
+    const command = createCdsCommandForPath(localCdsBin);
+    if (command) {
+      const result = testCdsCommand(command, sourceRoot, true);
       if (result.works) {
         return localCdsBin;
       }
@@ -187,9 +160,12 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
   // Try any available cache directories
   for (const availableCacheDir of cdsCommandCache.availableCacheDirs) {
     const localCdsBin = join(availableCacheDir, 'node_modules', '.bin', 'cds');
-    const result = testCdsCommand(localCdsBin, sourceRoot, true);
-    if (result.works) {
-      return localCdsBin;
+    const command = createCdsCommandForPath(localCdsBin);
+    if (command) {
+      const result = testCdsCommand(command, sourceRoot, true);
+      if (result.works) {
+        return localCdsBin;
+      }
     }
   }
 
@@ -199,20 +175,17 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
   }
 
   // Final fallback: test remaining npx options
-  const fallbackCommands = [
-    ALLOWED_CDS_COMMANDS['npx-cds'].commandString,
-    ALLOWED_CDS_COMMANDS['npx-cds-dk'].commandString,
-  ];
+  const fallbackCommands = [createCdsCommands.npxCds(), createCdsCommands.npxCdsDk()];
 
   for (const command of fallbackCommands) {
     const result = testCdsCommand(command, sourceRoot, true);
     if (result.works) {
-      return command;
+      return command.originalCommand;
     }
   }
 
   // Return the default fallback even if it doesn't work, as tests expect this behavior
-  return ALLOWED_CDS_COMMANDS['npx-cds-dk'].commandString;
+  return createCdsCommands.npxCdsDk().originalCommand;
 }
 
 /**
@@ -227,18 +200,15 @@ function initializeCdsCommandCache(sourceRoot: string): void {
   cdsExtractorLog('info', 'Initializing CDS command cache...');
 
   // Test global commands first (most commonly used)
-  const globalCommands = [
-    ALLOWED_CDS_COMMANDS.cds.commandString,
-    ALLOWED_CDS_COMMANDS['npx-cds-dk'].commandString,
-  ];
+  const globalCommands = [createCdsCommands.cds(), createCdsCommands.npxCdsDk()];
 
   for (const command of globalCommands) {
     const result = testCdsCommand(command, sourceRoot, true); // Silent testing
     if (result.works) {
-      cdsCommandCache.globalCommand = command;
+      cdsCommandCache.globalCommand = command.originalCommand;
       cdsExtractorLog(
         'info',
-        `Found working global CDS command: ${command} (v${result.version ?? 'unknown'})`,
+        `Found working global CDS command: ${command.originalCommand} (v${result.version ?? 'unknown'})`,
       );
       break;
     }
@@ -267,33 +237,23 @@ export function resetCdsCommandCache(): void {
 }
 
 /**
- * Check if a CDS command is available and working
- * @param command The command to test
+ * Check if a CDS command is available and working.
+ * @param validatedCommand The {@link ValidatedCdsCommand} instance for the command to test
  * @param sourceRoot The source root directory to use as cwd when testing the command
  * @param silent Whether to suppress logging of test failures
  * @returns Object with test result and version information
  */
 function testCdsCommand(
-  command: string,
+  validatedCommand: ValidatedCdsCommand,
   sourceRoot: string,
   silent: boolean = false,
 ): { works: boolean; version?: string; error?: string } {
+  const cacheKey = validatedCommand.originalCommand;
+
   // Check cache first
-  const cachedResult = cdsCommandCache.commandResults.get(command);
+  const cachedResult = cdsCommandCache.commandResults.get(cacheKey);
   if (cachedResult) {
     return cachedResult;
-  }
-
-  // Validate the `cds` command before running it.
-  const validatedCommand = validateCdsCommand(command);
-  if (!validatedCommand) {
-    const errorMessage = `Invalid CDS command: ${command}`;
-    if (!silent) {
-      cdsExtractorLog('debug', `Command validation failed: ${errorMessage}`);
-    }
-    const testResult = { works: false, error: errorMessage };
-    cdsCommandCache.commandResults.set(command, testResult);
-    return testResult;
   }
 
   try {
@@ -322,16 +282,16 @@ function testCdsCommand(
     const version = versionMatch ? versionMatch[1] : undefined;
 
     const testResult = { works: true, version };
-    cdsCommandCache.commandResults.set(command, testResult);
+    cdsCommandCache.commandResults.set(cacheKey, testResult);
     return testResult;
   } catch (error) {
     const errorMessage = String(error);
     if (!silent) {
-      cdsExtractorLog('debug', `CDS command test failed for '${command}': ${errorMessage}`);
+      cdsExtractorLog('debug', `CDS command test failed for '${cacheKey}': ${errorMessage}`);
     }
 
     const testResult = { works: false, error: errorMessage };
-    cdsCommandCache.commandResults.set(command, testResult);
+    cdsCommandCache.commandResults.set(cacheKey, testResult);
     return testResult;
   }
 }

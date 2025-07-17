@@ -6810,34 +6810,39 @@ function recursivelyRenameJsonFiles(dirPath) {
 }
 
 // src/cds/compiler/command.ts
-var ALLOWED_CDS_COMMANDS = {
+var DEFAULT_COMMAND_TIMEOUT_MS = 1e4;
+var cdsCommandCache = {
+  commandResults: /* @__PURE__ */ new Map(),
+  availableCacheDirs: [],
+  initialized: false
+};
+var createCdsCommands = {
   // Global CDS command
-  cds: {
+  cds: () => ({
     executable: "cds",
     args: [],
-    commandString: "cds"
-  },
+    originalCommand: "cds"
+  }),
   // NPX with @sap/cds package
-  "npx-cds": {
+  npxCds: () => ({
     executable: "npx",
     args: ["--yes", "--package", "@sap/cds", "cds"],
-    commandString: "npx --yes --package @sap/cds cds"
-  },
+    originalCommand: "npx --yes --package @sap/cds cds"
+  }),
   // NPX with @sap/cds-dk package
-  "npx-cds-dk": {
+  npxCdsDk: () => ({
     executable: "npx",
     args: ["--yes", "--package", "@sap/cds-dk", "cds"],
-    commandString: "npx --yes --package @sap/cds-dk cds"
-  },
+    originalCommand: "npx --yes --package @sap/cds-dk cds"
+  }),
   // NPX with @sap/cds-dk package (alternative flag)
-  "npx-cds-dk-alt": {
+  npxCdsDkAlt: () => ({
     executable: "npx",
     args: ["--yes", "@sap/cds-dk", "cds"],
-    commandString: "npx --yes @sap/cds-dk cds"
-  }
+    originalCommand: "npx --yes @sap/cds-dk cds"
+  })
 };
-var DEFAULT_COMMAND_TIMEOUT_MS = 1e4;
-function createValidatedCdsCommand(absolutePath) {
+function createCdsCommandForPath(absolutePath) {
   try {
     const resolvedPath = (0, import_path2.resolve)(absolutePath);
     if (resolvedPath && fileExists(resolvedPath)) {
@@ -6851,28 +6856,6 @@ function createValidatedCdsCommand(absolutePath) {
   }
   return null;
 }
-function validateCdsCommand(command) {
-  const trimmed = command.trim();
-  const pathResult = createValidatedCdsCommand(trimmed);
-  if (pathResult) {
-    return pathResult;
-  }
-  for (const [_key, pattern] of Object.entries(ALLOWED_CDS_COMMANDS)) {
-    if (trimmed === pattern.commandString) {
-      return {
-        executable: pattern.executable,
-        args: [...pattern.args],
-        originalCommand: command
-      };
-    }
-  }
-  return null;
-}
-var cdsCommandCache = {
-  commandResults: /* @__PURE__ */ new Map(),
-  availableCacheDirs: [],
-  initialized: false
-};
 function determineCdsCommand(cacheDir, sourceRoot2) {
   try {
     return getBestCdsCommand(cacheDir, sourceRoot2);
@@ -6911,8 +6894,9 @@ function getBestCdsCommand(cacheDir, sourceRoot2) {
   initializeCdsCommandCache(sourceRoot2);
   if (cacheDir) {
     const localCdsBin = (0, import_path2.join)(cacheDir, "node_modules", ".bin", "cds");
-    if (fileExists(localCdsBin)) {
-      const result = testCdsCommand(localCdsBin, sourceRoot2, true);
+    const command = createCdsCommandForPath(localCdsBin);
+    if (command) {
+      const result = testCdsCommand(command, sourceRoot2, true);
       if (result.works) {
         return localCdsBin;
       }
@@ -6920,42 +6904,39 @@ function getBestCdsCommand(cacheDir, sourceRoot2) {
   }
   for (const availableCacheDir of cdsCommandCache.availableCacheDirs) {
     const localCdsBin = (0, import_path2.join)(availableCacheDir, "node_modules", ".bin", "cds");
-    const result = testCdsCommand(localCdsBin, sourceRoot2, true);
-    if (result.works) {
-      return localCdsBin;
+    const command = createCdsCommandForPath(localCdsBin);
+    if (command) {
+      const result = testCdsCommand(command, sourceRoot2, true);
+      if (result.works) {
+        return localCdsBin;
+      }
     }
   }
   if (cdsCommandCache.globalCommand) {
     return cdsCommandCache.globalCommand;
   }
-  const fallbackCommands = [
-    ALLOWED_CDS_COMMANDS["npx-cds"].commandString,
-    ALLOWED_CDS_COMMANDS["npx-cds-dk"].commandString
-  ];
+  const fallbackCommands = [createCdsCommands.npxCds(), createCdsCommands.npxCdsDk()];
   for (const command of fallbackCommands) {
     const result = testCdsCommand(command, sourceRoot2, true);
     if (result.works) {
-      return command;
+      return command.originalCommand;
     }
   }
-  return ALLOWED_CDS_COMMANDS["npx-cds-dk"].commandString;
+  return createCdsCommands.npxCdsDk().originalCommand;
 }
 function initializeCdsCommandCache(sourceRoot2) {
   if (cdsCommandCache.initialized) {
     return;
   }
   cdsExtractorLog("info", "Initializing CDS command cache...");
-  const globalCommands = [
-    ALLOWED_CDS_COMMANDS.cds.commandString,
-    ALLOWED_CDS_COMMANDS["npx-cds-dk"].commandString
-  ];
+  const globalCommands = [createCdsCommands.cds(), createCdsCommands.npxCdsDk()];
   for (const command of globalCommands) {
     const result = testCdsCommand(command, sourceRoot2, true);
     if (result.works) {
-      cdsCommandCache.globalCommand = command;
+      cdsCommandCache.globalCommand = command.originalCommand;
       cdsExtractorLog(
         "info",
-        `Found working global CDS command: ${command} (v${result.version ?? "unknown"})`
+        `Found working global CDS command: ${command.originalCommand} (v${result.version ?? "unknown"})`
       );
       break;
     }
@@ -6969,20 +6950,11 @@ function initializeCdsCommandCache(sourceRoot2) {
   }
   cdsCommandCache.initialized = true;
 }
-function testCdsCommand(command, sourceRoot2, silent = false) {
-  const cachedResult = cdsCommandCache.commandResults.get(command);
+function testCdsCommand(validatedCommand, sourceRoot2, silent = false) {
+  const cacheKey = validatedCommand.originalCommand;
+  const cachedResult = cdsCommandCache.commandResults.get(cacheKey);
   if (cachedResult) {
     return cachedResult;
-  }
-  const validatedCommand = validateCdsCommand(command);
-  if (!validatedCommand) {
-    const errorMessage = `Invalid CDS command: ${command}`;
-    if (!silent) {
-      cdsExtractorLog("debug", `Command validation failed: ${errorMessage}`);
-    }
-    const testResult = { works: false, error: errorMessage };
-    cdsCommandCache.commandResults.set(command, testResult);
-    return testResult;
   }
   try {
     const cleanEnv = {
@@ -7006,15 +6978,15 @@ function testCdsCommand(command, sourceRoot2, silent = false) {
     const versionMatch = result.match(/(\d+\.\d+\.\d+)/);
     const version = versionMatch ? versionMatch[1] : void 0;
     const testResult = { works: true, version };
-    cdsCommandCache.commandResults.set(command, testResult);
+    cdsCommandCache.commandResults.set(cacheKey, testResult);
     return testResult;
   } catch (error) {
     const errorMessage = String(error);
     if (!silent) {
-      cdsExtractorLog("debug", `CDS command test failed for '${command}': ${errorMessage}`);
+      cdsExtractorLog("debug", `CDS command test failed for '${cacheKey}': ${errorMessage}`);
     }
     const testResult = { works: false, error: errorMessage };
-    cdsCommandCache.commandResults.set(command, testResult);
+    cdsCommandCache.commandResults.set(cacheKey, testResult);
     return testResult;
   }
 }
