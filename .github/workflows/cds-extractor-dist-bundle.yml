@@ -42,38 +42,47 @@ jobs:
     
     - name: Build and validate the CDS extractor bundle
       working-directory: extractors/cds/tools
-      run: npm run bundle:validate
-    
-    - name: Check JS bundle size and properties
+      run: npm run build:validate
+
+    - name: Validate CDS extractor JS bundle and map files
       working-directory: extractors/cds/tools
       run: |
         _bundle_file="dist/cds-extractor.bundle.js"
-        # Test that bundle exists and get detailed info
+        _bundle_map_file="${_bundle_file}.map"
         if [ -f "$_bundle_file" ]; then
-          echo "✅ Bundle file exists"
-          
-          # Check if bundle has shebang
-          if head -n 1 "${_bundle_file}" | grep -q "#!/usr/bin/env node"; then
-            echo "✅ Bundle has Node.js shebang"
-          else
-            echo "⚠️  Bundle missing Node.js shebang"
-          fi
-          
-          # Check if source map exists
-          if [ -f "${_bundle_file}.map" ]; then
-            echo "✅ Source map exists"
-          else
-            echo "⚠️  Source map not found"
-          fi
+          echo "✅ Bundle file exists."
         else
-          echo "❌ Bundle file not found"
-          exit 1
+          echo "❌ Bundle file not found."
+          exit 2
         fi
-    
-#    - name: Upload bundle artifact
-#      uses: actions/upload-artifact@v4
-#      with:
-#        name: cds-extractor-bundle
-#        path: |
-#          extractors/cds/tools/dist/cds-extractor.bundle.js
-#          extractors/cds/tools/dist/cds-extractor.bundle.js.map
+
+        if [ -f "$_bundle_map_file" ]; then
+          echo "✅ CDS extractor JS bundle source map file exists."
+        else
+          echo "❌ CDS extractor JS bundle source map file not found."
+          exit 3
+        fi
+
+        # Check if the built bundle and map files differ
+        # from the versions committed to git.
+        if git diff --exit-code "$_bundle_file" "$_bundle_map_file"; then
+          echo "✅ CDS JS bundle and map files match committed versions."
+        else
+          echo "❌ CDS JS bundle and/or map file(s) differ from committed version(s)."
+          echo "The built bundle and/or source map do not match the committed versions."
+          echo "Please rebuild the bundle and commit the changes:"
+          echo "  cd extractors/cds/tools"
+          echo "  npm install"
+          echo "  npm run build:all"
+          echo "  git add dist/cds-extractor.bundle.*"
+          echo "  git commit -m 'Update CDS extractor dist bundle'"
+          exit 4
+        fi
+
+        # Check if bundle file starts with the expected shebang for `node`.
+        if head -n 1 "${_bundle_file}" | grep -q "#!/usr/bin/env node"; then
+          echo "✅ Bundle has Node.js shebang"
+        else
+          echo "❌  Bundle missing Node.js shebang"
+          exit 5
+        fi
