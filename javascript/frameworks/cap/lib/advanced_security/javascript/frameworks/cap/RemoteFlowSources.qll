@@ -2,13 +2,19 @@ import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 
 /**
- * Either a service is known and is exposed
- * or
- * there is a handler parameter that is not connected to a service
- * possibly due to cds compilation failure
- * or non explicit service references in source
- * for example:
+ * Either of:
+ * a parameter of a handler registered for an (exposed) service on an event. e.g.
+ * ```javascript
+ * this.on("SomeEvent", "SomeEntity", (req) => { ... });
+ * this.before("SomeEvent", "SomeEntity", (req, next) => { ... });
+ * SomeService.on("SomeEvent", "SomeEntity", (msg) => { ... });
+ * SomeService.after("SomeEvent", "SomeEntity", (msg) => { ... });
  * ```
+ * OR
+ * a handler parameter that is not connected to a service
+ * possibly due to cds compilation failure
+ * or non explicit service references in source. e.g.
+ * ```javascript
  * cds.serve('./test-service').with((srv) => {
  *    srv.after('READ', req => req.target.data) //req
  * })
