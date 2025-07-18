@@ -2,7 +2,11 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { determineCdsCommand, resetCdsCommandCache } from '../../../../src/cds/compiler/command';
+import {
+  determineCdsCommand,
+  resetCdsCommandCache,
+  DEFAULT_COMMAND_TIMEOUT_MS,
+} from '../../../../src/cds/compiler/command';
 import { fileExists } from '../../../../src/filesystem';
 import { cdsExtractorLog } from '../../../../src/logging';
 
@@ -55,10 +59,10 @@ describe('cds compiler command', () => {
 
       // Verify
       expect(result).toBe('cds');
-      expect(childProcess.execFileSync).toHaveBeenCalledWith('sh', ['-c', 'cds --version'], {
+      expect(childProcess.execFileSync).toHaveBeenCalledWith('cds', ['--version'], {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 5000,
+        timeout: DEFAULT_COMMAND_TIMEOUT_MS,
         cwd: '/mock/source/root',
         env: expect.objectContaining({
           CODEQL_EXTRACTOR_CDS_WIP_DATABASE: undefined,
@@ -67,19 +71,17 @@ describe('cds compiler command', () => {
       });
     });
 
-    it('should return "npx -y --package @sap/cds-dk cds" when cds command is not available', () => {
+    it('should return "npx --yes --package @sap/cds-dk cds" when cds command is not available', () => {
       // Mock failed execution for "cds --version" but success for npx
       (childProcess.execFileSync as jest.Mock).mockImplementation(
-        (_command: string, args: string[]) => {
-          const fullCommand = args.join(' ');
-          if (fullCommand === '-c cds --version') {
+        (command: string, args: string[]) => {
+          if (command === 'cds' && args.join(' ') === '--version') {
             throw new Error('Command not found');
           }
-          // The shell-quote library escapes the command, so it becomes quoted
-          if (fullCommand === "-c 'npx -y --package @sap/cds-dk cds' --version") {
+          if (command === 'npx' && args.join(' ') === '--yes --package @sap/cds-dk cds --version') {
             return Buffer.from('6.1.3');
           }
-          throw new Error('Unexpected command');
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
         },
       );
 
@@ -87,12 +89,12 @@ describe('cds compiler command', () => {
       const result = determineCdsCommand(undefined, '/mock/source/root');
 
       // Verify
-      expect(result).toBe('npx -y --package @sap/cds-dk cds');
+      expect(result).toBe('npx --yes --package @sap/cds-dk cds');
       // Should have tried both commands
-      expect(childProcess.execFileSync).toHaveBeenCalledWith('sh', ['-c', 'cds --version'], {
+      expect(childProcess.execFileSync).toHaveBeenCalledWith('cds', ['--version'], {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 5000,
+        timeout: DEFAULT_COMMAND_TIMEOUT_MS,
         cwd: '/mock/source/root',
         env: expect.objectContaining({
           CODEQL_EXTRACTOR_CDS_WIP_DATABASE: undefined,
@@ -100,12 +102,12 @@ describe('cds compiler command', () => {
         }),
       });
       expect(childProcess.execFileSync).toHaveBeenCalledWith(
-        'sh',
-        ['-c', "'npx -y --package @sap/cds-dk cds' --version"],
+        'npx',
+        ['--yes', '--package', '@sap/cds-dk', 'cds', '--version'],
         {
           encoding: 'utf8',
           stdio: 'pipe',
-          timeout: 5000,
+          timeout: DEFAULT_COMMAND_TIMEOUT_MS,
           cwd: '/mock/source/root',
           env: expect.objectContaining({
             CODEQL_EXTRACTOR_CDS_WIP_DATABASE: undefined,
@@ -141,7 +143,7 @@ describe('cds compiler command', () => {
       const result = determineCdsCommand(undefined, '/mock/source/root');
 
       // Verify - should return the fallback command even if it doesn't work
-      expect(result).toBe('npx -y --package @sap/cds-dk cds');
+      expect(result).toBe('npx --yes --package @sap/cds-dk cds');
     });
 
     it('should handle cache directory discovery with available directories', () => {
@@ -156,6 +158,7 @@ describe('cds compiler command', () => {
       ]);
 
       (path.join as jest.Mock).mockImplementation((...args: string[]) => args.join('/'));
+      (path.resolve as jest.Mock).mockImplementation((...args: string[]) => args.join('/'));
 
       // Mock fileExists to return true for cache directories with cds binary
       mockFileExists.mockImplementation((filePath: string) => {
@@ -163,7 +166,20 @@ describe('cds compiler command', () => {
       });
 
       // Mock successful execution for cache directory commands
-      (childProcess.execFileSync as jest.Mock).mockReturnValue(Buffer.from('6.1.3'));
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command.includes('cds-v6.1.3') && args.join(' ') === '--version') {
+            return Buffer.from('6.1.3');
+          }
+          if (command === 'cds' && args.join(' ') === '--version') {
+            throw new Error('Global cds not found');
+          }
+          if (command === 'npx' && args.includes('--yes')) {
+            throw new Error('NPX not found');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
 
       // Execute
       const result = determineCdsCommand(undefined, '/mock/source/root');
@@ -201,6 +217,7 @@ describe('cds compiler command', () => {
       const mockFileExists = fileExists as jest.MockedFunction<typeof fileExists>;
 
       (path.join as jest.Mock).mockImplementation((...args: string[]) => args.join('/'));
+      (path.resolve as jest.Mock).mockImplementation((...args: string[]) => args.join('/'));
 
       // Mock fileExists to return true for the provided cache directory
       mockFileExists.mockImplementation((filePath: string) => {
@@ -208,7 +225,20 @@ describe('cds compiler command', () => {
       });
 
       // Mock successful execution for the provided cache directory
-      (childProcess.execFileSync as jest.Mock).mockReturnValue(Buffer.from('6.2.0'));
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === '/custom/cache/node_modules/.bin/cds' && args.join(' ') === '--version') {
+            return Buffer.from('6.2.0');
+          }
+          if (command === 'cds' && args.join(' ') === '--version') {
+            throw new Error('Global cds not found');
+          }
+          if (command === 'npx' && args.includes('--yes')) {
+            throw new Error('NPX not found');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
 
       // Execute with custom cache directory
       const result = determineCdsCommand('/custom/cache', '/mock/source/root');
@@ -236,7 +266,7 @@ describe('cds compiler command', () => {
           if (command === 'sh' && args.join(' ').includes('cds --version')) {
             throw new Error('Command not found');
           }
-          if (command === 'sh' && args.join(' ').includes('npx -y --package @sap/cds-dk cds')) {
+          if (command === 'sh' && args.join(' ').includes('npx --yes --package @sap/cds-dk cds')) {
             return Buffer.from('6.1.3');
           }
           throw new Error('Command not found');
@@ -247,7 +277,7 @@ describe('cds compiler command', () => {
       const result = determineCdsCommand(undefined, '/mock/source/root');
 
       // Should fall back to npx command since cache directories don't exist
-      expect(result).toBe('npx -y --package @sap/cds-dk cds');
+      expect(result).toBe('npx --yes --package @sap/cds-dk cds');
     });
 
     it('should handle version parsing failures gracefully', () => {
@@ -257,7 +287,7 @@ describe('cds compiler command', () => {
       // Mock command to return output without version number for global command
       (childProcess.execFileSync as jest.Mock).mockImplementation(
         (command: string, args: string[]) => {
-          if (command === 'sh' && args.join(' ').includes('cds --version')) {
+          if (command === 'cds' && args.join(' ') === '--version') {
             return Buffer.from('No version info');
           }
           throw new Error('Command not found');
@@ -274,9 +304,8 @@ describe('cds compiler command', () => {
     it('should try fallback npx commands when global command fails', () => {
       // Mock all commands to fail except one fallback
       (childProcess.execFileSync as jest.Mock).mockImplementation(
-        (_command: string, args: string[]) => {
-          const fullCommand = args.join(' ');
-          if (fullCommand === "-c 'npx -y --package @sap/cds cds' --version") {
+        (command: string, args: string[]) => {
+          if (command === 'npx' && args.join(' ') === '--yes --package @sap/cds cds --version') {
             return Buffer.from('6.1.3');
           }
           throw new Error('Command not found');
@@ -287,7 +316,7 @@ describe('cds compiler command', () => {
       const result = determineCdsCommand(undefined, '/mock/source/root');
 
       // Verify - should use the fallback command
-      expect(result).toBe('npx -y --package @sap/cds cds');
+      expect(result).toBe('npx --yes --package @sap/cds cds');
     });
 
     it('should log discovery of multiple cache directories', () => {

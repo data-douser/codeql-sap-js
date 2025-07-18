@@ -173,12 +173,18 @@ export default defineConfig([
   },
   // Add JavaScript-specific configuration that doesn't use TypeScript parser
   {
-    files: ['**/*.js', '**/.prettierrc.js', '**/jest.config.js'],
+    files: [
+      '**/*.js',
+      '**/.prettierrc.js',
+      '**/jest.config.js',
+      'esbuild.config.mjs',
+      'validate-bundle.js',
+    ],
     languageOptions: {
       // Use default parser for JS files (removes TS parser requirement)
       parser: undefined,
       ecmaVersion: 2018,
-      sourceType: 'module',
+      sourceType: 'script', // Allow CommonJS
     },
     rules: {
       // Disable TypeScript-specific rules for JS files
@@ -190,6 +196,8 @@ export default defineConfig([
       '@typescript-eslint/restrict-template-expressions': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/unbound-method': 'off',
+      // Allow CommonJS for build scripts
+      'import/no-commonjs': 'off',
     },
   },
   {

@@ -1,11 +1,13 @@
 import { execFileSync } from 'child_process';
 import { existsSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
-import { quote } from 'shell-quote';
-
+import type { ValidatedCdsCommand } from './types';
 import { fileExists } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
+
+/** Default timeout for command execution in milliseconds. **/
+export const DEFAULT_COMMAND_TIMEOUT_MS = 10000;
 
 /**
  * Cache for CDS command test results to avoid running the same CLI commands repeatedly.
@@ -27,6 +29,57 @@ const cdsCommandCache: CdsCommandCache = {
   availableCacheDirs: [],
   initialized: false,
 };
+
+/**
+ * Factory functions to create {@link ValidatedCdsCommand} instances.
+ */
+const createCdsCommands = {
+  // Global CDS command
+  cds: (): ValidatedCdsCommand => ({
+    executable: 'cds',
+    args: [],
+    originalCommand: 'cds',
+  }),
+  // NPX with @sap/cds package
+  npxCds: (): ValidatedCdsCommand => ({
+    executable: 'npx',
+    args: ['--yes', '--package', '@sap/cds', 'cds'],
+    originalCommand: 'npx --yes --package @sap/cds cds',
+  }),
+  // NPX with @sap/cds-dk package
+  npxCdsDk: (): ValidatedCdsCommand => ({
+    executable: 'npx',
+    args: ['--yes', '--package', '@sap/cds-dk', 'cds'],
+    originalCommand: 'npx --yes --package @sap/cds-dk cds',
+  }),
+  // NPX with @sap/cds-dk package (alternative flag)
+  npxCdsDkAlt: (): ValidatedCdsCommand => ({
+    executable: 'npx',
+    args: ['--yes', '@sap/cds-dk', 'cds'],
+    originalCommand: 'npx --yes @sap/cds-dk cds',
+  }),
+};
+
+/**
+ * Creates a validated CDS command for an absolute path to a CDS executable.
+ * @param absolutePath The absolute path to the CDS executable
+ * @returns A {@link ValidatedCdsCommand} if the path exists and is valid, null otherwise
+ */
+function createCdsCommandForPath(absolutePath: string): ValidatedCdsCommand | null {
+  try {
+    const resolvedPath = resolve(absolutePath);
+    if (resolvedPath && fileExists(resolvedPath)) {
+      return {
+        executable: resolvedPath,
+        args: [],
+        originalCommand: absolutePath,
+      };
+    }
+  } catch {
+    // Ignore path resolution errors
+  }
+  return null;
+}
 
 /**
  * Determine the `cds` command to use based on the environment and cache directory.
@@ -95,8 +148,9 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
   // If a specific cache directory is provided and valid, prefer it
   if (cacheDir) {
     const localCdsBin = join(cacheDir, 'node_modules', '.bin', 'cds');
-    if (fileExists(localCdsBin)) {
-      const result = testCdsCommand(localCdsBin, sourceRoot, true);
+    const command = createCdsCommandForPath(localCdsBin);
+    if (command) {
+      const result = testCdsCommand(command, sourceRoot, true);
       if (result.works) {
         return localCdsBin;
       }
@@ -106,9 +160,12 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
   // Try any available cache directories
   for (const availableCacheDir of cdsCommandCache.availableCacheDirs) {
     const localCdsBin = join(availableCacheDir, 'node_modules', '.bin', 'cds');
-    const result = testCdsCommand(localCdsBin, sourceRoot, true);
-    if (result.works) {
-      return localCdsBin;
+    const command = createCdsCommandForPath(localCdsBin);
+    if (command) {
+      const result = testCdsCommand(command, sourceRoot, true);
+      if (result.works) {
+        return localCdsBin;
+      }
     }
   }
 
@@ -118,17 +175,17 @@ function getBestCdsCommand(cacheDir: string | undefined, sourceRoot: string): st
   }
 
   // Final fallback: test remaining npx options
-  const fallbackCommands = ['npx -y --package @sap/cds cds', 'npx --yes @sap/cds-dk cds'];
+  const fallbackCommands = [createCdsCommands.npxCds(), createCdsCommands.npxCdsDk()];
 
   for (const command of fallbackCommands) {
     const result = testCdsCommand(command, sourceRoot, true);
     if (result.works) {
-      return command;
+      return command.originalCommand;
     }
   }
 
   // Return the default fallback even if it doesn't work, as tests expect this behavior
-  return 'npx -y --package @sap/cds-dk cds';
+  return createCdsCommands.npxCdsDk().originalCommand;
 }
 
 /**
@@ -143,15 +200,15 @@ function initializeCdsCommandCache(sourceRoot: string): void {
   cdsExtractorLog('info', 'Initializing CDS command cache...');
 
   // Test global commands first (most commonly used)
-  const globalCommands = ['cds', 'npx -y --package @sap/cds-dk cds'];
+  const globalCommands = [createCdsCommands.cds(), createCdsCommands.npxCdsDk()];
 
   for (const command of globalCommands) {
     const result = testCdsCommand(command, sourceRoot, true); // Silent testing
     if (result.works) {
-      cdsCommandCache.globalCommand = command;
+      cdsCommandCache.globalCommand = command.originalCommand;
       cdsExtractorLog(
         'info',
-        `Found working global CDS command: ${command} (v${result.version ?? 'unknown'})`,
+        `Found working global CDS command: ${command.originalCommand} (v${result.version ?? 'unknown'})`,
       );
       break;
     }
@@ -180,74 +237,61 @@ export function resetCdsCommandCache(): void {
 }
 
 /**
- * Check if a CDS command is available and working
- * @param command The command to test
+ * Check if a CDS command is available and working.
+ * @param validatedCommand The {@link ValidatedCdsCommand} instance for the command to test
  * @param sourceRoot The source root directory to use as cwd when testing the command
  * @param silent Whether to suppress logging of test failures
  * @returns Object with test result and version information
  */
 function testCdsCommand(
-  command: string,
+  validatedCommand: ValidatedCdsCommand,
   sourceRoot: string,
   silent: boolean = false,
 ): { works: boolean; version?: string; error?: string } {
+  const cacheKey = validatedCommand.originalCommand;
+
   // Check cache first
-  const cachedResult = cdsCommandCache.commandResults.get(command);
+  const cachedResult = cdsCommandCache.commandResults.get(cacheKey);
   if (cachedResult) {
     return cachedResult;
   }
 
   try {
-    // Try to run the command with --version to see if it works
-    // CRITICAL: Use sourceRoot as cwd and clean environment to avoid conflicts
-    let result: string;
-
+    // Run the validated `cds` command with `--version` to test if it works.
     const cleanEnv = {
       ...process.env,
-      // Remove any CodeQL-specific environment variables that might interfere
+      // Remove any CodeQL-specific environment variables that might interfere.
       CODEQL_EXTRACTOR_CDS_WIP_DATABASE: undefined,
       CODEQL_RUNNER: undefined,
     };
 
-    if (command.includes('node ')) {
-      // For node commands, we need to split and execute properly
-      const parts = command.split(' ');
-      const nodeExecutable = parts[0]; // 'node'
-      const scriptPath = parts[1].replace(/"/g, ''); // Remove quotes from path
-      result = execFileSync(nodeExecutable, [scriptPath, '--version'], {
+    const result = execFileSync(
+      validatedCommand.executable,
+      [...validatedCommand.args, '--version'],
+      {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 5000, // Reduced timeout for faster failure
+        timeout: DEFAULT_COMMAND_TIMEOUT_MS, // timeout after 10 seconds
         cwd: sourceRoot,
         env: cleanEnv,
-      }).toString();
-    } else {
-      // Use shell-quote to properly escape the command and prevent injection
-      const escapedCommand = quote([command, '--version']);
-      result = execFileSync('sh', ['-c', escapedCommand], {
-        encoding: 'utf8',
-        stdio: 'pipe',
-        timeout: 5000, // Reduced timeout for faster failure
-        cwd: sourceRoot,
-        env: cleanEnv,
-      }).toString();
-    }
+      },
+    ).toString();
 
     // Extract version from output (typically in format "@sap/cds-dk: 6.1.3" or just "6.1.3")
     const versionMatch = result.match(/(\d+\.\d+\.\d+)/);
     const version = versionMatch ? versionMatch[1] : undefined;
 
     const testResult = { works: true, version };
-    cdsCommandCache.commandResults.set(command, testResult);
+    cdsCommandCache.commandResults.set(cacheKey, testResult);
     return testResult;
   } catch (error) {
     const errorMessage = String(error);
     if (!silent) {
-      cdsExtractorLog('debug', `CDS command test failed for '${command}': ${errorMessage}`);
+      cdsExtractorLog('debug', `CDS command test failed for '${cacheKey}': ${errorMessage}`);
     }
 
     const testResult = { works: false, error: errorMessage };
-    cdsCommandCache.commandResults.set(command, testResult);
+    cdsCommandCache.commandResults.set(cacheKey, testResult);
     return testResult;
   }
 }

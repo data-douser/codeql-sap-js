@@ -1,6 +1,5 @@
-import { determineCdsCommand } from '../../../../src/cds/compiler/command';
+import { determineCdsCommand, orchestrateCompilation } from '../../../../src/cds/compiler';
 import { compileCdsToJson } from '../../../../src/cds/compiler/compile';
-import { orchestrateCompilation } from '../../../../src/cds/compiler/graph';
 import { CdsDependencyGraph, CdsProject } from '../../../../src/cds/parser/types';
 import { addCompilationDiagnostic } from '../../../../src/diagnostics';
 

@@ -70,7 +70,7 @@ describe('diagnostics', () => {
 
       // Mock error during execution
       (childProcess.execFileSync as jest.Mock).mockImplementation(() => {
-        throw new Error('Failed to add diagnostic');
+        throw new Error('Message: Failed to add diagnostic');
       });
 
       // Mock console.error
@@ -94,7 +94,7 @@ describe('diagnostics', () => {
   describe('addJavaScriptExtractorDiagnostic', () => {
     it('should add JavaScript extractor diagnostic successfully', () => {
       const filePath = '/path/to/source/root';
-      const errorMessage = 'JavaScript extractor failed';
+      const errorMessage = 'Message: JavaScript extractor failed';
       const codeqlExePath = '/path/to/codeql';
 
       // Mock process.env to include necessary environment variable
