@@ -88,6 +88,20 @@ export interface CompilationTask {
   dependencies: string[];
   /** Error summary if all attempts failed */
   errorSummary?: string;
+
+  /** Retry tracking information */
+  retryInfo?: {
+    /** Whether this task has been retried */
+    hasBeenRetried: boolean;
+    /** Retry attempt details */
+    retryAttempt?: CompilationAttempt;
+    /** Reason for retry */
+    retryReason?: string;
+    /** Full dependency installation status */
+    fullDependenciesInstalled?: boolean;
+    /** Timestamp when retry was initiated */
+    retryTimestamp?: Date;
+  };
 }
 
 /** Validated CDS command descriptor. */

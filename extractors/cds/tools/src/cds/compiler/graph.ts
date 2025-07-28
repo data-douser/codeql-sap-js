@@ -1,7 +1,7 @@
 import { determineCdsCommand } from './command';
 import { compileCdsToJson } from './compile';
+import { orchestrateRetryAttempts } from './retry';
 import { CompilationAttempt, CompilationTask, CompilationConfig } from './types';
-import { addCompilationDiagnostic } from '../../diagnostics';
 import { cdsExtractorLog, generateStatusReport } from '../../logging';
 import { CdsDependencyGraph, CdsProject } from '../parser/types';
 
@@ -127,7 +127,7 @@ function executeCompilationTask(
   task: CompilationTask,
   project: CdsProject,
   dependencyGraph: CdsDependencyGraph,
-  codeqlExePath: string,
+  _codeqlExePath: string,
 ): void {
   task.status = 'in_progress';
 
@@ -158,10 +158,8 @@ function executeCompilationTask(
   task.errorSummary = lastError?.message || 'Compilation failed';
   dependencyGraph.statusSummary.failedCompilations++;
 
-  // Add diagnostic for failed compilation
-  for (const sourceFile of task.sourceFiles) {
-    addCompilationDiagnostic(sourceFile, task.errorSummary, codeqlExePath);
-  }
+  // Note: Diagnostics are deferred until after retry phase completes
+  // to implement "Silent Success" - only add diagnostics for definitively failed tasks
 
   cdsExtractorLog('error', `Compilation failed for task ${task.id}: ${task.errorSummary}`);
 }
@@ -252,11 +250,29 @@ export function orchestrateCompilation(
   codeqlExePath: string,
 ): void {
   try {
+    // Phase 1: Initial compilation
     planCompilationTasks(dependencyGraph, projectCacheDirMap);
-
     executeCompilationTasks(dependencyGraph, codeqlExePath);
 
-    // Update overall status
+    // Phase 2: Retry orchestration
+    cdsExtractorLog('info', 'Starting retry orchestration phase...');
+    const retryResults = orchestrateRetryAttempts(
+      dependencyGraph,
+      projectCacheDirMap,
+      codeqlExePath,
+    );
+
+    // Log retry results
+    if (retryResults.totalTasksRequiringRetry > 0) {
+      cdsExtractorLog(
+        'info',
+        `Retry phase completed: ${retryResults.totalTasksRequiringRetry} tasks retried, ${retryResults.totalSuccessfulRetries} successful, ${retryResults.totalFailedRetries} failed`,
+      );
+    } else {
+      cdsExtractorLog('info', 'Retry phase completed: no tasks required retry');
+    }
+
+    // Phase 3: Final status update
     const hasFailures =
       dependencyGraph.statusSummary.failedCompilations > 0 ||
       dependencyGraph.errors.critical.length > 0;

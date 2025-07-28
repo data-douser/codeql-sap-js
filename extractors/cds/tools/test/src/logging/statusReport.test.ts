@@ -66,6 +66,13 @@ describe('generateStatusReport', () => {
         critical: [],
         warnings: [],
       },
+      retryStatus: {
+        totalTasksRequiringRetry: 0,
+        totalTasksSuccessfullyRetried: 0,
+        totalRetryAttempts: 0,
+        projectsRequiringFullDependencies: new Set<string>(),
+        projectsWithFullDependencies: new Set<string>(),
+      },
     };
   });
 

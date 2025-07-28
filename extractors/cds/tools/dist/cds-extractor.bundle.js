@@ -24,7 +24,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // cds-extractor.ts
-var import_path12 = require("path");
+var import_path14 = require("path");
 
 // node_modules/@isaacs/balanced-match/dist/esm/index.js
 var balanced = (a, b, str) => {
@@ -6744,6 +6744,21 @@ function generateStatusReport(dependencyGraph2) {
   lines.push(`  Failed: ${summary.failedCompilations}`);
   lines.push(`  Skipped: ${summary.skippedCompilations}`);
   lines.push("");
+  if (dependencyGraph2.retryStatus.totalTasksRequiringRetry > 0) {
+    lines.push("RETRY SUMMARY:");
+    lines.push(`  Tasks Requiring Retry: ${dependencyGraph2.retryStatus.totalTasksRequiringRetry}`);
+    lines.push(
+      `  Tasks Successfully Retried: ${dependencyGraph2.retryStatus.totalTasksSuccessfullyRetried}`
+    );
+    lines.push(`  Total Retry Attempts: ${dependencyGraph2.retryStatus.totalRetryAttempts}`);
+    lines.push(
+      `  Projects Requiring Full Dependencies: ${dependencyGraph2.retryStatus.projectsRequiringFullDependencies.size}`
+    );
+    lines.push(
+      `  Projects with Full Dependencies: ${dependencyGraph2.retryStatus.projectsWithFullDependencies.size}`
+    );
+    lines.push("");
+  }
   lines.push("PERFORMANCE:");
   lines.push(`  Total Duration: ${summary.performance.totalDurationMs}ms`);
   lines.push(`  Parsing: ${summary.performance.parsingDurationMs}ms`);
@@ -7302,12 +7317,247 @@ function shouldUseProjectLevelCompilation(project) {
   return project?.cdsFilesToCompile?.includes("__PROJECT_LEVEL_COMPILATION__") ?? false;
 }
 
-// src/diagnostics.ts
+// src/cds/compiler/installer.ts
 var import_child_process4 = require("child_process");
+var import_fs4 = require("fs");
 var import_path5 = require("path");
+function installFullDependencies(project, sourceRoot2, _codeqlExePath) {
+  const startTime = Date.now();
+  const result = {
+    success: false,
+    retryCacheDir: "",
+    warnings: [],
+    durationMs: 0,
+    timedOut: false
+  };
+  try {
+    const retryCacheDir = createRetryCacheDirectory(project, sourceRoot2);
+    result.retryCacheDir = retryCacheDir;
+    if (!createPackageJsonForRetry(project, sourceRoot2, retryCacheDir)) {
+      result.error = "Failed to create package.json for retry";
+      return result;
+    }
+    cdsExtractorLog(
+      "info",
+      `Installing full dependencies for project ${project.projectDir} in retry cache directory`
+    );
+    try {
+      (0, import_child_process4.execFileSync)("npm", ["install", "--quiet", "--no-audit", "--no-fund"], {
+        cwd: retryCacheDir,
+        stdio: "inherit",
+        timeout: 12e4
+        // 2-minute timeout
+      });
+      result.success = true;
+      cdsExtractorLog(
+        "info",
+        `Successfully installed full dependencies for project ${project.projectDir}`
+      );
+    } catch (execError) {
+      if (execError instanceof Error && "signal" in execError && execError.signal === "SIGTERM") {
+        result.timedOut = true;
+        result.error = "Dependency installation timed out";
+      } else {
+        result.error = `npm install failed: ${String(execError)}`;
+      }
+      result.warnings.push(
+        `Dependency installation failed but will still attempt retry compilation: ${result.error}`
+      );
+      cdsExtractorLog("warn", result.warnings[0]);
+    }
+  } catch (error) {
+    result.error = `Failed to install full dependencies: ${String(error)}`;
+    cdsExtractorLog("error", result.error);
+  } finally {
+    result.durationMs = Date.now() - startTime;
+  }
+  return result;
+}
+function needsFullDependencyInstallation(project) {
+  if (project.retryStatus?.fullDependenciesInstalled) {
+    return false;
+  }
+  const hasFailedTasks = project.compilationTasks.some(
+    (task) => task.status === "failed" && !task.retryInfo?.hasBeenRetried
+  );
+  return hasFailedTasks && project.packageJson !== void 0;
+}
+function createRetryCacheDirectory(project, sourceRoot2) {
+  const cacheSubDirName2 = ".cds-extractor-cache";
+  const cacheRootDir = (0, import_path5.join)(sourceRoot2, cacheSubDirName2);
+  const projectHash = Buffer.from(project.projectDir).toString("base64").replace(/[/+=]/g, "_");
+  const timestamp = Date.now();
+  const retryCacheDirName = `retry-${projectHash}-${timestamp}`;
+  const retryCacheDir = (0, import_path5.join)(cacheRootDir, retryCacheDirName);
+  if (!(0, import_fs4.existsSync)(cacheRootDir)) {
+    try {
+      (0, import_fs4.mkdirSync)(cacheRootDir, { recursive: true });
+      cdsExtractorLog("info", `Created cache root directory: ${cacheRootDir}`);
+    } catch (error) {
+      throw new Error(`Failed to create cache root directory: ${String(error)}`);
+    }
+  }
+  try {
+    (0, import_fs4.mkdirSync)(retryCacheDir, { recursive: true });
+    cdsExtractorLog("info", `Created retry cache directory: ${retryCacheDirName}`);
+  } catch (error) {
+    throw new Error(`Failed to create retry cache directory: ${String(error)}`);
+  }
+  return retryCacheDir;
+}
+function createPackageJsonForRetry(project, sourceRoot2, retryCacheDir) {
+  if (!project.packageJson) {
+    cdsExtractorLog("warn", `No package.json found for project ${project.projectDir}`);
+    return false;
+  }
+  try {
+    const originalPackageLockPath = (0, import_path5.join)(sourceRoot2, project.projectDir, "package-lock.json");
+    let packageLockContent = void 0;
+    if ((0, import_fs4.existsSync)(originalPackageLockPath)) {
+      try {
+        const lockContent = (0, import_fs4.readFileSync)(originalPackageLockPath, "utf8");
+        packageLockContent = JSON.parse(lockContent);
+        cdsExtractorLog("info", `Found package-lock.json for project ${project.projectDir}`);
+      } catch (error) {
+        cdsExtractorLog(
+          "warn",
+          `Failed to read package-lock.json for project ${project.projectDir}: ${String(error)}`
+        );
+      }
+    }
+    const retryPackageJson = {
+      name: `${project.packageJson.name ?? "unknown"}-retry`,
+      version: project.packageJson.version ?? "1.0.0",
+      private: true,
+      dependencies: {
+        ...project.packageJson.dependencies ?? {},
+        ...project.packageJson.devDependencies ?? {}
+        // Include dev dependencies as dependencies
+      }
+    };
+    if (project.packageJson.engines) {
+      retryPackageJson.engines = project.packageJson.engines;
+    }
+    if (project.packageJson.peerDependencies) {
+      retryPackageJson.peerDependencies = project.packageJson.peerDependencies;
+    }
+    const packageJsonPath = (0, import_path5.join)(retryCacheDir, "package.json");
+    (0, import_fs4.writeFileSync)(packageJsonPath, JSON.stringify(retryPackageJson, null, 2));
+    cdsExtractorLog("info", `Created retry package.json for project ${project.projectDir}`);
+    if (packageLockContent) {
+      const packageLockPath = (0, import_path5.join)(retryCacheDir, "package-lock.json");
+      (0, import_fs4.writeFileSync)(packageLockPath, JSON.stringify(packageLockContent, null, 2));
+      cdsExtractorLog("info", `Copied package-lock.json for project ${project.projectDir}`);
+    }
+    return true;
+  } catch (error) {
+    cdsExtractorLog("error", `Failed to create package.json for retry: ${String(error)}`);
+    return false;
+  }
+}
+
+// src/cds/compiler/validator.ts
+var import_fs5 = require("fs");
+var import_path6 = require("path");
+function validateOutputFile(filePath) {
+  const result = {
+    isValid: false,
+    filePath,
+    exists: false
+  };
+  if (!fileExists(filePath)) {
+    result.error = "File does not exist";
+    return result;
+  }
+  result.exists = true;
+  if (filePath.endsWith(".cds.json") || filePath.endsWith(".json")) {
+    try {
+      const content = (0, import_fs5.readFileSync)(filePath, "utf8");
+      if (!content.trim()) {
+        result.error = "File is empty";
+        return result;
+      }
+      const parsed = JSON.parse(content);
+      if (typeof parsed !== "object" || parsed === null) {
+        result.error = "File does not contain a valid JSON object";
+        return result;
+      }
+      result.hasValidJson = true;
+      result.isValid = true;
+    } catch (error) {
+      result.error = `Invalid JSON content: ${String(error)}`;
+      return result;
+    }
+  } else {
+    result.isValid = true;
+  }
+  return result;
+}
+function validateTaskOutputs(task, sourceRoot2) {
+  const fileResults = [];
+  for (const expectedOutput of task.expectedOutputFiles) {
+    const absolutePath = (0, import_path6.isAbsolute)(expectedOutput) ? expectedOutput : (0, import_path6.join)(sourceRoot2, expectedOutput);
+    const fileResult = validateOutputFile(absolutePath);
+    fileResults.push(fileResult);
+  }
+  const validFileCount = fileResults.filter((r) => r.isValid).length;
+  const expectedFileCount = task.expectedOutputFiles.length;
+  const isValid = validFileCount === expectedFileCount && expectedFileCount > 0;
+  return {
+    isValid,
+    task,
+    fileResults,
+    validFileCount,
+    expectedFileCount
+  };
+}
+function identifyTasksRequiringRetry(dependencyGraph2) {
+  const tasksRequiringRetry = /* @__PURE__ */ new Map();
+  for (const [projectDir, project] of dependencyGraph2.projects.entries()) {
+    const failedTasks = [];
+    for (const task of project.compilationTasks) {
+      if (task.retryInfo?.hasBeenRetried) {
+        continue;
+      }
+      const validationResult2 = validateTaskOutputs(task, dependencyGraph2.sourceRootDir);
+      if (!validationResult2.isValid) {
+        failedTasks.push(task);
+        cdsExtractorLog(
+          "info",
+          `Task ${task.id} requires retry: ${validationResult2.validFileCount}/${validationResult2.expectedFileCount} output files valid (status: ${task.status})`
+        );
+        if (task.status === "success") {
+          cdsExtractorLog(
+            "warn",
+            `Task ${task.id} was marked as successful but output files are missing or invalid - updating status to failed`
+          );
+          task.status = "failed";
+        }
+      }
+    }
+    if (failedTasks.length > 0) {
+      tasksRequiringRetry.set(projectDir, failedTasks);
+    }
+  }
+  if (tasksRequiringRetry.size > 0) {
+    const totalFailedTasks = Array.from(tasksRequiringRetry.values()).reduce(
+      (sum, tasks) => sum + tasks.length,
+      0
+    );
+    cdsExtractorLog(
+      "info",
+      `Identified ${totalFailedTasks} task(s) requiring retry across ${tasksRequiringRetry.size} project(s)`
+    );
+  }
+  return tasksRequiringRetry;
+}
+
+// src/diagnostics.ts
+var import_child_process5 = require("child_process");
+var import_path7 = require("path");
 function addDiagnostic(filePath, message, codeqlExePath2, sourceId, sourceName, severity, logPrefix) {
   try {
-    (0, import_child_process4.execFileSync)(codeqlExePath2, [
+    (0, import_child_process5.execFileSync)(codeqlExePath2, [
       "database",
       "add-diagnostic",
       "--extractor-name=cds",
@@ -7316,7 +7566,7 @@ function addDiagnostic(filePath, message, codeqlExePath2, sourceId, sourceName, 
       `--source-name=${sourceName}`,
       `--severity=${severity}`,
       `--markdown-message=${message}`,
-      `--file-path=${(0, import_path5.resolve)(filePath)}`,
+      `--file-path=${(0, import_path7.resolve)(filePath)}`,
       "--",
       `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE ?? ""}`
     ]);
@@ -7351,6 +7601,266 @@ function addJavaScriptExtractorDiagnostic(filePath, errorMessage, codeqlExePath2
     "error" /* Error */,
     "extraction file"
   );
+}
+
+// src/cds/compiler/retry.ts
+function orchestrateRetryAttempts(dependencyGraph2, baseProjectCacheDirMap, codeqlExePath2) {
+  const startTime = Date.now();
+  let dependencyInstallationStartTime = 0;
+  let dependencyInstallationEndTime = 0;
+  let retryCompilationStartTime = 0;
+  let retryCompilationEndTime = 0;
+  const result = {
+    success: true,
+    projectsWithRetries: [],
+    totalTasksRequiringRetry: 0,
+    totalSuccessfulRetries: 0,
+    totalFailedRetries: 0,
+    projectsWithSuccessfulDependencyInstallation: [],
+    projectsWithFailedDependencyInstallation: [],
+    retryDurationMs: 0,
+    dependencyInstallationDurationMs: 0,
+    retryCompilationDurationMs: 0
+  };
+  try {
+    cdsExtractorLog("info", "Identifying tasks requiring retry...");
+    const tasksRequiringRetry = identifyTasksRequiringRetry(dependencyGraph2);
+    if (tasksRequiringRetry.size === 0) {
+      cdsExtractorLog("info", "No tasks require retry - all compilations successful");
+      return result;
+    }
+    result.totalTasksRequiringRetry = Array.from(tasksRequiringRetry.values()).reduce(
+      (sum, tasks) => sum + tasks.length,
+      0
+    );
+    dependencyGraph2.retryStatus.totalTasksRequiringRetry = result.totalTasksRequiringRetry;
+    cdsExtractorLog("info", "Installing full dependencies for projects requiring retry...");
+    dependencyInstallationStartTime = Date.now();
+    for (const [projectDir, failedTasks] of tasksRequiringRetry) {
+      const project = dependencyGraph2.projects.get(projectDir);
+      if (!project) {
+        continue;
+      }
+      if (needsFullDependencyInstallation(project)) {
+        try {
+          const installResult = installFullDependencies(
+            project,
+            dependencyGraph2.sourceRootDir,
+            codeqlExePath2
+          );
+          project.retryStatus ??= {
+            fullDependenciesInstalled: false,
+            tasksRequiringRetry: failedTasks.length,
+            tasksRetried: 0,
+            installationErrors: []
+          };
+          if (installResult.success) {
+            project.retryStatus.fullDependenciesInstalled = true;
+            project.fullDependencyCacheDir = installResult.retryCacheDir;
+            result.projectsWithSuccessfulDependencyInstallation.push(projectDir);
+            dependencyGraph2.retryStatus.projectsWithFullDependencies.add(projectDir);
+          } else {
+            project.retryStatus.installationErrors = [
+              ...project.retryStatus.installationErrors ?? [],
+              installResult.error ?? "Unknown installation error"
+            ];
+            result.projectsWithFailedDependencyInstallation.push(projectDir);
+          }
+          if (installResult.warnings.length > 0) {
+            for (const warning of installResult.warnings) {
+              dependencyGraph2.errors.warnings.push({
+                phase: "retry_dependency_installation",
+                message: warning,
+                timestamp: /* @__PURE__ */ new Date(),
+                context: projectDir
+              });
+            }
+          }
+        } catch (error) {
+          const errorMessage = `Failed to install full dependencies for project ${projectDir}: ${String(error)}`;
+          cdsExtractorLog("error", errorMessage);
+          dependencyGraph2.errors.critical.push({
+            phase: "retry_dependency_installation",
+            message: errorMessage,
+            timestamp: /* @__PURE__ */ new Date()
+          });
+          result.projectsWithFailedDependencyInstallation.push(projectDir);
+        }
+      }
+      dependencyGraph2.retryStatus.projectsRequiringFullDependencies.add(projectDir);
+    }
+    dependencyInstallationEndTime = Date.now();
+    result.dependencyInstallationDurationMs = dependencyInstallationEndTime - dependencyInstallationStartTime;
+    cdsExtractorLog("info", "Executing retry compilation attempts...");
+    retryCompilationStartTime = Date.now();
+    for (const [projectDir, failedTasks] of tasksRequiringRetry) {
+      const project = dependencyGraph2.projects.get(projectDir);
+      if (!project) {
+        continue;
+      }
+      const retryExecutionResult = executeRetryCompilation(
+        failedTasks,
+        project,
+        dependencyGraph2,
+        baseProjectCacheDirMap,
+        codeqlExePath2
+      );
+      result.projectsWithRetries.push(projectDir);
+      result.totalSuccessfulRetries += retryExecutionResult.successfulRetries;
+      result.totalFailedRetries += retryExecutionResult.failedRetries;
+      if (project.retryStatus) {
+        project.retryStatus.tasksRetried = retryExecutionResult.retriedTasks.length;
+      }
+    }
+    retryCompilationEndTime = Date.now();
+    result.retryCompilationDurationMs = retryCompilationEndTime - retryCompilationStartTime;
+    updateDependencyGraphWithRetryResults(dependencyGraph2, result);
+    addDiagnosticsForFailedTasks(dependencyGraph2, codeqlExePath2);
+    result.success = result.totalSuccessfulRetries > 0 || result.totalTasksRequiringRetry === 0;
+  } catch (error) {
+    const errorMessage = `Retry orchestration failed: ${String(error)}`;
+    cdsExtractorLog("error", errorMessage);
+    dependencyGraph2.errors.critical.push({
+      phase: "retry_orchestration",
+      message: errorMessage,
+      timestamp: /* @__PURE__ */ new Date()
+    });
+    result.success = false;
+  } finally {
+    result.retryDurationMs = Date.now() - startTime;
+  }
+  return result;
+}
+function executeRetryCompilation(tasksToRetry, project, dependencyGraph2, baseProjectCacheDirMap, _codeqlExePath) {
+  const startTime = Date.now();
+  const result = {
+    projectDir: project.projectDir,
+    retriedTasks: [],
+    successfulRetries: 0,
+    failedRetries: 0,
+    fullDependenciesAvailable: Boolean(project.fullDependencyCacheDir),
+    executionDurationMs: 0,
+    retryErrors: []
+  };
+  const cacheDir = project.fullDependencyCacheDir ?? baseProjectCacheDirMap.get(project.projectDir);
+  const cdsCommand = determineCdsCommand(cacheDir, dependencyGraph2.sourceRootDir);
+  cdsExtractorLog(
+    "info",
+    `Retrying ${tasksToRetry.length} task(s) for project ${project.projectDir} using ${result.fullDependenciesAvailable ? "full" : "minimal"} dependencies`
+  );
+  for (const task of tasksToRetry) {
+    try {
+      task.retryInfo = {
+        hasBeenRetried: true,
+        retryReason: "Output validation failed",
+        fullDependenciesInstalled: result.fullDependenciesAvailable,
+        retryTimestamp: /* @__PURE__ */ new Date()
+      };
+      const retryAttempt = attemptRetryCompilation(task, cdsCommand, cacheDir, dependencyGraph2);
+      task.retryInfo.retryAttempt = retryAttempt;
+      task.attempts.push(retryAttempt);
+      result.retriedTasks.push(task);
+      if (retryAttempt.result.success) {
+        task.status = "success";
+        result.successfulRetries++;
+        cdsExtractorLog("info", `Retry successful for task ${task.id}`);
+      } else {
+        task.status = "failed";
+        task.errorSummary = retryAttempt.error?.message ?? "Retry compilation failed";
+        result.failedRetries++;
+        result.retryErrors.push(task.errorSummary);
+        cdsExtractorLog("warn", `Retry failed for task ${task.id}: ${task.errorSummary}`);
+      }
+    } catch (error) {
+      const errorMessage = `Failed to retry task ${task.id}: ${String(error)}`;
+      result.retryErrors.push(errorMessage);
+      result.failedRetries++;
+      task.status = "failed";
+      task.errorSummary = errorMessage;
+      cdsExtractorLog("error", errorMessage);
+    }
+  }
+  result.executionDurationMs = Date.now() - startTime;
+  cdsExtractorLog(
+    "info",
+    `Retry execution completed for project ${project.projectDir}: ${result.successfulRetries} successful, ${result.failedRetries} failed`
+  );
+  return result;
+}
+function updateDependencyGraphWithRetryResults(dependencyGraph2, retryResults) {
+  dependencyGraph2.retryStatus.totalTasksSuccessfullyRetried = retryResults.totalSuccessfulRetries;
+  dependencyGraph2.retryStatus.totalRetryAttempts = retryResults.totalSuccessfulRetries + retryResults.totalFailedRetries;
+  dependencyGraph2.statusSummary.successfulCompilations += retryResults.totalSuccessfulRetries;
+  dependencyGraph2.statusSummary.failedCompilations -= retryResults.totalSuccessfulRetries;
+  const hasFailures = dependencyGraph2.statusSummary.failedCompilations > 0 || dependencyGraph2.errors.critical.length > 0;
+  dependencyGraph2.statusSummary.overallSuccess = !hasFailures;
+}
+function addDiagnosticsForFailedTasks(dependencyGraph2, codeqlExePath2) {
+  for (const project of dependencyGraph2.projects.values()) {
+    for (const task of project.compilationTasks) {
+      if (task.status === "failed") {
+        const shouldAddDiagnostic = task.retryInfo?.hasBeenRetried ?? !task.retryInfo;
+        if (shouldAddDiagnostic) {
+          for (const sourceFile of task.sourceFiles) {
+            addCompilationDiagnostic(
+              sourceFile,
+              task.errorSummary ?? "Compilation failed",
+              codeqlExePath2
+            );
+          }
+        }
+      }
+    }
+  }
+}
+function attemptRetryCompilation(task, cdsCommand, cacheDir, dependencyGraph2) {
+  const attemptId = `${task.id}_retry_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+  const startTime = /* @__PURE__ */ new Date();
+  const attempt = {
+    id: attemptId,
+    cdsCommand,
+    cacheDir,
+    timestamp: startTime,
+    result: {
+      success: false,
+      timestamp: startTime
+    }
+  };
+  try {
+    const primarySourceFile = task.sourceFiles[0];
+    const compilationResult = compileCdsToJson(
+      primarySourceFile,
+      dependencyGraph2.sourceRootDir,
+      cdsCommand,
+      cacheDir,
+      // Convert CDS projects to BasicCdsProject format expected by compileCdsToJson
+      new Map(
+        Array.from(dependencyGraph2.projects.entries()).map(([key, value]) => [
+          key,
+          {
+            cdsFiles: value.cdsFiles,
+            cdsFilesToCompile: value.cdsFilesToCompile,
+            expectedOutputFiles: value.expectedOutputFiles,
+            projectDir: value.projectDir,
+            dependencies: value.dependencies,
+            imports: value.imports,
+            packageJson: value.packageJson
+          }
+        ])
+      ),
+      task.projectDir
+    );
+    attempt.result = {
+      ...compilationResult,
+      timestamp: startTime
+    };
+  } catch (error) {
+    attempt.error = {
+      message: String(error),
+      stack: error instanceof Error ? error.stack : void 0
+    };
+  }
+  return attempt;
 }
 
 // src/cds/compiler/graph.ts
@@ -7440,7 +7950,7 @@ function createCompilationConfig(cdsCommand, cacheDir, useProjectLevel) {
     maxRetryAttempts: 3
   };
 }
-function executeCompilationTask(task, project, dependencyGraph2, codeqlExePath2) {
+function executeCompilationTask(task, project, dependencyGraph2, _codeqlExePath) {
   task.status = "in_progress";
   const config = project.enhancedCompilationConfig;
   if (!config) {
@@ -7461,9 +7971,6 @@ function executeCompilationTask(task, project, dependencyGraph2, codeqlExePath2)
   task.status = "failed";
   task.errorSummary = lastError?.message || "Compilation failed";
   dependencyGraph2.statusSummary.failedCompilations++;
-  for (const sourceFile of task.sourceFiles) {
-    addCompilationDiagnostic(sourceFile, task.errorSummary, codeqlExePath2);
-  }
   cdsExtractorLog("error", `Compilation failed for task ${task.id}: ${task.errorSummary}`);
 }
 function executeCompilationTasks(dependencyGraph2, codeqlExePath2) {
@@ -7515,6 +8022,20 @@ function orchestrateCompilation(dependencyGraph2, projectCacheDirMap2, codeqlExe
   try {
     planCompilationTasks(dependencyGraph2, projectCacheDirMap2);
     executeCompilationTasks(dependencyGraph2, codeqlExePath2);
+    cdsExtractorLog("info", "Starting retry orchestration phase...");
+    const retryResults = orchestrateRetryAttempts(
+      dependencyGraph2,
+      projectCacheDirMap2,
+      codeqlExePath2
+    );
+    if (retryResults.totalTasksRequiringRetry > 0) {
+      cdsExtractorLog(
+        "info",
+        `Retry phase completed: ${retryResults.totalTasksRequiringRetry} tasks retried, ${retryResults.totalSuccessfulRetries} successful, ${retryResults.totalFailedRetries} failed`
+      );
+    } else {
+      cdsExtractorLog("info", "Retry phase completed: no tasks required retry");
+    }
     const hasFailures = dependencyGraph2.statusSummary.failedCompilations > 0 || dependencyGraph2.errors.critical.length > 0;
     dependencyGraph2.statusSummary.overallSuccess = !hasFailures;
     dependencyGraph2.currentPhase = hasFailures ? "failed" : "completed";
@@ -7598,14 +8119,14 @@ function planCompilationTasks(dependencyGraph2, projectCacheDirMap2) {
 }
 
 // src/cds/compiler/project.ts
-var import_path6 = require("path");
-
-// src/cds/parser/graph.ts
 var import_path8 = require("path");
 
+// src/cds/parser/graph.ts
+var import_path10 = require("path");
+
 // src/cds/parser/functions.ts
-var import_fs4 = require("fs");
-var import_path7 = require("path");
+var import_fs6 = require("fs");
+var import_path9 = require("path");
 function determineCdsFilesForProjectDir(sourceRootDir, projectDir) {
   if (!sourceRootDir || !projectDir) {
     throw new Error(
@@ -7620,35 +8141,35 @@ function determineCdsFilesForProjectDir(sourceRootDir, projectDir) {
     );
   }
   try {
-    const cdsFiles = sync((0, import_path7.join)(projectDir, "**/*.cds"), {
+    const cdsFiles = sync((0, import_path9.join)(projectDir, "**/*.cds"), {
       nodir: true,
       ignore: ["**/node_modules/**", "**/*.testproj/**"]
     });
-    return cdsFiles.map((file) => (0, import_path7.relative)(sourceRootDir, file));
+    return cdsFiles.map((file) => (0, import_path9.relative)(sourceRootDir, file));
   } catch (error) {
     cdsExtractorLog("error", `Error finding CDS files in ${projectDir}: ${String(error)}`);
     return [];
   }
 }
 function determineCdsProjectsUnderSourceDir(sourceRootDir) {
-  if (!sourceRootDir || !(0, import_fs4.existsSync)(sourceRootDir)) {
+  if (!sourceRootDir || !(0, import_fs6.existsSync)(sourceRootDir)) {
     throw new Error(`Source root directory '${sourceRootDir}' does not exist.`);
   }
   const foundProjects = /* @__PURE__ */ new Set();
-  const packageJsonFiles = sync((0, import_path7.join)(sourceRootDir, "**/package.json"), {
+  const packageJsonFiles = sync((0, import_path9.join)(sourceRootDir, "**/package.json"), {
     nodir: true,
     ignore: ["**/node_modules/**", "**/*.testproj/**"]
   });
-  const cdsFiles = sync((0, import_path7.join)(sourceRootDir, "**/*.cds"), {
+  const cdsFiles = sync((0, import_path9.join)(sourceRootDir, "**/*.cds"), {
     nodir: true,
     ignore: ["**/node_modules/**", "**/*.testproj/**"]
   });
   const candidateDirectories = /* @__PURE__ */ new Set();
   for (const packageJsonFile of packageJsonFiles) {
-    candidateDirectories.add((0, import_path7.dirname)(packageJsonFile));
+    candidateDirectories.add((0, import_path9.dirname)(packageJsonFile));
   }
   for (const cdsFile of cdsFiles) {
-    const cdsDir = (0, import_path7.dirname)(cdsFile);
+    const cdsDir = (0, import_path9.dirname)(cdsFile);
     const projectRoot = findProjectRootFromCdsFile(cdsDir, sourceRootDir);
     if (projectRoot) {
       candidateDirectories.add(projectRoot);
@@ -7658,14 +8179,14 @@ function determineCdsProjectsUnderSourceDir(sourceRootDir) {
   }
   for (const dir of candidateDirectories) {
     if (isLikelyCdsProject(dir)) {
-      const relativePath = (0, import_path7.relative)(sourceRootDir, dir);
+      const relativePath = (0, import_path9.relative)(sourceRootDir, dir);
       const projectDir = relativePath || ".";
       let shouldAdd = true;
       const existingProjects = Array.from(foundProjects);
       for (const existingProject of existingProjects) {
-        const existingAbsPath = (0, import_path7.join)(sourceRootDir, existingProject);
-        if (dir.startsWith(existingAbsPath + import_path7.sep)) {
-          const parentPackageJsonPath = (0, import_path7.join)(existingAbsPath, "package.json");
+        const existingAbsPath = (0, import_path9.join)(sourceRootDir, existingProject);
+        if (dir.startsWith(existingAbsPath + import_path9.sep)) {
+          const parentPackageJsonPath = (0, import_path9.join)(existingAbsPath, "package.json");
           const parentPackageJson = readPackageJsonFile(parentPackageJsonPath);
           const isParentMonorepo = parentPackageJson?.workspaces && Array.isArray(parentPackageJson.workspaces) && parentPackageJson.workspaces.length > 0;
           if (isParentMonorepo && (hasStandardCdsContent(existingAbsPath) || hasDirectCdsContent(existingAbsPath))) {
@@ -7675,8 +8196,8 @@ function determineCdsProjectsUnderSourceDir(sourceRootDir) {
           }
           break;
         }
-        if (existingAbsPath.startsWith(dir + import_path7.sep)) {
-          const currentPackageJsonPath = (0, import_path7.join)(dir, "package.json");
+        if (existingAbsPath.startsWith(dir + import_path9.sep)) {
+          const currentPackageJsonPath = (0, import_path9.join)(dir, "package.json");
           const currentPackageJson = readPackageJsonFile(currentPackageJsonPath);
           const isCurrentMonorepo = currentPackageJson?.workspaces && Array.isArray(currentPackageJson.workspaces) && currentPackageJson.workspaces.length > 0;
           if (!(isCurrentMonorepo && isLikelyCdsProject(existingAbsPath))) {
@@ -7692,10 +8213,10 @@ function determineCdsProjectsUnderSourceDir(sourceRootDir) {
   return Array.from(foundProjects).sort();
 }
 function extractCdsImports(filePath) {
-  if (!(0, import_fs4.existsSync)(filePath)) {
+  if (!(0, import_fs6.existsSync)(filePath)) {
     throw new Error(`File does not exist: ${filePath}`);
   }
-  const content = (0, import_fs4.readFileSync)(filePath, "utf8");
+  const content = (0, import_fs6.readFileSync)(filePath, "utf8");
   const imports = [];
   const usingRegex = /using\s+(?:{[^}]+}|[\w.]+(?:\s+as\s+[\w.]+)?)\s+from\s+['"`]([^'"`]+)['"`]\s*;/g;
   let match2;
@@ -7717,32 +8238,32 @@ function findProjectRootFromCdsFile(cdsFileDir, sourceRootDir) {
   let currentDir = cdsFileDir;
   while (currentDir.startsWith(sourceRootDir)) {
     if (isLikelyCdsProject(currentDir)) {
-      const currentDirName = (0, import_path7.basename)(currentDir);
+      const currentDirName = (0, import_path9.basename)(currentDir);
       const isStandardSubdir = ["srv", "db", "app"].includes(currentDirName);
       if (isStandardSubdir) {
-        const parentDir3 = (0, import_path7.dirname)(currentDir);
+        const parentDir3 = (0, import_path9.dirname)(currentDir);
         if (parentDir3 !== currentDir && parentDir3.startsWith(sourceRootDir) && !parentDir3.includes("node_modules") && !parentDir3.includes(".testproj") && isLikelyCdsProject(parentDir3)) {
           return parentDir3;
         }
       }
-      const parentDir2 = (0, import_path7.dirname)(currentDir);
+      const parentDir2 = (0, import_path9.dirname)(currentDir);
       if (parentDir2 !== currentDir && parentDir2.startsWith(sourceRootDir) && !parentDir2.includes("node_modules") && !parentDir2.includes(".testproj")) {
-        const hasDbDir2 = (0, import_fs4.existsSync)((0, import_path7.join)(parentDir2, "db")) && (0, import_fs4.statSync)((0, import_path7.join)(parentDir2, "db")).isDirectory();
-        const hasSrvDir2 = (0, import_fs4.existsSync)((0, import_path7.join)(parentDir2, "srv")) && (0, import_fs4.statSync)((0, import_path7.join)(parentDir2, "srv")).isDirectory();
-        const hasAppDir2 = (0, import_fs4.existsSync)((0, import_path7.join)(parentDir2, "app")) && (0, import_fs4.statSync)((0, import_path7.join)(parentDir2, "app")).isDirectory();
+        const hasDbDir2 = (0, import_fs6.existsSync)((0, import_path9.join)(parentDir2, "db")) && (0, import_fs6.statSync)((0, import_path9.join)(parentDir2, "db")).isDirectory();
+        const hasSrvDir2 = (0, import_fs6.existsSync)((0, import_path9.join)(parentDir2, "srv")) && (0, import_fs6.statSync)((0, import_path9.join)(parentDir2, "srv")).isDirectory();
+        const hasAppDir2 = (0, import_fs6.existsSync)((0, import_path9.join)(parentDir2, "app")) && (0, import_fs6.statSync)((0, import_path9.join)(parentDir2, "app")).isDirectory();
         if (hasDbDir2 && hasSrvDir2 || hasSrvDir2 && hasAppDir2) {
           return parentDir2;
         }
       }
       return currentDir;
     }
-    const hasDbDir = (0, import_fs4.existsSync)((0, import_path7.join)(currentDir, "db")) && (0, import_fs4.statSync)((0, import_path7.join)(currentDir, "db")).isDirectory();
-    const hasSrvDir = (0, import_fs4.existsSync)((0, import_path7.join)(currentDir, "srv")) && (0, import_fs4.statSync)((0, import_path7.join)(currentDir, "srv")).isDirectory();
-    const hasAppDir = (0, import_fs4.existsSync)((0, import_path7.join)(currentDir, "app")) && (0, import_fs4.statSync)((0, import_path7.join)(currentDir, "app")).isDirectory();
+    const hasDbDir = (0, import_fs6.existsSync)((0, import_path9.join)(currentDir, "db")) && (0, import_fs6.statSync)((0, import_path9.join)(currentDir, "db")).isDirectory();
+    const hasSrvDir = (0, import_fs6.existsSync)((0, import_path9.join)(currentDir, "srv")) && (0, import_fs6.statSync)((0, import_path9.join)(currentDir, "srv")).isDirectory();
+    const hasAppDir = (0, import_fs6.existsSync)((0, import_path9.join)(currentDir, "app")) && (0, import_fs6.statSync)((0, import_path9.join)(currentDir, "app")).isDirectory();
     if (hasDbDir && hasSrvDir || hasSrvDir && hasAppDir) {
       return currentDir;
     }
-    const parentDir = (0, import_path7.dirname)(currentDir);
+    const parentDir = (0, import_path9.dirname)(currentDir);
     if (parentDir === currentDir) {
       break;
     }
@@ -7763,7 +8284,7 @@ function isLikelyCdsProject(dir) {
       if (!hasCdsFiles) {
         return false;
       }
-      const packageJsonPath = (0, import_path7.join)(dir, "package.json");
+      const packageJsonPath = (0, import_path9.join)(dir, "package.json");
       const packageJson = readPackageJsonFile(packageJsonPath);
       if (packageJson?.workspaces && Array.isArray(packageJson.workspaces) && packageJson.workspaces.length > 0) {
         if (!hasCdsFiles) {
@@ -7779,10 +8300,10 @@ function isLikelyCdsProject(dir) {
   }
 }
 function hasStandardCdsContent(dir) {
-  const standardLocations = [(0, import_path7.join)(dir, "db"), (0, import_path7.join)(dir, "srv"), (0, import_path7.join)(dir, "app")];
+  const standardLocations = [(0, import_path9.join)(dir, "db"), (0, import_path9.join)(dir, "srv"), (0, import_path9.join)(dir, "app")];
   for (const location of standardLocations) {
-    if ((0, import_fs4.existsSync)(location) && (0, import_fs4.statSync)(location).isDirectory()) {
-      const cdsFiles = sync((0, import_path7.join)(location, "**/*.cds"), { nodir: true });
+    if ((0, import_fs6.existsSync)(location) && (0, import_fs6.statSync)(location).isDirectory()) {
+      const cdsFiles = sync((0, import_path9.join)(location, "**/*.cds"), { nodir: true });
       if (cdsFiles.length > 0) {
         return true;
       }
@@ -7791,15 +8312,15 @@ function hasStandardCdsContent(dir) {
   return false;
 }
 function hasDirectCdsContent(dir) {
-  const directCdsFiles = sync((0, import_path7.join)(dir, "*.cds"));
+  const directCdsFiles = sync((0, import_path9.join)(dir, "*.cds"));
   return directCdsFiles.length > 0;
 }
 function readPackageJsonFile(filePath) {
-  if (!(0, import_fs4.existsSync)(filePath)) {
+  if (!(0, import_fs6.existsSync)(filePath)) {
     return void 0;
   }
   try {
-    const content = (0, import_fs4.readFileSync)(filePath, "utf8");
+    const content = (0, import_fs6.readFileSync)(filePath, "utf8");
     const packageJson = JSON.parse(content);
     return packageJson;
   } catch (error) {
@@ -7821,7 +8342,7 @@ function determineCdsFilesToCompile(sourceRootDir, project) {
       expectedOutputFiles: computeExpectedOutputFiles(filesToCompile, project.projectDir)
     };
   }
-  const absoluteProjectDir = (0, import_path7.join)(sourceRootDir, project.projectDir);
+  const absoluteProjectDir = (0, import_path9.join)(sourceRootDir, project.projectDir);
   const hasCapStructure = hasTypicalCapDirectoryStructure(project.cdsFiles);
   const hasCapDeps = hasPackageJsonWithCapDeps(absoluteProjectDir);
   if (project.cdsFiles.length > 1 && (hasCapStructure || hasCapDeps)) {
@@ -7842,8 +8363,8 @@ function determineCdsFilesToCompile(sourceRootDir, project) {
     const importedFiles = /* @__PURE__ */ new Map();
     for (const file of project.cdsFiles) {
       try {
-        const absoluteFilePath = (0, import_path7.join)(sourceRootDir, file);
-        if ((0, import_fs4.existsSync)(absoluteFilePath)) {
+        const absoluteFilePath = (0, import_path9.join)(sourceRootDir, file);
+        if ((0, import_fs6.existsSync)(absoluteFilePath)) {
           const imports = project.imports.get(file) ?? [];
           for (const importInfo of imports) {
             if (importInfo.resolvedPath) {
@@ -7857,7 +8378,7 @@ function determineCdsFilesToCompile(sourceRootDir, project) {
     }
     const rootFiles = [];
     for (const file of project.cdsFiles) {
-      const relativePath = (0, import_path7.relative)(sourceRootDir, (0, import_path7.join)(sourceRootDir, file));
+      const relativePath = (0, import_path9.relative)(sourceRootDir, (0, import_path9.join)(sourceRootDir, file));
       const isImported = importedFiles.has(relativePath);
       if (!isImported) {
         rootFiles.push(file);
@@ -7899,7 +8420,7 @@ function computeExpectedOutputFiles(filesToCompile, projectDir) {
     );
   }
   if (usesProjectLevelCompilation) {
-    const projectModelFile = (0, import_path7.join)(projectDir, "model.cds.json");
+    const projectModelFile = (0, import_path9.join)(projectDir, "model.cds.json");
     expectedFiles.push(projectModelFile);
   } else {
     for (const cdsFile of filesToCompile) {
@@ -7915,14 +8436,14 @@ function hasTypicalCapDirectoryStructure(cdsFiles) {
     return true;
   }
   const meaningfulDirectories = new Set(
-    cdsFiles.map((file) => (0, import_path7.dirname)(file)).filter((dir) => dir !== "." && dir !== "")
+    cdsFiles.map((file) => (0, import_path9.dirname)(file)).filter((dir) => dir !== "." && dir !== "")
     // Exclude root directory
   );
   return meaningfulDirectories.size >= 2;
 }
 function hasPackageJsonWithCapDeps(dir) {
   try {
-    const packageJsonPath = (0, import_path7.join)(dir, "package.json");
+    const packageJsonPath = (0, import_path9.join)(dir, "package.json");
     const packageJson = readPackageJsonFile(packageJsonPath);
     if (packageJson) {
       const dependencies = {
@@ -7948,9 +8469,9 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir) {
   cdsExtractorLog("info", `Found ${projectDirs.length} CDS project(s) under source directory.`);
   const projectMap = /* @__PURE__ */ new Map();
   for (const projectDir of projectDirs) {
-    const absoluteProjectDir = (0, import_path8.join)(sourceRootDir, projectDir);
+    const absoluteProjectDir = (0, import_path10.join)(sourceRootDir, projectDir);
     const cdsFiles = determineCdsFilesForProjectDir(sourceRootDir, absoluteProjectDir);
-    const packageJsonPath = (0, import_path8.join)(absoluteProjectDir, "package.json");
+    const packageJsonPath = (0, import_path10.join)(absoluteProjectDir, "package.json");
     const packageJson = readPackageJsonFile(packageJsonPath);
     projectMap.set(projectDir, {
       projectDir,
@@ -7967,18 +8488,18 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir) {
   cdsExtractorLog("info", "Analyzing dependencies between CDS projects...");
   for (const [projectDir, project] of projectMap.entries()) {
     for (const relativeFilePath of project.cdsFiles) {
-      const absoluteFilePath = (0, import_path8.join)(sourceRootDir, relativeFilePath);
+      const absoluteFilePath = (0, import_path10.join)(sourceRootDir, relativeFilePath);
       try {
         const imports = extractCdsImports(absoluteFilePath);
         const enrichedImports = [];
         for (const importInfo of imports) {
           const enrichedImport = { ...importInfo };
           if (importInfo.isRelative) {
-            const importedFilePath = (0, import_path8.resolve)((0, import_path8.dirname)(absoluteFilePath), importInfo.path);
+            const importedFilePath = (0, import_path10.resolve)((0, import_path10.dirname)(absoluteFilePath), importInfo.path);
             const normalizedImportedPath = importedFilePath.endsWith(".cds") ? importedFilePath : `${importedFilePath}.cds`;
             try {
-              const relativeToDirPath = (0, import_path8.dirname)(relativeFilePath);
-              const resolvedPath = (0, import_path8.resolve)((0, import_path8.join)(sourceRootDir, relativeToDirPath), importInfo.path);
+              const relativeToDirPath = (0, import_path10.dirname)(relativeFilePath);
+              const resolvedPath = (0, import_path10.resolve)((0, import_path10.join)(sourceRootDir, relativeToDirPath), importInfo.path);
               const normalizedResolvedPath = resolvedPath.endsWith(".cds") ? resolvedPath : `${resolvedPath}.cds`;
               if (normalizedResolvedPath.startsWith(sourceRootDir)) {
                 enrichedImport.resolvedPath = normalizedResolvedPath.substring(sourceRootDir.length).replace(/^[/\\]/, "");
@@ -7991,10 +8512,10 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir) {
             }
             for (const [otherProjectDir, otherProject] of projectMap.entries()) {
               if (otherProjectDir === projectDir) continue;
-              const otherProjectAbsoluteDir = (0, import_path8.join)(sourceRootDir, otherProjectDir);
+              const otherProjectAbsoluteDir = (0, import_path10.join)(sourceRootDir, otherProjectDir);
               const isInOtherProject = otherProject.cdsFiles.some((otherFile) => {
-                const otherAbsolutePath = (0, import_path8.join)(sourceRootDir, otherFile);
-                return otherAbsolutePath === normalizedImportedPath || normalizedImportedPath.startsWith(otherProjectAbsoluteDir + import_path8.sep);
+                const otherAbsolutePath = (0, import_path10.join)(sourceRootDir, otherFile);
+                return otherAbsolutePath === normalizedImportedPath || normalizedImportedPath.startsWith(otherProjectAbsoluteDir + import_path10.sep);
               });
               if (isInOtherProject) {
                 project.dependencies ??= [];
@@ -8120,6 +8641,13 @@ function buildCdsProjectDependencyGraph(sourceRootDir) {
     errors: {
       critical: [],
       warnings: []
+    },
+    retryStatus: {
+      totalTasksRequiringRetry: 0,
+      totalTasksSuccessfullyRetried: 0,
+      totalRetryAttempts: 0,
+      projectsRequiringFullDependencies: /* @__PURE__ */ new Set(),
+      projectsWithFullDependencies: /* @__PURE__ */ new Set()
     }
   };
   try {
@@ -8174,14 +8702,14 @@ function buildCdsProjectDependencyGraph(sourceRootDir) {
 }
 
 // src/codeql.ts
-var import_child_process5 = require("child_process");
+var import_child_process6 = require("child_process");
 function runJavaScriptExtractor(sourceRoot2, autobuildScriptPath2, codeqlExePath2) {
   cdsExtractorLog(
     "info",
     `Extracting the .cds.json files by running the 'javascript' extractor autobuild script:
         ${autobuildScriptPath2}`
   );
-  const result = (0, import_child_process5.spawnSync)(autobuildScriptPath2, [], {
+  const result = (0, import_child_process6.spawnSync)(autobuildScriptPath2, [], {
     cwd: sourceRoot2,
     env: process.env,
     shell: true,
@@ -8211,10 +8739,10 @@ function runJavaScriptExtractor(sourceRoot2, autobuildScriptPath2, codeqlExePath
 }
 
 // src/environment.ts
-var import_child_process6 = require("child_process");
-var import_fs5 = require("fs");
+var import_child_process7 = require("child_process");
+var import_fs7 = require("fs");
 var import_os = require("os");
-var import_path9 = require("path");
+var import_path11 = require("path");
 function getPlatformInfo() {
   const osPlatform = (0, import_os.platform)();
   const osPlatformArch = (0, import_os.arch)();
@@ -8232,8 +8760,8 @@ function getCodeQLExePath() {
   const codeqlExeName = platformInfo2.isWindows ? "codeql.exe" : "codeql";
   const codeqlDist = process.env.CODEQL_DIST;
   if (codeqlDist) {
-    const codeqlPathFromDist = (0, import_path9.resolve)((0, import_path9.join)(codeqlDist, codeqlExeName));
-    if ((0, import_fs5.existsSync)(codeqlPathFromDist)) {
+    const codeqlPathFromDist = (0, import_path11.resolve)((0, import_path11.join)(codeqlDist, codeqlExeName));
+    if ((0, import_fs7.existsSync)(codeqlPathFromDist)) {
       cdsExtractorLog("info", `Using CodeQL executable from CODEQL_DIST: ${codeqlPathFromDist}`);
       return codeqlPathFromDist;
     } else {
@@ -8248,7 +8776,7 @@ function getCodeQLExePath() {
     'CODEQL_DIST environment variable not set or invalid. Attempting to find CodeQL executable via system PATH using "codeql version --format=json".'
   );
   try {
-    const versionOutput = (0, import_child_process6.execFileSync)(codeqlExeName, ["version", "--format=json"], {
+    const versionOutput = (0, import_child_process7.execFileSync)(codeqlExeName, ["version", "--format=json"], {
       encoding: "utf8",
       timeout: 5e3,
       // 5 seconds timeout
@@ -8258,8 +8786,8 @@ function getCodeQLExePath() {
     try {
       const versionInfo = JSON.parse(versionOutput);
       if (versionInfo && typeof versionInfo.unpackedLocation === "string" && versionInfo.unpackedLocation) {
-        const resolvedPathFromVersion = (0, import_path9.resolve)((0, import_path9.join)(versionInfo.unpackedLocation, codeqlExeName));
-        if ((0, import_fs5.existsSync)(resolvedPathFromVersion)) {
+        const resolvedPathFromVersion = (0, import_path11.resolve)((0, import_path11.join)(versionInfo.unpackedLocation, codeqlExeName));
+        if ((0, import_fs7.existsSync)(resolvedPathFromVersion)) {
           cdsExtractorLog(
             "info",
             `CodeQL executable found via 'codeql version --format=json' at: ${resolvedPathFromVersion}`
@@ -8313,7 +8841,7 @@ function getJavaScriptExtractorRoot(codeqlExePath2) {
     return "";
   }
   try {
-    jsExtractorRoot = (0, import_child_process6.execFileSync)(
+    jsExtractorRoot = (0, import_child_process7.execFileSync)(
       codeqlExePath2,
       ["resolve", "extractor", "--language=javascript"],
       { stdio: "pipe" }
@@ -8348,7 +8876,7 @@ function getAutobuildScriptPath(jsExtractorRoot) {
   if (!jsExtractorRoot) return "";
   const platformInfo2 = getPlatformInfo();
   const autobuildScriptName = platformInfo2.isWindows ? "autobuild.cmd" : "autobuild.sh";
-  return (0, import_path9.resolve)((0, import_path9.join)(jsExtractorRoot, "tools", autobuildScriptName));
+  return (0, import_path11.resolve)((0, import_path11.join)(jsExtractorRoot, "tools", autobuildScriptName));
 }
 function configureLgtmIndexFilters() {
   let excludeFilters = "";
@@ -8358,16 +8886,16 @@ function configureLgtmIndexFilters() {
       `Found $LGTM_INDEX_FILTERS already set to:
 ${process.env.LGTM_INDEX_FILTERS}`
     );
-    const allowedExcludePatterns = [(0, import_path9.join)("exclude:**", "*"), (0, import_path9.join)("exclude:**", "*.*")];
+    const allowedExcludePatterns = [(0, import_path11.join)("exclude:**", "*"), (0, import_path11.join)("exclude:**", "*.*")];
     excludeFilters = "\n" + process.env.LGTM_INDEX_FILTERS.split("\n").filter(
       (line) => line.startsWith("exclude") && !allowedExcludePatterns.some((pattern) => line.includes(pattern))
     ).join("\n");
   }
   const lgtmIndexFiltersPatterns = [
-    (0, import_path9.join)("exclude:**", "*.*"),
-    (0, import_path9.join)("include:**", "*.cds.json"),
-    (0, import_path9.join)("include:**", "*.cds"),
-    (0, import_path9.join)("exclude:**", "node_modules", "**", "*.*")
+    (0, import_path11.join)("exclude:**", "*.*"),
+    (0, import_path11.join)("include:**", "*.cds.json"),
+    (0, import_path11.join)("include:**", "*.cds"),
+    (0, import_path11.join)("exclude:**", "node_modules", "**", "*.*")
   ].join("\n");
   process.env.LGTM_INDEX_FILTERS = lgtmIndexFiltersPatterns + excludeFilters;
   process.env.LGTM_INDEX_TYPESCRIPT = "NONE";
@@ -8415,13 +8943,13 @@ function setupAndValidateEnvironment(sourceRoot2) {
 }
 
 // src/packageManager/installer.ts
-var import_child_process8 = require("child_process");
+var import_child_process9 = require("child_process");
 var import_crypto = require("crypto");
-var import_fs6 = require("fs");
-var import_path10 = require("path");
+var import_fs8 = require("fs");
+var import_path12 = require("path");
 
 // src/packageManager/versionResolver.ts
-var import_child_process7 = require("child_process");
+var import_child_process8 = require("child_process");
 var availableVersionsCache = /* @__PURE__ */ new Map();
 var cacheStats = {
   hits: 0,
@@ -8490,7 +9018,7 @@ function getAvailableVersions(packageName) {
   }
   cacheStats.misses++;
   try {
-    const output = (0, import_child_process7.execSync)(`npm view ${packageName} versions --json`, {
+    const output = (0, import_child_process8.execSync)(`npm view ${packageName} versions --json`, {
       encoding: "utf8",
       timeout: 3e4
       // 30 second timeout
@@ -8600,7 +9128,7 @@ function satisfiesRange(version, range2) {
 var cacheSubDirName = ".cds-extractor-cache";
 function addDependencyVersionWarning(packageJsonPath, warningMessage, codeqlExePath2) {
   try {
-    (0, import_child_process8.execFileSync)(codeqlExePath2, [
+    (0, import_child_process9.execFileSync)(codeqlExePath2, [
       "database",
       "add-diagnostic",
       "--extractor-name=cds",
@@ -8609,7 +9137,7 @@ function addDependencyVersionWarning(packageJsonPath, warningMessage, codeqlExeP
       "--source-name=Using fallback versions for SAP CAP CDS dependencies",
       `--severity=${"warning" /* Warning */}`,
       `--markdown-message=${warningMessage}`,
-      `--file-path=${(0, import_path10.resolve)(packageJsonPath)}`,
+      `--file-path=${(0, import_path12.resolve)(packageJsonPath)}`,
       "--",
       `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE ?? ""}`
     ]);
@@ -8707,14 +9235,14 @@ function installDependencies(dependencyGraph2, sourceRoot2, codeqlExePath2) {
       `Dependency combination ${hash.substring(0, 8)}: @sap/cds@${actualCdsVersion}, @sap/cds-dk@${actualCdsDkVersion}${fallbackNote}`
     );
   }
-  const cacheRootDir = (0, import_path10.join)(sourceRoot2, cacheSubDirName);
+  const cacheRootDir = (0, import_path12.join)(sourceRoot2, cacheSubDirName);
   cdsExtractorLog(
     "info",
     `Using cache directory '${cacheSubDirName}' within source root directory '${cacheRootDir}'`
   );
-  if (!(0, import_fs6.existsSync)(cacheRootDir)) {
+  if (!(0, import_fs8.existsSync)(cacheRootDir)) {
     try {
-      (0, import_fs6.mkdirSync)(cacheRootDir, { recursive: true });
+      (0, import_fs8.mkdirSync)(cacheRootDir, { recursive: true });
       cdsExtractorLog("info", `Created cache directory: ${cacheRootDir}`);
     } catch (err) {
       cdsExtractorLog(
@@ -8733,14 +9261,14 @@ function installDependencies(dependencyGraph2, sourceRoot2, codeqlExePath2) {
     const { cdsVersion, cdsDkVersion, hash } = combination;
     const { resolvedCdsVersion, resolvedCdsDkVersion } = combination;
     const cacheDirName = `cds-${hash}`;
-    const cacheDir = (0, import_path10.join)(cacheRootDir, cacheDirName);
+    const cacheDir = (0, import_path12.join)(cacheRootDir, cacheDirName);
     cdsExtractorLog(
       "info",
       `Processing dependency combination ${hash.substring(0, 8)} in cache directory: ${cacheDirName}`
     );
-    if (!(0, import_fs6.existsSync)(cacheDir)) {
+    if (!(0, import_fs8.existsSync)(cacheDir)) {
       try {
-        (0, import_fs6.mkdirSync)(cacheDir, { recursive: true });
+        (0, import_fs8.mkdirSync)(cacheDir, { recursive: true });
         cdsExtractorLog("info", `Created cache subdirectory: ${cacheDirName}`);
       } catch (err) {
         cdsExtractorLog(
@@ -8761,7 +9289,7 @@ function installDependencies(dependencyGraph2, sourceRoot2, codeqlExePath2) {
         }
       };
       try {
-        (0, import_fs6.writeFileSync)((0, import_path10.join)(cacheDir, "package.json"), JSON.stringify(packageJson, null, 2));
+        (0, import_fs8.writeFileSync)((0, import_path12.join)(cacheDir, "package.json"), JSON.stringify(packageJson, null, 2));
         cdsExtractorLog("info", `Created package.json in cache subdirectory: ${cacheDirName}`);
       } catch (err) {
         cdsExtractorLog(
@@ -8774,7 +9302,7 @@ function installDependencies(dependencyGraph2, sourceRoot2, codeqlExePath2) {
     const samplePackageJsonPath = Array.from(dependencyGraph2.projects.values()).find(
       (project) => project.packageJson
     )?.projectDir;
-    const packageJsonPath = samplePackageJsonPath ? (0, import_path10.join)(sourceRoot2, samplePackageJsonPath, "package.json") : void 0;
+    const packageJsonPath = samplePackageJsonPath ? (0, import_path12.join)(sourceRoot2, samplePackageJsonPath, "package.json") : void 0;
     const installSuccess = installDependenciesInCache(
       cacheDir,
       combination,
@@ -8825,7 +9353,7 @@ function installDependencies(dependencyGraph2, sourceRoot2, codeqlExePath2) {
   if (projectCacheDirMap2.size > 0) {
     cdsExtractorLog("info", `Project to cache directory mappings:`);
     for (const [projectDir, cacheDir] of Array.from(projectCacheDirMap2.entries())) {
-      const cacheDirName = (0, import_path10.join)(cacheDir).split("/").pop() ?? "unknown";
+      const cacheDirName = (0, import_path12.join)(cacheDir).split("/").pop() ?? "unknown";
       cdsExtractorLog("info", `  ${projectDir} \u2192 ${cacheDirName}`);
     }
   } else {
@@ -8838,7 +9366,7 @@ function installDependencies(dependencyGraph2, sourceRoot2, codeqlExePath2) {
 }
 function installDependenciesInCache(cacheDir, combination, cacheDirName, packageJsonPath, codeqlExePath2) {
   const { resolvedCdsVersion, resolvedCdsDkVersion, isFallback, warning } = combination;
-  const nodeModulesExists = (0, import_fs6.existsSync)((0, import_path10.join)(cacheDir, "node_modules", "@sap", "cds")) && (0, import_fs6.existsSync)((0, import_path10.join)(cacheDir, "node_modules", "@sap", "cds-dk"));
+  const nodeModulesExists = (0, import_fs8.existsSync)((0, import_path12.join)(cacheDir, "node_modules", "@sap", "cds")) && (0, import_fs8.existsSync)((0, import_path12.join)(cacheDir, "node_modules", "@sap", "cds-dk"));
   if (nodeModulesExists) {
     cdsExtractorLog(
       "info",
@@ -8861,7 +9389,7 @@ function installDependenciesInCache(cacheDir, combination, cacheDirName, package
     cdsExtractorLog("warn", warning);
   }
   try {
-    (0, import_child_process8.execFileSync)("npm", ["install", "--quiet", "--no-audit", "--no-fund"], {
+    (0, import_child_process9.execFileSync)("npm", ["install", "--quiet", "--no-audit", "--no-fund"], {
       cwd: cacheDir,
       stdio: "inherit"
     });
@@ -8877,13 +9405,13 @@ function installDependenciesInCache(cacheDir, combination, cacheDirName, package
 }
 
 // src/utils.ts
-var import_path11 = require("path");
+var import_path13 = require("path");
 var USAGE_MESSAGE = `	Usage: node <script> <source-root>`;
 function resolveSourceRoot(sourceRoot2) {
   if (!sourceRoot2 || typeof sourceRoot2 !== "string") {
     throw new Error("Source root must be a non-empty string");
   }
-  const normalizedPath = (0, import_path11.resolve)(sourceRoot2);
+  const normalizedPath = (0, import_path13.resolve)(sourceRoot2);
   if (!normalizedPath || normalizedPath === "/") {
     throw new Error("Source root must point to a valid directory");
   }
@@ -8974,7 +9502,7 @@ try {
     try {
       const allCdsFiles = Array.from(
         /* @__PURE__ */ new Set([
-          ...sync((0, import_path12.join)(sourceRoot, "**/*.cds"), {
+          ...sync((0, import_path14.join)(sourceRoot, "**/*.cds"), {
             ignore: ["**/node_modules/**", "**/.git/**"]
           })
         ])

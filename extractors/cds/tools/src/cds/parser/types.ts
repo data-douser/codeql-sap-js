@@ -229,6 +229,21 @@ export interface CdsProject extends BasicCdsProject {
     compilationStarted?: Date;
     compilationCompleted?: Date;
   };
+
+  /** Full dependency installation cache directory (for retries) */
+  fullDependencyCacheDir?: string;
+
+  /** Retry status for this project */
+  retryStatus?: {
+    /** Whether full dependencies have been installed */
+    fullDependenciesInstalled: boolean;
+    /** Number of tasks that require retry */
+    tasksRequiringRetry: number;
+    /** Number of tasks that have been retried */
+    tasksRetried: number;
+    /** Installation errors, if any */
+    installationErrors?: string[];
+  };
 }
 
 /**
@@ -293,5 +308,19 @@ export interface CdsDependencyGraph {
       timestamp: Date;
       context?: string;
     }>;
+  };
+
+  /** Retry-specific status tracking */
+  retryStatus: {
+    /** Total tasks requiring retry */
+    totalTasksRequiringRetry: number;
+    /** Total tasks successfully retried */
+    totalTasksSuccessfullyRetried: number;
+    /** Total retry attempts made */
+    totalRetryAttempts: number;
+    /** Projects requiring full dependency installation */
+    projectsRequiringFullDependencies: Set<string>;
+    /** Projects with successful full dependency installation */
+    projectsWithFullDependencies: Set<string>;
   };
 }

@@ -30,6 +30,23 @@ export function generateStatusReport(dependencyGraph: CdsDependencyGraph): strin
   lines.push(`  Skipped: ${summary.skippedCompilations}`);
   lines.push('');
 
+  // Retry summary (if retry attempts were made)
+  if (dependencyGraph.retryStatus.totalTasksRequiringRetry > 0) {
+    lines.push('RETRY SUMMARY:');
+    lines.push(`  Tasks Requiring Retry: ${dependencyGraph.retryStatus.totalTasksRequiringRetry}`);
+    lines.push(
+      `  Tasks Successfully Retried: ${dependencyGraph.retryStatus.totalTasksSuccessfullyRetried}`,
+    );
+    lines.push(`  Total Retry Attempts: ${dependencyGraph.retryStatus.totalRetryAttempts}`);
+    lines.push(
+      `  Projects Requiring Full Dependencies: ${dependencyGraph.retryStatus.projectsRequiringFullDependencies.size}`,
+    );
+    lines.push(
+      `  Projects with Full Dependencies: ${dependencyGraph.retryStatus.projectsWithFullDependencies.size}`,
+    );
+    lines.push('');
+  }
+
   // Performance metrics
   lines.push('PERFORMANCE:');
   lines.push(`  Total Duration: ${summary.performance.totalDurationMs}ms`);

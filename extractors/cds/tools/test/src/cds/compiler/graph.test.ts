@@ -1,11 +1,13 @@
 import { determineCdsCommand, orchestrateCompilation } from '../../../../src/cds/compiler';
 import { compileCdsToJson } from '../../../../src/cds/compiler/compile';
+import { orchestrateRetryAttempts } from '../../../../src/cds/compiler/retry';
 import { CdsDependencyGraph, CdsProject } from '../../../../src/cds/parser/types';
 import { addCompilationDiagnostic } from '../../../../src/diagnostics';
 
 // Mock dependencies
 jest.mock('../../../../src/cds/compiler/command');
 jest.mock('../../../../src/cds/compiler/compile');
+jest.mock('../../../../src/cds/compiler/retry');
 jest.mock('../../../../src/diagnostics');
 jest.mock('../../../../src/logging');
 
@@ -13,6 +15,9 @@ const mockDetermineCdsCommand = determineCdsCommand as jest.MockedFunction<
   typeof determineCdsCommand
 >;
 const mockCompileCdsToJson = compileCdsToJson as jest.MockedFunction<typeof compileCdsToJson>;
+const mockOrchestrateRetryAttempts = orchestrateRetryAttempts as jest.MockedFunction<
+  typeof orchestrateRetryAttempts
+>;
 const mockAddCompilationDiagnostic = addCompilationDiagnostic as jest.MockedFunction<
   typeof addCompilationDiagnostic
 >;
@@ -106,6 +111,13 @@ function createMockDependencyGraph(
       critical: [],
       warnings: [],
     },
+    retryStatus: {
+      totalTasksRequiringRetry: 0,
+      totalTasksSuccessfullyRetried: 0,
+      totalRetryAttempts: 0,
+      projectsRequiringFullDependencies: new Set<string>(),
+      projectsWithFullDependencies: new Set<string>(),
+    },
     ...overrides,
   };
 }
@@ -133,6 +145,18 @@ describe('graph.ts', () => {
         success: true,
         outputPath: '/test/output.json',
         timestamp: new Date(),
+      });
+      mockOrchestrateRetryAttempts.mockReturnValue({
+        success: true,
+        projectsWithRetries: [],
+        totalTasksRequiringRetry: 0,
+        totalSuccessfulRetries: 0,
+        totalFailedRetries: 0,
+        projectsWithSuccessfulDependencyInstallation: [],
+        projectsWithFailedDependencyInstallation: [],
+        retryDurationMs: 0,
+        dependencyInstallationDurationMs: 0,
+        retryCompilationDurationMs: 0,
       });
     });
 
@@ -204,6 +228,47 @@ describe('graph.ts', () => {
         message: 'Compilation failed',
         timestamp: new Date(),
       });
+
+      // Mock retry to indicate the task was retried but still failed
+      mockOrchestrateRetryAttempts.mockImplementation(
+        (dependencyGraph, _projectCacheDirMap, codeqlExePath) => {
+          // Simulate the retry logic setting retryInfo on failed tasks
+          for (const proj of dependencyGraph.projects.values()) {
+            for (const task of proj.compilationTasks) {
+              if (task.status === 'failed') {
+                task.retryInfo = {
+                  hasBeenRetried: true,
+                  retryReason: 'Output validation failed',
+                  fullDependenciesInstalled: false,
+                  retryTimestamp: new Date(),
+                };
+
+                // Simulate adding diagnostics for failed tasks
+                for (const sourceFile of task.sourceFiles) {
+                  mockAddCompilationDiagnostic(
+                    sourceFile,
+                    task.errorSummary ?? 'Compilation failed',
+                    codeqlExePath,
+                  );
+                }
+              }
+            }
+          }
+
+          return {
+            success: false,
+            projectsWithRetries: ['/test/project'],
+            totalTasksRequiringRetry: 1,
+            totalSuccessfulRetries: 0,
+            totalFailedRetries: 1,
+            projectsWithSuccessfulDependencyInstallation: [],
+            projectsWithFailedDependencyInstallation: [],
+            retryDurationMs: 100,
+            dependencyInstallationDurationMs: 50,
+            retryCompilationDurationMs: 50,
+          };
+        },
+      );
 
       orchestrateCompilation(mockDependencyGraph, projectCacheDirMap, '/path/to/codeql');
 
