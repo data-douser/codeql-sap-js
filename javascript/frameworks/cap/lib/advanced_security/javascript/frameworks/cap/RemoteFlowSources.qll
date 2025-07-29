@@ -36,13 +36,23 @@ class HandlerParameterOfExposedService extends HandlerParameter {
 
 /**
  * Reads of property belonging to a request parameter that is exposed to a protocol.
+ * It currently models the following access paths:
+ * - `req.data` (from `cds.Event.data`)
+ * - `req.params` (from `cds.Request.params`)
+ * - `req.headers` (from `cds.Event.headers`)
+ * - `req.http.req` (from `cds.EventContext.http.req`)
+ * - `req.id` (from `cds.EventContext.id`)
  */
-class PayloadPropertyReadOfHandlerParameterOfExposedService extends RemoteFlowSource instanceof PropRead
+class UserProvidedPropertyReadOfHandlerParameterOfExposedService extends RemoteFlowSource instanceof PropRead
 {
   HandlerParameterOfExposedService handlerParameterOfExposedService;
 
-  PayloadPropertyReadOfHandlerParameterOfExposedService() {
-    this = handlerParameterOfExposedService.getAPropertyRead()
+  UserProvidedPropertyReadOfHandlerParameterOfExposedService() {
+    /* 1. `req.(data|params|headers|id)` */
+    this = handlerParameterOfExposedService.getAPropertyRead(["data", "params", "headers", "id"])
+    or
+    /* 2. `req.http.req` */
+    this = handlerParameterOfExposedService.getAPropertyRead("http").getAPropertyRead("req")
   }
 
   HandlerParameterOfExposedService getHandlerParameter() {
@@ -52,6 +62,7 @@ class PayloadPropertyReadOfHandlerParameterOfExposedService extends RemoteFlowSo
   Handler getHandler() { result = handlerParameterOfExposedService.getHandler() }
 
   override string getSourceType() {
-    result = "Parameter of an event handler belonging to an exposed service"
+    result =
+      "Tainted property read of the request parameter of an event handler belonging to an exposed service"
   }
 }
