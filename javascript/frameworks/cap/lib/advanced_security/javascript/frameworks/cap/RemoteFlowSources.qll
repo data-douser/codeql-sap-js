@@ -32,8 +32,24 @@ class HandlerParameterOfExposedService extends HandlerParameter {
 
     not exists(this.getHandler().getHandlerRegistration().getService().getDefinition())
   }
+}
 
-  override string toString() { result = HandlerParameter.super.toString() }
+/**
+ * Reads of property belonging to a request parameter that is exposed to a protocol.
+ */
+class PayloadPropertyReadOfHandlerParameterOfExposedService extends RemoteFlowSource instanceof PropRead
+{
+  HandlerParameterOfExposedService handlerParameterOfExposedService;
+
+  PayloadPropertyReadOfHandlerParameterOfExposedService() {
+    this = handlerParameterOfExposedService.getAPropertyRead()
+  }
+
+  HandlerParameterOfExposedService getHandlerParameter() {
+    result = handlerParameterOfExposedService
+  }
+
+  Handler getHandler() { result = handlerParameterOfExposedService.getHandler() }
 
   override string getSourceType() {
     result = "Parameter of an event handler belonging to an exposed service"
