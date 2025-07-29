@@ -2,29 +2,34 @@ import javascript
 import advanced_security.javascript.frameworks.cap.CDS
 
 /**
- * Either of:
- * a parameter of a handler registered for an (exposed) service on an event. e.g.
- * ```javascript
- * this.on("SomeEvent", "SomeEntity", (req) => { ... });
- * this.before("SomeEvent", "SomeEntity", (req, next) => { ... });
- * SomeService.on("SomeEvent", "SomeEntity", (msg) => { ... });
- * SomeService.after("SomeEvent", "SomeEntity", (msg) => { ... });
+ * The request parameter of a handler belonging to a service that is exposed to
+ * a protocol. e.g. All parameters named `req` is captured in the below example.
+ * ``` javascript
+ * // srv/service1.js
+ * module.exports = class Service1 extends cds.ApplicationService {
+ *   this.on("SomeEvent", "SomeEntity", (req) => { ... });
+ *   this.before("SomeEvent", "SomeEntity", (req, next) => { ... });
+ * }
  * ```
- * OR
- * a handler parameter that is not connected to a service
- * possibly due to cds compilation failure
- * or non explicit service references in source. e.g.
- * ```javascript
- * cds.serve('./test-service').with((srv) => {
- *    srv.after('READ', req => req.target.data) //req
- * })
+ * ``` cds
+ * // srv/service1.cds
+ * service Service1 @(path: '/service-1') { ... }
  * ```
+ *
+ * NOTE: CDS extraction can fail for various reasons, and if so the detection
+ * logic falls back on overapproximating on the parameters and assume they are
+ * exposed.
  */
 class HandlerParameterOfExposedService extends RemoteFlowSource, HandlerParameter {
   HandlerParameterOfExposedService() {
+    /* 1. The CDS definition is there and we can determine it is exposed. */
     this.getHandler().getHandlerRegistration().getService().getDefinition().isExposed()
     or
-    /* no precise service definition is known */
+    /*
+     * 2. (Fallback) The CDS definition is not there, so no precise service definition
+     * is known.
+     */
+
     not exists(this.getHandler().getHandlerRegistration().getService().getDefinition())
   }
 
