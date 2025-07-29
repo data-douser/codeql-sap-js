@@ -40,8 +40,14 @@ class HandlerParameterOfExposedService extends HandlerParameter {
  * - `req.data` (from `cds.Event.data`)
  * - `req.params` (from `cds.Request.params`)
  * - `req.headers` (from `cds.Event.headers`)
- * - `req.http.req` (from `cds.EventContext.http.req`)
+ * - `req.http.req.*` (from `cds.EventContext.http.req`)
  * - `req.id` (from `cds.EventContext.id`)
+ *
+ * Note that `req.http.req` has type `require("@express").Request`, so their uses are
+ * completely identical. Subsequently, the models for this access path follow Express'
+ * API descriptions (as far as 3.x). Also see `Express::RequestInputAccess`,
+ * `Express::RequestHeaderAccess`, and `Express::RequestBodyAccess` of the standard
+ * library.
  */
 class UserProvidedPropertyReadOfHandlerParameterOfExposedService extends RemoteFlowSource instanceof PropRead
 {
@@ -51,8 +57,17 @@ class UserProvidedPropertyReadOfHandlerParameterOfExposedService extends RemoteF
     /* 1. `req.(data|params|headers|id)` */
     this = handlerParameterOfExposedService.getAPropertyRead(["data", "params", "headers", "id"])
     or
-    /* 2. `req.http.req` */
-    this = handlerParameterOfExposedService.getAPropertyRead("http").getAPropertyRead("req")
+    /* 2. APIs stemming from `req.http.req`: Defined by Express.js */
+    exists(PropRead reqHttpReq |
+      reqHttpReq = handlerParameterOfExposedService.getAPropertyRead("http").getAPropertyRead("req")
+    |
+      this = reqHttpReq.getAPropertyRead(["originalUrl", "hostname"]) or
+      this =
+        reqHttpReq
+            .getAPropertyRead(["query", "body", "params", "headers", "cookies"])
+            .getAPropertyRead() or
+      this = reqHttpReq.getAMemberCall(["get", "is", "header", "param"])
+    )
   }
 
   HandlerParameterOfExposedService getHandlerParameter() {
