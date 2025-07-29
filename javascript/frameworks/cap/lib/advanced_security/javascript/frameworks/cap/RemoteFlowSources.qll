@@ -20,7 +20,7 @@ import advanced_security.javascript.frameworks.cap.CDS
  * logic falls back on overapproximating on the parameters and assume they are
  * exposed.
  */
-class HandlerParameterOfExposedService extends RemoteFlowSource, HandlerParameter {
+class HandlerParameterOfExposedService extends HandlerParameter {
   HandlerParameterOfExposedService() {
     /* 1. The CDS definition is there and we can determine it is exposed. */
     this.getHandler().getHandlerRegistration().getService().getDefinition().isExposed()
