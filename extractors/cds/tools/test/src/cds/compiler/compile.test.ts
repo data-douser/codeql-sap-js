@@ -141,12 +141,12 @@ describe('compile .cds to .cds.json', () => {
           'warn',
         ],
         expect.objectContaining({
-          cwd: '/source/root', // CRITICAL: Verify cwd is sourceRoot
+          cwd: '/source/root/test-project', // CRITICAL: Verify cwd is project base directory
         }),
       );
     });
 
-    it('should ensure cwd is always sourceRoot for spawned processes', () => {
+    it('should ensure cwd is always project base directory for spawned processes', () => {
       // Setup
       const sourceRoot = '/my/source/root';
       const cacheDir = '/cache/dir';
@@ -172,12 +172,12 @@ describe('compile .cds to .cds.json', () => {
       // Execute
       compileCdsToJson('test.cds', sourceRoot, 'cds', cacheDir, projectMap, projectDir);
 
-      // Verify that all spawnSync calls use sourceRoot as cwd
+      // Verify that all spawnSync calls use project base directory as cwd
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
         'cds',
         expect.any(Array),
         expect.objectContaining({
-          cwd: sourceRoot, // CRITICAL: Must be sourceRoot to ensure correct path generation
+          cwd: '/my/source/root/test-project', // CRITICAL: Must be project base directory to ensure correct path generation
         }),
       );
     });
@@ -303,7 +303,7 @@ describe('compile .cds to .cds.json', () => {
         'cds',
         expect.any(Array),
         expect.objectContaining({
-          cwd: sourceRoot, // CRITICAL: Must be sourceRoot
+          cwd: '/source/root/test-project', // CRITICAL: Must be project base directory
           env: expect.objectContaining({
             NODE_PATH: expect.stringContaining(nodePath),
             PATH: expect.stringContaining(binPath),
@@ -421,7 +421,7 @@ describe('compile .cds to .cds.json', () => {
       );
     });
 
-    it('should use sourceRoot as cwd for project-level compilation', () => {
+    it('should use project base directory as cwd for project-level compilation', () => {
       // Setup
       const sourceRoot = '/source/root';
       const projectDir = 'test-project';
@@ -477,12 +477,12 @@ describe('compile .cds to .cds.json', () => {
       expect(result.success).toBe(true);
       expect(result.compiledAsProject).toBe(true);
 
-      // CRITICAL: Verify that project-level compilation uses sourceRoot as cwd
+      // CRITICAL: Verify that project-level compilation uses project base directory as cwd
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
         'cds',
-        expect.arrayContaining(['compile', 'test-project/db', 'test-project/srv']),
+        expect.arrayContaining(['compile', 'db', 'srv']), // No project prefix needed
         expect.objectContaining({
-          cwd: sourceRoot, // CRITICAL: Must be sourceRoot, not projectAbsolutePath
+          cwd: '/source/root/test-project', // CRITICAL: Must be project base directory
         }),
       );
     });
@@ -629,7 +629,7 @@ describe('compile .cds to .cds.json', () => {
       expect(result.compiledAsProject).toBe(true);
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
         'cds',
-        expect.arrayContaining(['compile', 'test-project']),
+        expect.arrayContaining(['compile', '.']),
         expect.any(Object),
       );
     });
@@ -706,7 +706,7 @@ describe('compile .cds to .cds.json', () => {
       // The actual call will be with the discovered subdirectories
       expect(childProcess.spawnSync).toHaveBeenCalledWith(
         'cds',
-        expect.arrayContaining(['compile', 'test-project/custom', 'test-project/services']),
+        expect.arrayContaining(['compile', 'custom', 'services']),
         expect.any(Object),
       );
     });

@@ -17,7 +17,7 @@ import {
   logPerformanceTrackingStop,
   setSourceRootDirectory,
 } from './src/logging';
-import { installDependencies } from './src/packageManager';
+import { cacheInstallDependencies } from './src/packageManager';
 import { validateArguments } from './src/utils';
 
 // Validate the script arguments.
@@ -151,7 +151,7 @@ try {
 }
 
 logPerformanceTrackingStart('Dependency Installation');
-const projectCacheDirMap = installDependencies(dependencyGraph, sourceRoot, codeqlExePath);
+const projectCacheDirMap = cacheInstallDependencies(dependencyGraph, sourceRoot, codeqlExePath);
 logPerformanceTrackingStop('Dependency Installation');
 
 // Check if dependency installation resulted in any usable project mappings

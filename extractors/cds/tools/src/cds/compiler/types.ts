@@ -104,6 +104,84 @@ export interface CompilationTask {
   };
 }
 
+/** Result of updating dependency graph status. */
+export interface ResultDependencyStatusUpdate {
+  tasksValidated: number;
+  successfulTasks: number;
+  failedTasks: number;
+  tasksSuccessfullyRetried: number;
+}
+
+/** Result of validating a single output file. */
+export interface ResultOutputFileValidation {
+  /** Whether the file is valid */
+  isValid: boolean;
+  /** Path to the validated file */
+  filePath: string;
+  /** Validation error message if validation failed */
+  error?: string;
+  /** Whether the file exists */
+  exists: boolean;
+  /** Whether the file contains valid JSON (if it exists) */
+  hasValidJson?: boolean;
+}
+
+/** Result of retry orchestration for the entire dependency graph. */
+export interface ResultRetryCompilationOrchestration {
+  /** Overall success status */
+  success: boolean;
+  /** Projects that had retry attempts */
+  projectsWithRetries: string[];
+  /** Total number of tasks that required retry */
+  totalTasksRequiringRetry: number;
+  /** Total number of successful retry attempts */
+  totalSuccessfulRetries: number;
+  /** Total number of failed retry attempts */
+  totalFailedRetries: number;
+  /** Projects where full dependency installation succeeded */
+  projectsWithSuccessfulDependencyInstallation: string[];
+  /** Projects where full dependency installation failed */
+  projectsWithFailedDependencyInstallation: string[];
+  /** Duration of retry phase in milliseconds */
+  retryDurationMs: number;
+  /** Duration of dependency installation in milliseconds */
+  dependencyInstallationDurationMs: number;
+  /** Duration of retry compilation in milliseconds */
+  retryCompilationDurationMs: number;
+}
+
+/** Result of executing retry compilation for specific tasks. */
+export interface ResultRetryCompilationTask {
+  /** Project directory */
+  projectDir: string;
+  /** Tasks that were retried */
+  retriedTasks: CompilationTask[];
+  /** Number of successful retry attempts */
+  successfulRetries: number;
+  /** Number of failed retry attempts */
+  failedRetries: number;
+  /** Whether full dependencies were available for retry */
+  fullDependenciesAvailable: boolean;
+  /** Retry execution duration in milliseconds */
+  executionDurationMs: number;
+  /** Error messages from failed retries */
+  retryErrors: string[];
+}
+
+/** Result of validating all outputs for a compilation task. */
+export interface ResultTaskValidation {
+  /** Whether all outputs are valid */
+  isValid: boolean;
+  /** The task that was validated */
+  task: CompilationTask;
+  /** Validation results for each expected output file */
+  fileResults: ResultOutputFileValidation[];
+  /** Number of valid output files */
+  validFileCount: number;
+  /** Number of expected output files */
+  expectedFileCount: number;
+}
+
 /** Validated CDS command descriptor. */
 export interface ValidatedCdsCommand {
   /** The executable name or path */

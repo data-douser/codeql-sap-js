@@ -148,6 +148,8 @@ export interface ExtractionStatusSummary {
   failedCompilations: number;
   /** Skipped compilation tasks */
   skippedCompilations: number;
+  /** Number of tasks that were successfully retried */
+  retriedCompilations: number;
   /** JSON files generated */
   jsonFilesGenerated: number;
   /** Critical errors that stopped extraction */
@@ -229,9 +231,6 @@ export interface CdsProject extends BasicCdsProject {
     compilationStarted?: Date;
     compilationCompleted?: Date;
   };
-
-  /** Full dependency installation cache directory (for retries) */
-  fullDependencyCacheDir?: string;
 
   /** Retry status for this project */
   retryStatus?: {

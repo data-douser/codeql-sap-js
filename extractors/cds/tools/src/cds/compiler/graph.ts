@@ -2,6 +2,7 @@ import { determineCdsCommand } from './command';
 import { compileCdsToJson } from './compile';
 import { orchestrateRetryAttempts } from './retry';
 import { CompilationAttempt, CompilationTask, CompilationConfig } from './types';
+import { updateCdsDependencyGraphStatus } from './validator';
 import { cdsExtractorLog, generateStatusReport } from '../../logging';
 import { CdsDependencyGraph, CdsProject } from '../parser/types';
 
@@ -145,7 +146,6 @@ function executeCompilationTask(
 
   if (compilationAttempt.result.success) {
     task.status = 'success';
-    dependencyGraph.statusSummary.successfulCompilations++;
     return;
   }
 
@@ -156,7 +156,6 @@ function executeCompilationTask(
 
   task.status = 'failed';
   task.errorSummary = lastError?.message || 'Compilation failed';
-  dependencyGraph.statusSummary.failedCompilations++;
 
   // Note: Diagnostics are deferred until after retry phase completes
   // to implement "Silent Success" - only add diagnostics for definitively failed tasks
@@ -254,13 +253,15 @@ export function orchestrateCompilation(
     planCompilationTasks(dependencyGraph, projectCacheDirMap);
     executeCompilationTasks(dependencyGraph, codeqlExePath);
 
+    // CENTRALIZED STATUS UPDATE: Establish post-initial-compilation state
+    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir, 'initial');
+
     // Phase 2: Retry orchestration
     cdsExtractorLog('info', 'Starting retry orchestration phase...');
-    const retryResults = orchestrateRetryAttempts(
-      dependencyGraph,
-      projectCacheDirMap,
-      codeqlExePath,
-    );
+    const retryResults = orchestrateRetryAttempts(dependencyGraph, codeqlExePath);
+
+    // CENTRALIZED STATUS UPDATE: Final validation and status synchronization
+    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir, 'final');
 
     // Log retry results
     if (retryResults.totalTasksRequiringRetry > 0) {
@@ -280,7 +281,7 @@ export function orchestrateCompilation(
     dependencyGraph.statusSummary.overallSuccess = !hasFailures;
     dependencyGraph.currentPhase = hasFailures ? 'failed' : 'completed';
 
-    // Generate and log a "Post-Compilation" status report, aka before the JavaScript extractor runs.
+    // Phase 3: Status reporting (now guaranteed to be accurate)
     const statusReport = generateStatusReport(dependencyGraph);
     cdsExtractorLog('info', 'CDS Extractor Status Report : Post-Compilation...\n' + statusReport);
   } catch (error) {

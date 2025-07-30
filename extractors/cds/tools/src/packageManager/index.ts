@@ -1,8 +1,7 @@
 // Export the new robust installer functionality (preferred)
-export { installDependencies } from './installer';
+export { cacheInstallDependencies } from './cacheInstaller';
+export { needsFullDependencyInstallation, projectInstallDependencies } from './projectInstaller';
 export type { CdsDependencyCombination } from './types';
-
-// Export version resolver functionality
 export {
   checkVersionCompatibility,
   compareVersions,

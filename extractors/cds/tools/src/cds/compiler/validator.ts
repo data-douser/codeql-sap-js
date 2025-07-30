@@ -3,127 +3,15 @@
 import { readFileSync } from 'fs';
 import { isAbsolute, join } from 'path';
 
-import type { CompilationTask } from './types';
+import type {
+  CompilationTask,
+  ResultDependencyStatusUpdate,
+  ResultOutputFileValidation,
+  ResultTaskValidation,
+} from './types';
 import { fileExists } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
 import type { CdsDependencyGraph } from '../parser/types';
-
-/** Result of validating a single output file */
-export interface OutputFileValidationResult {
-  /** Whether the file is valid */
-  isValid: boolean;
-  /** Path to the validated file */
-  filePath: string;
-  /** Validation error message if validation failed */
-  error?: string;
-  /** Whether the file exists */
-  exists: boolean;
-  /** Whether the file contains valid JSON (if it exists) */
-  hasValidJson?: boolean;
-}
-
-/** Result of validating all outputs for a compilation task */
-export interface TaskValidationResult {
-  /** Whether all outputs are valid */
-  isValid: boolean;
-  /** The task that was validated */
-  task: CompilationTask;
-  /** Validation results for each expected output file */
-  fileResults: OutputFileValidationResult[];
-  /** Number of valid output files */
-  validFileCount: number;
-  /** Number of expected output files */
-  expectedFileCount: number;
-}
-
-/**
- * Validates a single expected output file.
- * @param filePath Path to the output file to validate
- * @returns Validation result with details
- */
-export function validateOutputFile(filePath: string): OutputFileValidationResult {
-  const result: OutputFileValidationResult = {
-    isValid: false,
-    filePath,
-    exists: false,
-  };
-
-  // Check if file exists
-  if (!fileExists(filePath)) {
-    result.error = 'File does not exist';
-    return result;
-  }
-
-  result.exists = true;
-
-  // For .cds.json files, validate JSON content
-  if (filePath.endsWith('.cds.json') || filePath.endsWith('.json')) {
-    try {
-      const content = readFileSync(filePath, 'utf8');
-
-      // Check if content is empty
-      if (!content.trim()) {
-        result.error = 'File is empty';
-        return result;
-      }
-
-      // Try to parse as JSON
-      const parsed: unknown = JSON.parse(content);
-
-      // Basic structure validation for CDS JSON files
-      if (typeof parsed !== 'object' || parsed === null) {
-        result.error = 'File does not contain a valid JSON object';
-        return result;
-      }
-
-      result.hasValidJson = true;
-      result.isValid = true;
-    } catch (error) {
-      result.error = `Invalid JSON content: ${String(error)}`;
-      return result;
-    }
-  } else {
-    // For non-JSON files, existence is sufficient
-    result.isValid = true;
-  }
-
-  return result;
-}
-
-/**
- * Validates that all expected output files exist for a compilation task.
- * @param task The compilation task to validate
- * @param sourceRoot Source root directory for resolving relative paths
- * @returns Task-level validation result
- */
-export function validateTaskOutputs(
-  task: CompilationTask,
-  sourceRoot: string,
-): TaskValidationResult {
-  const fileResults: OutputFileValidationResult[] = [];
-
-  for (const expectedOutput of task.expectedOutputFiles) {
-    // Resolve the output file path relative to source root
-    const absolutePath = isAbsolute(expectedOutput)
-      ? expectedOutput
-      : join(sourceRoot, expectedOutput);
-
-    const fileResult = validateOutputFile(absolutePath);
-    fileResults.push(fileResult);
-  }
-
-  const validFileCount = fileResults.filter(r => r.isValid).length;
-  const expectedFileCount = task.expectedOutputFiles.length;
-  const isValid = validFileCount === expectedFileCount && expectedFileCount > 0;
-
-  return {
-    isValid,
-    task,
-    fileResults,
-    validFileCount,
-    expectedFileCount,
-  };
-}
 
 /**
  * Identifies tasks requiring retry based on output validation
@@ -182,4 +70,149 @@ export function identifyTasksRequiringRetry(
   }
 
   return tasksRequiringRetry;
+}
+
+/**
+ * Updates the dependency graph with current task status based on filesystem validation.
+ * This is the single source of truth for compilation task status across all phases.
+ */
+export function updateCdsDependencyGraphStatus(
+  dependencyGraph: CdsDependencyGraph,
+  sourceRootDir: string,
+  phase: 'initial' | 'post-retry' | 'final',
+): ResultDependencyStatusUpdate {
+  let successfulTasks = 0;
+  let failedTasks = 0;
+  let tasksSuccessfullyRetried = 0;
+
+  cdsExtractorLog('info', `Updating dependency graph status for phase: ${phase}`);
+
+  // Validate all tasks using filesystem checks
+  for (const project of dependencyGraph.projects.values()) {
+    for (const task of project.compilationTasks) {
+      const validationResult = validateTaskOutputs(task, sourceRootDir);
+      const isValid = validationResult.isValid;
+
+      if (isValid) {
+        task.status = 'success';
+        successfulTasks++;
+
+        // If task has retry info and is now successful, count as successfully retried
+        if (task.retryInfo?.hasBeenRetried) {
+          tasksSuccessfullyRetried++;
+        }
+      } else {
+        task.status = 'failed';
+        failedTasks++;
+      }
+    }
+  }
+
+  // Update dependency graph counters
+  dependencyGraph.statusSummary.successfulCompilations = successfulTasks;
+  dependencyGraph.statusSummary.failedCompilations = failedTasks;
+
+  // Update retry status tracking
+  dependencyGraph.retryStatus.totalTasksSuccessfullyRetried = tasksSuccessfullyRetried;
+  dependencyGraph.retryStatus.totalTasksRequiringRetry = failedTasks;
+
+  cdsExtractorLog(
+    'info',
+    `Status update complete - Successful: ${successfulTasks}, Failed: ${failedTasks}, Successfully Retried: ${tasksSuccessfullyRetried}`,
+  );
+
+  return {
+    tasksValidated: successfulTasks + failedTasks,
+    successfulTasks,
+    failedTasks,
+    tasksSuccessfullyRetried,
+  };
+}
+/**
+ * Validates a single expected output file.
+ * @param filePath Path to the output file to validate
+ * @returns Validation result with details
+ */
+export function validateOutputFile(filePath: string): ResultOutputFileValidation {
+  const result: ResultOutputFileValidation = {
+    isValid: false,
+    filePath,
+    exists: false,
+  };
+
+  // Check if file exists
+  if (!fileExists(filePath)) {
+    result.error = 'File does not exist';
+    return result;
+  }
+
+  result.exists = true;
+
+  // For .cds.json files, validate JSON content
+  if (filePath.endsWith('.cds.json') || filePath.endsWith('.json')) {
+    try {
+      const content = readFileSync(filePath, 'utf8');
+
+      // Check if content is empty
+      if (!content.trim()) {
+        result.error = 'File is empty';
+        return result;
+      }
+
+      // Try to parse as JSON
+      const parsed: unknown = JSON.parse(content);
+
+      // Basic structure validation for CDS JSON files
+      if (typeof parsed !== 'object' || parsed === null) {
+        result.error = 'File does not contain a valid JSON object';
+        return result;
+      }
+
+      result.hasValidJson = true;
+      result.isValid = true;
+    } catch (error) {
+      result.error = `Invalid JSON content: ${String(error)}`;
+      return result;
+    }
+  } else {
+    // For non-JSON files, existence is sufficient
+    result.isValid = true;
+  }
+
+  return result;
+}
+
+/**
+ * Validates that all expected output files exist for a compilation task.
+ * @param task The compilation task to validate
+ * @param sourceRoot Source root directory for resolving relative paths
+ * @returns Task-level validation result
+ */
+export function validateTaskOutputs(
+  task: CompilationTask,
+  sourceRoot: string,
+): ResultTaskValidation {
+  const fileResults: ResultOutputFileValidation[] = [];
+
+  for (const expectedOutput of task.expectedOutputFiles) {
+    // Resolve the output file path relative to source root
+    const absolutePath = isAbsolute(expectedOutput)
+      ? expectedOutput
+      : join(sourceRoot, expectedOutput);
+
+    const fileResult = validateOutputFile(absolutePath);
+    fileResults.push(fileResult);
+  }
+
+  const validFileCount = fileResults.filter(r => r.isValid).length;
+  const expectedFileCount = task.expectedOutputFiles.length;
+  const isValid = validFileCount === expectedFileCount && expectedFileCount > 0;
+
+  return {
+    isValid,
+    task,
+    fileResults,
+    validFileCount,
+    expectedFileCount,
+  };
 }

@@ -1,6 +1,7 @@
 import { determineCdsCommand, orchestrateCompilation } from '../../../../src/cds/compiler';
 import { compileCdsToJson } from '../../../../src/cds/compiler/compile';
 import { orchestrateRetryAttempts } from '../../../../src/cds/compiler/retry';
+import * as validator from '../../../../src/cds/compiler/validator';
 import { CdsDependencyGraph, CdsProject } from '../../../../src/cds/parser/types';
 import { addCompilationDiagnostic } from '../../../../src/diagnostics';
 
@@ -8,6 +9,7 @@ import { addCompilationDiagnostic } from '../../../../src/diagnostics';
 jest.mock('../../../../src/cds/compiler/command');
 jest.mock('../../../../src/cds/compiler/compile');
 jest.mock('../../../../src/cds/compiler/retry');
+jest.mock('../../../../src/cds/compiler/validator');
 jest.mock('../../../../src/diagnostics');
 jest.mock('../../../../src/logging');
 
@@ -18,6 +20,7 @@ const mockCompileCdsToJson = compileCdsToJson as jest.MockedFunction<typeof comp
 const mockOrchestrateRetryAttempts = orchestrateRetryAttempts as jest.MockedFunction<
   typeof orchestrateRetryAttempts
 >;
+const mockValidator = validator as jest.Mocked<typeof validator>;
 const mockAddCompilationDiagnostic = addCompilationDiagnostic as jest.MockedFunction<
   typeof addCompilationDiagnostic
 >;
@@ -90,6 +93,7 @@ function createMockDependencyGraph(
       successfulCompilations: 0,
       failedCompilations: 0,
       skippedCompilations: 0,
+      retriedCompilations: 0,
       jsonFilesGenerated: 0,
       overallSuccess: false,
       criticalErrors: [],
@@ -127,6 +131,52 @@ describe('graph.ts', () => {
     jest.clearAllMocks();
     jest.spyOn(Date, 'now').mockReturnValue(1234567890123);
     jest.spyOn(Math, 'random').mockReturnValue(0.123456789);
+
+    // Mock the centralized status validation function
+    mockValidator.updateCdsDependencyGraphStatus.mockImplementation(
+      (dependencyGraph, _sourceRootDir, _phase) => {
+        // Mock implementation that simulates the centralized status validation
+        // For tests, we simulate that all tasks with successful attempts are successful
+        let successfulTasks = 0;
+        let failedTasks = 0;
+        let tasksSuccessfullyRetried = 0;
+
+        for (const project of dependencyGraph.projects.values()) {
+          for (const task of project.compilationTasks) {
+            // Check if the task has any successful attempts
+            const hasSuccessfulAttempt = task.attempts.some(attempt => attempt.result.success);
+
+            if (hasSuccessfulAttempt) {
+              task.status = 'success';
+              successfulTasks++;
+
+              // If task has retry info and is now successful, count as successfully retried
+              if (task.retryInfo?.hasBeenRetried) {
+                tasksSuccessfullyRetried++;
+              }
+            } else {
+              task.status = 'failed';
+              failedTasks++;
+            }
+          }
+        }
+
+        // Update dependency graph counters
+        dependencyGraph.statusSummary.successfulCompilations = successfulTasks;
+        dependencyGraph.statusSummary.failedCompilations = failedTasks;
+
+        // Update retry status tracking
+        dependencyGraph.retryStatus.totalTasksSuccessfullyRetried = tasksSuccessfullyRetried;
+        dependencyGraph.retryStatus.totalTasksRequiringRetry = failedTasks;
+
+        return {
+          tasksValidated: successfulTasks + failedTasks,
+          successfulTasks,
+          failedTasks,
+          tasksSuccessfullyRetried,
+        };
+      },
+    );
   });
 
   afterEach(() => {
@@ -230,45 +280,43 @@ describe('graph.ts', () => {
       });
 
       // Mock retry to indicate the task was retried but still failed
-      mockOrchestrateRetryAttempts.mockImplementation(
-        (dependencyGraph, _projectCacheDirMap, codeqlExePath) => {
-          // Simulate the retry logic setting retryInfo on failed tasks
-          for (const proj of dependencyGraph.projects.values()) {
-            for (const task of proj.compilationTasks) {
-              if (task.status === 'failed') {
-                task.retryInfo = {
-                  hasBeenRetried: true,
-                  retryReason: 'Output validation failed',
-                  fullDependenciesInstalled: false,
-                  retryTimestamp: new Date(),
-                };
+      mockOrchestrateRetryAttempts.mockImplementation((dependencyGraph, codeqlExePath) => {
+        // Simulate the retry logic setting retryInfo on failed tasks
+        for (const proj of dependencyGraph.projects.values()) {
+          for (const task of proj.compilationTasks) {
+            if (task.status === 'failed') {
+              task.retryInfo = {
+                hasBeenRetried: true,
+                retryReason: 'Output validation failed',
+                fullDependenciesInstalled: false,
+                retryTimestamp: new Date(),
+              };
 
-                // Simulate adding diagnostics for failed tasks
-                for (const sourceFile of task.sourceFiles) {
-                  mockAddCompilationDiagnostic(
-                    sourceFile,
-                    task.errorSummary ?? 'Compilation failed',
-                    codeqlExePath,
-                  );
-                }
+              // Simulate adding diagnostics for failed tasks
+              for (const sourceFile of task.sourceFiles) {
+                mockAddCompilationDiagnostic(
+                  sourceFile,
+                  task.errorSummary ?? 'Compilation failed',
+                  codeqlExePath,
+                );
               }
             }
           }
+        }
 
-          return {
-            success: false,
-            projectsWithRetries: ['/test/project'],
-            totalTasksRequiringRetry: 1,
-            totalSuccessfulRetries: 0,
-            totalFailedRetries: 1,
-            projectsWithSuccessfulDependencyInstallation: [],
-            projectsWithFailedDependencyInstallation: [],
-            retryDurationMs: 100,
-            dependencyInstallationDurationMs: 50,
-            retryCompilationDurationMs: 50,
-          };
-        },
-      );
+        return {
+          success: false,
+          projectsWithRetries: ['/test/project'],
+          totalTasksRequiringRetry: 1,
+          totalSuccessfulRetries: 0,
+          totalFailedRetries: 1,
+          projectsWithSuccessfulDependencyInstallation: [],
+          projectsWithFailedDependencyInstallation: [],
+          retryDurationMs: 100,
+          dependencyInstallationDurationMs: 50,
+          retryCompilationDurationMs: 50,
+        };
+      });
 
       orchestrateCompilation(mockDependencyGraph, projectCacheDirMap, '/path/to/codeql');
 
