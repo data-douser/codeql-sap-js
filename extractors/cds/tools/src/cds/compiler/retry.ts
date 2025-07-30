@@ -6,6 +6,7 @@ import type {
   CompilationTask,
   ResultRetryCompilationTask,
   ResultRetryCompilationOrchestration,
+  ValidatedCdsCommand,
 } from './types';
 import { identifyTasksRequiringRetry, updateCdsDependencyGraphStatus } from './validator';
 import { addCompilationDiagnostic } from '../../diagnostics';
@@ -18,7 +19,7 @@ import type { CdsDependencyGraph, CdsProject } from '../parser';
  * @param dependencyGraph The dependency graph to use as the source of truth for task status
  * @param codeqlExePath Path to CodeQL executable used to add a diagnostic notification
  */
-function addCompiliationDiagnosticsForFailedTasks(
+function addCompilationDiagnosticsForFailedTasks(
   dependencyGraph: CdsDependencyGraph,
   codeqlExePath: string,
 ): void {
@@ -48,7 +49,7 @@ function addCompiliationDiagnosticsForFailedTasks(
 /**
  * Main orchestration function for retrying failed tasks in the {@link CdsDependencyGraph}.
  * @param dependencyGraph The dependency graph containing compilation tasks
- * @param codeqlExePath Path to CodeQL executable for diagnostics
+ * @param codeqlExePath Path to `codeql` executable to use for adding diagnostic notifications
  * @returns The {@link ResultRetryCompilationOrchestration}
  */
 export function orchestrateRetryAttempts(
@@ -75,7 +76,7 @@ export function orchestrateRetryAttempts(
   };
 
   try {
-    // Phase 1: Validate current outputs and identify failed tasks
+    // Phase 1: Validate current outputs and identify failed tasks.
     cdsExtractorLog('info', 'Identifying tasks requiring retry...');
     const tasksRequiringRetry = identifyTasksRequiringRetry(dependencyGraph);
 
@@ -84,14 +85,14 @@ export function orchestrateRetryAttempts(
       return result;
     }
 
-    // Update retry status tracking
+    // Update retry status tracking.
     result.totalTasksRequiringRetry = Array.from(tasksRequiringRetry.values()).reduce(
       (sum, tasks) => sum + tasks.length,
       0,
     );
     dependencyGraph.retryStatus.totalTasksRequiringRetry = result.totalTasksRequiringRetry;
 
-    // Phase 2: Install full dependencies for projects with failed tasks
+    // Phase 2: Install full dependencies for projects with failed tasks.
     cdsExtractorLog('info', 'Installing full dependencies for projects requiring retry...');
     dependencyInstallationStartTime = Date.now();
 
@@ -105,7 +106,7 @@ export function orchestrateRetryAttempts(
         try {
           const installResult = projectInstallDependencies(project, dependencyGraph.sourceRootDir);
 
-          // Update project retry status
+          // Update project retry status.
           project.retryStatus ??= {
             fullDependenciesInstalled: false,
             tasksRequiringRetry: failedTasks.length,
@@ -156,7 +157,7 @@ export function orchestrateRetryAttempts(
     result.dependencyInstallationDurationMs =
       dependencyInstallationEndTime - dependencyInstallationStartTime;
 
-    // Phase 3: Execute retry compilation attempts
+    // Phase 3: Execute retry compilation attempts.
     cdsExtractorLog('info', 'Executing retry compilation attempts...');
     retryCompilationStartTime = Date.now();
 
@@ -176,7 +177,7 @@ export function orchestrateRetryAttempts(
       result.totalSuccessfulRetries += retryExecutionResult.successfulRetries;
       result.totalFailedRetries += retryExecutionResult.failedRetries;
 
-      // Update project retry status
+      // Update project retry status.
       if (project.retryStatus) {
         project.retryStatus.tasksRetried = retryExecutionResult.retriedTasks.length;
       }
@@ -185,14 +186,14 @@ export function orchestrateRetryAttempts(
     retryCompilationEndTime = Date.now();
     result.retryCompilationDurationMs = retryCompilationEndTime - retryCompilationStartTime;
 
-    // After retry compilation attempts complete, update status
+    // After retry compilation attempts complete, update status.
     updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir, 'post-retry');
 
-    // Phase 4: Update dependency graph with retry results
+    // Phase 4: Update dependency graph with retry results.
     updateDependencyGraphWithRetryResults(dependencyGraph, result);
 
-    // Phase 5: Add diagnostics for definitively failed tasks
-    addCompiliationDiagnosticsForFailedTasks(dependencyGraph, codeqlExePath);
+    // Phase 5: Add diagnostics for definitively failed tasks.
+    addCompilationDiagnosticsForFailedTasks(dependencyGraph, codeqlExePath);
 
     result.success = result.totalSuccessfulRetries > 0 || result.totalTasksRequiringRetry === 0;
   } catch (error) {
@@ -214,9 +215,9 @@ export function orchestrateRetryAttempts(
 }
 
 /**
- * Retry the provided {@link CompilationTask} using the provided `cdsCommand`.
- * @param task The {@link CompliationTask} to be retried
- * @param cdsCommand CDS command to use
+ * Retry the provided {@link CompilationTask} using the task's configured retry command.
+ * @param task The {@link CompilationTask} to be retried
+ * @param retryCommand Validated CDS command to use for retry
  * @param projectDir Project directory to use as working directory
  * @param dependencyGraph The {@link CdsDependencyGraph} to be processed and updated
  * if retry succeeds.
@@ -224,16 +225,19 @@ export function orchestrateRetryAttempts(
  */
 function retryCompilationTask(
   task: CompilationTask,
-  cdsCommand: string,
+  retryCommand: ValidatedCdsCommand,
   projectDir: string,
   dependencyGraph: CdsDependencyGraph,
 ): CompilationAttempt {
   const attemptId = `${task.id}_retry_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   const startTime = new Date();
 
+  // Use the original command string for consistency with existing compilation logic
+  const cdsCommandString = retryCommand.originalCommand;
+
   const attempt: CompilationAttempt = {
     id: attemptId,
-    cdsCommand,
+    cdsCommand: cdsCommandString,
     cacheDir: projectDir, // For retry, we use the project directory
     timestamp: startTime,
     result: {
@@ -249,7 +253,7 @@ function retryCompilationTask(
     const compilationResult = compileCdsToJson(
       primarySourceFile,
       dependencyGraph.sourceRootDir,
-      cdsCommand,
+      cdsCommandString,
       projectDir, // Use project directory instead of cache directory for retry
       // Convert CDS projects to BasicCdsProject format expected by compileCdsToJson
       new Map(
@@ -307,12 +311,9 @@ function retryCompilationTasksForProject(
     retryErrors: [],
   };
 
-  // For retry, we use npx cds compile to leverage the project's node_modules
-  const cdsCommand = 'npx cds compile';
-
   cdsExtractorLog(
     'info',
-    `Retrying ${tasksToRetry.length} task(s) for project ${project.projectDir} using ${result.fullDependenciesAvailable ? 'full' : 'minimal'} dependencies with npx`,
+    `Retrying ${tasksToRetry.length} task(s) for project ${project.projectDir} using ${result.fullDependenciesAvailable ? 'full' : 'minimal'} dependencies`,
   );
 
   for (const task of tasksToRetry) {
@@ -325,11 +326,10 @@ function retryCompilationTasksForProject(
         retryTimestamp: new Date(),
       };
 
-      // Attempt to retry the compilation task using a `cdsCommand` that can make use of
-      // the full set node dependencies declared in the project's `package.json` file.
+      // Use the retry command configured for this task
       const retryAttempt = retryCompilationTask(
         task,
-        cdsCommand,
+        task.retryCommand,
         project.projectDir,
         dependencyGraph,
       );

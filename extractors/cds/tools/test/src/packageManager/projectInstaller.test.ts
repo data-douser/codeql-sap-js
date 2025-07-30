@@ -135,6 +135,16 @@ describe('CDS Compiler Installer', () => {
             attempts: [],
             useProjectLevelCompilation: false,
             dependencies: [],
+            primaryCommand: {
+              executable: 'cds',
+              args: [],
+              originalCommand: 'cds',
+            },
+            retryCommand: {
+              executable: 'npx',
+              args: ['cds'],
+              originalCommand: 'npx cds',
+            },
           },
         ],
       });
@@ -170,6 +180,16 @@ describe('CDS Compiler Installer', () => {
             attempts: [],
             useProjectLevelCompilation: false,
             dependencies: [],
+            primaryCommand: {
+              executable: 'cds',
+              args: [],
+              originalCommand: 'cds',
+            },
+            retryCommand: {
+              executable: 'npx',
+              args: ['cds'],
+              originalCommand: 'npx cds',
+            },
           },
         ],
       });
@@ -191,6 +211,16 @@ describe('CDS Compiler Installer', () => {
             attempts: [],
             useProjectLevelCompilation: false,
             dependencies: [],
+            primaryCommand: {
+              executable: 'cds',
+              args: [],
+              originalCommand: 'cds',
+            },
+            retryCommand: {
+              executable: 'npx',
+              args: ['cds'],
+              originalCommand: 'npx cds',
+            },
           },
         ],
       });

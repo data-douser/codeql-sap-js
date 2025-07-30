@@ -7046,6 +7046,12 @@ function getCdsVersion(cdsCommand, cacheDir) {
 }
 
 // src/cds/compiler/compile.ts
+function parseCommandForSpawn(commandString) {
+  const parts = commandString.trim().split(/\s+/);
+  const executable = parts[0];
+  const baseArgs = parts.slice(1);
+  return { executable, baseArgs };
+}
 function compileCdsToJson(cdsFilePath, sourceRoot2, cdsCommand, cacheDir, projectMap, projectDir) {
   try {
     const resolvedCdsFilePath = (0, import_path4.resolve)(cdsFilePath);
@@ -7095,18 +7101,17 @@ function compileCdsToJson(cdsFilePath, sourceRoot2, cdsCommand, cacheDir, projec
         sourceRoot2,
         projectDir,
         cdsCommand,
-        spawnOptions,
-        versionInfo
+        spawnOptions
       );
     }
   } catch (error) {
     return { success: false, message: String(error) };
   }
 }
-function compileProjectLevel(resolvedCdsFilePath, sourceRoot2, projectDir, cdsCommand, spawnOptions, _versionInfo) {
+function compileProjectLevel(resolvedCdsFilePath, sourceRoot2, projectDir, cdsCommand, spawnOptions, versionInfo) {
   cdsExtractorLog(
     "info",
-    `${resolvedCdsFilePath} is part of a CAP project - using project-aware compilation ${_versionInfo}...`
+    `${resolvedCdsFilePath} is part of a CAP project - using project-aware compilation ${versionInfo}...`
   );
   const projectAbsolutePath = (0, import_path4.join)(sourceRoot2, projectDir);
   const capDirectories = ["db", "srv", "app"];
@@ -7151,7 +7156,7 @@ function compileProjectLevel(resolvedCdsFilePath, sourceRoot2, projectDir, cdsCo
     "json",
     "--dest",
     "model.cds.json",
-    // TODO : replace `model.cds.json` with `model.<session_id>.cds.json`
+    // TODO: Replace `model.cds.json` with `model.<session_id>.cds.json`
     "--locations",
     "--log-level",
     "warn"
@@ -7161,7 +7166,9 @@ function compileProjectLevel(resolvedCdsFilePath, sourceRoot2, projectDir, cdsCo
     "info",
     `Running compilation task for CDS project '${projectDir}': command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`
   );
-  const result = (0, import_child_process3.spawnSync)(cdsCommand, compileArgs, spawnOptions);
+  const { executable, baseArgs } = parseCommandForSpawn(cdsCommand);
+  const allArgs = [...baseArgs, ...compileArgs];
+  const result = (0, import_child_process3.spawnSync)(executable, allArgs, spawnOptions);
   if (result.error) {
     cdsExtractorLog("error", `SpawnSync error: ${result.error.message}`);
     throw new Error(`Error executing CDS compiler: ${result.error.message}`);
@@ -7206,7 +7213,7 @@ ${result.stderr?.toString() || "Unknown error"}
     message: "Project was compiled using project-aware compilation"
   };
 }
-function compileRootFileAsProject(resolvedCdsFilePath, sourceRoot2, projectDir, cdsCommand, spawnOptions, _versionInfo) {
+function compileRootFileAsProject(resolvedCdsFilePath, sourceRoot2, projectDir, cdsCommand, spawnOptions) {
   const projectBaseDir = (0, import_path4.join)(sourceRoot2, projectDir);
   const relativeCdsPath = (0, import_path4.relative)(projectBaseDir, resolvedCdsFilePath);
   const cdsJsonOutPath = `${resolvedCdsFilePath}.json`;
@@ -7230,7 +7237,9 @@ function compileRootFileAsProject(resolvedCdsFilePath, sourceRoot2, projectDir, 
     "info",
     `Executing CDS command: command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`
   );
-  const result = (0, import_child_process3.spawnSync)(cdsCommand, compileArgs, spawnOptions);
+  const { executable, baseArgs } = parseCommandForSpawn(cdsCommand);
+  const allArgs = [...baseArgs, ...compileArgs];
+  const result = (0, import_child_process3.spawnSync)(executable, allArgs, spawnOptions);
   if (result.error) {
     cdsExtractorLog("error", `SpawnSync error: ${result.error.message}`);
     throw new Error(`Error executing CDS compiler: ${result.error.message}`);
@@ -8022,7 +8031,7 @@ function projectInstallDependencies(project, sourceRoot2) {
 }
 
 // src/cds/compiler/retry.ts
-function addCompiliationDiagnosticsForFailedTasks(dependencyGraph2, codeqlExePath2) {
+function addCompilationDiagnosticsForFailedTasks(dependencyGraph2, codeqlExePath2) {
   for (const project of dependencyGraph2.projects.values()) {
     for (const task of project.compilationTasks) {
       if (task.status === "failed") {
@@ -8145,7 +8154,7 @@ function orchestrateRetryAttempts(dependencyGraph2, codeqlExePath2) {
     result.retryCompilationDurationMs = retryCompilationEndTime - retryCompilationStartTime;
     updateCdsDependencyGraphStatus(dependencyGraph2, dependencyGraph2.sourceRootDir, "post-retry");
     updateDependencyGraphWithRetryResults(dependencyGraph2, result);
-    addCompiliationDiagnosticsForFailedTasks(dependencyGraph2, codeqlExePath2);
+    addCompilationDiagnosticsForFailedTasks(dependencyGraph2, codeqlExePath2);
     result.success = result.totalSuccessfulRetries > 0 || result.totalTasksRequiringRetry === 0;
   } catch (error) {
     const errorMessage = `Retry orchestration failed: ${String(error)}`;
@@ -8161,12 +8170,13 @@ function orchestrateRetryAttempts(dependencyGraph2, codeqlExePath2) {
   }
   return result;
 }
-function retryCompilationTask(task, cdsCommand, projectDir, dependencyGraph2) {
+function retryCompilationTask(task, retryCommand, projectDir, dependencyGraph2) {
   const attemptId = `${task.id}_retry_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   const startTime = /* @__PURE__ */ new Date();
+  const cdsCommandString = retryCommand.originalCommand;
   const attempt = {
     id: attemptId,
-    cdsCommand,
+    cdsCommand: cdsCommandString,
     cacheDir: projectDir,
     // For retry, we use the project directory
     timestamp: startTime,
@@ -8180,7 +8190,7 @@ function retryCompilationTask(task, cdsCommand, projectDir, dependencyGraph2) {
     const compilationResult = compileCdsToJson(
       primarySourceFile,
       dependencyGraph2.sourceRootDir,
-      cdsCommand,
+      cdsCommandString,
       projectDir,
       // Use project directory instead of cache directory for retry
       // Convert CDS projects to BasicCdsProject format expected by compileCdsToJson
@@ -8223,10 +8233,9 @@ function retryCompilationTasksForProject(tasksToRetry, project, dependencyGraph2
     executionDurationMs: 0,
     retryErrors: []
   };
-  const cdsCommand = "npx cds compile";
   cdsExtractorLog(
     "info",
-    `Retrying ${tasksToRetry.length} task(s) for project ${project.projectDir} using ${result.fullDependenciesAvailable ? "full" : "minimal"} dependencies with npx`
+    `Retrying ${tasksToRetry.length} task(s) for project ${project.projectDir} using ${result.fullDependenciesAvailable ? "full" : "minimal"} dependencies`
   );
   for (const task of tasksToRetry) {
     try {
@@ -8238,7 +8247,7 @@ function retryCompilationTasksForProject(tasksToRetry, project, dependencyGraph2
       };
       const retryAttempt = retryCompilationTask(
         task,
-        cdsCommand,
+        task.retryCommand,
         project.projectDir,
         dependencyGraph2
       );
@@ -8339,6 +8348,16 @@ function attemptCompilation(task, cdsCommand, cacheDir, dependencyGraph2) {
   return attempt;
 }
 function createCompilationTask(type, sourceFiles, expectedOutputFiles, projectDir, useProjectLevelCompilation) {
+  const defaultPrimaryCommand = {
+    executable: "cds",
+    args: [],
+    originalCommand: "cds"
+  };
+  const defaultRetryCommand = {
+    executable: "npx",
+    args: ["cds"],
+    originalCommand: "npx cds"
+  };
   return {
     id: `${type}_${projectDir}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     type,
@@ -8348,7 +8367,9 @@ function createCompilationTask(type, sourceFiles, expectedOutputFiles, projectDi
     projectDir,
     attempts: [],
     useProjectLevelCompilation,
-    dependencies: []
+    dependencies: [],
+    primaryCommand: defaultPrimaryCommand,
+    retryCommand: defaultRetryCommand
   };
 }
 function createCompilationConfig(cdsCommand, cacheDir, useProjectLevel) {

@@ -10,6 +10,18 @@ import { cdsExtractorLog } from '../../logging';
 import { BasicCdsProject } from '../parser/types';
 
 /**
+ * Parses a command string for use with spawnSync, handling multi-word commands like 'npx cds'.
+ * @param commandString The command string to parse (e.g., 'npx cds' or 'cds')
+ * @returns Object with executable and args arrays for spawnSync
+ */
+function parseCommandForSpawn(commandString: string): { executable: string; baseArgs: string[] } {
+  const parts = commandString.trim().split(/\s+/);
+  const executable = parts[0];
+  const baseArgs = parts.slice(1);
+  return { executable, baseArgs };
+}
+
+/**
  * Compiles a CDS file to JSON using robust, project-aware compilation only.
  * This function has been refactored to align with the autobuild.md vision by removing all
  * forms of individual file compilation and ensuring only project-aware compilation is used.
@@ -100,7 +112,6 @@ export function compileCdsToJson(
         projectDir,
         cdsCommand,
         spawnOptions,
-        versionInfo,
       );
     }
   } catch (error) {
@@ -126,11 +137,11 @@ function compileProjectLevel(
   projectDir: string,
   cdsCommand: string,
   spawnOptions: SpawnSyncOptions,
-  _versionInfo: string,
+  versionInfo: string,
 ): CdsCompilationResult {
   cdsExtractorLog(
     'info',
-    `${resolvedCdsFilePath} is part of a CAP project - using project-aware compilation ${_versionInfo}...`,
+    `${resolvedCdsFilePath} is part of a CAP project - using project-aware compilation ${versionInfo}...`,
   );
 
   // For project-level compilation, compile the entire project together
@@ -190,7 +201,7 @@ function compileProjectLevel(
     '--to',
     'json',
     '--dest',
-    'model.cds.json', // TODO : replace `model.cds.json` with `model.<session_id>.cds.json`
+    'model.cds.json', // TODO: Replace `model.cds.json` with `model.<session_id>.cds.json`
     '--locations',
     '--log-level',
     'warn',
@@ -202,7 +213,11 @@ function compileProjectLevel(
     `Running compilation task for CDS project '${projectDir}': command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
   );
 
-  const result = spawnSync(cdsCommand, compileArgs, spawnOptions);
+  // Parse command for proper spawnSync execution
+  const { executable, baseArgs } = parseCommandForSpawn(cdsCommand);
+  const allArgs = [...baseArgs, ...compileArgs];
+
+  const result = spawnSync(executable, allArgs, spawnOptions);
 
   if (result.error) {
     cdsExtractorLog('error', `SpawnSync error: ${result.error.message}`);
@@ -242,7 +257,7 @@ function compileProjectLevel(
       `CDS compiler generated JSON to output directory: ${projectJsonOutPath}`,
     );
     // Recursively rename generated .json files to have a .cds.json extension
-    // TODO : replace or remove this in favor of session-specific file suffixes (i.e. `.<session_id>.cds.json`).
+    // TODO: Replace or remove this in favor of session-specific file suffixes (i.e. `.<session_id>.cds.json`).
     recursivelyRenameJsonFiles(projectJsonOutPath);
   } else {
     cdsExtractorLog('info', `CDS compiler generated JSON to file: ${projectJsonOutPath}`);
@@ -266,7 +281,7 @@ function compileProjectLevel(
  * @param cdsCommand The CDS command to use
  * @param spawnOptions Pre-configured spawn options
  * @param versionInfo Version information for logging
- * @returns Compilation result
+ * @returns The {@link CdsCompilationResult}
  */
 function compileRootFileAsProject(
   resolvedCdsFilePath: string,
@@ -274,7 +289,6 @@ function compileRootFileAsProject(
   projectDir: string,
   cdsCommand: string,
   spawnOptions: SpawnSyncOptions,
-  _versionInfo: string,
 ): CdsCompilationResult {
   // Calculate project base directory and file path relative to project
   const projectBaseDir = join(sourceRoot, projectDir);
@@ -304,7 +318,11 @@ function compileRootFileAsProject(
   );
 
   // Execute the compilation
-  const result = spawnSync(cdsCommand, compileArgs, spawnOptions);
+  // Parse command for proper spawnSync execution
+  const { executable, baseArgs } = parseCommandForSpawn(cdsCommand);
+  const allArgs = [...baseArgs, ...compileArgs];
+
+  const result = spawnSync(executable, allArgs, spawnOptions);
 
   if (result.error) {
     cdsExtractorLog('error', `SpawnSync error: ${result.error.message}`);

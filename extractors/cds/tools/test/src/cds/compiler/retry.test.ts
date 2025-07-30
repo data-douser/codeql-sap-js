@@ -43,6 +43,16 @@ describe('retry.ts', () => {
       useProjectLevelCompilation: false,
       dependencies: [],
       errorSummary: 'Initial compilation failed',
+      primaryCommand: {
+        executable: 'cds',
+        args: [],
+        originalCommand: 'cds',
+      },
+      retryCommand: {
+        executable: 'npx',
+        args: ['cds'],
+        originalCommand: 'npx cds',
+      },
     };
 
     // Create a mock project

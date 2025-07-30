@@ -149,6 +149,16 @@ describe('validator.ts', () => {
         attempts: [],
         useProjectLevelCompilation: false,
         dependencies: [],
+        primaryCommand: {
+          executable: 'cds',
+          args: [],
+          originalCommand: 'cds',
+        },
+        retryCommand: {
+          executable: 'npx',
+          args: ['cds'],
+          originalCommand: 'npx cds',
+        },
       };
     });
 
@@ -221,6 +231,16 @@ describe('validator.ts', () => {
         attempts: [],
         useProjectLevelCompilation: false,
         dependencies: [],
+        primaryCommand: {
+          executable: 'cds',
+          args: [],
+          originalCommand: 'cds',
+        },
+        retryCommand: {
+          executable: 'npx',
+          args: ['cds'],
+          originalCommand: 'npx cds',
+        },
       };
 
       mockTask2 = {
@@ -233,6 +253,16 @@ describe('validator.ts', () => {
         attempts: [],
         useProjectLevelCompilation: false,
         dependencies: [],
+        primaryCommand: {
+          executable: 'cds',
+          args: [],
+          originalCommand: 'cds',
+        },
+        retryCommand: {
+          executable: 'npx',
+          args: ['cds'],
+          originalCommand: 'npx cds',
+        },
       };
 
       mockProject = {
@@ -414,6 +444,16 @@ describe('validator.ts', () => {
         attempts: [],
         useProjectLevelCompilation: false,
         dependencies: [],
+        primaryCommand: {
+          executable: 'cds',
+          args: [],
+          originalCommand: 'cds',
+        },
+        retryCommand: {
+          executable: 'npx',
+          args: ['cds'],
+          originalCommand: 'npx cds',
+        },
       };
 
       const mockProject2: CdsProject = {

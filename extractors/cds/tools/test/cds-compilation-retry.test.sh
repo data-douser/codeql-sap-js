@@ -85,9 +85,11 @@ log_info "Target files: ${RELATIVE_PATHS[*]}"
 
 # Build full paths and track removal status
 declare -A FILE_REMOVED_ONCE
+declare -A FILE_COMPLETED
 for relative_path in "${RELATIVE_PATHS[@]}"; do
     full_path="$SOURCE_ROOT/$relative_path"
     FILE_REMOVED_ONCE["$full_path"]="false"
+    FILE_COMPLETED["$full_path"]="false"
     log_info "Will monitor: $full_path"
     
     # Create directory if it doesn't exist
@@ -114,8 +116,17 @@ log_info "Starting file monitoring (press Ctrl+C to stop)..."
 
 # Simple infinite polling loop
 while true; do
+    active_files=0
+    
     for relative_path in "${RELATIVE_PATHS[@]}"; do
         full_path="$SOURCE_ROOT/$relative_path"
+        
+        # Skip files that are already completed
+        if [ "${FILE_COMPLETED[$full_path]}" = "true" ]; then
+            continue
+        fi
+        
+        active_files=$((active_files + 1))
         
         if [ -f "$full_path" ]; then
             if [ "${FILE_REMOVED_ONCE[$full_path]}" = "false" ]; then
@@ -125,11 +136,19 @@ while true; do
                 FILE_REMOVED_ONCE["$full_path"]="true"
                 log_success "File removed (retry will be triggered): $full_path"
             else
-                # Second creation: Allow file to remain
+                # Second creation: Allow file to remain and mark as completed
                 log_success "File created and allowed to remain (retry succeeded): $full_path"
+                FILE_COMPLETED["$full_path"]="true"
+                active_files=$((active_files - 1))
             fi
         fi
     done
+    
+    # Exit if no more files to monitor
+    if [ $active_files -eq 0 ]; then
+        log_success "All files have been processed successfully. Exiting."
+        break
+    fi
     
     # Sleep for 0.5 seconds before next check
     sleep 0.5

@@ -1,7 +1,12 @@
 import { determineCdsCommand } from './command';
 import { compileCdsToJson } from './compile';
 import { orchestrateRetryAttempts } from './retry';
-import { CompilationAttempt, CompilationTask, CompilationConfig } from './types';
+import {
+  CompilationAttempt,
+  CompilationTask,
+  CompilationConfig,
+  ValidatedCdsCommand,
+} from './types';
 import { updateCdsDependencyGraphStatus } from './validator';
 import { cdsExtractorLog, generateStatusReport } from '../../logging';
 import { CdsDependencyGraph, CdsProject } from '../parser/types';
@@ -92,6 +97,19 @@ function createCompilationTask(
   projectDir: string,
   useProjectLevelCompilation: boolean,
 ): CompilationTask {
+  // Create default commands for tasks - these should be updated later with proper commands
+  const defaultPrimaryCommand: ValidatedCdsCommand = {
+    executable: 'cds',
+    args: [],
+    originalCommand: 'cds',
+  };
+
+  const defaultRetryCommand: ValidatedCdsCommand = {
+    executable: 'npx',
+    args: ['cds'],
+    originalCommand: 'npx cds',
+  };
+
   return {
     id: `${type}_${projectDir}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     type,
@@ -102,6 +120,8 @@ function createCompilationTask(
     attempts: [],
     useProjectLevelCompilation,
     dependencies: [],
+    primaryCommand: defaultPrimaryCommand,
+    retryCommand: defaultRetryCommand,
   };
 }
 

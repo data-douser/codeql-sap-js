@@ -89,6 +89,11 @@ export interface CompilationTask {
   /** Error summary if all attempts failed */
   errorSummary?: string;
 
+  /** Primary CDS command for initial compilation attempts */
+  primaryCommand: ValidatedCdsCommand;
+  /** Retry CDS command for retry attempts (typically npx-based for project dependency access) */
+  retryCommand: ValidatedCdsCommand;
+
   /** Retry tracking information */
   retryInfo?: {
     /** Whether this task has been retried */
