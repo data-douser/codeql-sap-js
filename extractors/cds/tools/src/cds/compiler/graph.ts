@@ -18,8 +18,8 @@ function attemptCompilation(
   cacheDir: string | undefined,
   dependencyGraph: CdsDependencyGraph,
 ): CompilationAttempt {
-  const attemptId = `${task.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   const startTime = new Date();
+  const attemptId = `${task.id}_${startTime.getTime()}`;
 
   const attempt: CompilationAttempt = {
     id: attemptId,

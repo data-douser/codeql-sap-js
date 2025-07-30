@@ -207,7 +207,7 @@ export function buildCdsProjectDependencyGraph(sourceRootDir: string): CdsDepend
 
   // Create the initial dependency graph structure
   const dependencyGraph: CdsDependencyGraph = {
-    id: `cds_graph_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `cds_graph_${Date.now()}`,
     sourceRootDir,
     projects: new Map<string, CdsProject>(),
     debugInfo: {
@@ -245,7 +245,6 @@ export function buildCdsProjectDependencyGraph(sourceRootDir: string): CdsDepend
       successfulCompilations: 0,
       failedCompilations: 0,
       skippedCompilations: 0,
-      retriedCompilations: 0,
       jsonFilesGenerated: 0,
       criticalErrors: [],
       warnings: [],

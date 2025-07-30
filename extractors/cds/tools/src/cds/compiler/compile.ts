@@ -201,7 +201,7 @@ function compileProjectLevel(
     '--to',
     'json',
     '--dest',
-    'model.cds.json', // TODO: Replace `model.cds.json` with `model.<session_id>.cds.json`
+    'model.cds.json',
     '--locations',
     '--log-level',
     'warn',
@@ -257,7 +257,6 @@ function compileProjectLevel(
       `CDS compiler generated JSON to output directory: ${projectJsonOutPath}`,
     );
     // Recursively rename generated .json files to have a .cds.json extension
-    // TODO: Replace or remove this in favor of session-specific file suffixes (i.e. `.<session_id>.cds.json`).
     recursivelyRenameJsonFiles(projectJsonOutPath);
   } else {
     cdsExtractorLog('info', `CDS compiler generated JSON to file: ${projectJsonOutPath}`);

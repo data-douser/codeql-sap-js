@@ -93,7 +93,6 @@ describe('installer', () => {
         successfulCompilations: 0,
         failedCompilations: 0,
         skippedCompilations: 0,
-        retriedCompilations: 0,
         jsonFilesGenerated: 0,
         overallSuccess: true,
         criticalErrors: [],

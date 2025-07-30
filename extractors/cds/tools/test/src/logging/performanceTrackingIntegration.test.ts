@@ -62,7 +62,6 @@ function createMockDependencyGraph(performanceMetrics: {
       successfulCompilations: 3,
       failedCompilations: 0,
       skippedCompilations: 0,
-      retriedCompilations: 0,
       jsonFilesGenerated: 3,
       criticalErrors: [],
       warnings: [],

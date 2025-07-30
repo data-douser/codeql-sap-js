@@ -119,7 +119,6 @@ describe('retry.ts', () => {
         successfulCompilations: 0,
         failedCompilations: 1,
         skippedCompilations: 0,
-        retriedCompilations: 0,
         jsonFilesGenerated: 0,
         criticalErrors: [],
         warnings: [],

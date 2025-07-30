@@ -319,7 +319,6 @@ describe('validator.ts', () => {
           successfulCompilations: 1,
           failedCompilations: 1,
           skippedCompilations: 0,
-          retriedCompilations: 0,
           jsonFilesGenerated: 1,
           criticalErrors: [],
           warnings: [],

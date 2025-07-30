@@ -6741,7 +6741,7 @@ function generateStatusReport(dependencyGraph2) {
   lines.push("COMPILATION SUMMARY:");
   lines.push(`  Total Tasks: ${summary.totalCompilationTasks}`);
   lines.push(`  Successful: ${summary.successfulCompilations}`);
-  lines.push(`  Retried: ${summary.retriedCompilations}`);
+  lines.push(`  Retried: ${dependencyGraph2.retryStatus.totalRetryAttempts}`);
   lines.push(`  Failed: ${summary.failedCompilations}`);
   lines.push(`  Skipped: ${summary.skippedCompilations}`);
   lines.push("");
@@ -7156,7 +7156,6 @@ function compileProjectLevel(resolvedCdsFilePath, sourceRoot2, projectDir, cdsCo
     "json",
     "--dest",
     "model.cds.json",
-    // TODO: Replace `model.cds.json` with `model.<session_id>.cds.json`
     "--locations",
     "--log-level",
     "warn"
@@ -8171,14 +8170,13 @@ function orchestrateRetryAttempts(dependencyGraph2, codeqlExePath2) {
   return result;
 }
 function retryCompilationTask(task, retryCommand, projectDir, dependencyGraph2) {
-  const attemptId = `${task.id}_retry_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   const startTime = /* @__PURE__ */ new Date();
+  const attemptId = `${task.id}_retry_${startTime.getTime()}`;
   const cdsCommandString = retryCommand.originalCommand;
   const attempt = {
     id: attemptId,
     cdsCommand: cdsCommandString,
     cacheDir: projectDir,
-    // For retry, we use the project directory
     timestamp: startTime,
     result: {
       success: false,
@@ -8192,7 +8190,6 @@ function retryCompilationTask(task, retryCommand, projectDir, dependencyGraph2) 
       dependencyGraph2.sourceRootDir,
       cdsCommandString,
       projectDir,
-      // Use project directory instead of cache directory for retry
       // Convert CDS projects to BasicCdsProject format expected by compileCdsToJson
       new Map(
         Array.from(dependencyGraph2.projects.entries()).map(([key, value]) => [
@@ -8287,8 +8284,8 @@ function updateDependencyGraphWithRetryResults(dependencyGraph2, retryResults) {
 
 // src/cds/compiler/graph.ts
 function attemptCompilation(task, cdsCommand, cacheDir, dependencyGraph2) {
-  const attemptId = `${task.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   const startTime = /* @__PURE__ */ new Date();
+  const attemptId = `${task.id}_${startTime.getTime()}`;
   const attempt = {
     id: attemptId,
     cdsCommand,
@@ -9011,7 +9008,7 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir) {
 function buildCdsProjectDependencyGraph(sourceRootDir) {
   const startTime = /* @__PURE__ */ new Date();
   const dependencyGraph2 = {
-    id: `cds_graph_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `cds_graph_${Date.now()}`,
     sourceRootDir,
     projects: /* @__PURE__ */ new Map(),
     debugInfo: {
@@ -9049,7 +9046,6 @@ function buildCdsProjectDependencyGraph(sourceRootDir) {
       successfulCompilations: 0,
       failedCompilations: 0,
       skippedCompilations: 0,
-      retriedCompilations: 0,
       jsonFilesGenerated: 0,
       criticalErrors: [],
       warnings: [],

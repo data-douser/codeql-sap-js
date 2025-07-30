@@ -229,16 +229,16 @@ function retryCompilationTask(
   projectDir: string,
   dependencyGraph: CdsDependencyGraph,
 ): CompilationAttempt {
-  const attemptId = `${task.id}_retry_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   const startTime = new Date();
+  const attemptId = `${task.id}_retry_${startTime.getTime()}`;
 
-  // Use the original command string for consistency with existing compilation logic
+  // Use the original command string for consistency with existing compilation logic.
   const cdsCommandString = retryCommand.originalCommand;
 
   const attempt: CompilationAttempt = {
     id: attemptId,
     cdsCommand: cdsCommandString,
-    cacheDir: projectDir, // For retry, we use the project directory
+    cacheDir: projectDir,
     timestamp: startTime,
     result: {
       success: false,
@@ -247,14 +247,14 @@ function retryCompilationTask(
   };
 
   try {
-    // Use the same compilation logic as the original attempt
+    // Use the same compilation logic as the original attempt.
     const primarySourceFile = task.sourceFiles[0];
 
     const compilationResult = compileCdsToJson(
       primarySourceFile,
       dependencyGraph.sourceRootDir,
       cdsCommandString,
-      projectDir, // Use project directory instead of cache directory for retry
+      projectDir,
       // Convert CDS projects to BasicCdsProject format expected by compileCdsToJson
       new Map(
         Array.from(dependencyGraph.projects.entries()).map(([key, value]) => [
@@ -288,11 +288,11 @@ function retryCompilationTask(
 }
 
 /**
- * Executes retry compilation for specific tasks
+ * Executes retries for the provided array of {@link CompilationTask} instances.
  * @param tasksToRetry Tasks that need to be retried
- * @param project The project containing the tasks
- * @param dependencyGraph The dependency graph
- * @returns Retry execution results
+ * @param project The {@link CdsProject} associated with the compilation tasks to retry
+ * @param dependencyGraph The {@link CdsDependencyGraph} to update as tasks are retried
+ * @returns The {@link ResultRetryCompilationTask}
  */
 function retryCompilationTasksForProject(
   tasksToRetry: CompilationTask[],

@@ -13,7 +13,7 @@ export function generateStatusReport(dependencyGraph: CdsDependencyGraph): strin
   lines.push('='.repeat(80));
   lines.push('');
 
-  // Overall summary
+  // OVERALL SUMMARY
   lines.push('OVERALL SUMMARY:');
   lines.push(`  Status: ${summary.overallSuccess ? 'SUCCESS' : 'FAILED'}`);
   lines.push(`  Current Phase: ${dependencyGraph.currentPhase.toUpperCase()}`);
@@ -22,16 +22,16 @@ export function generateStatusReport(dependencyGraph: CdsDependencyGraph): strin
   lines.push(`  JSON Files Generated: ${summary.jsonFilesGenerated}`);
   lines.push('');
 
-  // Compilation summary
+  // COMPILATION SUMMARY
   lines.push('COMPILATION SUMMARY:');
   lines.push(`  Total Tasks: ${summary.totalCompilationTasks}`);
   lines.push(`  Successful: ${summary.successfulCompilations}`);
-  lines.push(`  Retried: ${summary.retriedCompilations}`);
+  lines.push(`  Retried: ${dependencyGraph.retryStatus.totalRetryAttempts}`);
   lines.push(`  Failed: ${summary.failedCompilations}`);
   lines.push(`  Skipped: ${summary.skippedCompilations}`);
   lines.push('');
 
-  // Retry summary (if retry attempts were made)
+  // RETRY SUMMARY (if retry attempts were made)
   if (dependencyGraph.retryStatus.totalRetryAttempts > 0) {
     lines.push('RETRY SUMMARY:');
     lines.push(`  Tasks Requiring Retry: ${dependencyGraph.retryStatus.totalTasksRequiringRetry}`);
@@ -48,7 +48,7 @@ export function generateStatusReport(dependencyGraph: CdsDependencyGraph): strin
     lines.push('');
   }
 
-  // Performance metrics
+  // PERFORMANCE metrics
   lines.push('PERFORMANCE:');
   lines.push(`  Total Duration: ${summary.performance.totalDurationMs}ms`);
   lines.push(`  Parsing: ${summary.performance.parsingDurationMs}ms`);
