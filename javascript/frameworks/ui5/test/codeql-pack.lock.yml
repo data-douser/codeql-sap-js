@@ -7,18 +7,24 @@ dependencies:
     version: 2.0.11
   codeql/javascript-all:
     version: 2.6.7
+  codeql/javascript-queries:
+    version: 2.0.0
   codeql/mad:
     version: 1.0.27
   codeql/regex:
     version: 1.0.27
   codeql/ssa:
     version: 2.0.3
+  codeql/suite-helpers:
+    version: 1.0.27
   codeql/threat-models:
     version: 1.0.27
   codeql/tutorial:
     version: 1.0.27
   codeql/typetracking:
     version: 2.0.11
+  codeql/typos:
+    version: 1.0.27
   codeql/util:
     version: 2.0.14
   codeql/xml:
