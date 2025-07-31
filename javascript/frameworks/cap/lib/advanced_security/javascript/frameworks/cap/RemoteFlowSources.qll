@@ -45,12 +45,11 @@ class HandlerParameterOfExposedService extends HandlerParameter {
  *
  * Note that `req.http.req` has type `require("@express").Request`, so their uses are
  * completely identical. Subsequently, the models for this access path follow Express'
- * API descriptions (as far as 3.x). Also see `Express::RequestInputAccess`,
+ * API descriptions (as far back as 3.x). Also see `Express::RequestInputAccess`,
  * `Express::RequestHeaderAccess`, and `Express::RequestBodyAccess` of the standard
  * library.
  */
-class UserProvidedPropertyReadOfHandlerParameterOfExposedService extends RemoteFlowSource instanceof PropRead
-{
+class UserProvidedPropertyReadOfHandlerParameterOfExposedService extends RemoteFlowSource {
   HandlerParameterOfExposedService handlerParameterOfExposedService;
 
   UserProvidedPropertyReadOfHandlerParameterOfExposedService() {
