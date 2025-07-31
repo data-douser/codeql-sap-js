@@ -28,6 +28,16 @@ function parseCommandForSpawn(commandString: string): { executable: string; base
 function determineCompilationTargets(project: BasicCdsProject, sourceRoot: string): string[] {
   const projectAbsolutePath = join(sourceRoot, project.projectDir);
 
+  // Check for index.cds in the project root first, which takes precedence over CAP directories.
+  const rootCdsFiles = project.cdsFiles
+    .filter(file => dirname(join(sourceRoot, file)) === projectAbsolutePath)
+    .map(file => basename(file));
+
+  if (rootCdsFiles.includes('index.cds')) {
+    // Use only index.cds when it exists in the project root
+    return ['index.cds'];
+  }
+
   // Check for standard CAP directories
   const capDirectories = ['db', 'srv', 'app'];
   const existingCapDirs = capDirectories.filter(dir => dirExists(join(projectAbsolutePath, dir)));
@@ -37,13 +47,8 @@ function determineCompilationTargets(project: BasicCdsProject, sourceRoot: strin
     return existingCapDirs;
   }
 
-  // Check for root-level CDS files
-  const rootCdsFiles = project.cdsFiles
-    .filter(file => dirname(join(sourceRoot, file)) === projectAbsolutePath)
-    .map(file => basename(file));
-
   if (rootCdsFiles.length > 0) {
-    // Use root-level files
+    // Use other root-level files
     return rootCdsFiles;
   }
 

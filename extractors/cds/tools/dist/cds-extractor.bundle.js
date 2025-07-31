@@ -7054,12 +7054,15 @@ function parseCommandForSpawn(commandString) {
 }
 function determineCompilationTargets(project, sourceRoot2) {
   const projectAbsolutePath = (0, import_path4.join)(sourceRoot2, project.projectDir);
+  const rootCdsFiles = project.cdsFiles.filter((file) => (0, import_path4.dirname)((0, import_path4.join)(sourceRoot2, file)) === projectAbsolutePath).map((file) => (0, import_path4.basename)(file));
+  if (rootCdsFiles.includes("index.cds")) {
+    return ["index.cds"];
+  }
   const capDirectories = ["db", "srv", "app"];
   const existingCapDirs = capDirectories.filter((dir) => dirExists((0, import_path4.join)(projectAbsolutePath, dir)));
   if (existingCapDirs.length > 0) {
     return existingCapDirs;
   }
-  const rootCdsFiles = project.cdsFiles.filter((file) => (0, import_path4.dirname)((0, import_path4.join)(sourceRoot2, file)) === projectAbsolutePath).map((file) => (0, import_path4.basename)(file));
   if (rootCdsFiles.length > 0) {
     return rootCdsFiles;
   }

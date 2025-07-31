@@ -937,5 +937,169 @@ describe('compile .cds to .cds.json', () => {
         }),
       );
     });
+
+    it('should use index.cds as single compilation target when index.cds exists in project root', () => {
+      // Setup
+      const sourceRoot = '/source/root';
+      const projectDir = 'bookshop';
+      const expectedOutputPath = `${sourceRoot}/${projectDir}/model.cds.json`;
+
+      // Create project dependency map with index.cds and CAP directories
+      const projectMap = new Map();
+      const projectInfo: BasicCdsProject = {
+        projectDir,
+        cdsFiles: [
+          'bookshop/index.cds', // index.cds in root
+          'bookshop/db/schema.cds', // CAP directory files
+          'bookshop/srv/service.cds', // CAP directory files
+          'bookshop/app/app.cds', // CAP directory files
+        ],
+        compilationTargets: ['index.cds'], // Should only contain index.cds
+        expectedOutputFile: 'model.cds.json',
+      };
+      projectMap.set(projectDir, projectInfo);
+
+      // Mock filesystem checks - index.cds exists and CAP directories exist
+      (filesystem.fileExists as jest.Mock).mockImplementation(path => {
+        if (path.includes('index.cds')) return true;
+        if (path.includes('/resolved/')) return true; // Source file exists
+        if (path === expectedOutputPath) return true; // Output file exists
+        return false;
+      });
+
+      // Mock directory existence for CAP directories
+      (filesystem.dirExists as jest.Mock).mockImplementation(path => {
+        // CAP directories exist but index.cds should take precedence
+        if (path.includes('/db') || path.includes('/srv') || path.includes('/app')) return true;
+        return false;
+      });
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from('Compilation successful'),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'index.cds',
+        sourceRoot,
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.outputPath).toBe(expectedOutputPath);
+      expect(result.compiledAsProject).toBe(true);
+
+      // Verify that only index.cds is passed to the compiler, not the CAP directories
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        'cds',
+        expect.arrayContaining([
+          'compile',
+          'index.cds', // Only index.cds should be compiled
+          '--to',
+          'json',
+          '--dest',
+          'model.cds.json',
+          '--locations',
+          '--log-level',
+          'warn',
+        ]),
+        expect.any(Object),
+      );
+
+      // Ensure the args array does not contain CAP directories
+      const spawnCall = (childProcess.spawnSync as jest.Mock).mock.calls[0];
+      const args = spawnCall[1];
+      expect(args).not.toContain('db');
+      expect(args).not.toContain('srv');
+      expect(args).not.toContain('app');
+    });
+
+    it('should use CAP directories when no index.cds exists in project root', () => {
+      // Setup
+      const sourceRoot = '/source/root';
+      const projectDir = 'standard-cap';
+      const expectedOutputPath = `${sourceRoot}/${projectDir}/model.cds.json`;
+
+      // Create project dependency map without index.cds but with CAP directories
+      const projectMap = new Map();
+      const projectInfo: BasicCdsProject = {
+        projectDir,
+        cdsFiles: [
+          'standard-cap/db/schema.cds', // CAP directory files
+          'standard-cap/srv/service.cds', // CAP directory files
+          'standard-cap/app/app.cds', // CAP directory files
+        ],
+        compilationTargets: ['db', 'srv', 'app'], // Should contain CAP directories
+        expectedOutputFile: 'model.cds.json',
+      };
+      projectMap.set(projectDir, projectInfo);
+
+      // Mock filesystem checks - no index.cds but CAP directories exist
+      (filesystem.fileExists as jest.Mock).mockImplementation(path => {
+        if (path.includes('/resolved/')) return true; // Source file exists
+        if (path === expectedOutputPath) return true; // Output file exists
+        return false;
+      });
+
+      // Mock directory existence for CAP directories
+      (filesystem.dirExists as jest.Mock).mockImplementation(path => {
+        // CAP directories exist
+        if (path.includes('/db') || path.includes('/srv') || path.includes('/app')) return true;
+        return false;
+      });
+
+      // Mock successful spawn process
+      (childProcess.spawnSync as jest.Mock).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from('Compilation successful'),
+        stderr: Buffer.from(''),
+      });
+
+      // Execute
+      const result = compileCdsToJson(
+        'schema.cds',
+        sourceRoot,
+        'cds',
+        undefined,
+        projectMap,
+        projectDir,
+      );
+
+      // Verify
+      expect(result.success).toBe(true);
+      expect(result.outputPath).toBe(expectedOutputPath);
+      expect(result.compiledAsProject).toBe(true);
+
+      // Verify that CAP directories are passed to the compiler
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        'cds',
+        expect.arrayContaining([
+          'compile',
+          'db', // CAP directories should be used when no index.cds
+          'srv',
+          'app',
+          '--to',
+          'json',
+          '--dest',
+          'model.cds.json',
+          '--locations',
+          '--log-level',
+          'warn',
+        ]),
+        expect.any(Object),
+      );
+
+      // Ensure index.cds is not in the args
+      const spawnCall = (childProcess.spawnSync as jest.Mock).mock.calls[0];
+      const args = spawnCall[1];
+      expect(args).not.toContain('index.cds');
+    });
   });
 });
