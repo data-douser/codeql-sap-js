@@ -194,18 +194,17 @@ export function validateTaskOutputs(
 ): ResultTaskValidation {
   const fileResults: ResultOutputFileValidation[] = [];
 
-  for (const expectedOutput of task.expectedOutputFiles) {
-    // Resolve the output file path relative to source root
-    const absolutePath = isAbsolute(expectedOutput)
-      ? expectedOutput
-      : join(sourceRoot, expectedOutput);
+  // Resolve the output file path relative to source root
+  const expectedOutput = task.expectedOutputFile;
+  const absolutePath = isAbsolute(expectedOutput)
+    ? expectedOutput
+    : join(sourceRoot, expectedOutput);
 
-    const fileResult = validateOutputFile(absolutePath);
-    fileResults.push(fileResult);
-  }
+  const fileResult = validateOutputFile(absolutePath);
+  fileResults.push(fileResult);
 
   const validFileCount = fileResults.filter(r => r.isValid).length;
-  const expectedFileCount = task.expectedOutputFiles.length;
+  const expectedFileCount = 1;
   const isValid = validFileCount === expectedFileCount && expectedFileCount > 0;
 
   return {

@@ -143,11 +143,10 @@ describe('validator.ts', () => {
         id: 'task-1',
         type: 'file',
         sourceFiles: ['/test/input.cds'],
-        expectedOutputFiles: ['output1.cds.json', '/absolute/output2.cds.json'],
+        expectedOutputFile: 'model.cds.json',
         projectDir: 'test-project',
         status: 'success',
         attempts: [],
-        useProjectLevelCompilation: false,
         dependencies: [],
         primaryCommand: {
           executable: 'cds',
@@ -162,33 +161,31 @@ describe('validator.ts', () => {
       };
     });
 
-    it('should validate all output files and return aggregated result', () => {
+    it('should validate single output file and return result', () => {
       const sourceRoot = '/test/root';
+      mockTask.expectedOutputFile = 'model.cds.json';
 
       // Mock path resolution
-      mockPath.isAbsolute.mockReturnValueOnce(false); // 'output1.cds.json'
-      mockPath.isAbsolute.mockReturnValueOnce(true); // '/absolute/output2.cds.json'
-      mockPath.join.mockReturnValueOnce('/test/root/output1.cds.json');
+      mockPath.isAbsolute.mockReturnValue(false);
+      mockPath.join.mockReturnValue('/test/root/model.cds.json');
 
-      // Mock file validation - first file valid, second file invalid
-      mockFilesystem.fileExists.mockReturnValueOnce(true);
-      mockFs.readFileSync.mockReturnValueOnce('{"valid": true}');
-      mockFilesystem.fileExists.mockReturnValueOnce(false);
+      // Mock file validation - file exists and is valid
+      mockFilesystem.fileExists.mockReturnValue(true);
+      mockFs.readFileSync.mockReturnValue('{"valid": true}');
 
       const result = validateTaskOutputs(mockTask, sourceRoot);
 
       expect(result.task).toBe(mockTask);
-      expect(result.expectedFileCount).toBe(2);
+      expect(result.expectedFileCount).toBe(1);
       expect(result.validFileCount).toBe(1);
-      expect(result.isValid).toBe(false); // Not all files are valid
-      expect(result.fileResults).toHaveLength(2);
+      expect(result.isValid).toBe(true);
+      expect(result.fileResults).toHaveLength(1);
       expect(result.fileResults[0].isValid).toBe(true);
-      expect(result.fileResults[1].isValid).toBe(false);
     });
 
     it('should return valid result when all output files are valid', () => {
       const sourceRoot = '/test/root';
-      mockTask.expectedOutputFiles = ['output.cds.json'];
+      mockTask.expectedOutputFile = 'model.cds.json';
 
       mockPath.isAbsolute.mockReturnValue(false);
       mockPath.join.mockReturnValue('/test/root/output.cds.json');
@@ -202,15 +199,22 @@ describe('validator.ts', () => {
       expect(result.expectedFileCount).toBe(1);
     });
 
-    it('should return invalid result when task has no expected output files', () => {
+    it('should return invalid result when task has empty expected output file', () => {
       const sourceRoot = '/test/root';
-      mockTask.expectedOutputFiles = [];
+      mockTask.expectedOutputFile = '';
+
+      // Mock path behavior for empty file name
+      mockPath.isAbsolute.mockReturnValue(false);
+      mockPath.join.mockReturnValue('/test/root'); // join with empty string returns just the root
+      mockFilesystem.fileExists.mockReturnValue(false); // Empty path should not exist as a file
 
       const result = validateTaskOutputs(mockTask, sourceRoot);
 
       expect(result.isValid).toBe(false);
       expect(result.validFileCount).toBe(0);
-      expect(result.expectedFileCount).toBe(0);
+      expect(result.expectedFileCount).toBe(1);
+      expect(result.fileResults).toHaveLength(1);
+      expect(result.fileResults[0].isValid).toBe(false);
     });
   });
 
@@ -225,11 +229,10 @@ describe('validator.ts', () => {
         id: 'task-1',
         type: 'file',
         sourceFiles: ['/test/input1.cds'],
-        expectedOutputFiles: ['output1.cds.json'],
+        expectedOutputFile: 'model.cds.json',
         projectDir: 'test-project',
         status: 'failed',
         attempts: [],
-        useProjectLevelCompilation: false,
         dependencies: [],
         primaryCommand: {
           executable: 'cds',
@@ -247,11 +250,10 @@ describe('validator.ts', () => {
         id: 'task-2',
         type: 'file',
         sourceFiles: ['/test/input2.cds'],
-        expectedOutputFiles: ['output2.cds.json'],
+        expectedOutputFile: 'model.cds.json',
         projectDir: 'test-project',
         status: 'success',
         attempts: [],
-        useProjectLevelCompilation: false,
         dependencies: [],
         primaryCommand: {
           executable: 'cds',
@@ -269,8 +271,8 @@ describe('validator.ts', () => {
         id: 'project-1',
         projectDir: 'test-project',
         cdsFiles: ['/test/input1.cds', '/test/input2.cds'],
-        cdsFilesToCompile: ['/test/input1.cds', '/test/input2.cds'],
-        expectedOutputFiles: ['output1.cds.json', 'output2.cds.json'],
+        compilationTargets: ['/test/input1.cds', '/test/input2.cds'],
+        expectedOutputFile: 'model.cds.json',
         dependencies: [],
         imports: new Map(),
         compilationTasks: [mockTask1, mockTask2],
@@ -437,11 +439,10 @@ describe('validator.ts', () => {
         id: 'task-3',
         type: 'file',
         sourceFiles: ['/test/input3.cds'],
-        expectedOutputFiles: ['output3.cds.json'],
+        expectedOutputFile: 'model.cds.json',
         projectDir: 'test-project-2',
         status: 'failed',
         attempts: [],
-        useProjectLevelCompilation: false,
         dependencies: [],
         primaryCommand: {
           executable: 'cds',
@@ -459,8 +460,8 @@ describe('validator.ts', () => {
         id: 'project-2',
         projectDir: 'test-project-2',
         cdsFiles: ['/test/input3.cds'],
-        cdsFilesToCompile: ['/test/input3.cds'],
-        expectedOutputFiles: ['output3.cds.json'],
+        compilationTargets: ['/test/input3.cds'],
+        expectedOutputFile: 'model.cds.json',
         dependencies: [],
         imports: new Map(),
         compilationTasks: [mockTask3],

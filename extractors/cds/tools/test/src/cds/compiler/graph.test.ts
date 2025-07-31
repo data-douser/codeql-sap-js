@@ -35,8 +35,8 @@ function createMockProject(
     id: `project-${projectDir}`,
     projectDir,
     cdsFiles,
-    cdsFilesToCompile: cdsFiles,
-    expectedOutputFiles: cdsFiles.map(f => `${f}.json`),
+    compilationTargets: cdsFiles,
+    expectedOutputFile: 'model.cds.json',
     dependencies: [],
     imports: new Map(),
     packageJson: undefined,
@@ -230,7 +230,7 @@ describe('graph.ts', () => {
         '/test/project',
         ['/test/project/model.cds', '/test/project/service.cds'],
         {
-          cdsFilesToCompile: ['__PROJECT_LEVEL_COMPILATION__'],
+          compilationTargets: ['__PROJECT_LEVEL_COMPILATION__'],
         },
       );
       mockDependencyGraph.projects.set('/test/project', project);
@@ -241,29 +241,10 @@ describe('graph.ts', () => {
 
       expect(project.compilationTasks).toHaveLength(1);
       expect(project.compilationTasks[0].type).toBe('project');
-      expect(project.compilationTasks[0].useProjectLevelCompilation).toBe(true);
       expect(project.compilationTasks[0].sourceFiles).toEqual([
         '/test/project/model.cds',
         '/test/project/service.cds',
       ]);
-    });
-
-    it('should handle individual file compilation', () => {
-      const project = createMockProject('/test/project', [
-        '/test/project/model.cds',
-        '/test/project/service.cds',
-      ]);
-      mockDependencyGraph.projects.set('/test/project', project);
-      mockDependencyGraph.statusSummary.totalProjects = 1;
-      projectCacheDirMap.set('/test/project', '/test/cache');
-
-      orchestrateCompilation(mockDependencyGraph, projectCacheDirMap, '/path/to/codeql');
-
-      expect(project.compilationTasks).toHaveLength(2);
-      expect(project.compilationTasks[0].type).toBe('file');
-      expect(project.compilationTasks[0].useProjectLevelCompilation).toBe(false);
-      expect(project.compilationTasks[0].sourceFiles).toEqual(['/test/project/model.cds']);
-      expect(project.compilationTasks[1].sourceFiles).toEqual(['/test/project/service.cds']);
     });
 
     it('should handle compilation failure', () => {

@@ -48,8 +48,8 @@ function attemptCompilation(
           key,
           {
             cdsFiles: value.cdsFiles,
-            cdsFilesToCompile: value.cdsFilesToCompile,
-            expectedOutputFiles: value.expectedOutputFiles,
+            compilationTargets: value.compilationTargets,
+            expectedOutputFile: value.expectedOutputFile,
             projectDir: value.projectDir,
             dependencies: value.dependencies,
             imports: value.imports,
@@ -93,9 +93,8 @@ function attemptCompilation(
 function createCompilationTask(
   type: 'file' | 'project',
   sourceFiles: string[],
-  expectedOutputFiles: string[],
+  expectedOutputFile: string,
   projectDir: string,
-  useProjectLevelCompilation: boolean,
 ): CompilationTask {
   // Create default commands for tasks - these should be updated later with proper commands
   const defaultPrimaryCommand: ValidatedCdsCommand = {
@@ -115,10 +114,9 @@ function createCompilationTask(
     type,
     status: 'pending',
     sourceFiles,
-    expectedOutputFiles,
+    expectedOutputFile,
     projectDir,
     attempts: [],
-    useProjectLevelCompilation,
     dependencies: [],
     primaryCommand: defaultPrimaryCommand,
     retryCommand: defaultRetryCommand,
@@ -128,12 +126,10 @@ function createCompilationTask(
 function createCompilationConfig(
   cdsCommand: string,
   cacheDir: string | undefined,
-  useProjectLevel: boolean,
 ): CompilationConfig {
   return {
     cdsCommand: cdsCommand,
     cacheDir: cacheDir,
-    useProjectLevelCompilation: useProjectLevel,
     versionCompatibility: {
       isCompatible: true, // Will be validated during planning
     },
@@ -338,42 +334,19 @@ function planCompilationTasks(
       // Determine CDS command
       const cdsCommand = determineCdsCommand(cacheDir, dependencyGraph.sourceRootDir);
 
-      // Create compilation configuration
-      const compilationConfig = createCompilationConfig(
-        cdsCommand,
-        cacheDir,
-        project.cdsFilesToCompile.includes('__PROJECT_LEVEL_COMPILATION__'),
-      );
+      // Create compilation configuration (always project-level now)
+      const compilationConfig = createCompilationConfig(cdsCommand, cacheDir);
 
       project.enhancedCompilationConfig = compilationConfig;
 
-      // Create compilation tasks
-      if (project.cdsFilesToCompile.includes('__PROJECT_LEVEL_COMPILATION__')) {
-        // Project-level compilation
-        const task = createCompilationTask(
-          'project',
-          project.cdsFiles,
-          project.expectedOutputFiles,
-          projectDir,
-          true,
-        );
-        project.compilationTasks = [task];
-      } else {
-        // Individual file compilation
-        const tasks: CompilationTask[] = [];
-        for (const cdsFile of project.cdsFilesToCompile) {
-          const expectedOutput = `${cdsFile}.json`;
-          const task = createCompilationTask(
-            'file',
-            [cdsFile],
-            [expectedOutput],
-            projectDir,
-            false,
-          );
-          tasks.push(task);
-        }
-        project.compilationTasks = tasks;
-      }
+      // Create compilation task (always project-level now)
+      const task = createCompilationTask(
+        'project',
+        project.cdsFiles,
+        project.expectedOutputFile,
+        projectDir,
+      );
+      project.compilationTasks = [task];
 
       project.status = 'compilation_planned';
       project.timestamps.compilationStarted = new Date();

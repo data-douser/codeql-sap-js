@@ -14,16 +14,15 @@ abstract class CdlObject extends JsonObject {
       exists(Location loc, JsonValue locValue |
         loc = this.getLocation() and
         locValue = this.getPropValue("$location") and
-        // The path in the cds.json file is relative to the working directory used when running
-        // the cds compile command. In our extractor, that's always the root of the repository,
-        // so we can identify the sourceLocationPrefix to find the path of the root of the repo
-        // then append the relative path
-        exists(string sourceLocationPrefix |
-          sourceLocationPrefix(sourceLocationPrefix) and
-          path =
-            sourceLocationPrefix.regexpReplaceAll("/$", "") + "/" +
-              locValue.getPropValue("file").getStringValue()
-        ) and
+        // The path in the `.cds.json` file is relative to the working directory used when
+        // running the `cds compile` command. In the CDS extractor, the `cwd` is always
+        // set to the base directory of the project for which compilation is being
+        // performed and `.cds.json` files are stored in that base project directory. The
+        // `$location` values in the generated JSON data are, therefore, relative to the
+        // base directory of the project.
+        path =
+          locValue.getJsonFile().getParentContainer().getRelativePath().regexpReplaceAll("/$", "") +
+            "/" + locValue.getPropValue("file").getStringValue() and
         if
           not exists(locValue.getPropValue("line")) and
           not exists(locValue.getPropValue("col"))
@@ -165,8 +164,16 @@ class CdlService extends CdlElement {
   CdlService() { kind = CdlServiceKind(this.getPropStringValue("kind")) }
 
   UserDefinedApplicationService getImplementation() {
-    result.getFile().getRelativePath().regexpReplaceAll("\\.[^.]+$", ".cds") =
-      this.getPropValue("$location").getPropValue("file").getStringValue()
+    exists(JsonValue jsonFileLocation |
+      jsonFileLocation = this.getPropValue("$location").getPropValue("file")
+    |
+      result.getFile().getRelativePath().regexpReplaceAll("\\.[^.]+$", ".cds") =
+        jsonFileLocation
+              .getJsonFile()
+              .getParentContainer()
+              .getRelativePath()
+              .regexpReplaceAll("/$", "") + "/" + jsonFileLocation.getStringValue()
+    )
   }
 
   /**

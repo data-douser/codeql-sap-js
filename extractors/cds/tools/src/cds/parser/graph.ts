@@ -1,4 +1,4 @@
-import { dirname, join, resolve, sep } from 'path';
+import { dirname, join, resolve, sep, basename } from 'path';
 
 import {
   determineCdsFilesForProjectDir,
@@ -43,8 +43,8 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir: string): Map<string,
     projectMap.set(projectDir, {
       projectDir,
       cdsFiles,
-      cdsFilesToCompile: [], // Will be populated in the third pass
-      expectedOutputFiles: [], // Will be populated in the fourth pass
+      compilationTargets: [], // Will be populated in the third pass
+      expectedOutputFile: join(projectDir, 'model.cds.json'), // Always model.cds.json, relative to source root
       packageJson,
       dependencies: [],
       imports: new Map<string, CdsImport[]>(),
@@ -161,33 +161,22 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir: string): Map<string,
       const projectPlan = determineCdsFilesToCompile(sourceRootDir, project);
 
       // Assign the calculated values back to the project
-      project.cdsFilesToCompile = projectPlan.filesToCompile;
-      project.expectedOutputFiles = projectPlan.expectedOutputFiles;
+      project.compilationTargets = projectPlan.compilationTargets;
+      project.expectedOutputFile = projectPlan.expectedOutputFile;
 
-      // Check if using project-level compilation
-      const usesProjectLevelCompilation = projectPlan.filesToCompile.includes(
-        '__PROJECT_LEVEL_COMPILATION__',
+      // Log compilation plan (always project-level now)
+      cdsExtractorLog(
+        'info',
+        `Project ${project.projectDir}: using project-level compilation for all ${project.cdsFiles.length} CDS files, output: ${projectPlan.expectedOutputFile}`,
       );
-
-      if (usesProjectLevelCompilation) {
-        cdsExtractorLog(
-          'info',
-          `Project ${project.projectDir}: using project-level compilation for all ${project.cdsFiles.length} CDS files, expecting ${projectPlan.expectedOutputFiles.length} output files`,
-        );
-      } else {
-        cdsExtractorLog(
-          'info',
-          `Project ${project.projectDir}: ${projectPlan.filesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files, expecting ${projectPlan.expectedOutputFiles.length} output files`,
-        );
-      }
     } catch (error) {
       cdsExtractorLog(
         'warn',
         `Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
       );
-      // Fall back to compiling all files on error
-      project.cdsFilesToCompile = [...project.cdsFiles];
-      project.expectedOutputFiles = [];
+      // Fall back to default project compilation on error
+      project.compilationTargets = project.cdsFiles.map(file => basename(file));
+      project.expectedOutputFile = join(project.projectDir, 'model.cds.json');
     }
   }
 

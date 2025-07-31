@@ -261,8 +261,8 @@ function retryCompilationTask(
           key,
           {
             cdsFiles: value.cdsFiles,
-            cdsFilesToCompile: value.cdsFilesToCompile,
-            expectedOutputFiles: value.expectedOutputFiles,
+            compilationTargets: value.compilationTargets,
+            expectedOutputFile: value.expectedOutputFile,
             projectDir: value.projectDir,
             dependencies: value.dependencies,
             imports: value.imports,

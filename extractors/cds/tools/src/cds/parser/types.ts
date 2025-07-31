@@ -2,11 +2,11 @@
 
 /** Result of determining CDS files to compile and their expected outputs */
 export interface CdsFilesToCompile {
-  /** CDS files that should be compiled (or special markers like __PROJECT_LEVEL_COMPILATION__) */
-  filesToCompile: string[];
+  /** Compilation targets (directories or files relative to project base) */
+  compilationTargets: string[];
 
-  /** Expected JSON output files that will be generated (relative to source root) */
-  expectedOutputFiles: string[];
+  /** Always "model.cds.json" relative to project base directory */
+  expectedOutputFile: string;
 }
 
 /** Represents an import reference in a CDS file. */
@@ -52,9 +52,6 @@ export interface CdsCompilationConfig {
 
   /** The cache directory to use for dependencies, if any */
   cacheDir?: string;
-
-  /** Whether to use project-level compilation */
-  useProjectLevelCompilation: boolean;
 
   /** Version compatibility status */
   versionCompatibility: {
@@ -168,11 +165,11 @@ export interface BasicCdsProject {
   /** All CDS files within this project. */
   cdsFiles: string[];
 
-  /** CDS files that should be compiled to JSON (typically root files not imported by others). */
-  cdsFilesToCompile: string[];
+  /** Compilation targets (directories or files relative to project base). */
+  compilationTargets: string[];
 
-  /** Expected JSON output files that will be generated (relative to source root). */
-  expectedOutputFiles: string[];
+  /** Always "model.cds.json" relative to project base directory. */
+  expectedOutputFile: string;
 
   /** Dependencies on other CDS projects. */
   dependencies?: BasicCdsProject[];

@@ -43,8 +43,6 @@ export interface CompilationConfig {
   cdsCommand: string;
   /** Cache directory */
   cacheDir?: string;
-  /** Whether to use project-level compilation */
-  useProjectLevelCompilation: boolean;
   /** Version compatibility information */
   versionCompatibility: {
     isCompatible: boolean;
@@ -76,14 +74,12 @@ export interface CompilationTask {
   status: CompilationStatus;
   /** Source file(s) involved in this task */
   sourceFiles: string[];
-  /** Expected output file(s) */
-  expectedOutputFiles: string[];
+  /** Expected output file */
+  expectedOutputFile: string;
   /** Project directory this task belongs to */
   projectDir: string;
   /** All compilation attempts for this task */
   attempts: CompilationAttempt[];
-  /** Whether this task uses project-level compilation */
-  useProjectLevelCompilation: boolean;
   /** Tasks that this task depends on */
   dependencies: string[];
   /** Error summary if all attempts failed */

@@ -36,11 +36,10 @@ describe('retry.ts', () => {
       id: 'task-1',
       type: 'file',
       sourceFiles: ['/test/project/db/schema.cds'],
-      expectedOutputFiles: ['/test/project/db/schema.cds.json'],
+      expectedOutputFile: 'model.cds.json',
       projectDir: 'test-project',
       status: 'failed',
       attempts: [],
-      useProjectLevelCompilation: false,
       dependencies: [],
       errorSummary: 'Initial compilation failed',
       primaryCommand: {
@@ -60,8 +59,8 @@ describe('retry.ts', () => {
       id: 'project-1',
       projectDir: 'test-project',
       cdsFiles: ['/test/project/db/schema.cds'],
-      cdsFilesToCompile: ['/test/project/db/schema.cds'],
-      expectedOutputFiles: ['/test/project/db/schema.cds.json'],
+      compilationTargets: ['/test/project/db/schema.cds'],
+      expectedOutputFile: 'model.cds.json',
       dependencies: [],
       imports: new Map(),
       packageJson: {
