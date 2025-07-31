@@ -21,7 +21,7 @@ abstract class CdlObject extends JsonObject {
         // `$location` values in the generated JSON data are, therefore, relative to the
         // base directory of the project.
         path =
-          locValue.getJsonFile().getParentContainer().getRelativePath().regexpReplaceAll("/$", "") +
+          locValue.getJsonFile().getParentContainer().getAbsolutePath().regexpReplaceAll("/$", "") +
             "/" + locValue.getPropValue("file").getStringValue() and
         if
           not exists(locValue.getPropValue("line")) and
