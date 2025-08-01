@@ -167,11 +167,11 @@ class CdlService extends CdlElement {
     exists(JsonValue jsonFileLocation |
       jsonFileLocation = this.getPropValue("$location").getPropValue("file")
     |
-      result.getFile().getRelativePath().regexpReplaceAll("\\.[^.]+$", ".cds") =
+      result.getFile().getAbsolutePath().regexpReplaceAll("\\.[^.]+$", ".cds") =
         jsonFileLocation
               .getJsonFile()
               .getParentContainer()
-              .getRelativePath()
+              .getAbsolutePath()
               .regexpReplaceAll("/$", "") + "/" + jsonFileLocation.getStringValue()
     )
   }
