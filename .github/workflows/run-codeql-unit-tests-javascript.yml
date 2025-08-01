@@ -77,48 +77,28 @@ jobs:
         run: |
           qlt query run install-packs
 
-      - name: Ensure presence of cds shell command
-        run: |
-          if ! command -v cds &> /dev/null
-          then
-            ## Workaround for https://github.tools.sap/cap/issues/issues/17840
-            npm install -g @sap/cds-dk@8.6.1
-          fi
+      - name: Setup Node.js for CDS compilation
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-      # Compile .cds files to .cds.json files.
+      - name: Verify Node.js and npm tools
+        run: |
+          echo "Node.js version: $(node --version)"
+          echo "npm version: $(npm --version)"
+          echo "npx version: $(npx --version)"
+          # Verify npx can access @sap/cds-dk without installing globally
+          echo "Testing npx access to @sap/cds-dk..."
+          npx --yes --package @sap/cds-dk@latest cds --version || echo "CDS will be installed per-project as needed"
+
+      # Compile .cds files to .cds.json files using the dedicated test script
       - name: Compile CAP CDS files
         run: |
-          for test_dir in $(find . -type f -name '*.expected' -exec dirname {} \;);
-          do
-            # The CDS compiler produces locations relative to the working directory
-            # so we switch to the test directory before running the compiler.
-            pushd $test_dir
-            for cds_file in $(find . -type f \( -iname '*.cds' \) -print)
-            do
-              echo "I am compiling $cds_file"
-              _out_path="${cds_file}.json"
-              cds compile $cds_file \
-                --locations \
-                --to json \
-                --dest "$_out_path" \
-                2> "$cds_file.err"
-              # Check if the output is a regular file or a (sub)directory, where
-              # files generated in an output directory will need to have the file
-              # extension changed from '.json' to '.cds.json', but we don't need
-              # to rename anything if the cds compiler just generated a single
-              # '.cds.json' file.
-              if [ -d "$_out_path" ]
-              then
-                for json_file in $(find "$_out_path" -type f \( -iname '*.json' \) -print)
-                do
-                  _new_path="${json_file%.json}.cds.json"
-                  echo "Renaming CDS compiler generated JSON file $json_file to $_new_path"
-                  mv "$json_file" "$_new_path"
-                done
-              fi
-            done
-            popd
-          done
+          # Use the dedicated CDS compilation script that includes proper version resolution
+          # This script follows the same logic as the CDS extractor's resolveCdsVersions function
+          chmod +x extractors/cds/tools/test/cds-compilation-for-actions.test.sh
+          ./extractors/cds/tools/test/cds-compilation-for-actions.test.sh
 
       - name: Run test suites
         id: run-test-suites
