@@ -6,7 +6,7 @@
  * @problem.severity warning
  * @security-severity 7.5
  * @precision low
- * @id js/cap-sensitive-log-likely
+ * @id js/cap-sensitive-log-heurisitic-source
  * @tags security
  *       external/cwe/cwe-532
  */
