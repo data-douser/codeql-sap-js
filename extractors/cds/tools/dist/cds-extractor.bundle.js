@@ -7167,6 +7167,9 @@ function getCdsVersion(cdsCommand, cacheDir) {
   }
 }
 
+// src/constants.ts
+var modelCdsJsonFile = "model.cds.json";
+
 // src/cds/compiler/compile.ts
 function parseCommandForSpawn(commandString) {
   const parts = commandString.trim().split(/\s+/);
@@ -7219,14 +7222,14 @@ function compileProject(sourceRoot2, projectDir, cdsCommand, spawnOptions, versi
       `Project directory '${projectDir}' does not contain any CDS files and cannot be compiled`
     );
   }
-  const projectJsonOutPath = (0, import_path4.join)(sourceRoot2, projectDir, "model.cds.json");
+  const projectJsonOutPath = (0, import_path4.join)(sourceRoot2, projectDir, modelCdsJsonFile);
   const compileArgs = [
     "compile",
     ...compilationTargets,
     "--to",
     "json",
     "--dest",
-    "model.cds.json",
+    modelCdsJsonFile,
     "--locations",
     "--log-level",
     "warn"
@@ -8734,7 +8737,7 @@ function determineCdsFilesToCompile(sourceRootDir, project) {
   if (!project.cdsFiles || project.cdsFiles.length === 0) {
     return {
       compilationTargets: [],
-      expectedOutputFile: (0, import_path10.join)(project.projectDir, "model.cds.json")
+      expectedOutputFile: (0, import_path10.join)(project.projectDir, modelCdsJsonFile)
     };
   }
   const absoluteProjectDir = (0, import_path10.join)(sourceRootDir, project.projectDir);
@@ -8743,14 +8746,14 @@ function determineCdsFilesToCompile(sourceRootDir, project) {
   if (existingCapDirs.length > 0) {
     return {
       compilationTargets: existingCapDirs,
-      expectedOutputFile: (0, import_path10.join)(project.projectDir, "model.cds.json")
+      expectedOutputFile: (0, import_path10.join)(project.projectDir, modelCdsJsonFile)
     };
   }
   const rootCdsFiles = project.cdsFiles.filter((file) => (0, import_path10.dirname)((0, import_path10.join)(sourceRootDir, file)) === absoluteProjectDir).map((file) => (0, import_path10.basename)(file));
   if (rootCdsFiles.length > 0) {
     return {
       compilationTargets: rootCdsFiles,
-      expectedOutputFile: (0, import_path10.join)(project.projectDir, "model.cds.json")
+      expectedOutputFile: (0, import_path10.join)(project.projectDir, modelCdsJsonFile)
     };
   }
   const compilationTargets = project.cdsFiles.map(
@@ -8758,7 +8761,7 @@ function determineCdsFilesToCompile(sourceRootDir, project) {
   );
   return {
     compilationTargets,
-    expectedOutputFile: (0, import_path10.join)(project.projectDir, "model.cds.json")
+    expectedOutputFile: (0, import_path10.join)(project.projectDir, modelCdsJsonFile)
   };
 }
 function hasPackageJsonWithCapDeps(dir) {
@@ -8798,8 +8801,7 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir) {
       cdsFiles,
       compilationTargets: [],
       // Will be populated in the third pass
-      expectedOutputFile: (0, import_path11.join)(projectDir, "model.cds.json"),
-      // Always model.cds.json, relative to source root
+      expectedOutputFile: (0, import_path11.join)(projectDir, modelCdsJsonFile),
       packageJson,
       dependencies: [],
       imports: /* @__PURE__ */ new Map()
@@ -8879,7 +8881,7 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir) {
         `Error determining files to compile for project ${project.projectDir}: ${String(error)}`
       );
       project.compilationTargets = project.cdsFiles.map((file) => (0, import_path11.basename)(file));
-      project.expectedOutputFile = (0, import_path11.join)(project.projectDir, "model.cds.json");
+      project.expectedOutputFile = (0, import_path11.join)(project.projectDir, modelCdsJsonFile);
     }
   }
   return projectMap;

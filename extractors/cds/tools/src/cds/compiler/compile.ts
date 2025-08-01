@@ -3,6 +3,7 @@ import { resolve, join, delimiter, relative, dirname, basename } from 'path';
 
 import { CdsCompilationResult } from './types';
 import { getCdsVersion } from './version';
+import { modelCdsJsonFile } from '../../constants';
 import { fileExists, dirExists, recursivelyRenameJsonFiles } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
 import { BasicCdsProject } from '../parser/types';
@@ -60,7 +61,7 @@ function determineCompilationTargets(project: BasicCdsProject, sourceRoot: strin
  * Compiles a CDS project to JSON using project-level compilation only.
  * This function has been simplified to only use project-level compilation,
  * eliminating all individual file compilation logic and standardizing output
- * to a single model.cds.json file per project.
+ * to a single {@link modelCdsJsonFile} file per project.
  *
  *
  * @param cdsFilePath The path to the CDS file to compile, relative to the `sourceRoot`.
@@ -146,8 +147,7 @@ function compileProject(
     );
   }
 
-  // Generate output path for the compiled model - always model.cds.json in project base directory
-  const projectJsonOutPath = join(sourceRoot, projectDir, 'model.cds.json');
+  const projectJsonOutPath = join(sourceRoot, projectDir, modelCdsJsonFile);
 
   const compileArgs = [
     'compile',
@@ -155,7 +155,7 @@ function compileProject(
     '--to',
     'json',
     '--dest',
-    'model.cds.json',
+    modelCdsJsonFile,
     '--locations',
     '--log-level',
     'warn',

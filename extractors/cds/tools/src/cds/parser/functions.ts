@@ -4,6 +4,7 @@ import { basename, dirname, join, relative, sep } from 'path';
 import { sync } from 'glob';
 
 import { CdsFilesToCompile, CdsImport, PackageJson } from './types';
+import { modelCdsJsonFile } from '../../constants';
 import { cdsExtractorLog } from '../../logging';
 
 /**
@@ -415,7 +416,7 @@ export function determineCdsFilesToCompile(
   if (!project.cdsFiles || project.cdsFiles.length === 0) {
     return {
       compilationTargets: [],
-      expectedOutputFile: join(project.projectDir, 'model.cds.json'),
+      expectedOutputFile: join(project.projectDir, modelCdsJsonFile),
     };
   }
 
@@ -429,7 +430,7 @@ export function determineCdsFilesToCompile(
     // Use standard CAP directories
     return {
       compilationTargets: existingCapDirs,
-      expectedOutputFile: join(project.projectDir, 'model.cds.json'),
+      expectedOutputFile: join(project.projectDir, modelCdsJsonFile),
     };
   }
 
@@ -442,7 +443,7 @@ export function determineCdsFilesToCompile(
     // Use root-level files
     return {
       compilationTargets: rootCdsFiles,
-      expectedOutputFile: join(project.projectDir, 'model.cds.json'),
+      expectedOutputFile: join(project.projectDir, modelCdsJsonFile),
     };
   }
 
@@ -453,7 +454,7 @@ export function determineCdsFilesToCompile(
 
   return {
     compilationTargets,
-    expectedOutputFile: join(project.projectDir, 'model.cds.json'),
+    expectedOutputFile: join(project.projectDir, modelCdsJsonFile),
   };
 }
 

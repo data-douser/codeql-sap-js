@@ -8,6 +8,7 @@ import {
   readPackageJsonFile,
 } from './functions';
 import { CdsDependencyGraph, CdsImport, CdsProject, BasicCdsProject } from './types';
+import { modelCdsJsonFile } from '../../constants';
 import { cdsExtractorLog } from '../../logging';
 
 /**
@@ -44,7 +45,7 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir: string): Map<string,
       projectDir,
       cdsFiles,
       compilationTargets: [], // Will be populated in the third pass
-      expectedOutputFile: join(projectDir, 'model.cds.json'), // Always model.cds.json, relative to source root
+      expectedOutputFile: join(projectDir, modelCdsJsonFile),
       packageJson,
       dependencies: [],
       imports: new Map<string, CdsImport[]>(),
@@ -170,7 +171,7 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir: string): Map<string,
       );
       // Fall back to default project compilation on error
       project.compilationTargets = project.cdsFiles.map(file => basename(file));
-      project.expectedOutputFile = join(project.projectDir, 'model.cds.json');
+      project.expectedOutputFile = join(project.projectDir, modelCdsJsonFile);
     }
   }
 
