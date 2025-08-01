@@ -163,12 +163,6 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir: string): Map<string,
       // Assign the calculated values back to the project
       project.compilationTargets = projectPlan.compilationTargets;
       project.expectedOutputFile = projectPlan.expectedOutputFile;
-
-      // Log compilation plan (always project-level now)
-      cdsExtractorLog(
-        'info',
-        `Project ${project.projectDir}: using project-level compilation for all ${project.cdsFiles.length} CDS files, output: ${projectPlan.expectedOutputFile}`,
-      );
     } catch (error) {
       cdsExtractorLog(
         'warn',

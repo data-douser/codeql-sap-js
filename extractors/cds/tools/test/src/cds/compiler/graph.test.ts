@@ -1,4 +1,8 @@
-import { determineCdsCommand, orchestrateCompilation } from '../../../../src/cds/compiler';
+import {
+  determineCdsCommand,
+  determineVersionAwareCdsCommands,
+  orchestrateCompilation,
+} from '../../../../src/cds/compiler';
 import { compileCdsToJson } from '../../../../src/cds/compiler/compile';
 import { orchestrateRetryAttempts } from '../../../../src/cds/compiler/retry';
 import * as validator from '../../../../src/cds/compiler/validator';
@@ -16,6 +20,8 @@ jest.mock('../../../../src/logging');
 const mockDetermineCdsCommand = determineCdsCommand as jest.MockedFunction<
   typeof determineCdsCommand
 >;
+const mockDetermineVersionAwareCdsCommands =
+  determineVersionAwareCdsCommands as jest.MockedFunction<typeof determineVersionAwareCdsCommands>;
 const mockCompileCdsToJson = compileCdsToJson as jest.MockedFunction<typeof compileCdsToJson>;
 const mockOrchestrateRetryAttempts = orchestrateRetryAttempts as jest.MockedFunction<
   typeof orchestrateRetryAttempts
@@ -133,7 +139,7 @@ describe('graph.ts', () => {
 
     // Mock the centralized status validation function
     mockValidator.updateCdsDependencyGraphStatus.mockImplementation(
-      (dependencyGraph, _sourceRootDir, _phase) => {
+      (dependencyGraph, _sourceRootDir) => {
         // Mock implementation that simulates the centralized status validation
         // For tests, we simulate that all tasks with successful attempts are successful
         let successfulTasks = 0;
@@ -190,6 +196,18 @@ describe('graph.ts', () => {
       mockDependencyGraph = createMockDependencyGraph();
       projectCacheDirMap = new Map();
       mockDetermineCdsCommand.mockReturnValue('cds compile');
+      mockDetermineVersionAwareCdsCommands.mockReturnValue({
+        primaryCommand: {
+          executable: 'cds',
+          args: [],
+          originalCommand: 'cds',
+        },
+        retryCommand: {
+          executable: 'npx',
+          args: ['--yes', '--package', '@sap/cds-dk', 'cds'],
+          originalCommand: 'npx --yes --package @sap/cds-dk cds',
+        },
+      });
       mockCompileCdsToJson.mockReturnValue({
         success: true,
         outputPath: '/test/output.json',

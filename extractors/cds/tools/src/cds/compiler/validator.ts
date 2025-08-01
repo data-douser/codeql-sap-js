@@ -79,13 +79,10 @@ export function identifyTasksRequiringRetry(
 export function updateCdsDependencyGraphStatus(
   dependencyGraph: CdsDependencyGraph,
   sourceRootDir: string,
-  phase: 'initial' | 'post-retry' | 'final',
 ): ResultDependencyStatusUpdate {
   let successfulTasks = 0;
   let failedTasks = 0;
   let tasksSuccessfullyRetried = 0;
-
-  cdsExtractorLog('info', `Updating dependency graph status for phase: ${phase}`);
 
   // Validate all tasks using filesystem checks
   for (const project of dependencyGraph.projects.values()) {
@@ -115,11 +112,6 @@ export function updateCdsDependencyGraphStatus(
   // Update retry status tracking
   dependencyGraph.retryStatus.totalTasksSuccessfullyRetried = tasksSuccessfullyRetried;
   dependencyGraph.retryStatus.totalTasksRequiringRetry = failedTasks;
-
-  cdsExtractorLog(
-    'info',
-    `Status update complete - Successful: ${successfulTasks}, Failed: ${failedTasks}, Successfully Retried: ${tasksSuccessfullyRetried}`,
-  );
 
   return {
     tasksValidated: successfulTasks + failedTasks,

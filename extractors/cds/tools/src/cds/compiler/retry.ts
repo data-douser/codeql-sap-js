@@ -93,9 +93,7 @@ export function orchestrateRetryAttempts(
     dependencyGraph.retryStatus.totalTasksRequiringRetry = result.totalTasksRequiringRetry;
 
     // Phase 2: Install full dependencies for projects with failed tasks.
-    cdsExtractorLog('info', 'Installing full dependencies for projects requiring retry...');
     dependencyInstallationStartTime = Date.now();
-
     for (const [projectDir, failedTasks] of tasksRequiringRetry) {
       const project = dependencyGraph.projects.get(projectDir);
       if (!project) {
@@ -187,7 +185,7 @@ export function orchestrateRetryAttempts(
     result.retryCompilationDurationMs = retryCompilationEndTime - retryCompilationStartTime;
 
     // After retry compilation attempts complete, update status.
-    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir, 'post-retry');
+    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir);
 
     // Phase 4: Update dependency graph with retry results.
     updateDependencyGraphWithRetryResults(dependencyGraph, result);

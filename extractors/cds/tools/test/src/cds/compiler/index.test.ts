@@ -75,6 +75,7 @@ describe('compiler/index.ts', () => {
     it('should export all expected functions and no unexpected exports', () => {
       const expectedExports = [
         'determineCdsCommand',
+        'determineVersionAwareCdsCommands',
         'compileCdsToJson',
         'orchestrateCompilation',
         'findProjectForCdsFile',

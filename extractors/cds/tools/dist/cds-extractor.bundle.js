@@ -6856,8 +6856,68 @@ var createCdsCommands = {
     executable: "npx",
     args: ["--yes", "@sap/cds-dk", "cds"],
     originalCommand: "npx --yes @sap/cds-dk cds"
+  }),
+  // NPX with versioned @sap/cds-dk package
+  npxCdsDkWithVersion: (version) => ({
+    executable: "npx",
+    args: ["--yes", "--package", `@sap/cds-dk@${version}`, "cds"],
+    originalCommand: `npx --yes --package @sap/cds-dk@${version} cds`
+  }),
+  // NPX with versioned @sap/cds package
+  npxCdsWithVersion: (version) => ({
+    executable: "npx",
+    args: ["--yes", "--package", `@sap/cds@${version}`, "cds"],
+    originalCommand: `npx --yes --package @sap/cds@${version} cds`
   })
 };
+function parseCommandString(commandString) {
+  const parts = commandString.trim().split(/\s+/);
+  if (parts.length === 0) {
+    throw new Error("Empty command string");
+  }
+  const executable = parts[0];
+  const args = parts.slice(1);
+  return {
+    executable,
+    args,
+    originalCommand: commandString
+  };
+}
+function determineVersionAwareCdsCommands(cacheDir, sourceRoot2, projectPath, dependencyGraph2) {
+  try {
+    const commandString = getBestCdsCommand(cacheDir, sourceRoot2, projectPath, dependencyGraph2);
+    const primaryCommand = parseCommandString(commandString);
+    let retryCommand;
+    if (projectPath && dependencyGraph2) {
+      try {
+        const versionInfo = resolveCdsVersions(projectPath, dependencyGraph2);
+        if (versionInfo?.preferredDkVersion) {
+          retryCommand = createCdsCommands.npxCdsDkWithVersion(versionInfo.preferredDkVersion);
+        } else if (versionInfo?.cdsDkVersion) {
+          retryCommand = createCdsCommands.npxCdsDkWithVersion(versionInfo.cdsDkVersion);
+        } else {
+          retryCommand = createCdsCommands.npxCdsDk();
+        }
+      } catch (error) {
+        cdsExtractorLog(
+          "warn",
+          `Failed to resolve version info for ${projectPath}: ${String(error)}`
+        );
+        retryCommand = createCdsCommands.npxCdsDk();
+      }
+    } else {
+      retryCommand = createCdsCommands.npxCdsDk();
+    }
+    return { primaryCommand, retryCommand };
+  } catch (error) {
+    cdsExtractorLog("error", `Failed to determine version-aware commands: ${String(error)}`);
+    const fallbackCommand = parseCommandString("cds");
+    return {
+      primaryCommand: fallbackCommand,
+      retryCommand: createCdsCommands.npxCdsDk()
+    };
+  }
+}
 function createCdsCommandForPath(absolutePath) {
   try {
     const resolvedPath = (0, import_path2.resolve)(absolutePath);
@@ -6872,9 +6932,62 @@ function createCdsCommandForPath(absolutePath) {
   }
   return null;
 }
-function determineCdsCommand(cacheDir, sourceRoot2) {
+function resolveCdsVersions(projectPath, dependencyGraph2) {
+  const project = dependencyGraph2.projects.get(projectPath);
+  if (!project?.packageJson) {
+    return void 0;
+  }
+  const { dependencies = {}, devDependencies = {} } = project.packageJson;
+  const allDependencies = { ...dependencies, ...devDependencies };
+  const cdsVersion = allDependencies["@sap/cds"];
+  const cdsDkVersion = allDependencies["@sap/cds-dk"];
+  if (!cdsVersion && !cdsDkVersion) {
+    return void 0;
+  }
+  let preferredDkVersion;
+  if (cdsDkVersion) {
+    preferredDkVersion = enforceMinimumCdsDkVersion(cdsDkVersion);
+  } else if (cdsVersion) {
+    preferredDkVersion = deriveCompatibleCdsDkVersion(cdsVersion);
+  }
+  return {
+    cdsVersion,
+    cdsDkVersion,
+    preferredDkVersion
+  };
+}
+function enforceMinimumCdsDkVersion(version) {
+  const minimumVersion = 8;
+  const majorVersionMatch = version.match(/\^?(\d+)/);
+  if (majorVersionMatch) {
+    const majorVersion = parseInt(majorVersionMatch[1], 10);
+    if (majorVersion < minimumVersion) {
+      return `^${minimumVersion}`;
+    }
+  }
+  return version;
+}
+function deriveCompatibleCdsDkVersion(cdsVersion) {
+  const majorVersionMatch = cdsVersion.match(/\^?(\d+)/);
+  let derivedVersion;
+  if (majorVersionMatch) {
+    const majorVersion = majorVersionMatch[1];
+    derivedVersion = `^${majorVersion}`;
+  } else {
+    derivedVersion = cdsVersion;
+  }
+  return enforceMinimumCdsDkVersion(derivedVersion);
+}
+function createVersionAwareCdsCommand(projectPath, dependencyGraph2) {
+  const versionInfo = resolveCdsVersions(projectPath, dependencyGraph2);
+  if (!versionInfo?.preferredDkVersion) {
+    return null;
+  }
+  return createCdsCommands.npxCdsDkWithVersion(versionInfo.preferredDkVersion);
+}
+function determineCdsCommand(cacheDir, sourceRoot2, projectPath, dependencyGraph2) {
   try {
-    return getBestCdsCommand(cacheDir, sourceRoot2);
+    return getBestCdsCommand(cacheDir, sourceRoot2, projectPath, dependencyGraph2);
   } catch (error) {
     const errorMessage = `Failed to determine CDS command: ${String(error)}`;
     cdsExtractorLog("error", errorMessage);
@@ -6906,7 +7019,7 @@ function discoverAvailableCacheDirs(sourceRoot2) {
   cdsCommandCache.availableCacheDirs = availableDirs;
   return availableDirs;
 }
-function getBestCdsCommand(cacheDir, sourceRoot2) {
+function getBestCdsCommand(cacheDir, sourceRoot2, projectPath, dependencyGraph2) {
   initializeCdsCommandCache(sourceRoot2);
   if (cacheDir) {
     const localCdsBin = (0, import_path2.join)(cacheDir, "node_modules", ".bin", "cds");
@@ -6925,6 +7038,15 @@ function getBestCdsCommand(cacheDir, sourceRoot2) {
       const result = testCdsCommand(command, sourceRoot2, true);
       if (result.works) {
         return localCdsBin;
+      }
+    }
+  }
+  if (projectPath && dependencyGraph2) {
+    const versionAwareCommand = createVersionAwareCdsCommand(projectPath, dependencyGraph2);
+    if (versionAwareCommand) {
+      const result = testCdsCommand(versionAwareCommand, sourceRoot2, true);
+      if (result.works) {
+        return versionAwareCommand.originalCommand;
       }
     }
   }
@@ -7090,10 +7212,7 @@ function compileCdsToJson(cdsFilePath, sourceRoot2, cdsCommand, cacheDir, projec
   }
 }
 function compileProject(sourceRoot2, projectDir, cdsCommand, spawnOptions, versionInfo, project) {
-  cdsExtractorLog(
-    "info",
-    `Compiling CDS project using project-level compilation ${versionInfo}...`
-  );
+  cdsExtractorLog("info", `Compiling CDS project '${projectDir}' using ${versionInfo}...`);
   const compilationTargets = determineCompilationTargets(project, sourceRoot2);
   if (compilationTargets.length === 0) {
     throw new Error(
@@ -7241,11 +7360,10 @@ function identifyTasksRequiringRetry(dependencyGraph2) {
   }
   return tasksRequiringRetry;
 }
-function updateCdsDependencyGraphStatus(dependencyGraph2, sourceRootDir, phase) {
+function updateCdsDependencyGraphStatus(dependencyGraph2, sourceRootDir) {
   let successfulTasks = 0;
   let failedTasks = 0;
   let tasksSuccessfullyRetried = 0;
-  cdsExtractorLog("info", `Updating dependency graph status for phase: ${phase}`);
   for (const project of dependencyGraph2.projects.values()) {
     for (const task of project.compilationTasks) {
       const validationResult2 = validateTaskOutputs(task, sourceRootDir);
@@ -7266,10 +7384,6 @@ function updateCdsDependencyGraphStatus(dependencyGraph2, sourceRootDir, phase) 
   dependencyGraph2.statusSummary.failedCompilations = failedTasks;
   dependencyGraph2.retryStatus.totalTasksSuccessfullyRetried = tasksSuccessfullyRetried;
   dependencyGraph2.retryStatus.totalTasksRequiringRetry = failedTasks;
-  cdsExtractorLog(
-    "info",
-    `Status update complete - Successful: ${successfulTasks}, Failed: ${failedTasks}, Successfully Retried: ${tasksSuccessfullyRetried}`
-  );
   return {
     tasksValidated: successfulTasks + failedTasks,
     successfulTasks,
@@ -7510,7 +7624,7 @@ function isSatisfyingVersion(resolvedVersion, requestedVersion) {
   }
   return satisfiesRange(parsedResolved, requestedVersion);
 }
-function resolveCdsVersions(cdsVersion, cdsDkVersion) {
+function resolveCdsVersions2(cdsVersion, cdsDkVersion) {
   const cdsVersions = getAvailableVersions("@sap/cds");
   const cdsDkVersions = getAvailableVersions("@sap/cds-dk");
   const resolvedCdsVersion = findBestAvailableVersion(cdsVersions, cdsVersion);
@@ -7713,7 +7827,7 @@ function cacheInstallDependencies(dependencyGraph2, sourceRoot2, codeqlExePath2)
       }
       const p_cdsVersion = project.packageJson.dependencies?.["@sap/cds"] ?? "latest";
       const p_cdsDkVersion = project.packageJson.devDependencies?.["@sap/cds-dk"] ?? p_cdsVersion;
-      const projectResolvedVersions = resolveCdsVersions(p_cdsVersion, p_cdsDkVersion);
+      const projectResolvedVersions = resolveCdsVersions2(p_cdsVersion, p_cdsDkVersion);
       const projectActualCdsVersion = projectResolvedVersions.resolvedCdsVersion ?? p_cdsVersion;
       const projectActualCdsDkVersion = projectResolvedVersions.resolvedCdsDkVersion ?? p_cdsDkVersion;
       const combinationActualCdsVersion = combination.resolvedCdsVersion ?? combination.cdsVersion;
@@ -7765,7 +7879,7 @@ function extractUniqueDependencyCombinations(projects) {
       "info",
       `Resolving available dependency versions for project '${project.projectDir}' with dependencies: [@sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}]`
     );
-    const resolvedVersions = resolveCdsVersions(cdsVersion, cdsDkVersion);
+    const resolvedVersions = resolveCdsVersions2(cdsVersion, cdsDkVersion);
     const { resolvedCdsVersion, resolvedCdsDkVersion, ...rest } = resolvedVersions;
     if (resolvedCdsVersion && resolvedCdsDkVersion) {
       let statusMsg;
@@ -7955,7 +8069,6 @@ function orchestrateRetryAttempts(dependencyGraph2, codeqlExePath2) {
       0
     );
     dependencyGraph2.retryStatus.totalTasksRequiringRetry = result.totalTasksRequiringRetry;
-    cdsExtractorLog("info", "Installing full dependencies for projects requiring retry...");
     dependencyInstallationStartTime = Date.now();
     for (const [projectDir, failedTasks] of tasksRequiringRetry) {
       const project = dependencyGraph2.projects.get(projectDir);
@@ -8028,7 +8141,7 @@ function orchestrateRetryAttempts(dependencyGraph2, codeqlExePath2) {
     }
     retryCompilationEndTime = Date.now();
     result.retryCompilationDurationMs = retryCompilationEndTime - retryCompilationStartTime;
-    updateCdsDependencyGraphStatus(dependencyGraph2, dependencyGraph2.sourceRootDir, "post-retry");
+    updateCdsDependencyGraphStatus(dependencyGraph2, dependencyGraph2.sourceRootDir);
     updateDependencyGraphWithRetryResults(dependencyGraph2, result);
     addCompilationDiagnosticsForFailedTasks(dependencyGraph2, codeqlExePath2);
     result.success = result.totalSuccessfulRetries > 0 || result.totalTasksRequiringRetry === 0;
@@ -8326,10 +8439,10 @@ function orchestrateCompilation(dependencyGraph2, projectCacheDirMap2, codeqlExe
   try {
     planCompilationTasks(dependencyGraph2, projectCacheDirMap2);
     executeCompilationTasks(dependencyGraph2, codeqlExePath2);
-    updateCdsDependencyGraphStatus(dependencyGraph2, dependencyGraph2.sourceRootDir, "initial");
+    updateCdsDependencyGraphStatus(dependencyGraph2, dependencyGraph2.sourceRootDir);
     cdsExtractorLog("info", "Starting retry orchestration phase...");
     const retryResults = orchestrateRetryAttempts(dependencyGraph2, codeqlExePath2);
-    updateCdsDependencyGraphStatus(dependencyGraph2, dependencyGraph2.sourceRootDir, "final");
+    updateCdsDependencyGraphStatus(dependencyGraph2, dependencyGraph2.sourceRootDir);
     if (retryResults.totalTasksRequiringRetry > 0) {
       cdsExtractorLog(
         "info",
@@ -8363,6 +8476,12 @@ function planCompilationTasks(dependencyGraph2, projectCacheDirMap2) {
   for (const [projectDir, project] of dependencyGraph2.projects.entries()) {
     try {
       const cacheDir = projectCacheDirMap2.get(projectDir);
+      const commands = determineVersionAwareCdsCommands(
+        cacheDir,
+        dependencyGraph2.sourceRootDir,
+        projectDir,
+        dependencyGraph2
+      );
       const cdsCommand = determineCdsCommand(cacheDir, dependencyGraph2.sourceRootDir);
       const compilationConfig = createCompilationConfig(cdsCommand, cacheDir);
       project.enhancedCompilationConfig = compilationConfig;
@@ -8372,6 +8491,8 @@ function planCompilationTasks(dependencyGraph2, projectCacheDirMap2) {
         project.expectedOutputFile,
         projectDir
       );
+      task.primaryCommand = commands.primaryCommand;
+      task.retryCommand = commands.retryCommand;
       project.compilationTasks = [task];
       project.status = "compilation_planned";
       project.timestamps.compilationStarted = /* @__PURE__ */ new Date();
@@ -8752,10 +8873,6 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir) {
       const projectPlan = determineCdsFilesToCompile(sourceRootDir, project);
       project.compilationTargets = projectPlan.compilationTargets;
       project.expectedOutputFile = projectPlan.expectedOutputFile;
-      cdsExtractorLog(
-        "info",
-        `Project ${project.projectDir}: using project-level compilation for all ${project.cdsFiles.length} CDS files, output: ${projectPlan.expectedOutputFile}`
-      );
     } catch (error) {
       cdsExtractorLog(
         "warn",

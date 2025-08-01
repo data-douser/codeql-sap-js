@@ -135,10 +135,7 @@ function compileProject(
   versionInfo: string,
   project: BasicCdsProject,
 ): CdsCompilationResult {
-  cdsExtractorLog(
-    'info',
-    `Compiling CDS project using project-level compilation ${versionInfo}...`,
-  );
+  cdsExtractorLog('info', `Compiling CDS project '${projectDir}' using ${versionInfo}...`);
 
   // Determine compilation targets using the new centralized logic
   const compilationTargets = determineCompilationTargets(project, sourceRoot);

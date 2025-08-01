@@ -150,7 +150,7 @@ describe('retry.ts', () => {
     // Default mocks
     mockValidator.identifyTasksRequiringRetry.mockReturnValue(new Map());
     mockValidator.updateCdsDependencyGraphStatus.mockImplementation(
-      (dependencyGraph, _sourceRootDir, phase) => {
+      (dependencyGraph, _sourceRootDir) => {
         // Mock implementation that simulates the centralized status validation
         let successfulTasks = 0;
         let failedTasks = 0;
@@ -158,34 +158,20 @@ describe('retry.ts', () => {
 
         for (const project of dependencyGraph.projects.values()) {
           for (const task of project.compilationTasks) {
-            // For 'post-retry' phase, check if task was retried and check the actual retry result
-            if (phase === 'post-retry' && task.retryInfo?.hasBeenRetried) {
-              // Check if the retry attempt was successful by looking at the last attempt
-              const lastAttempt = task.attempts[task.attempts.length - 1];
-              if (lastAttempt?.result.success) {
-                task.status = 'success';
-                successfulTasks++;
+            // Check if the task has any successful attempts
+            const hasSuccessfulAttempt = task.attempts.some(attempt => attempt.result.success);
+
+            if (hasSuccessfulAttempt || task.status === 'success') {
+              task.status = 'success';
+              successfulTasks++;
+
+              // If task has retry info and is now successful, count as successfully retried
+              if (task.retryInfo?.hasBeenRetried) {
                 tasksSuccessfullyRetried++;
-              } else {
-                task.status = 'failed';
-                failedTasks++;
               }
             } else {
-              // Check if the task has any successful attempts for other phases
-              const hasSuccessfulAttempt = task.attempts.some(attempt => attempt.result.success);
-
-              if (hasSuccessfulAttempt || task.status === 'success') {
-                task.status = 'success';
-                successfulTasks++;
-
-                // If task has retry info and is now successful, count as successfully retried
-                if (task.retryInfo?.hasBeenRetried && phase !== 'post-retry') {
-                  tasksSuccessfullyRetried++;
-                }
-              } else {
-                task.status = 'failed';
-                failedTasks++;
-              }
+              task.status = 'failed';
+              failedTasks++;
             }
           }
         }

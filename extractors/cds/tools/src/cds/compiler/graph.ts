@@ -1,4 +1,4 @@
-import { determineCdsCommand } from './command';
+import { determineCdsCommand, determineVersionAwareCdsCommands } from './command';
 import { compileCdsToJson } from './compile';
 import { orchestrateRetryAttempts } from './retry';
 import {
@@ -270,14 +270,14 @@ export function orchestrateCompilation(
     executeCompilationTasks(dependencyGraph, codeqlExePath);
 
     // CENTRALIZED STATUS UPDATE: Establish post-initial-compilation state
-    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir, 'initial');
+    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir);
 
     // Phase 2: Retry orchestration
     cdsExtractorLog('info', 'Starting retry orchestration phase...');
     const retryResults = orchestrateRetryAttempts(dependencyGraph, codeqlExePath);
 
     // CENTRALIZED STATUS UPDATE: Final validation and status synchronization
-    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir, 'final');
+    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir);
 
     // Log retry results
     if (retryResults.totalTasksRequiringRetry > 0) {
@@ -331,7 +331,15 @@ function planCompilationTasks(
     try {
       const cacheDir = projectCacheDirMap.get(projectDir);
 
-      // Determine CDS command
+      // Determine version-aware CDS commands for both primary and retry scenarios
+      const commands = determineVersionAwareCdsCommands(
+        cacheDir,
+        dependencyGraph.sourceRootDir,
+        projectDir,
+        dependencyGraph,
+      );
+
+      // Keep backward compatibility - determine command string for compilation config
       const cdsCommand = determineCdsCommand(cacheDir, dependencyGraph.sourceRootDir);
 
       // Create compilation configuration (always project-level now)
@@ -346,6 +354,11 @@ function planCompilationTasks(
         project.expectedOutputFile,
         projectDir,
       );
+
+      // Update task with version-aware commands
+      task.primaryCommand = commands.primaryCommand;
+      task.retryCommand = commands.retryCommand;
+
       project.compilationTasks = [task];
 
       project.status = 'compilation_planned';
