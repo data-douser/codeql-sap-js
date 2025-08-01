@@ -82,6 +82,7 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: 'extractors/cds/tools/package-lock.json'
 
       - name: Verify Node.js and npm tools
         run: |
