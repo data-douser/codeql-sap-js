@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -6,6 +7,7 @@ import {
   determineCdsCommand,
   resetCdsCommandCache,
   DEFAULT_COMMAND_TIMEOUT_MS,
+  determineVersionAwareCdsCommands,
 } from '../../../../src/cds/compiler/command';
 import { fileExists } from '../../../../src/filesystem';
 import { cdsExtractorLog } from '../../../../src/logging';
@@ -400,6 +402,361 @@ describe('cds compiler command', () => {
 
       // Verify - should fall back to global command
       expect(result).toBe('cds');
+    });
+  });
+
+  describe('version-aware command determination', () => {
+    it('should use explicit @sap/cds-dk version from package.json', () => {
+      const mockCdsDependencyGraph = {
+        projects: new Map([
+          [
+            '/mock/project',
+            {
+              packageJson: {
+                dependencies: {
+                  '@sap/cds': '^7.9.5',
+                  '@sap/cds-dk': '^8.6.1',
+                },
+              },
+            },
+          ],
+        ]),
+      };
+
+      // Mock successful execution for version-specific npx command
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === 'npx' && args.includes('@sap/cds-dk@^8.6.1')) {
+            return Buffer.from('8.6.1');
+          }
+          if (command === 'cds') {
+            throw new Error('Global cds not found');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      // Execute with project path and dependency graph
+      const result = determineCdsCommand(
+        undefined,
+        '/mock/source/root',
+        '/mock/project',
+        mockCdsDependencyGraph as any,
+      );
+
+      // Verify
+      expect(result).toBe('npx --yes --package @sap/cds-dk@^8.6.1 cds');
+    });
+
+    it('should derive compatible @sap/cds-dk version from @sap/cds dependency', () => {
+      const mockCdsDependencyGraph = {
+        projects: new Map([
+          [
+            '/mock/project',
+            {
+              packageJson: {
+                dependencies: {
+                  '@sap/cds': '^9',
+                },
+              },
+            },
+          ],
+        ]),
+      };
+
+      // Mock successful execution for derived version npx command
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === 'npx' && args.includes('@sap/cds-dk@^9')) {
+            return Buffer.from('9.1.3');
+          }
+          if (command === 'cds') {
+            throw new Error('Global cds not found');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      // Execute with project path and dependency graph
+      const result = determineCdsCommand(
+        undefined,
+        '/mock/source/root',
+        '/mock/project',
+        mockCdsDependencyGraph as any,
+      );
+
+      // Verify
+      expect(result).toBe('npx --yes --package @sap/cds-dk@^9 cds');
+    });
+
+    it('should fall back to current behavior when no project info is provided', () => {
+      // Mock successful execution for fallback
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === 'cds') {
+            throw new Error('Global cds not found');
+          }
+          if (command === 'npx' && args.includes('@sap/cds-dk')) {
+            return Buffer.from('6.1.3');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      // Execute without project information
+      const result = determineCdsCommand(undefined, '/mock/source/root');
+
+      // Verify - should use existing fallback behavior
+      expect(result).toBe('npx --yes --package @sap/cds-dk cds');
+    });
+
+    it('should fall back when project has no CDS dependencies', () => {
+      const mockCdsDependencyGraph = {
+        projects: new Map([
+          [
+            '/mock/project',
+            {
+              packageJson: {
+                dependencies: {
+                  express: '^4.17.1',
+                },
+              },
+            },
+          ],
+        ]),
+      };
+
+      // Mock successful execution for fallback
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === 'cds') {
+            throw new Error('Global cds not found');
+          }
+          if (command === 'npx' && args.includes('@sap/cds-dk')) {
+            return Buffer.from('6.1.3');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      // Execute with project that has no CDS dependencies
+      const result = determineCdsCommand(
+        undefined,
+        '/mock/source/root',
+        '/mock/project',
+        mockCdsDependencyGraph as any,
+      );
+
+      // Verify - should fall back to existing behavior
+      expect(result).toBe('npx --yes --package @sap/cds-dk cds');
+    });
+
+    it('should prefer cache directory over version-specific commands', () => {
+      const mockFileExists = fileExists as jest.MockedFunction<typeof fileExists>;
+      const mockCdsDependencyGraph = {
+        projects: new Map([
+          [
+            '/mock/project',
+            {
+              packageJson: {
+                dependencies: {
+                  '@sap/cds': '^7.9.5',
+                  '@sap/cds-dk': '^8.6.1',
+                },
+              },
+            },
+          ],
+        ]),
+      };
+
+      (path.join as jest.Mock).mockImplementation((...args: string[]) => args.join('/'));
+      (path.resolve as jest.Mock).mockImplementation((...args: string[]) => args.join('/'));
+
+      // Mock fileExists to return true for the cache directory
+      mockFileExists.mockImplementation((filePath: string) => {
+        return filePath === '/custom/cache/node_modules/.bin/cds';
+      });
+
+      // Mock successful execution for cache directory
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === '/custom/cache/node_modules/.bin/cds' && args.join(' ') === '--version') {
+            return Buffer.from('8.6.1');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      // Execute with both cache directory and project info
+      const result = determineCdsCommand(
+        '/custom/cache',
+        '/mock/source/root',
+        '/mock/project',
+        mockCdsDependencyGraph as any,
+      );
+
+      // Verify - should prefer cache directory over version-specific commands
+      expect(result).toBe('/custom/cache/node_modules/.bin/cds');
+    });
+  });
+
+  describe('Version-aware CDS commands', () => {
+    it('should enforce minimum @sap/cds-dk version of 8', () => {
+      // Mock dependency graph with a project that has @sap/cds version 5
+      const mockCdsDependencyGraph = {
+        projects: new Map([
+          [
+            '/mock/project',
+            {
+              packageJson: {
+                dependencies: {
+                  '@sap/cds': '^5.9.0', // This should be upgraded to at least 8
+                },
+              },
+            },
+          ],
+        ]),
+      };
+
+      // Mock successful execution for version commands
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === 'cds' && args.join(' ') === '--version') {
+            throw new Error('Command not found');
+          }
+          if (command === 'npx' && args.includes('--version')) {
+            return Buffer.from('8.6.1');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      // Execute
+      const result = determineVersionAwareCdsCommands(
+        undefined,
+        '/mock/source/root',
+        '/mock/project',
+        mockCdsDependencyGraph as any,
+      );
+
+      // Verify - retry command should use at least version 8, not 5
+      expect(result.retryCommand.originalCommand).toContain('@sap/cds-dk@^8');
+      expect(result.retryCommand.originalCommand).not.toContain('@sap/cds-dk@^5');
+    });
+
+    it('should upgrade @sap/cds-dk@^7 to @sap/cds-dk@^8', () => {
+      const mockCdsDependencyGraph = {
+        projects: new Map([
+          [
+            '/mock/project',
+            {
+              packageJson: {
+                dependencies: {
+                  '@sap/cds': '^7.9.0', // This should be upgraded to at least 8
+                },
+              },
+            },
+          ],
+        ]),
+      };
+
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === 'cds' && args.join(' ') === '--version') {
+            throw new Error('Command not found');
+          }
+          if (command === 'npx' && args.includes('--version')) {
+            return Buffer.from('8.6.1');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      const result = determineVersionAwareCdsCommands(
+        undefined,
+        '/mock/source/root',
+        '/mock/project',
+        mockCdsDependencyGraph as any,
+      );
+
+      expect(result.retryCommand.originalCommand).toContain('@sap/cds-dk@^8');
+      expect(result.retryCommand.originalCommand).not.toContain('@sap/cds-dk@^7');
+    });
+
+    it('should preserve @sap/cds-dk@^9 without changes', () => {
+      const mockCdsDependencyGraph = {
+        projects: new Map([
+          [
+            '/mock/project',
+            {
+              packageJson: {
+                dependencies: {
+                  '@sap/cds': '^9.2.0', // This should be preserved as-is
+                },
+              },
+            },
+          ],
+        ]),
+      };
+
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === 'cds' && args.join(' ') === '--version') {
+            throw new Error('Command not found');
+          }
+          if (command === 'npx' && args.includes('--version')) {
+            return Buffer.from('9.2.0');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      const result = determineVersionAwareCdsCommands(
+        undefined,
+        '/mock/source/root',
+        '/mock/project',
+        mockCdsDependencyGraph as any,
+      );
+
+      expect(result.retryCommand.originalCommand).toContain('@sap/cds-dk@^9');
+    });
+
+    it('should use explicit @sap/cds-dk version from package.json', () => {
+      const mockCdsDependencyGraph = {
+        projects: new Map([
+          [
+            '/mock/project',
+            {
+              packageJson: {
+                dependencies: {
+                  '@sap/cds-dk': '^8.6.1', // Explicit version should be used
+                },
+              },
+            },
+          ],
+        ]),
+      };
+
+      (childProcess.execFileSync as jest.Mock).mockImplementation(
+        (command: string, args: string[]) => {
+          if (command === 'cds' && args.join(' ') === '--version') {
+            throw new Error('Command not found');
+          }
+          if (command === 'npx' && args.includes('--version')) {
+            return Buffer.from('8.6.1');
+          }
+          throw new Error(`Unexpected command: ${command} ${args.join(' ')}`);
+        },
+      );
+
+      const result = determineVersionAwareCdsCommands(
+        undefined,
+        '/mock/source/root',
+        '/mock/project',
+        mockCdsDependencyGraph as any,
+      );
+
+      expect(result.retryCommand.originalCommand).toContain('@sap/cds-dk@^8.6.1');
     });
   });
 });

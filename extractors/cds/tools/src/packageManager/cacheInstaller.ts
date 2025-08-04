@@ -49,82 +49,13 @@ function addDependencyVersionWarning(
 }
 
 /**
- * Extracts unique dependency combinations from the dependency graph.
- * @param projects A map of projects from the dependency graph.
- * @returns An array of unique dependency combinations.
- */
-function extractUniqueDependencyCombinations(
-  projects: Map<string, CdsProject>,
-): CdsDependencyCombination[] {
-  const combinations = new Map<string, CdsDependencyCombination>();
-
-  for (const project of Array.from(projects.values())) {
-    if (!project.packageJson) {
-      continue;
-    }
-
-    const cdsVersion = project.packageJson.dependencies?.['@sap/cds'] ?? 'latest';
-    const cdsDkVersion = project.packageJson.devDependencies?.['@sap/cds-dk'] ?? cdsVersion;
-
-    // Resolve versions first to ensure we cache based on actual resolved versions
-    cdsExtractorLog(
-      'info',
-      `Resolving available dependency versions for project '${project.projectDir}' with dependencies: [@sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}]`,
-    );
-    const resolvedVersions = resolveCdsVersions(cdsVersion, cdsDkVersion);
-    const { resolvedCdsVersion, resolvedCdsDkVersion, ...rest } = resolvedVersions;
-
-    // Log the resolved CDS dependency versions for the project
-    if (resolvedCdsVersion && resolvedCdsDkVersion) {
-      let statusMsg: string;
-      if (resolvedVersions.cdsExactMatch && resolvedVersions.cdsDkExactMatch) {
-        statusMsg = ' (exact match)';
-      } else if (!resolvedVersions.isFallback) {
-        statusMsg = ' (compatible versions)';
-      } else {
-        statusMsg = ' (using fallback versions)';
-      }
-      cdsExtractorLog(
-        'info',
-        `Resolved to: @sap/cds@${resolvedCdsVersion}, @sap/cds-dk@${resolvedCdsDkVersion}${statusMsg}`,
-      );
-    } else {
-      cdsExtractorLog(
-        'error',
-        `Failed to resolve CDS dependencies: @sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}`,
-      );
-    }
-
-    // Calculate hash based on resolved versions to ensure proper cache reuse
-    const actualCdsVersion = resolvedCdsVersion ?? cdsVersion;
-    const actualCdsDkVersion = resolvedCdsDkVersion ?? cdsDkVersion;
-    const hash = createHash('sha256')
-      .update(`${actualCdsVersion}|${actualCdsDkVersion}`)
-      .digest('hex');
-
-    if (!combinations.has(hash)) {
-      combinations.set(hash, {
-        cdsVersion,
-        cdsDkVersion,
-        hash,
-        resolvedCdsVersion: resolvedCdsVersion ?? undefined,
-        resolvedCdsDkVersion: resolvedCdsDkVersion ?? undefined,
-        ...rest,
-      });
-    }
-  }
-
-  return Array.from(combinations.values());
-}
-
-/**
  * Install dependencies for CDS projects using a robust cache strategy with fallback logic
  * @param dependencyGraph The dependency graph of the project
  * @param sourceRoot Source root directory
  * @param codeqlExePath Path to the CodeQL executable (optional)
  * @returns Map of project directories to their corresponding cache directories
  */
-export function installDependencies(
+export function cacheInstallDependencies(
   dependencyGraph: CdsDependencyGraph,
   sourceRoot: string,
   codeqlExePath?: string,
@@ -343,6 +274,75 @@ export function installDependencies(
   }
 
   return projectCacheDirMap;
+}
+
+/**
+ * Extracts unique dependency combinations from the dependency graph.
+ * @param projects A map of projects from the dependency graph.
+ * @returns An array of unique dependency combinations.
+ */
+function extractUniqueDependencyCombinations(
+  projects: Map<string, CdsProject>,
+): CdsDependencyCombination[] {
+  const combinations = new Map<string, CdsDependencyCombination>();
+
+  for (const project of Array.from(projects.values())) {
+    if (!project.packageJson) {
+      continue;
+    }
+
+    const cdsVersion = project.packageJson.dependencies?.['@sap/cds'] ?? 'latest';
+    const cdsDkVersion = project.packageJson.devDependencies?.['@sap/cds-dk'] ?? cdsVersion;
+
+    // Resolve versions first to ensure we cache based on actual resolved versions
+    cdsExtractorLog(
+      'info',
+      `Resolving available dependency versions for project '${project.projectDir}' with dependencies: [@sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}]`,
+    );
+    const resolvedVersions = resolveCdsVersions(cdsVersion, cdsDkVersion);
+    const { resolvedCdsVersion, resolvedCdsDkVersion, ...rest } = resolvedVersions;
+
+    // Log the resolved CDS dependency versions for the project
+    if (resolvedCdsVersion && resolvedCdsDkVersion) {
+      let statusMsg: string;
+      if (resolvedVersions.cdsExactMatch && resolvedVersions.cdsDkExactMatch) {
+        statusMsg = ' (exact match)';
+      } else if (!resolvedVersions.isFallback) {
+        statusMsg = ' (compatible versions)';
+      } else {
+        statusMsg = ' (using fallback versions)';
+      }
+      cdsExtractorLog(
+        'info',
+        `Resolved to: @sap/cds@${resolvedCdsVersion}, @sap/cds-dk@${resolvedCdsDkVersion}${statusMsg}`,
+      );
+    } else {
+      cdsExtractorLog(
+        'error',
+        `Failed to resolve CDS dependencies: @sap/cds@${cdsVersion}, @sap/cds-dk@${cdsDkVersion}`,
+      );
+    }
+
+    // Calculate hash based on resolved versions to ensure proper cache reuse
+    const actualCdsVersion = resolvedCdsVersion ?? cdsVersion;
+    const actualCdsDkVersion = resolvedCdsDkVersion ?? cdsDkVersion;
+    const hash = createHash('sha256')
+      .update(`${actualCdsVersion}|${actualCdsDkVersion}`)
+      .digest('hex');
+
+    if (!combinations.has(hash)) {
+      combinations.set(hash, {
+        cdsVersion,
+        cdsDkVersion,
+        hash,
+        resolvedCdsVersion: resolvedCdsVersion ?? undefined,
+        resolvedCdsDkVersion: resolvedCdsDkVersion ?? undefined,
+        ...rest,
+      });
+    }
+  }
+
+  return Array.from(combinations.values());
 }
 
 /**
