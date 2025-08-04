@@ -17,7 +17,7 @@ import {
   logPerformanceTrackingStop,
   setSourceRootDirectory,
 } from './src/logging';
-import { installDependencies } from './src/packageManager';
+import { cacheInstallDependencies } from './src/packageManager';
 import { validateArguments } from './src/utils';
 
 // Validate the script arguments.
@@ -99,7 +99,7 @@ try {
     for (const [projectDir, project] of dependencyGraph.projects.entries()) {
       cdsExtractorLog(
         'info',
-        `Project: ${projectDir}, Status: ${project.status}, CDS files: ${project.cdsFiles.length}, Compilations to run: ${project.cdsFilesToCompile.length}`,
+        `Project: ${projectDir}, Status: ${project.status}, CDS files: ${project.cdsFiles.length}, Compilation targets: ${project.compilationTargets.length}`,
       );
     }
   } else {
@@ -151,7 +151,7 @@ try {
 }
 
 logPerformanceTrackingStart('Dependency Installation');
-const projectCacheDirMap = installDependencies(dependencyGraph, sourceRoot, codeqlExePath);
+const projectCacheDirMap = cacheInstallDependencies(dependencyGraph, sourceRoot, codeqlExePath);
 logPerformanceTrackingStop('Dependency Installation');
 
 // Check if dependency installation resulted in any usable project mappings

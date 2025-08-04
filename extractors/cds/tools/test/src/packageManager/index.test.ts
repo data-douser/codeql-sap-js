@@ -2,8 +2,13 @@ import * as packageManager from '../../../src/packageManager';
 
 describe('packageManager index', () => {
   describe('exports', () => {
-    it('should export installDependencies function', () => {
-      expect(typeof packageManager.installDependencies).toBe('function');
+    it('should export functions required for installing dependencies in cache', () => {
+      expect(typeof packageManager.cacheInstallDependencies).toBe('function');
+    });
+
+    it('should export functions required for installing dependencies in project', () => {
+      expect(typeof packageManager.needsFullDependencyInstallation).toBe('function');
+      expect(typeof packageManager.projectInstallDependencies).toBe('function');
     });
 
     it('should export version resolver functions', () => {
@@ -19,13 +24,15 @@ describe('packageManager index', () => {
 
     it('should provide all expected exports', () => {
       const expectedExports = [
-        'installDependencies',
+        'cacheInstallDependencies',
         'checkVersionCompatibility',
         'compareVersions',
         'findBestAvailableVersion',
         'getAvailableVersions',
         'getCacheStatistics',
+        'needsFullDependencyInstallation',
         'parseSemanticVersion',
+        'projectInstallDependencies',
         'resolveCdsVersions',
         'satisfiesRange',
       ];
@@ -35,7 +42,7 @@ describe('packageManager index', () => {
       }
 
       // Verify specific types directly
-      expect(typeof packageManager.installDependencies).toBe('function');
+      expect(typeof packageManager.cacheInstallDependencies).toBe('function');
       expect(typeof packageManager.checkVersionCompatibility).toBe('function');
       expect(typeof packageManager.parseSemanticVersion).toBe('function');
     });

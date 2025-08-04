@@ -1,7 +1,13 @@
-import { determineCdsCommand } from './command';
+import { determineCdsCommand, determineVersionAwareCdsCommands } from './command';
 import { compileCdsToJson } from './compile';
-import { CompilationAttempt, CompilationTask, CompilationConfig } from './types';
-import { addCompilationDiagnostic } from '../../diagnostics';
+import { orchestrateRetryAttempts } from './retry';
+import {
+  CompilationAttempt,
+  CompilationTask,
+  CompilationConfig,
+  ValidatedCdsCommand,
+} from './types';
+import { updateCdsDependencyGraphStatus } from './validator';
 import { cdsExtractorLog, generateStatusReport } from '../../logging';
 import { CdsDependencyGraph, CdsProject } from '../parser/types';
 
@@ -12,8 +18,8 @@ function attemptCompilation(
   cacheDir: string | undefined,
   dependencyGraph: CdsDependencyGraph,
 ): CompilationAttempt {
-  const attemptId = `${task.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
   const startTime = new Date();
+  const attemptId = `${task.id}_${startTime.getTime()}`;
 
   const attempt: CompilationAttempt = {
     id: attemptId,
@@ -42,8 +48,8 @@ function attemptCompilation(
           key,
           {
             cdsFiles: value.cdsFiles,
-            cdsFilesToCompile: value.cdsFilesToCompile,
-            expectedOutputFiles: value.expectedOutputFiles,
+            compilationTargets: value.compilationTargets,
+            expectedOutputFile: value.expectedOutputFile,
             projectDir: value.projectDir,
             dependencies: value.dependencies,
             imports: value.imports,
@@ -87,32 +93,43 @@ function attemptCompilation(
 function createCompilationTask(
   type: 'file' | 'project',
   sourceFiles: string[],
-  expectedOutputFiles: string[],
+  expectedOutputFile: string,
   projectDir: string,
-  useProjectLevelCompilation: boolean,
 ): CompilationTask {
+  // Create default commands for tasks - these should be updated later with proper commands
+  const defaultPrimaryCommand: ValidatedCdsCommand = {
+    executable: 'cds',
+    args: [],
+    originalCommand: 'cds',
+  };
+
+  const defaultRetryCommand: ValidatedCdsCommand = {
+    executable: 'npx',
+    args: ['cds'],
+    originalCommand: 'npx cds',
+  };
+
   return {
     id: `${type}_${projectDir}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     type,
     status: 'pending',
     sourceFiles,
-    expectedOutputFiles,
+    expectedOutputFile,
     projectDir,
     attempts: [],
-    useProjectLevelCompilation,
     dependencies: [],
+    primaryCommand: defaultPrimaryCommand,
+    retryCommand: defaultRetryCommand,
   };
 }
 
 function createCompilationConfig(
   cdsCommand: string,
   cacheDir: string | undefined,
-  useProjectLevel: boolean,
 ): CompilationConfig {
   return {
     cdsCommand: cdsCommand,
     cacheDir: cacheDir,
-    useProjectLevelCompilation: useProjectLevel,
     versionCompatibility: {
       isCompatible: true, // Will be validated during planning
     },
@@ -127,7 +144,7 @@ function executeCompilationTask(
   task: CompilationTask,
   project: CdsProject,
   dependencyGraph: CdsDependencyGraph,
-  codeqlExePath: string,
+  _codeqlExePath: string,
 ): void {
   task.status = 'in_progress';
 
@@ -145,7 +162,6 @@ function executeCompilationTask(
 
   if (compilationAttempt.result.success) {
     task.status = 'success';
-    dependencyGraph.statusSummary.successfulCompilations++;
     return;
   }
 
@@ -156,12 +172,9 @@ function executeCompilationTask(
 
   task.status = 'failed';
   task.errorSummary = lastError?.message || 'Compilation failed';
-  dependencyGraph.statusSummary.failedCompilations++;
 
-  // Add diagnostic for failed compilation
-  for (const sourceFile of task.sourceFiles) {
-    addCompilationDiagnostic(sourceFile, task.errorSummary, codeqlExePath);
-  }
+  // Note: Diagnostics are deferred until after retry phase completes
+  // to implement "Silent Success" - only add diagnostics for definitively failed tasks
 
   cdsExtractorLog('error', `Compilation failed for task ${task.id}: ${task.errorSummary}`);
 }
@@ -252,11 +265,31 @@ export function orchestrateCompilation(
   codeqlExePath: string,
 ): void {
   try {
+    // Phase 1: Initial compilation
     planCompilationTasks(dependencyGraph, projectCacheDirMap);
-
     executeCompilationTasks(dependencyGraph, codeqlExePath);
 
-    // Update overall status
+    // CENTRALIZED STATUS UPDATE: Establish post-initial-compilation state
+    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir);
+
+    // Phase 2: Retry orchestration
+    cdsExtractorLog('info', 'Starting retry orchestration phase...');
+    const retryResults = orchestrateRetryAttempts(dependencyGraph, codeqlExePath);
+
+    // CENTRALIZED STATUS UPDATE: Final validation and status synchronization
+    updateCdsDependencyGraphStatus(dependencyGraph, dependencyGraph.sourceRootDir);
+
+    // Log retry results
+    if (retryResults.totalTasksRequiringRetry > 0) {
+      cdsExtractorLog(
+        'info',
+        `Retry phase completed: ${retryResults.totalTasksRequiringRetry} tasks retried, ${retryResults.totalSuccessfulRetries} successful, ${retryResults.totalFailedRetries} failed`,
+      );
+    } else {
+      cdsExtractorLog('info', 'Retry phase completed: no tasks required retry');
+    }
+
+    // Phase 3: Final status update
     const hasFailures =
       dependencyGraph.statusSummary.failedCompilations > 0 ||
       dependencyGraph.errors.critical.length > 0;
@@ -264,7 +297,7 @@ export function orchestrateCompilation(
     dependencyGraph.statusSummary.overallSuccess = !hasFailures;
     dependencyGraph.currentPhase = hasFailures ? 'failed' : 'completed';
 
-    // Generate and log a "Post-Compilation" status report, aka before the JavaScript extractor runs.
+    // Phase 3: Status reporting (now guaranteed to be accurate)
     const statusReport = generateStatusReport(dependencyGraph);
     cdsExtractorLog('info', 'CDS Extractor Status Report : Post-Compilation...\n' + statusReport);
   } catch (error) {
@@ -298,45 +331,35 @@ function planCompilationTasks(
     try {
       const cacheDir = projectCacheDirMap.get(projectDir);
 
-      // Determine CDS command
+      // Determine version-aware CDS commands for both primary and retry scenarios
+      const commands = determineVersionAwareCdsCommands(
+        cacheDir,
+        dependencyGraph.sourceRootDir,
+        projectDir,
+        dependencyGraph,
+      );
+
+      // Keep backward compatibility - determine command string for compilation config
       const cdsCommand = determineCdsCommand(cacheDir, dependencyGraph.sourceRootDir);
 
-      // Create compilation configuration
-      const compilationConfig = createCompilationConfig(
-        cdsCommand,
-        cacheDir,
-        project.cdsFilesToCompile.includes('__PROJECT_LEVEL_COMPILATION__'),
-      );
+      // Create compilation configuration (always project-level now)
+      const compilationConfig = createCompilationConfig(cdsCommand, cacheDir);
 
       project.enhancedCompilationConfig = compilationConfig;
 
-      // Create compilation tasks
-      if (project.cdsFilesToCompile.includes('__PROJECT_LEVEL_COMPILATION__')) {
-        // Project-level compilation
-        const task = createCompilationTask(
-          'project',
-          project.cdsFiles,
-          project.expectedOutputFiles,
-          projectDir,
-          true,
-        );
-        project.compilationTasks = [task];
-      } else {
-        // Individual file compilation
-        const tasks: CompilationTask[] = [];
-        for (const cdsFile of project.cdsFilesToCompile) {
-          const expectedOutput = `${cdsFile}.json`;
-          const task = createCompilationTask(
-            'file',
-            [cdsFile],
-            [expectedOutput],
-            projectDir,
-            false,
-          );
-          tasks.push(task);
-        }
-        project.compilationTasks = tasks;
-      }
+      // Create compilation task (always project-level now)
+      const task = createCompilationTask(
+        'project',
+        project.cdsFiles,
+        project.expectedOutputFile,
+        projectDir,
+      );
+
+      // Update task with version-aware commands
+      task.primaryCommand = commands.primaryCommand;
+      task.retryCommand = commands.retryCommand;
+
+      project.compilationTasks = [task];
 
       project.status = 'compilation_planned';
       project.timestamps.compilationStarted = new Date();

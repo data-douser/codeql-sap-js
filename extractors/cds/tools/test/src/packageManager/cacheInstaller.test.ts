@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { CdsDependencyGraph, CdsProject } from '../../../src/cds/parser/types';
-import { installDependencies } from '../../../src/packageManager';
+import { cacheInstallDependencies } from '../../../src/packageManager';
 
 // Mock dependencies
 jest.mock('fs', () => ({
@@ -63,8 +63,8 @@ describe('installer', () => {
         id: `project-${projectDir}`,
         projectDir,
         cdsFiles: [`${projectDir}/src/file.cds`],
-        cdsFilesToCompile: [`${projectDir}/src/file.cds`],
-        expectedOutputFiles: [`${projectDir}/src/file.json`],
+        compilationTargets: [`${projectDir}/src/file.cds`],
+        expectedOutputFile: 'model.cds.json',
         packageJson,
         status: 'discovered',
         compilationTasks: [],
@@ -107,6 +107,13 @@ describe('installer', () => {
       errors: {
         critical: [],
         warnings: [],
+      },
+      retryStatus: {
+        totalTasksRequiringRetry: 0,
+        totalTasksSuccessfullyRetried: 0,
+        totalRetryAttempts: 0,
+        projectsRequiringFullDependencies: new Set<string>(),
+        projectsWithFullDependencies: new Set<string>(),
       },
       currentPhase: 'parsing',
     };
@@ -152,7 +159,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       expect(fs.mkdirSync).toHaveBeenCalledWith('/source/.cds-extractor-cache', {
         recursive: true,
@@ -178,7 +185,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       // Should return empty map since cache creation failed
       expect(result.size).toBe(0);
@@ -219,7 +226,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       // Should not call npm install since cache exists
       expect(childProcess.execFileSync).not.toHaveBeenCalledWith(
@@ -249,7 +256,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       // Should skip failed combinations
       expect(result.size).toBe(0);
@@ -257,7 +264,7 @@ describe('installer', () => {
 
     it('should handle empty dependency graph', () => {
       const dependencyGraph = createMockDependencyGraph([]);
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       expect(result.size).toBe(0);
     });
@@ -301,7 +308,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       // Should create only one cache directory since all resolve to the same versions
       expect(fs.mkdirSync).toHaveBeenCalledWith('/source/.cds-extractor-cache', {
@@ -370,7 +377,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       // Should create two separate cache directories
       expect(fs.writeFileSync).toHaveBeenCalledTimes(2);
@@ -406,7 +413,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       expect(result.size).toBe(0);
     });
@@ -453,7 +460,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       // Should add diagnostic warning for fallback versions
       expect(childProcess.execFileSync).toHaveBeenCalledWith(
@@ -521,7 +528,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       // Should still succeed even if diagnostic fails
       expect(result.size).toBe(1);
@@ -549,7 +556,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       expect(result.size).toBe(0);
     });
@@ -576,7 +583,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       expect(result.size).toBe(0);
     });
@@ -589,7 +596,7 @@ describe('installer', () => {
         },
       ]);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       expect(result.size).toBe(0);
     });
@@ -612,8 +619,8 @@ describe('installer', () => {
         id: 'project-/project1',
         projectDir: '/project1',
         cdsFiles: ['/project1/src/file.cds'],
-        cdsFilesToCompile: ['/project1/src/file.cds'],
-        expectedOutputFiles: ['/project1/src/file.json'],
+        compilationTargets: ['/project1/src/file.cds'],
+        expectedOutputFile: 'model.cds.json',
         packageJson: undefined, // No package.json
         status: 'discovered',
         compilationTasks: [],
@@ -626,7 +633,7 @@ describe('installer', () => {
       (fs.mkdirSync as jest.Mock).mockReturnValue(undefined);
       (fs.writeFileSync as jest.Mock).mockReturnValue(undefined);
 
-      const result = installDependencies(dependencyGraph, '/source', '/codeql');
+      const result = cacheInstallDependencies(dependencyGraph, '/source', '/codeql');
 
       expect(result.size).toBe(0);
     });
