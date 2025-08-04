@@ -66,6 +66,13 @@ describe('generateStatusReport', () => {
         critical: [],
         warnings: [],
       },
+      retryStatus: {
+        totalTasksRequiringRetry: 0,
+        totalTasksSuccessfullyRetried: 0,
+        totalRetryAttempts: 0,
+        projectsRequiringFullDependencies: new Set<string>(),
+        projectsWithFullDependencies: new Set<string>(),
+      },
     };
   });
 
@@ -291,6 +298,142 @@ describe('generateStatusReport', () => {
       expect(report).toContain('- Compilation failed for project B');
       expect(report).toContain('WARNINGS:');
       expect(report).toContain('- Warning: deprecated syntax found');
+    });
+  });
+
+  describe('retry summary reporting', () => {
+    it('should show RETRY SUMMARY when retry attempts were made with successful retries', () => {
+      // Setup scenario: 2 tasks were retried successfully
+      mockDependencyGraph.retryStatus.totalTasksRequiringRetry = 0; // Should be 0 after successful retries
+      mockDependencyGraph.retryStatus.totalTasksSuccessfullyRetried = 2;
+      mockDependencyGraph.retryStatus.totalRetryAttempts = 2;
+      mockDependencyGraph.retryStatus.projectsRequiringFullDependencies = new Set([
+        'project-1',
+        'project-2',
+      ]);
+      mockDependencyGraph.retryStatus.projectsWithFullDependencies = new Set([
+        'project-1',
+        'project-2',
+      ]);
+
+      const report = generateStatusReport(mockDependencyGraph);
+
+      expect(report).toContain('RETRY SUMMARY:');
+      expect(report).toContain('Tasks Requiring Retry: 0');
+      expect(report).toContain('Tasks Successfully Retried: 2');
+      expect(report).toContain('Total Retry Attempts: 2');
+      expect(report).toContain('Projects Requiring Full Dependencies: 2');
+      expect(report).toContain('Projects with Full Dependencies: 2');
+    });
+
+    it('should show RETRY SUMMARY when retry attempts were made with partial success', () => {
+      // Setup scenario: 3 tasks needed retry, 2 succeeded, 1 still failed
+      mockDependencyGraph.retryStatus.totalTasksRequiringRetry = 1; // 1 task still needs retry
+      mockDependencyGraph.retryStatus.totalTasksSuccessfullyRetried = 2;
+      mockDependencyGraph.retryStatus.totalRetryAttempts = 3;
+      mockDependencyGraph.retryStatus.projectsRequiringFullDependencies = new Set(['project-1']);
+      mockDependencyGraph.retryStatus.projectsWithFullDependencies = new Set(['project-1']);
+
+      const report = generateStatusReport(mockDependencyGraph);
+
+      expect(report).toContain('RETRY SUMMARY:');
+      expect(report).toContain('Tasks Requiring Retry: 1');
+      expect(report).toContain('Tasks Successfully Retried: 2');
+      expect(report).toContain('Total Retry Attempts: 3');
+    });
+
+    it('should show RETRY SUMMARY when retry attempts were made but all failed', () => {
+      // Setup scenario: 2 tasks needed retry, both failed
+      mockDependencyGraph.retryStatus.totalTasksRequiringRetry = 2; // Still have tasks requiring retry
+      mockDependencyGraph.retryStatus.totalTasksSuccessfullyRetried = 0;
+      mockDependencyGraph.retryStatus.totalRetryAttempts = 2;
+
+      const report = generateStatusReport(mockDependencyGraph);
+
+      expect(report).toContain('RETRY SUMMARY:');
+      expect(report).toContain('Tasks Requiring Retry: 2');
+      expect(report).toContain('Tasks Successfully Retried: 0');
+      expect(report).toContain('Total Retry Attempts: 2');
+    });
+
+    it('should not show RETRY SUMMARY when no retry attempts were made', () => {
+      // Setup scenario: No retries needed or attempted
+      mockDependencyGraph.retryStatus.totalTasksRequiringRetry = 0;
+      mockDependencyGraph.retryStatus.totalTasksSuccessfullyRetried = 0;
+      mockDependencyGraph.retryStatus.totalRetryAttempts = 0;
+
+      const report = generateStatusReport(mockDependencyGraph);
+
+      expect(report).not.toContain('RETRY SUMMARY:');
+      expect(report).not.toContain('Tasks Requiring Retry:');
+      expect(report).not.toContain('Tasks Successfully Retried:');
+    });
+
+    it('should match the exact scenario from the user bug report - 2 successful retries', () => {
+      // This test replicates the exact scenario from the user's bug report:
+      // - 2 tasks were successfully retried
+      // - Expected: "Tasks Requiring Retry: 0" and "Tasks Successfully Retried: 2"
+
+      // Setup compilation summary as reported by user
+      mockDependencyGraph.statusSummary.totalCompilationTasks = 11;
+      mockDependencyGraph.statusSummary.successfulCompilations = 11;
+      mockDependencyGraph.statusSummary.failedCompilations = 0;
+      mockDependencyGraph.statusSummary.skippedCompilations = 0;
+
+      // Setup retry status - this is the key fix
+      mockDependencyGraph.retryStatus.totalTasksRequiringRetry = 0; // FIXED: Should be 0 after successful retries
+      mockDependencyGraph.retryStatus.totalTasksSuccessfullyRetried = 2; // FIXED: Should be 2 for successful retries
+      mockDependencyGraph.retryStatus.totalRetryAttempts = 2;
+      mockDependencyGraph.retryStatus.projectsRequiringFullDependencies = new Set([
+        'project-1',
+        'project-2',
+      ]);
+      mockDependencyGraph.retryStatus.projectsWithFullDependencies = new Set([
+        'project-1',
+        'project-2',
+      ]);
+
+      const report = generateStatusReport(mockDependencyGraph);
+
+      // Verify COMPILATION SUMMARY section
+      expect(report).toContain('COMPILATION SUMMARY:');
+      expect(report).toContain('Total Tasks: 11');
+      expect(report).toContain('Successful: 11');
+      expect(report).toContain('Retried: 2');
+      expect(report).toContain('Failed: 0');
+      expect(report).toContain('Skipped: 0');
+
+      // Verify RETRY SUMMARY section - this should now appear and show correct values
+      expect(report).toContain('RETRY SUMMARY:');
+      expect(report).toContain('Tasks Requiring Retry: 0'); // FIXED: Was incorrectly showing 2
+      expect(report).toContain('Tasks Successfully Retried: 2'); // FIXED: Was incorrectly showing 0
+      expect(report).toContain('Total Retry Attempts: 2');
+      expect(report).toContain('Projects Requiring Full Dependencies: 2');
+      expect(report).toContain('Projects with Full Dependencies: 2');
+    });
+
+    it('should use retryStatus.totalRetryAttempts for retried compilations instead of statusSummary.retriedCompilations', () => {
+      mockDependencyGraph.statusSummary = {
+        ...mockDependencyGraph.statusSummary,
+        totalCompilationTasks: 11,
+        successfulCompilations: 11,
+        failedCompilations: 0,
+        skippedCompilations: 0,
+      };
+
+      mockDependencyGraph.retryStatus = {
+        totalTasksRequiringRetry: 0,
+        totalTasksSuccessfullyRetried: 2,
+        totalRetryAttempts: 2,
+        projectsRequiringFullDependencies: new Set(['project1', 'project2']),
+        projectsWithFullDependencies: new Set(['project1', 'project2']),
+      };
+
+      const report = generateStatusReport(mockDependencyGraph);
+
+      expect(report).toContain('COMPILATION SUMMARY:');
+      expect(report).toContain('Retried: 2');
+      expect(report).not.toContain('Retried: 0');
     });
   });
 });

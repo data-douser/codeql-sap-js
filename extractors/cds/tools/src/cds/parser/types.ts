@@ -2,11 +2,11 @@
 
 /** Result of determining CDS files to compile and their expected outputs */
 export interface CdsFilesToCompile {
-  /** CDS files that should be compiled (or special markers like __PROJECT_LEVEL_COMPILATION__) */
-  filesToCompile: string[];
+  /** Compilation targets (directories or files relative to project base) */
+  compilationTargets: string[];
 
-  /** Expected JSON output files that will be generated (relative to source root) */
-  expectedOutputFiles: string[];
+  /** Always "model.cds.json" relative to project base directory */
+  expectedOutputFile: string;
 }
 
 /** Represents an import reference in a CDS file. */
@@ -52,9 +52,6 @@ export interface CdsCompilationConfig {
 
   /** The cache directory to use for dependencies, if any */
   cacheDir?: string;
-
-  /** Whether to use project-level compilation */
-  useProjectLevelCompilation: boolean;
 
   /** Version compatibility status */
   versionCompatibility: {
@@ -168,11 +165,11 @@ export interface BasicCdsProject {
   /** All CDS files within this project. */
   cdsFiles: string[];
 
-  /** CDS files that should be compiled to JSON (typically root files not imported by others). */
-  cdsFilesToCompile: string[];
+  /** Compilation targets (directories or files relative to project base). */
+  compilationTargets: string[];
 
-  /** Expected JSON output files that will be generated (relative to source root). */
-  expectedOutputFiles: string[];
+  /** Always "model.cds.json" relative to project base directory. */
+  expectedOutputFile: string;
 
   /** Dependencies on other CDS projects. */
   dependencies?: BasicCdsProject[];
@@ -228,6 +225,18 @@ export interface CdsProject extends BasicCdsProject {
     dependenciesResolved?: Date;
     compilationStarted?: Date;
     compilationCompleted?: Date;
+  };
+
+  /** Retry status for this project */
+  retryStatus?: {
+    /** Whether full dependencies have been installed */
+    fullDependenciesInstalled: boolean;
+    /** Number of tasks that require retry */
+    tasksRequiringRetry: number;
+    /** Number of tasks that have been retried */
+    tasksRetried: number;
+    /** Installation errors, if any */
+    installationErrors?: string[];
   };
 }
 
@@ -293,5 +302,19 @@ export interface CdsDependencyGraph {
       timestamp: Date;
       context?: string;
     }>;
+  };
+
+  /** Retry-specific status tracking */
+  retryStatus: {
+    /** Total tasks requiring retry */
+    totalTasksRequiringRetry: number;
+    /** Total tasks successfully retried */
+    totalTasksSuccessfullyRetried: number;
+    /** Total retry attempts made */
+    totalRetryAttempts: number;
+    /** Projects requiring full dependency installation */
+    projectsRequiringFullDependencies: Set<string>;
+    /** Projects with successful full dependency installation */
+    projectsWithFullDependencies: Set<string>;
   };
 }
