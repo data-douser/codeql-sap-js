@@ -6,11 +6,11 @@ Data that may expose system information such as full path names, system informat
 
 ## Recommendation
 
-CAP applications should not log sensitive information.
+CAP applications should not log sensitive information. Sensitive information can include: full path names, system information, usernames, passwords or any personally identifiable information. Make sure to log only information that is not sensitive, or obfuscate/encrypt sensitive information any time that it is logged.
 
 ## Examples
 
-This CAP service directly logs the sensitive information.
+This CAP service directly logs the sensitive information. Potential attackers may gain access to this sensitive information when the log output is displayed or when the attacker gains access to the log, and the info is not obfuscated or encrypted.
 
 ``` javascript
 import cds from '@sap/cds'
@@ -18,6 +18,7 @@ const LOG = cds.log("logger");
 
 class SampleVulnService extends cds.ApplicationService {
     init() {
+        LOG.info(`[INFO] Environment: ${JSON.stringify(process.env)}`); // CAP log exposure alert
         LOG.info(`[INFO] Environment: ${JSON.stringify(process.env)}`); // CAP log exposure alert
     }
 }
