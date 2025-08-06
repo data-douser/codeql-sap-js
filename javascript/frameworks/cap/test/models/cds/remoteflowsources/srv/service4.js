@@ -1,6 +1,6 @@
 const cds = require("@sap/cds");
 
-module.exports = class Service5 extends cds.ApplicationService {
+module.exports = class Service4 extends cds.ApplicationService {
   init() {
     this.on("send1", async (req) => {
       const { messageToPass } = req.data;  // SAFE: Unexposed service, not a taint source
