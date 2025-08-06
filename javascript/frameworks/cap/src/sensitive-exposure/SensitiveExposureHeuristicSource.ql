@@ -27,6 +27,10 @@ module SensitiveLogExposureConfig implements DataFlow::ConfigSig {
 
   predicate isBarrier(DataFlow::Node sink) { sink instanceof CleartextLogging::Barrier }
 
+  /**
+   * This predicate is an intentional cartesian product of any sink node and any content that represents a property.
+   * Normally Cartesian products are bad but in this case it is what we want, to capture all properties of objects that make their way to sinks.
+   */
   predicate allowImplicitRead(DataFlow::Node node, DataFlow::ContentSet contents) {
     // Assume all properties of a logged object are themselves logged.
     contents = DataFlow::ContentSet::anyProperty() and
