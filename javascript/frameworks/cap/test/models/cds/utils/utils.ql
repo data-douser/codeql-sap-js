@@ -1,9 +1,9 @@
 import javascript
-import advanced_security.javascript.frameworks.cap.CDS
+import advanced_security.javascript.frameworks.cap.CAPPathInjectionQuery
 
 from DataFlow::Node node, string str, string strfull
 where
-  node.(CdsUtils::UtilsSink).toString() = str and strfull = str + ": sink"
+  node.(UtilsSink).toString() = str and strfull = str + ": sink"
   or
-  node.(CdsUtils::UtilsExtraFlow).toString() = str and strfull = str + ": additional flow step"
+  node.(UtilsExtraFlow).toString() = str and strfull = str + ": additional flow step"
 select node, strfull
