@@ -5,4 +5,4 @@ version: 0.0.1
 extractor: javascript
 dependencies:
   "codeql/javascript-all": "*"
-  "advanced-security/javascript-heuristic-models": "*"
+  "advanced-security/javascript-heuristic-models": 2.0.0
