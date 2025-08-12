@@ -35,3 +35,5 @@
 | utils.js:43:18:43:21 | 'db' | 'db': sink |
 | utils.js:43:24:43:29 | 'data' | 'data': sink |
 | utils.js:44:10:44:23 | 'dist/db/data' | 'dist/db/data': sink |
+| utils.js:52:20:52:28 | 'db/data' | 'db/data': sink |
+| utils.js:57:10:57:23 | 'dist/db/data' | 'dist/db/data': sink |

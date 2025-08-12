@@ -42,3 +42,17 @@ await rimraf('dist/db/data') // sink
 
 await rm('dist', 'db', 'data') // sink
 await rm('dist/db/data') // sink
+
+function wrapperouter() {
+    const temp = append
+    wrapperinnermid(temp)
+}
+
+function wrapperinnermid(temp) {
+    const a = temp('db/data') // sink
+    wrapperinner(a)
+}
+
+function wrapperinner(a) {
+    a.to('dist/db/data')  // sink
+}
