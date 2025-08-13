@@ -60,7 +60,7 @@ class LocalModelContentBoundBidirectionallyToHtmlISinkControl extends DomBasedXs
   UI5Control getControlDeclaration() { result = controlDeclaration }
 }
 
-module UI5PathGraph<PathNodeSig ConfigPathNode, PathGraphSig<ConfigPathNode> ConfigModule> {
+module UI5PathGraph<PathNodeSig ConfigPathNode, PathGraphSig<ConfigPathNode> ConfigPathGraph> {
   private newtype TNode =
     TUI5BindingPathNode(UI5BindingPath path) or
     TDataFlowNode(DataFlow::Node node)
@@ -126,7 +126,7 @@ module UI5PathGraph<PathNodeSig ConfigPathNode, PathGraphSig<ConfigPathNode> Con
     or
     exists(ConfigPathNode pathNode |
       pathNode.getNode() = ui5PathNode.asDataFlowNode() and
-      ConfigModule::nodes(pathNode, _, _)
+      ConfigPathGraph::nodes(pathNode, _, _)
     )
   }
 
@@ -185,7 +185,7 @@ module UI5PathGraph<PathNodeSig ConfigPathNode, PathGraphSig<ConfigPathNode> Con
     exists(ConfigPathNode pathNodeFrom, ConfigPathNode pathNodeTo |
       pathNodeFrom.getNode() = ui5PathNodePred.asDataFlowNode() and
       pathNodeTo.getNode() = ui5PathNodeSucc.asDataFlowNode() and
-      ConfigModule::edges(pathNodeFrom, pathNodeTo, _, _)
+      ConfigPathGraph::edges(pathNodeFrom, pathNodeTo, _, _)
     ) and
     /* ========= TODO: Legacy code ========= */
     /* Exclude duplicate edge from model to handler parameter */
