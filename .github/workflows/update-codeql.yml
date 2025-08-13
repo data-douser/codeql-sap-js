@@ -27,16 +27,16 @@ jobs:
             latest_version=$(curl -s https://api.github.com/repos/github/codeql-cli-binaries/releases/latest | jq -r .tag_name)
             echo "Current CodeQL CLI version: $current_version"
             echo "Latest CodeQL CLI version: $latest_version"
-            
+
             # Remove 'v' prefix if present for comparison with current version
             latest_clean=$(echo "$latest_version" | sed 's/^v//')
-            
+
             if [ "$latest_clean" != "$current_version" ]; then
               echo "Updating CodeQL CLI from $current_version to $latest_clean"
               echo "update_needed=true" >> $GITHUB_OUTPUT
               echo "latest_version=$latest_clean" >> $GITHUB_OUTPUT
               echo "latest_version_tag=$latest_version" >> $GITHUB_OUTPUT
-              
+
               # Update qlt.conf.json with all properties
               echo "Updating qlt.conf.json with all properties for version $latest_clean"
               jq --arg cli_version "$latest_clean" \
@@ -44,7 +44,7 @@ jobs:
                  --arg bundle "codeql-bundle-$latest_version" \
                  '.CodeQLCLI = $cli_version | .CodeQLStandardLibrary = $std_lib | .CodeQLCLIBundle = $bundle' \
                  qlt.conf.json > qlt.conf.json.tmp && mv qlt.conf.json.tmp qlt.conf.json
-              
+
               echo "Updated qlt.conf.json contents:"
               cat qlt.conf.json
             else
@@ -77,18 +77,18 @@ jobs:
           run: |
             echo "Upgrading CodeQL pack lock files"
             echo "Finding all directories with qlpack.yml files..."
-            
+
             # Find all directories containing qlpack.yml files
             find . -name "qlpack.yml" -type f | while read -r qlpack_file; do
               pack_dir=$(dirname "$qlpack_file")
               echo "Upgrading pack in directory: $pack_dir"
-              
+
               # Change to the directory and run codeql pack upgrade
               cd "$pack_dir"
               codeql pack upgrade
               cd - > /dev/null
             done
-            
+
             echo "Finished upgrading all CodeQL pack lock files"
 
         - name: Create Pull Request
@@ -98,7 +98,7 @@ jobs:
             title: "Upgrade CodeQL CLI dependency to ${{ steps.check-version.outputs.latest_version_tag }}"
             body: |
                 This PR upgrades the CodeQL CLI version to ${{ steps.check-version.outputs.latest_version_tag }}.
-                
+
                 **Changes made:**
                 - Updated `CodeQLCLI` to `${{ steps.check-version.outputs.latest_version }}`
                 - Updated `CodeQLStandardLibrary` to `codeql-cli/${{ steps.check-version.outputs.latest_version_tag }}`
