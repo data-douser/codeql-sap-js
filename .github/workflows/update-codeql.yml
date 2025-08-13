@@ -71,6 +71,26 @@ jobs:
             echo "CodeQL Home: $QLT_CODEQL_HOME"
             echo "CodeQL Binary: $QLT_CODEQL_PATH"
 
+        - name: Upgrade CodeQL pack lock files
+          if: steps.check-version.outputs.update_needed == 'true'
+          shell: bash
+          run: |
+            echo "Upgrading CodeQL pack lock files"
+            echo "Finding all directories with qlpack.yml files..."
+            
+            # Find all directories containing qlpack.yml files
+            find . -name "qlpack.yml" -type f | while read -r qlpack_file; do
+              pack_dir=$(dirname "$qlpack_file")
+              echo "Upgrading pack in directory: $pack_dir"
+              
+              # Change to the directory and run codeql pack upgrade
+              cd "$pack_dir"
+              codeql pack upgrade
+              cd - > /dev/null
+            done
+            
+            echo "Finished upgrading all CodeQL pack lock files"
+
         - name: Create Pull Request
           if: steps.check-version.outputs.update_needed == 'true'
           uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
@@ -83,6 +103,7 @@ jobs:
                 - Updated `CodeQLCLI` to `${{ steps.check-version.outputs.latest_version }}`
                 - Updated `CodeQLStandardLibrary` to `codeql-cli/${{ steps.check-version.outputs.latest_version_tag }}`
                 - Updated `CodeQLCLIBundle` to `codeql-bundle-${{ steps.check-version.outputs.latest_version_tag }}`
+                - Upgraded all CodeQL pack lock files using `codeql pack upgrade`
             commit-message: "Upgrade CodeQL CLI dependency to ${{ steps.check-version.outputs.latest_version_tag }}"
             delete-branch: true
             branch: "codeql/upgrade-to-${{ steps.check-version.outputs.latest_version_tag }}"
