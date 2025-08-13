@@ -70,9 +70,6 @@ jobs:
             echo "-----------------------------"
             echo "CodeQL Home: $QLT_CODEQL_HOME"
             echo "CodeQL Binary: $QLT_CODEQL_PATH"
-            # Add CodeQL to the PATH
-            echo "Adding CodeQL to PATH"
-            echo "$QLT_CODEQL_PATH" >> $GITHUB_PATH
 
         - name: Upgrade CodeQL pack lock files
           if: steps.check-version.outputs.update_needed == 'true'
@@ -88,7 +85,7 @@ jobs:
 
               # Change to the directory and run codeql pack upgrade
               cd "$pack_dir"
-              codeql pack upgrade
+              $QLT_CODEQL_PATH pack upgrade
               cd - > /dev/null
             done
 
