@@ -54,5 +54,5 @@ function wrapperinnermid(temp) {
 }
 
 function wrapperinner(a) {
-    a.to('dist/db/data')  // sink
+    a.to('dist/db/data')  // sink - [FALSE_NEGATIVE] - rare case as CAP is a fluent API
 }

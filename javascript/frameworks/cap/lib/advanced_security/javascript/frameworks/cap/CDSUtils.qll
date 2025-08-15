@@ -96,15 +96,6 @@ class FileWriters extends DataFlow::CallNode {
     exists(CdsUtilsModuleAccess utils | utils.getMember(["append", "write"]).getACall() = this)
   }
 
-  SourceNode fileReaderWriterUtils(TypeTracker t) {
-    t.start() and
-    result = this
-    or
-    exists(TypeTracker t2 | result = fileReaderWriterUtils(t2).track(t2, t))
-  }
-
-  SourceNode fileReaderWriterUtils() { result = fileReaderWriterUtils(TypeTracker::end()) }
-
   /**
    * Gets the arguments to these calls that represent data.
    */
@@ -121,7 +112,7 @@ class FileWriters extends DataFlow::CallNode {
    * Includes arguments to chained calls `to`, where that argument also represents a path.
    */
   DataFlow::Node getPath() {
-    fileReaderWriterUtils().getAMemberCall("to").getAnArgument() = result
+    this.getAMemberCall("to").getAnArgument() = result
     or
     this.getNumArgument() = 2 and
     this.getArgument(0) = result
@@ -137,21 +128,12 @@ class FileReaderWriters extends DataFlow::CallNode {
     exists(CdsUtilsModuleAccess utils | utils.getMember(["copy"]).getACall() = this)
   }
 
-  SourceNode fileReaderWriterUtils(TypeTracker t) {
-    t.start() and
-    result = this
-    or
-    exists(TypeTracker t2 | result = fileReaderWriterUtils(t2).track(t2, t))
-  }
-
-  SourceNode fileReaderWriterUtils() { result = fileReaderWriterUtils(TypeTracker::end()) }
-
   /**
    * Gets the arguments to these calls that represent a path.
    * Includes arguments to chained calls `to`, where that argument also represents a path.
    */
   DataFlow::Node getPath() {
-    fileReaderWriterUtils().getAMemberCall("to").getArgument(_) = result
+    this.getAMemberCall("to").getArgument(_) = result
     or
     this.getAnArgument() = result
   }
