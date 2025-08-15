@@ -30,7 +30,9 @@ class HandlerParameterOfExposedService extends HandlerParameter {
      * is known.
      */
 
-    not exists(this.getHandler().getHandlerRegistration().getService().getDefinition())
+    not exists(
+      this.getHandler().getHandlerRegistration().getService().getDefinition().getCdsDeclaration()
+    )
   }
 }
 

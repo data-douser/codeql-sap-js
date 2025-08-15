@@ -294,12 +294,21 @@ class DbServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo,
   override UserDefinedApplicationService getDefinition() { none() }
 }
 
+class ServiceInstanceFromExportedClosureParameter extends ServiceInstance {
+  ExportedClosureApplicationServiceDefinition exportedClosure;
+
+  ServiceInstanceFromExportedClosureParameter() { this = exportedClosure.getParameter(0) }
+
+  override UserDefinedApplicationService getDefinition() { result = exportedClosure }
+}
+
 /**
  * A call to `before`, `on`, or `after` on an `cds.ApplicationService`.
  * It registers an handler to be executed when an event is fired,
  * to do something with the incoming request or event as its parameter.
  */
 class HandlerRegistration extends MethodCallNode {
+  /** The instance of the service a handler is registered on. */
   ServiceInstance srv;
   string methodName;
 
@@ -308,6 +317,9 @@ class HandlerRegistration extends MethodCallNode {
     methodName = ["before", "on", "after"]
   }
 
+  /**
+   * Gets the instance of the service a handler is registered on.
+   */
   ServiceInstance getService() { result = srv }
 
   /**
@@ -347,7 +359,7 @@ class HandlerRegistration extends MethodCallNode {
 
 /**
  * The first parameter of a handler, representing the request object received either directly
- * from a user, or from another service that may be internal (defined in the same application) 
+ * from a user, or from another service that may be internal (defined in the same application)
  * or external (defined in another application, or even served from a different server).
  * e.g.
  * ``` javascript
@@ -356,7 +368,7 @@ class HandlerRegistration extends MethodCallNode {
  *   this.before("SomeEvent", "SomeEntity", (req, next) => { ... });
  *   this.after("SomeEvent", "SomeEntity", (req, next) => { ... });
  * }
- * ``` 
+ * ```
  * All parameters named `req` above are captured. Also see `HandlerParameterOfExposedService`
  * for a subset of this class that is only about handlers exposed to some protocol.
  */
@@ -506,7 +518,7 @@ abstract class UserDefinedApplicationService extends UserDefinedService {
   /**
    * Holds if this service supports access from the outside through any kind of protocol.
    */
-  predicate isExposed() { not this.isInternal() }
+  predicate isExposed() { exists(this.getCdsDeclaration()) and not this.isInternal() }
 
   /**
    * Holds if this service does not support access from the outside through any kind of protocol, thus being internal only.
@@ -552,6 +564,40 @@ class ImplMethodCallApplicationServiceDefinition extends MethodCallNode,
   }
 
   override FunctionNode getInitFunction() { result = this.getArgument(0) }
+}
+
+/**
+ * A user-defined application service that comes in a form of an exported
+ * closure. e.g. Given the below code,
+ * ``` javascript
+ * const cds = require("@sap/cds");
+ *
+ * module.exports = (srv) => {
+ *   srv.before("SomeEvent1", "SomeEntity", (req, res) => { ... })
+ *   srv.on("SomeEvent2", (req) => { ... } )
+ *   srv.after("SomeEvent3", (req) => { ... } )
+ * }
+ * ```
+ * This class captures the entire `(srv) => { ... }` function that is
+ * exported.
+ */
+class ExportedClosureApplicationServiceDefinition extends FunctionNode,
+  UserDefinedApplicationService
+{
+  ExportedClosureApplicationServiceDefinition() {
+    /*
+     * ==================== HACK ====================
+     * See issue #221.
+     */
+
+    exists(PropWrite moduleExports |
+      moduleExports.getBase().asExpr().(VarAccess).getName() = "module" and
+      moduleExports.getPropertyName() = "exports" and
+      this = moduleExports.getRhs()
+    )
+  }
+
+  override FunctionNode getInitFunction() { result = this }
 }
 
 abstract class InterServiceCommunicationMethodCall extends MethodCallNode {
