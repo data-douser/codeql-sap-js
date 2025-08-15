@@ -21,6 +21,8 @@ jobs:
 
         - name: Check latest CodeQL CLI version and update qlt.conf.json
           id: check-version
+          env:
+            GH_TOKEN: ${{ github.token }}
           run: |
             echo "Checking latest CodeQL CLI version"
             current_version=$(jq .CodeQLCLI qlt.conf.json -r)
