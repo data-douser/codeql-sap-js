@@ -56,7 +56,9 @@ class UserProvidedPropertyReadOfHandlerParameterOfExposedService extends RemoteF
 
   UserProvidedPropertyReadOfHandlerParameterOfExposedService() {
     /* 1. `req.(data|params|headers|id)` */
-    this = handlerParameterOfExposedService.getAPropertyRead(["data", "params", "headers", "id"])
+    this =
+      handlerParameterOfExposedService
+          .getAPropertyRead(["data", "params", "headers", "id", "_queryOptions"])
     or
     /* 2. APIs stemming from `req.http.req`: Defined by Express.js */
     exists(PropRead reqHttpReq |

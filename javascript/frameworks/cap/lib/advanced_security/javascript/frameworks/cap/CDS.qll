@@ -551,9 +551,21 @@ class ES6ApplicationServiceDefinition extends ClassNode, UserDefinedApplicationS
 
 /**
  * Subclassing `cds.ApplicationService` via a call to `cds.service.impl`.
- * ```js
+ * e.g.1. Given this code:
+ * ``` javascript
  * const cds = require('@sap/cds')
- * module.exports = cds.service.impl (function() { ... })
+ * module.exports = cds.service.impl (function() {
+ *   this.on("SomeEvent1", (req) => { ... })
+ * })
+ * ```
+ * This class captures the call `cds.service.impl (function() { ... })`.
+ * 
+ * e.g.2. Given this code:
+ * ``` javascript
+ * const cds = require('@sap/cds')
+ * module.exports = cds.service.impl ((srv) => {
+ *   srv.on("SomeEvent1", (req) => { ... })
+ * })
  * ```
  */
 class ImplMethodCallApplicationServiceDefinition extends MethodCallNode,
