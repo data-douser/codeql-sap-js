@@ -177,7 +177,27 @@ class ServiceInstanceFromConstructor extends ServiceInstance {
 }
 
 /**
- * A read to `this` variable which represents the service whose definition encloses this variable access.
+ * A read to `this` variable which represents the service whose definition encloses
+ * this variable access.
+ * e.g.1. Given this code:
+ * ``` javascript
+ * const cds = require("@sap/cds");
+ * module.exports = class SomeService extends cds.ApplicationService {
+ *   init() {
+ *     this.on("SomeEvent", (req) => { ... } ) 
+ *   }
+ * }
+ * ```
+ * This class captures the access to the `this` variable as in `this.on(...)`.
+ * 
+ * e.g.2. Given this code:
+ * ``` javascript
+ * const cds = require('@sap/cds');
+ * module.exports = cds.service.impl (function() {
+ *   this.on("SomeEvent", (req) => { ... })
+ * })
+ * ```
+ * This class captures the access to the `this` variable as in `this.on(...)`.
  */
 class ServiceInstanceFromThisNode extends ServiceInstance, ThisNode {
   UserDefinedApplicationService userDefinedApplicationService;
@@ -294,12 +314,47 @@ class DbServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo,
   override UserDefinedApplicationService getDefinition() { none() }
 }
 
+/**
+ * The 0-th parameter of an exported closure that represents the service being implemented. e.g.
+ * ``` javascript
+ * const cds = require('@sap/cds')
+ * module.exports = (srv) => {
+ *   srv.on("SomeEvent1", (req) => { ... })
+ * }
+ * ```
+ * This class captures the `srv` parameter of the exported arrow function. Also see
+ * `ServiceInstanceFromImplMethodCallClosureParameter` which is similar to this.
+ */
 class ServiceInstanceFromExportedClosureParameter extends ServiceInstance {
   ExportedClosureApplicationServiceDefinition exportedClosure;
 
   ServiceInstanceFromExportedClosureParameter() { this = exportedClosure.getParameter(0) }
 
   override UserDefinedApplicationService getDefinition() { result = exportedClosure }
+}
+
+/**
+ * The 0-th parameter of a callback (usually an arrow function) passed to `cds.service.impl` that
+ * represents the service being implemented. e.g.
+ * ``` javascript
+ * const cds = require('@sap/cds')
+ * module.exports = cds.service.impl((srv) => {
+ *   srv.on("SomeEvent1", (req) => { ... })
+ * })
+ * ```
+ * This class captures the `srv` parameter of the exported arrow function. Also see
+ * `ServiceInstanceFromExportedClosureParameter` which is similar to this.
+ */
+class ServiceInstanceFromImplMethodCallClosureParameter extends ServiceInstance, ParameterNode {
+  ImplMethodCallApplicationServiceDefinition implMethodCallApplicationServiceDefinition;
+
+  ServiceInstanceFromImplMethodCallClosureParameter() {
+    this = implMethodCallApplicationServiceDefinition.getInitFunction().getParameter(0)
+  }
+
+  override UserDefinedApplicationService getDefinition() {
+    result = implMethodCallApplicationServiceDefinition
+  }
 }
 
 /**
@@ -559,7 +614,7 @@ class ES6ApplicationServiceDefinition extends ClassNode, UserDefinedApplicationS
  * })
  * ```
  * This class captures the call `cds.service.impl (function() { ... })`.
- * 
+ *
  * e.g.2. Given this code:
  * ``` javascript
  * const cds = require('@sap/cds')
