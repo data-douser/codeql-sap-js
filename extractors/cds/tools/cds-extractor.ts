@@ -179,7 +179,6 @@ try {
       codeqlExePath,
     );
     logPerformanceTrackingStop('JavaScript Extraction');
-    logPerformanceTrackingStop('JavaScript Extraction');
 
     if (!extractorResult.success && extractorResult.error) {
       cdsExtractorLog('error', `Error running JavaScript extractor: ${extractorResult.error}`);
