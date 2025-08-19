@@ -7485,6 +7485,40 @@ function addCompilationDiagnostic(cdsFilePath, errorMessage, codeqlExePath2) {
     "source file"
   );
 }
+function addDependencyGraphDiagnostic(sourceRoot2, errorMessage, codeqlExePath2) {
+  return addDiagnostic(
+    sourceRoot2,
+    errorMessage,
+    codeqlExePath2,
+    "cds/dependency-graph-failure",
+    "CDS project dependency graph build failure",
+    "error" /* Error */,
+    "source root"
+  );
+}
+function addDependencyInstallationDiagnostic(sourceRoot2, errorMessage, codeqlExePath2) {
+  return addDiagnostic(
+    sourceRoot2,
+    errorMessage,
+    codeqlExePath2,
+    "cds/dependency-installation-failure",
+    "CDS dependency installation failure",
+    "error" /* Error */,
+    "source root"
+  );
+}
+function addEnvironmentSetupDiagnostic(sourceRoot2, errorMessage, codeqlExePath2) {
+  const contextFile = sourceRoot2;
+  return addDiagnostic(
+    contextFile,
+    errorMessage,
+    codeqlExePath2,
+    "cds/environment-setup-failure",
+    "CDS extractor environment setup failure",
+    "error" /* Error */,
+    "source root"
+  );
+}
 function addJavaScriptExtractorDiagnostic(filePath, errorMessage, codeqlExePath2) {
   return addDiagnostic(
     filePath,
@@ -7494,6 +7528,17 @@ function addJavaScriptExtractorDiagnostic(filePath, errorMessage, codeqlExePath2
     "Failure in JavaScript extractor for SAP CAP CDS files",
     "error" /* Error */,
     "extraction file"
+  );
+}
+function addNoCdsProjectsDiagnostic(sourceRoot2, message, codeqlExePath2) {
+  return addDiagnostic(
+    sourceRoot2,
+    message,
+    codeqlExePath2,
+    "cds/no-cds-projects",
+    "No CDS projects detected in source",
+    "warning" /* Warning */,
+    "source root"
   );
 }
 
@@ -9293,7 +9338,11 @@ function validateArguments(args) {
 var validationResult = validateArguments(process.argv);
 if (!validationResult.isValid) {
   console.warn(validationResult.usageMessage);
-  process.exit(1);
+  console.log(
+    `CDS extractor terminated due to invalid arguments: ${validationResult.usageMessage}`
+  );
+  console.log(`Completed run of the cds-extractor.js script for the CDS extractor.`);
+  process.exit(0);
 }
 var { sourceRoot } = validationResult.args;
 setSourceRootDirectory(sourceRoot);
@@ -9309,16 +9358,20 @@ var {
 logPerformanceTrackingStop("Environment Setup");
 if (!envSetupSuccess) {
   const codeqlExe = platformInfo.isWindows ? "codeql.exe" : "codeql";
-  cdsExtractorLog(
-    "warn",
-    `'${codeqlExe} database index-files --language cds' terminated early due to: ${errorMessages.join(
-      ", "
-    )}.`
+  const errorMessage = `'${codeqlExe} database index-files --language cds' terminated early due to: ${errorMessages.join(
+    ", "
+  )}.`;
+  cdsExtractorLog("warn", errorMessage);
+  if (codeqlExePath) {
+    addEnvironmentSetupDiagnostic(sourceRoot, errorMessage, codeqlExePath);
+  }
+  logExtractorStop(
+    false,
+    "Warning: Environment setup failed, continuing with limited functionality"
   );
-  logExtractorStop(false, "Terminated: Environment setup failed");
-  process.exit(1);
+} else {
+  process.chdir(sourceRoot);
 }
-process.chdir(sourceRoot);
 cdsExtractorLog(
   "info",
   `CodeQL CDS extractor using autobuild mode for scan of project source root directory '${sourceRoot}'.`
@@ -9375,13 +9428,62 @@ try {
     } catch (globError) {
       cdsExtractorLog("warn", `Could not perform direct CDS file search: ${String(globError)}`);
     }
-    logExtractorStop(false, "Terminated: No CDS projects detected");
-    process.exit(1);
+    const warningMessage = "No CDS projects were detected. This may be expected if the source does not contain CAP/CDS projects.";
+    if (codeqlExePath) {
+      addNoCdsProjectsDiagnostic(sourceRoot, warningMessage, codeqlExePath);
+    }
+    logExtractorStop(false, "Warning: No CDS projects detected, skipping CDS-specific processing");
+    configureLgtmIndexFilters();
+    logPerformanceTrackingStart("JavaScript Extraction");
+    const extractorResult2 = runJavaScriptExtractor(
+      sourceRoot,
+      autobuildScriptPath || "",
+      // Use empty string if autobuildScriptPath is undefined
+      codeqlExePath
+    );
+    logPerformanceTrackingStop("JavaScript Extraction");
+    if (!extractorResult2.success && extractorResult2.error) {
+      cdsExtractorLog("error", `Error running JavaScript extractor: ${extractorResult2.error}`);
+      if (codeqlExePath) {
+        addJavaScriptExtractorDiagnostic(sourceRoot, extractorResult2.error, codeqlExePath);
+      }
+      logExtractorStop(false, "JavaScript extractor failed");
+    } else {
+      logExtractorStop(true, "JavaScript extraction completed (CDS processing was skipped)");
+    }
+    console.log(`Completed run of the cds-extractor.js script for the CDS extractor.`);
+    process.exit(0);
   }
 } catch (error) {
-  cdsExtractorLog("error", `Failed to build CDS dependency graph: ${String(error)}`);
-  logExtractorStop(false, "Terminated: Dependency graph build failed");
-  process.exit(1);
+  const errorMessage = `Failed to build CDS dependency graph: ${String(error)}`;
+  cdsExtractorLog("error", errorMessage);
+  if (codeqlExePath) {
+    addDependencyGraphDiagnostic(sourceRoot, errorMessage, codeqlExePath);
+  }
+  logExtractorStop(
+    false,
+    "Warning: Dependency graph build failed, skipping CDS-specific processing"
+  );
+  configureLgtmIndexFilters();
+  logPerformanceTrackingStart("JavaScript Extraction");
+  const extractorResult2 = runJavaScriptExtractor(
+    sourceRoot,
+    autobuildScriptPath || "",
+    // Use empty string if autobuildScriptPath is undefined
+    codeqlExePath
+  );
+  logPerformanceTrackingStop("JavaScript Extraction");
+  if (!extractorResult2.success && extractorResult2.error) {
+    cdsExtractorLog("error", `Error running JavaScript extractor: ${extractorResult2.error}`);
+    if (codeqlExePath) {
+      addJavaScriptExtractorDiagnostic(sourceRoot, extractorResult2.error, codeqlExePath);
+    }
+    logExtractorStop(false, "JavaScript extractor failed");
+  } else {
+    logExtractorStop(true, "JavaScript extraction completed (CDS processing was skipped)");
+  }
+  console.log(`Completed run of the cds-extractor.js script for the CDS extractor.`);
+  process.exit(0);
 }
 logPerformanceTrackingStart("Dependency Installation");
 var projectCacheDirMap = cacheInstallDependencies(dependencyGraph, sourceRoot, codeqlExePath);
@@ -9392,12 +9494,15 @@ if (projectCacheDirMap.size === 0) {
     "No project cache directory mappings were created. This indicates that dependency installation failed for all discovered projects."
   );
   if (dependencyGraph.projects.size > 0) {
-    cdsExtractorLog(
-      "error",
-      `Found ${dependencyGraph.projects.size} CDS projects but failed to install dependencies for any of them. Cannot proceed with compilation.`
+    const errorMessage = `Found ${dependencyGraph.projects.size} CDS projects but failed to install dependencies for any of them. Cannot proceed with compilation.`;
+    cdsExtractorLog("error", errorMessage);
+    if (codeqlExePath) {
+      addDependencyInstallationDiagnostic(sourceRoot, errorMessage, codeqlExePath);
+    }
+    logExtractorStop(
+      false,
+      "Warning: Dependency installation failed for all projects, continuing with limited functionality"
     );
-    logExtractorStop(false, "Terminated: Dependency installation failed for all projects");
-    process.exit(1);
   }
   cdsExtractorLog(
     "warn",
@@ -9449,6 +9554,11 @@ var totalDuration = dependencyGraph.statusSummary.performance.parsingDurationMs 
 dependencyGraph.statusSummary.performance.totalDurationMs = totalDuration;
 if (!extractorResult.success && extractorResult.error) {
   cdsExtractorLog("error", `Error running JavaScript extractor: ${extractorResult.error}`);
+  if (codeqlExePath && dependencyGraph.projects.size > 0) {
+    const firstProject = Array.from(dependencyGraph.projects.values())[0];
+    const representativeFile = firstProject.cdsFiles[0] || sourceRoot;
+    addJavaScriptExtractorDiagnostic(representativeFile, extractorResult.error, codeqlExePath);
+  }
   logExtractorStop(false, "JavaScript extractor failed");
 } else {
   logExtractorStop(true, "CDS extraction completed successfully");
