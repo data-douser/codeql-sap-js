@@ -168,7 +168,7 @@ class SapDefineModule extends AmdModuleDefinition::Range, MethodCallExpr, UserMo
     )
   }
 
-  string getDependency(int i) { result = this.(AmdModuleDefinition).getDependency(i).getValue() }
+  string getDependency(int i) { result = this.(AmdModuleDefinition).getDependencyExpr(i).getStringValue() }
 
   override string getADependency() { result = this.getDependency(_) }
 
