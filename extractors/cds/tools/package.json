@@ -10,6 +10,7 @@
   "scripts": {
     "build": "node esbuild.config.mjs",
     "build:all": "npm run lint:fix && npm run test:coverage && npm run build:validate",
+    "build:tests": "tsc --noEmit",
     "build:validate": "npm run prebuild && npm run build && npm run bundle:validate",
     "bundle:validate": "node validate-bundle.js",
     "clean": "rm -rf coverage dist",
@@ -17,9 +18,9 @@
     "lint:fix": "eslint --ext .ts --fix cds-extractor.ts src/ test/src/",
     "format": "prettier --write 'src/**/*.ts'",
     "prebuild": "npm run clean",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage --collectCoverageFrom='src/**/*.ts'"
+    "test": "npm run build:tests && jest",
+    "test:watch": "npm run build:tests && jest --watch",
+    "test:coverage": "npm run build:tests && jest --coverage --collectCoverageFrom='src/**/*.ts'"
   },
   "dependencies": {
     "child_process": "^1.0.2",

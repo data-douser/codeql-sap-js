@@ -76,7 +76,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       expect(backendProject!.dependencies![0].projectDir).toBe('shared-lib');
 
       // Verify compilation strategy - main service should use project-level compilation
-      expect(mainProject!.cdsFilesToCompile).toEqual(['__PROJECT_LEVEL_COMPILATION__']);
+      expect(mainProject!.compilationTargets).toEqual(['db', 'srv']);
 
       // Verify imports are properly resolved
       const mainServiceImports = mainProject!.imports!.get('main-service/srv/main.cds');
@@ -239,7 +239,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       expect(project).toBeDefined();
 
       // Should fall back to compiling all files on error
-      expect(project!.cdsFilesToCompile).toEqual(project!.cdsFiles);
+      expect(project!.compilationTargets).toEqual(['service.cds']);
     });
 
     it('should handle import resolution errors gracefully', () => {
@@ -270,7 +270,7 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       expect(project).toBeDefined();
 
       // Should use project-level compilation for CAP projects
-      expect(project!.cdsFilesToCompile).toEqual(['__PROJECT_LEVEL_COMPILATION__']);
+      expect(project!.compilationTargets).toEqual(['db', 'srv', 'app']);
 
       // Verify all CDS files are found
       expect(project!.cdsFiles).toHaveLength(4);
@@ -290,9 +290,8 @@ describe('buildCdsProjectDependencyGraph - Comprehensive Test Suite', () => {
       const project = projectMap.get('simple-cds-project');
       expect(project).toBeDefined();
 
-      // Should use individual file compilation for non-CAP projects
-      expect(project!.cdsFilesToCompile).toEqual(['simple-cds-project/main.cds']);
-      expect(project!.cdsFilesToCompile).not.toContain('simple-cds-project/imported.cds');
+      // Per ProjectCompilationOnly spec: Non-CAP projects should compile all files
+      expect(project!.compilationTargets).toEqual(['main.cds', 'imported.cds']);
     });
   });
 
