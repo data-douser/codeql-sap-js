@@ -129,12 +129,17 @@ class FileReaderWriters extends DataFlow::CallNode {
   }
 
   /**
-   * Gets the arguments to these calls that represent a path.
+   * Gets the arguments to these calls that represent a path from which data is read.
+   */
+  DataFlow::Node getFromPath() { this.getArgument(0) = result }
+
+  /**
+   * Gets the arguments to these calls that represent a path to which data is written.
    * Includes arguments to chained calls `to`, where that argument also represents a path.
    */
-  DataFlow::Node getPath() {
+  DataFlow::Node getToPath() {
     this.getAMemberCall("to").getArgument(_) = result
     or
-    this.getAnArgument() = result
+    this.getArgument(1) = result
   }
 }
