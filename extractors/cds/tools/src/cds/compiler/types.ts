@@ -43,8 +43,6 @@ export interface CompilationConfig {
   cdsCommand: string;
   /** Cache directory */
   cacheDir?: string;
-  /** Whether to use project-level compilation */
-  useProjectLevelCompilation: boolean;
   /** Version compatibility information */
   versionCompatibility: {
     isCompatible: boolean;
@@ -76,16 +74,121 @@ export interface CompilationTask {
   status: CompilationStatus;
   /** Source file(s) involved in this task */
   sourceFiles: string[];
-  /** Expected output file(s) */
-  expectedOutputFiles: string[];
+  /** Expected output file */
+  expectedOutputFile: string;
   /** Project directory this task belongs to */
   projectDir: string;
   /** All compilation attempts for this task */
   attempts: CompilationAttempt[];
-  /** Whether this task uses project-level compilation */
-  useProjectLevelCompilation: boolean;
   /** Tasks that this task depends on */
   dependencies: string[];
   /** Error summary if all attempts failed */
   errorSummary?: string;
+
+  /** Primary CDS command for initial compilation attempts */
+  primaryCommand: ValidatedCdsCommand;
+  /** Retry CDS command for retry attempts (typically npx-based for project dependency access) */
+  retryCommand: ValidatedCdsCommand;
+
+  /** Retry tracking information */
+  retryInfo?: {
+    /** Whether this task has been retried */
+    hasBeenRetried: boolean;
+    /** Retry attempt details */
+    retryAttempt?: CompilationAttempt;
+    /** Reason for retry */
+    retryReason?: string;
+    /** Full dependency installation status */
+    fullDependenciesInstalled?: boolean;
+    /** Timestamp when retry was initiated */
+    retryTimestamp?: Date;
+  };
+}
+
+/** Result of updating dependency graph status. */
+export interface ResultDependencyStatusUpdate {
+  tasksValidated: number;
+  successfulTasks: number;
+  failedTasks: number;
+  tasksSuccessfullyRetried: number;
+}
+
+/** Result of validating a single output file. */
+export interface ResultOutputFileValidation {
+  /** Whether the file is valid */
+  isValid: boolean;
+  /** Path to the validated file */
+  filePath: string;
+  /** Validation error message if validation failed */
+  error?: string;
+  /** Whether the file exists */
+  exists: boolean;
+  /** Whether the file contains valid JSON (if it exists) */
+  hasValidJson?: boolean;
+}
+
+/** Result of retry orchestration for the entire dependency graph. */
+export interface ResultRetryCompilationOrchestration {
+  /** Overall success status */
+  success: boolean;
+  /** Projects that had retry attempts */
+  projectsWithRetries: string[];
+  /** Total number of tasks that required retry */
+  totalTasksRequiringRetry: number;
+  /** Total number of successful retry attempts */
+  totalSuccessfulRetries: number;
+  /** Total number of failed retry attempts */
+  totalFailedRetries: number;
+  /** Projects where full dependency installation succeeded */
+  projectsWithSuccessfulDependencyInstallation: string[];
+  /** Projects where full dependency installation failed */
+  projectsWithFailedDependencyInstallation: string[];
+  /** Duration of retry phase in milliseconds */
+  retryDurationMs: number;
+  /** Duration of dependency installation in milliseconds */
+  dependencyInstallationDurationMs: number;
+  /** Duration of retry compilation in milliseconds */
+  retryCompilationDurationMs: number;
+}
+
+/** Result of executing retry compilation for specific tasks. */
+export interface ResultRetryCompilationTask {
+  /** Project directory */
+  projectDir: string;
+  /** Tasks that were retried */
+  retriedTasks: CompilationTask[];
+  /** Number of successful retry attempts */
+  successfulRetries: number;
+  /** Number of failed retry attempts */
+  failedRetries: number;
+  /** Whether full dependencies were available for retry */
+  fullDependenciesAvailable: boolean;
+  /** Retry execution duration in milliseconds */
+  executionDurationMs: number;
+  /** Error messages from failed retries */
+  retryErrors: string[];
+}
+
+/** Result of validating all outputs for a compilation task. */
+export interface ResultTaskValidation {
+  /** Whether all outputs are valid */
+  isValid: boolean;
+  /** The task that was validated */
+  task: CompilationTask;
+  /** Validation results for each expected output file */
+  fileResults: ResultOutputFileValidation[];
+  /** Number of valid output files */
+  validFileCount: number;
+  /** Number of expected output files */
+  expectedFileCount: number;
+}
+
+/** Validated CDS command descriptor. */
+export interface ValidatedCdsCommand {
+  /** The executable name or path */
+  executable: string;
+  /** Command arguments */
+  args: string[];
+  /** Original command string for caching */
+  originalCommand: string;
 }

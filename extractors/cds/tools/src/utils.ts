@@ -1,9 +1,38 @@
+import { resolve } from 'path';
+
 const USAGE_MESSAGE = `\tUsage: node <script> <source-root>`;
+
+/**
+ * Resolves and validates a source root directory path.
+ *
+ * This function takes a source root path, validates it, normalizes it,
+ * and returns an absolute path to the directory.
+ *
+ * @param sourceRoot - The source root path to resolve
+ * @returns The normalized absolute path to the source root directory
+ * @throws {Error} If the source root is null, undefined, an empty string,
+ *                 or does not point to a valid directory
+ */
+function resolveSourceRoot(sourceRoot: string): string {
+  // Check for null, undefined, or empty string
+  if (!sourceRoot || typeof sourceRoot !== 'string') {
+    throw new Error('Source root must be a non-empty string');
+  }
+
+  // Normalize the path and resolve it to an absolute path.
+  const normalizedPath = resolve(sourceRoot);
+
+  // Check if the resolved path points to a valid, existing directory.
+  if (!normalizedPath || normalizedPath === '/') {
+    throw new Error('Source root must point to a valid directory');
+  }
+
+  return normalizedPath;
+}
 
 /**
  * Check if the script was invoked with the required arguments.
  * This function validates and sanitizes script arguments and returns them if valid.
- * The CDS extractor now runs in autobuild mode by default.
  *
  * Requirements:
  * - Only requires: <source-root>
@@ -28,7 +57,18 @@ export function validateArguments(args: string[]): {
   }
 
   // Get the source root from args (now the first parameter after script name)
-  const sourceRoot: string = args[2];
+  const rawSourceRoot: string = args[2];
+
+  // Validate and sanitize the source root path
+  let sourceRoot: string;
+  try {
+    sourceRoot = resolveSourceRoot(rawSourceRoot);
+  } catch (error) {
+    return {
+      isValid: false,
+      usageMessage: `Invalid source root: ${String(error)}`,
+    };
+  }
 
   // Return the validated arguments
   return {

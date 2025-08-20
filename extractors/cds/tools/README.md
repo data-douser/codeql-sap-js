@@ -63,6 +63,8 @@ node dist/cds-extractor.js /path/to/source/root
 
 ## Development
 
+> **⚠️ IMPORTANT NOTE**: Any changes to the CDS extractor's compilation task behavior (including how and where `cds compile` commands are executed, project detection logic, or output file generation patterns) **MUST** be reflected in the `extractors/cds/tools/test/cds-compilation-for-actions.test.sh` script. The `.github/workflows/run-codeql-unit-tests-javascript.yml` workflow executes this script during the "Compile CAP CDS files" step to simulate the CDS extractor's compilation process for unit tests. If the script and extractor implementations diverge, the `CodeQL - Run Unit Tests (javascript)` workflow will fail on PRs, causing status check failures. Always review and update the test script when modifying compilation behavior to maintain consistency between local testing and CI/CD environments.
+
 ### Project Structure
 
 ```text

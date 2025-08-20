@@ -1,8 +1,6 @@
 import { execFileSync } from 'child_process';
 import { resolve } from 'path';
 
-import { quote } from 'shell-quote';
-
 import { cdsExtractorLog } from './logging';
 
 /**
@@ -36,9 +34,6 @@ function addDiagnostic(
   logPrefix: string,
 ): boolean {
   try {
-    // Use shell-quote to safely escape the message
-    const escapedMessage = quote([message]);
-
     execFileSync(codeqlExePath, [
       'database',
       'add-diagnostic',
@@ -47,7 +42,7 @@ function addDiagnostic(
       `--source-id=${sourceId}`,
       `--source-name=${sourceName}`,
       `--severity=${severity}`,
-      `--markdown-message=${escapedMessage.slice(1, -1)}`, // Remove the added quotes from shell-quote
+      `--markdown-message=${message}`,
       `--file-path=${resolve(filePath)}`,
       '--',
       `${process.env.CODEQL_EXTRACTOR_CDS_WIP_DATABASE ?? ''}`,
@@ -87,6 +82,77 @@ export function addCompilationDiagnostic(
 }
 
 /**
+ * Add a diagnostic error to the CodeQL database for dependency graph build failure
+ * @param sourceRoot Source root directory to use as file context
+ * @param errorMessage The error message from dependency graph build
+ * @param codeqlExePath Path to the CodeQL executable
+ * @returns True if the diagnostic was added, false otherwise
+ */
+export function addDependencyGraphDiagnostic(
+  sourceRoot: string,
+  errorMessage: string,
+  codeqlExePath: string,
+): boolean {
+  return addDiagnostic(
+    sourceRoot,
+    errorMessage,
+    codeqlExePath,
+    'cds/dependency-graph-failure',
+    'CDS project dependency graph build failure',
+    DiagnosticSeverity.Error,
+    'source root',
+  );
+}
+
+/**
+ * Add a diagnostic error to the CodeQL database for dependency installation failure
+ * @param sourceRoot Source root directory to use as file context
+ * @param errorMessage The error message from dependency installation
+ * @param codeqlExePath Path to the CodeQL executable
+ * @returns True if the diagnostic was added, false otherwise
+ */
+export function addDependencyInstallationDiagnostic(
+  sourceRoot: string,
+  errorMessage: string,
+  codeqlExePath: string,
+): boolean {
+  return addDiagnostic(
+    sourceRoot,
+    errorMessage,
+    codeqlExePath,
+    'cds/dependency-installation-failure',
+    'CDS dependency installation failure',
+    DiagnosticSeverity.Error,
+    'source root',
+  );
+}
+
+/**
+ * Add a diagnostic error to the CodeQL database for environment setup failure
+ * @param sourceRoot Source root directory to use as file context
+ * @param errorMessage The error message from environment setup
+ * @param codeqlExePath Path to the CodeQL executable
+ * @returns True if the diagnostic was added, false otherwise
+ */
+export function addEnvironmentSetupDiagnostic(
+  sourceRoot: string,
+  errorMessage: string,
+  codeqlExePath: string,
+): boolean {
+  // Use a representative file from source root or the directory itself
+  const contextFile = sourceRoot;
+  return addDiagnostic(
+    contextFile,
+    errorMessage,
+    codeqlExePath,
+    'cds/environment-setup-failure',
+    'CDS extractor environment setup failure',
+    DiagnosticSeverity.Error,
+    'source root',
+  );
+}
+
+/**
  * Add a diagnostic error to the CodeQL database for a JavaScript extractor failure
  * @param filePath Path to a relevant file for the error context
  * @param errorMessage The error message from the JavaScript extractor
@@ -106,5 +172,28 @@ export function addJavaScriptExtractorDiagnostic(
     'Failure in JavaScript extractor for SAP CAP CDS files',
     DiagnosticSeverity.Error,
     'extraction file',
+  );
+}
+
+/**
+ * Add a diagnostic warning when no CDS projects are detected
+ * @param sourceRoot Source root directory to use as file context
+ * @param message The warning message about no CDS projects
+ * @param codeqlExePath Path to the CodeQL executable
+ * @returns True if the diagnostic was added, false otherwise
+ */
+export function addNoCdsProjectsDiagnostic(
+  sourceRoot: string,
+  message: string,
+  codeqlExePath: string,
+): boolean {
+  return addDiagnostic(
+    sourceRoot,
+    message,
+    codeqlExePath,
+    'cds/no-cds-projects',
+    'No CDS projects detected in source',
+    DiagnosticSeverity.Warning,
+    'source root',
   );
 }

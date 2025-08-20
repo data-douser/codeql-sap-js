@@ -1,4 +1,4 @@
-import { dirname, join, resolve, sep } from 'path';
+import { dirname, join, resolve, sep, basename } from 'path';
 
 import {
   determineCdsFilesForProjectDir,
@@ -8,6 +8,7 @@ import {
   readPackageJsonFile,
 } from './functions';
 import { CdsDependencyGraph, CdsImport, CdsProject, BasicCdsProject } from './types';
+import { modelCdsJsonFile } from '../../constants';
 import { cdsExtractorLog } from '../../logging';
 
 /**
@@ -43,8 +44,8 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir: string): Map<string,
     projectMap.set(projectDir, {
       projectDir,
       cdsFiles,
-      cdsFilesToCompile: [], // Will be populated in the third pass
-      expectedOutputFiles: [], // Will be populated in the fourth pass
+      compilationTargets: [], // Will be populated in the third pass
+      expectedOutputFile: join(projectDir, modelCdsJsonFile),
       packageJson,
       dependencies: [],
       imports: new Map<string, CdsImport[]>(),
@@ -161,33 +162,16 @@ function buildBasicCdsProjectDependencyGraph(sourceRootDir: string): Map<string,
       const projectPlan = determineCdsFilesToCompile(sourceRootDir, project);
 
       // Assign the calculated values back to the project
-      project.cdsFilesToCompile = projectPlan.filesToCompile;
-      project.expectedOutputFiles = projectPlan.expectedOutputFiles;
-
-      // Check if using project-level compilation
-      const usesProjectLevelCompilation = projectPlan.filesToCompile.includes(
-        '__PROJECT_LEVEL_COMPILATION__',
-      );
-
-      if (usesProjectLevelCompilation) {
-        cdsExtractorLog(
-          'info',
-          `Project ${project.projectDir}: using project-level compilation for all ${project.cdsFiles.length} CDS files, expecting ${projectPlan.expectedOutputFiles.length} output files`,
-        );
-      } else {
-        cdsExtractorLog(
-          'info',
-          `Project ${project.projectDir}: ${projectPlan.filesToCompile.length} files to compile out of ${project.cdsFiles.length} total CDS files, expecting ${projectPlan.expectedOutputFiles.length} output files`,
-        );
-      }
+      project.compilationTargets = projectPlan.compilationTargets;
+      project.expectedOutputFile = projectPlan.expectedOutputFile;
     } catch (error) {
       cdsExtractorLog(
         'warn',
         `Error determining files to compile for project ${project.projectDir}: ${String(error)}`,
       );
-      // Fall back to compiling all files on error
-      project.cdsFilesToCompile = [...project.cdsFiles];
-      project.expectedOutputFiles = [];
+      // Fall back to default project compilation on error
+      project.compilationTargets = project.cdsFiles.map(file => basename(file));
+      project.expectedOutputFile = join(project.projectDir, modelCdsJsonFile);
     }
   }
 
@@ -207,7 +191,7 @@ export function buildCdsProjectDependencyGraph(sourceRootDir: string): CdsDepend
 
   // Create the initial dependency graph structure
   const dependencyGraph: CdsDependencyGraph = {
-    id: `cds_graph_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `cds_graph_${Date.now()}`,
     sourceRootDir,
     projects: new Map<string, CdsProject>(),
     debugInfo: {
@@ -264,6 +248,13 @@ export function buildCdsProjectDependencyGraph(sourceRootDir: string): CdsDepend
     errors: {
       critical: [],
       warnings: [],
+    },
+    retryStatus: {
+      totalTasksRequiringRetry: 0,
+      totalTasksSuccessfullyRetried: 0,
+      totalRetryAttempts: 0,
+      projectsRequiringFullDependencies: new Set<string>(),
+      projectsWithFullDependencies: new Set<string>(),
     },
   };
 

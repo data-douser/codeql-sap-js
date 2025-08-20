@@ -23,7 +23,31 @@ const compat = new FlatCompat({
 
 export default defineConfig([
   globalIgnores(['out/**/*', '**/node_modules', '**/coverage', '**/*.d.ts']),
+  // Configuration for JavaScript files (must come first to override defaults)
   {
+    files: [
+      '**/*.js',
+      '**/.prettierrc.js',
+      '**/jest.config.js',
+      'esbuild.config.mjs',
+      'validate-bundle.js',
+    ],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+      // Use default parser for JS files (removes TS parser requirement)
+      parser: undefined,
+      ecmaVersion: 2018,
+      sourceType: 'script', // Allow CommonJS
+    },
+    rules: {
+      // Allow CommonJS for build scripts
+      'import/no-commonjs': 'off',
+    },
+  },
+  {
+    files: ['**/*.ts'], // Only apply TypeScript configuration to .ts files
     extends: fixupConfigRules(
       compat.extends(
         'eslint:recommended',
@@ -37,11 +61,8 @@ export default defineConfig([
     ),
 
     plugins: {
-      // @ts-expect-error - typescript-eslint is a valid plugin
       '@typescript-eslint': fixupPluginRules(typescriptEslint),
-      // @ts-expect-error - import is a valid plugin
       import: fixupPluginRules(_import),
-      // @ts-expect-error - prettier is a valid plugin
       prettier: fixupPluginRules(prettier),
     },
 
@@ -49,8 +70,6 @@ export default defineConfig([
       globals: {
         ...globals.node,
       },
-      // @ts-expect-error - tsParser is a valid parser
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       parser: tsParser,
       ecmaVersion: 2018,
       sourceType: 'module',
@@ -169,40 +188,6 @@ export default defineConfig([
       '@typescript-eslint/restrict-template-expressions': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/unbound-method': 'off',
-    },
-  },
-  // Add JavaScript-specific configuration that doesn't use TypeScript parser
-  {
-    files: ['**/*.js', '**/.prettierrc.js', '**/jest.config.js'],
-    languageOptions: {
-      // Use default parser for JS files (removes TS parser requirement)
-      parser: undefined,
-      ecmaVersion: 2018,
-      sourceType: 'module',
-    },
-    rules: {
-      // Disable TypeScript-specific rules for JS files
-      '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/restrict-template-expressions': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/unbound-method': 'off',
-    },
-  },
-  {
-    files: ['test/src/**/*.js'],
-    extends: fixupConfigRules(compat.extends('plugin:jest/recommended')),
-    plugins: {
-      jest: fixupPluginRules(jestPlugin),
-    },
-    languageOptions: {
-      // Use default parser for JS files (removes TS parser requirement)
-      parser: undefined,
-      ecmaVersion: 2018,
-      sourceType: 'module',
     },
   },
 ]);

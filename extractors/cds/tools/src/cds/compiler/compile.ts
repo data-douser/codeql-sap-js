@@ -1,26 +1,73 @@
 import { spawnSync, SpawnSyncOptions } from 'child_process';
-import { resolve, join, delimiter, relative } from 'path';
-
-import { globSync } from 'glob';
+import { resolve, join, delimiter, relative, dirname, basename } from 'path';
 
 import { CdsCompilationResult } from './types';
 import { getCdsVersion } from './version';
+import { modelCdsJsonFile } from '../../constants';
 import { fileExists, dirExists, recursivelyRenameJsonFiles } from '../../filesystem';
 import { cdsExtractorLog } from '../../logging';
 import { BasicCdsProject } from '../parser/types';
 
 /**
- * Compiles a CDS file to JSON using robust, project-aware compilation only.
- * This function has been refactored to align with the autobuild.md vision by removing all
- * forms of individual file compilation and ensuring only project-aware compilation is used.
+ * Parses a command string for use with spawnSync, handling multi-word commands like 'npx cds'.
+ * @param commandString The command string to parse (e.g., 'npx cds' or 'cds')
+ * @returns Object with executable and args arrays for spawnSync
+ */
+function parseCommandForSpawn(commandString: string): { executable: string; baseArgs: string[] } {
+  const parts = commandString.trim().split(/\s+/);
+  const executable = parts[0];
+  const baseArgs = parts.slice(1);
+  return { executable, baseArgs };
+}
+
+/**
+ * Determines compilation targets for a CDS project according to the new project-only compilation approach.
+ * @param project The CDS project
+ * @param sourceRoot The source root directory
+ * @returns Array of compilation targets (directories or files relative to project base)
+ */
+function determineCompilationTargets(project: BasicCdsProject, sourceRoot: string): string[] {
+  const projectAbsolutePath = join(sourceRoot, project.projectDir);
+
+  // Check for index.cds in the project root first, which takes precedence over CAP directories.
+  const rootCdsFiles = project.cdsFiles
+    .filter(file => dirname(join(sourceRoot, file)) === projectAbsolutePath)
+    .map(file => basename(file));
+
+  if (rootCdsFiles.includes('index.cds')) {
+    // Use only index.cds when it exists in the project root
+    return ['index.cds'];
+  }
+
+  // Check for standard CAP directories
+  const capDirectories = ['db', 'srv', 'app'];
+  const existingCapDirs = capDirectories.filter(dir => dirExists(join(projectAbsolutePath, dir)));
+
+  if (existingCapDirs.length > 0) {
+    // Use standard CAP directories
+    return existingCapDirs;
+  }
+
+  if (rootCdsFiles.length > 0) {
+    // Use other root-level files
+    return rootCdsFiles;
+  }
+
+  // Use all CDS files with their relative paths
+  return project.cdsFiles.map(file => relative(projectAbsolutePath, join(sourceRoot, file)));
+}
+
+/**
+ * Compiles a CDS project to JSON using project-level compilation only.
+ * This function has been simplified to only use project-level compilation,
+ * eliminating all individual file compilation logic and standardizing output
+ * to a single {@link modelCdsJsonFile} file per project.
  *
- * For root files, this will compile them to their 1:1 .cds.json representation if and only
- * if the file is a true root file in a project.
  *
  * @param cdsFilePath The path to the CDS file to compile, relative to the `sourceRoot`.
  * @param sourceRoot The source root directory scanned by the CDS extractor.
- * CRITICAL: All spawned processes must use this as their cwd to ensure paths in generated
- * JSON are relative to sourceRoot.
+ * CRITICAL: All spawned processes will use the project base directory as their `cwd` to
+ * ensure that paths in generated JSON are relative to the project base directory.
  *
  * @param cdsCommand The actual shell command to use for `cds compile`.
  * @param cacheDir Full path to the cache directory where dependencies are stored.
@@ -47,8 +94,11 @@ export function compileCdsToJson(
     const cdsVersion = getCdsVersion(cdsCommand, cacheDir);
     const versionInfo = cdsVersion ? `with CDS v${cdsVersion}` : '';
 
-    // CRITICAL: Create spawn options with sourceRoot as cwd to ensure correct path generation
-    const spawnOptions = createSpawnOptions(sourceRoot, cdsCommand, cacheDir);
+    // Calculate project base directory for consistent working directory
+    const projectBaseDir = join(sourceRoot, projectDir);
+
+    // Create spawn options with project base directory as cwd.
+    const spawnOptions = createSpawnOptions(projectBaseDir, cdsCommand, cacheDir);
 
     // Throw an error if projectDir cannot be found in the projectMap.
     if (!projectMap || !projectDir || !projectMap.has(projectDir)) {
@@ -58,166 +108,77 @@ export function compileCdsToJson(
     }
 
     const project = projectMap.get(projectDir);
-    const relativePath = relative(sourceRoot, resolvedCdsFilePath);
 
-    // Check if this is a project-level compilation marker
-    if (shouldUseProjectLevelCompilation(project)) {
-      return compileProjectLevel(
-        resolvedCdsFilePath,
-        sourceRoot,
-        projectDir,
-        cdsCommand,
-        spawnOptions,
-        versionInfo,
-      );
-    }
-
-    // Check if this file is in the list of files to compile for this project
-    if (!shouldCompileIndividually(project, relativePath)) {
-      cdsExtractorLog(
-        'info',
-        `${resolvedCdsFilePath} is imported by other files - will be compiled as part of a project ${versionInfo}...`,
-      );
-      const cdsJsonOutPath = `${resolvedCdsFilePath}.json`;
-      return {
-        success: true,
-        outputPath: cdsJsonOutPath,
-        compiledAsProject: true,
-        message: 'File was compiled as part of a project-based compilation',
-      };
-    } else {
-      // This is a root file - compile it using project-aware approach to its 1:1 representation
-      cdsExtractorLog(
-        'info',
-        `${resolvedCdsFilePath} identified as a root CDS file - using project-aware compilation for root file ${versionInfo}...`,
-      );
-      return compileRootFileAsProject(
-        resolvedCdsFilePath,
-        sourceRoot,
-        projectDir,
-        cdsCommand,
-        spawnOptions,
-        versionInfo,
-      );
-    }
+    // Always use project-level compilation
+    return compileProject(sourceRoot, projectDir, cdsCommand, spawnOptions, versionInfo, project!);
   } catch (error) {
     return { success: false, message: String(error) };
   }
 }
 
 /**
- * Handles project-level compilation for CAP projects with typical directory structure.
- * CRITICAL: Uses the project directory as cwd and calculates paths relative to project directory.
+ * Handles project-level compilation for CAP projects.
+ * CRITICAL: Uses the project base directory as cwd and calculates paths relative to project base directory.
  *
- * @param resolvedCdsFilePath The resolved CDS file path that triggered this compilation
  * @param sourceRoot The source root directory
  * @param projectDir The project directory (relative to sourceRoot)
  * @param cdsCommand The CDS command to use
- * @param spawnOptions Pre-configured spawn options with sourceRoot as cwd
+ * @param spawnOptions Pre-configured spawn options with project base directory as cwd
  * @param versionInfo Version information for logging
+ * @param project The CDS project instance
  * @returns Compilation result
  */
-function compileProjectLevel(
-  resolvedCdsFilePath: string,
+function compileProject(
   sourceRoot: string,
   projectDir: string,
   cdsCommand: string,
   spawnOptions: SpawnSyncOptions,
-  _versionInfo: string,
+  versionInfo: string,
+  project: BasicCdsProject,
 ): CdsCompilationResult {
-  cdsExtractorLog(
-    'info',
-    `${resolvedCdsFilePath} is part of a CAP project - using project-aware compilation ${_versionInfo}...`,
-  );
+  cdsExtractorLog('info', `Compiling CDS project '${projectDir}' using ${versionInfo}...`);
 
-  // For project-level compilation, compile the entire project together
-  // This follows the CAP best practice of compiling db and srv directories together
-  const projectAbsolutePath = join(sourceRoot, projectDir);
+  // Determine compilation targets using the new centralized logic
+  const compilationTargets = determineCompilationTargets(project, sourceRoot);
 
-  // Common directories in CAP projects that should be compiled together
-  const capDirectories = ['db', 'srv', 'app'];
-  const existingDirectories: string[] = [];
-
-  for (const dir of capDirectories) {
-    const dirPath = join(projectAbsolutePath, dir);
-    if (dirExists(dirPath)) {
-      existingDirectories.push(dir);
-    }
-  }
-
-  // Check if there are any CDS files in the project at all before proceeding
-  const allCdsFiles = globSync(join(projectAbsolutePath, '**/*.cds'), {
-    nodir: true,
-    ignore: ['**/node_modules/**'],
-  });
-
-  if (allCdsFiles.length === 0) {
+  if (compilationTargets.length === 0) {
     throw new Error(
       `Project directory '${projectDir}' does not contain any CDS files and cannot be compiled`,
     );
   }
 
-  if (existingDirectories.length === 0) {
-    // If no standard directories, check if there are CDS files in the root
-    const rootCdsFiles = globSync(join(projectAbsolutePath, '*.cds'));
-    if (rootCdsFiles.length > 0) {
-      existingDirectories.push('.');
-    } else {
-      // Find directories that contain CDS files
-      const cdsFileParents = new Set(
-        allCdsFiles.map((file: string) => {
-          const relativePath = relative(projectAbsolutePath, file);
-          const firstDir = relativePath.split('/')[0];
-          return firstDir === relativePath ? '.' : firstDir;
-        }),
-      );
-      existingDirectories.push(...Array.from(cdsFileParents));
-    }
-  }
-
-  // Generate output path for the compiled model - relative to sourceRoot for consistency
-  const relativeOutputPath = join(projectDir, 'model.cds.json');
-  const projectJsonOutPath = join(sourceRoot, relativeOutputPath);
-
-  // Use sourceRoot as working directory but provide project-relative paths
-  const projectSpawnOptions: SpawnSyncOptions = {
-    ...spawnOptions,
-    cwd: sourceRoot, // Use sourceRoot as working directory for consistency
-  };
-
-  // Convert directories to be relative to sourceRoot (include project prefix)
-  const projectRelativeDirectories = existingDirectories.map(dir =>
-    dir === '.' ? projectDir : join(projectDir, dir),
-  );
+  const projectJsonOutPath = join(sourceRoot, projectDir, modelCdsJsonFile);
 
   const compileArgs = [
     'compile',
-    ...projectRelativeDirectories, // Use paths relative to sourceRoot
+    ...compilationTargets,
     '--to',
     'json',
     '--dest',
-    join(projectDir, 'model.cds.json'), // Output to specific model.cds.json file
+    modelCdsJsonFile,
     '--locations',
     '--log-level',
     'warn',
   ];
 
-  cdsExtractorLog('info', `Compiling CAP project directories: ${existingDirectories.join(', ')}`);
+  cdsExtractorLog('info', `Compiling CDS project targets: ${compilationTargets.join(', ')}`);
   cdsExtractorLog(
     'info',
-    `Executing CDS command in directory ${projectAbsolutePath}: command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
+    `Running compilation task for CDS project '${projectDir}': command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
   );
 
-  // CRITICAL: Use the project directory as cwd
-  // Use array arguments for consistent test behavior
-  const result = spawnSync(cdsCommand, compileArgs, projectSpawnOptions);
+  // Parse command for proper spawnSync execution
+  const { executable, baseArgs } = parseCommandForSpawn(cdsCommand);
+  const allArgs = [...baseArgs, ...compileArgs];
+
+  const result = spawnSync(executable, allArgs, spawnOptions);
 
   if (result.error) {
     cdsExtractorLog('error', `SpawnSync error: ${result.error.message}`);
     throw new Error(`Error executing CDS compiler: ${result.error.message}`);
   }
 
-  // Log stderr for debugging even on success (CDS often writes warnings to stderr)
+  // Log stderr for debugging even on success (CDS often writes warnings to stderr).
   if (result.stderr && result.stderr.length > 0) {
     cdsExtractorLog('warn', `CDS stderr output: ${result.stderr.toString()}`);
   }
@@ -243,13 +204,13 @@ function compileProjectLevel(
     );
   }
 
-  // Handle directory output if the CDS compiler generated a directory
+  // Handle directory output if the CDS compiler generated a directory.
   if (dirExists(projectJsonOutPath)) {
     cdsExtractorLog(
       'info',
       `CDS compiler generated JSON to output directory: ${projectJsonOutPath}`,
     );
-    // Recursively rename all .json files to have a .cds.json extension
+    // Recursively rename generated .json files to have a .cds.json extension
     recursivelyRenameJsonFiles(projectJsonOutPath);
   } else {
     cdsExtractorLog('info', `CDS compiler generated JSON to file: ${projectJsonOutPath}`);
@@ -264,118 +225,21 @@ function compileProjectLevel(
 }
 
 /**
- * Compiles a root CDS file using project-aware approach for 1:1 .cds.json representation.
- * This follows the autobuild.md vision of project-aware compilation only.
- *
- * @param resolvedCdsFilePath The resolved CDS file path
- * @param sourceRoot The source root directory
- * @param projectDir The project directory
- * @param cdsCommand The CDS command to use
- * @param spawnOptions Pre-configured spawn options
- * @param versionInfo Version information for logging
- * @returns Compilation result
- */
-function compileRootFileAsProject(
-  resolvedCdsFilePath: string,
-  sourceRoot: string,
-  _projectDir: string,
-  cdsCommand: string,
-  spawnOptions: SpawnSyncOptions,
-  _versionInfo: string,
-): CdsCompilationResult {
-  // Calculate relative path for the output file
-  const relativeCdsPath = relative(sourceRoot, resolvedCdsFilePath);
-  const cdsJsonOutPath = `${resolvedCdsFilePath}.json`;
-
-  // Use project-aware compilation with specific file target
-  const compileArgs = [
-    'compile',
-    relativeCdsPath, // Compile the specific file relative to sourceRoot
-    '--to',
-    'json',
-    '--dest',
-    `${relativeCdsPath}.json`,
-    '--locations',
-    '--log-level',
-    'warn',
-  ];
-
-  cdsExtractorLog(
-    'info',
-    `Compiling root CDS file using project-aware approach: ${relativeCdsPath}`,
-  );
-  cdsExtractorLog(
-    'info',
-    `Executing CDS command: command='${cdsCommand}' args='${JSON.stringify(compileArgs)}'`,
-  );
-
-  // Execute the compilation
-  const result = spawnSync(cdsCommand, compileArgs, spawnOptions);
-
-  if (result.error) {
-    cdsExtractorLog('error', `SpawnSync error: ${result.error.message}`);
-    throw new Error(`Error executing CDS compiler: ${result.error.message}`);
-  }
-
-  // Log stderr for debugging even on success
-  if (result.stderr && result.stderr.length > 0) {
-    cdsExtractorLog('warn', `CDS stderr output: ${result.stderr.toString()}`);
-  }
-
-  if (result.status !== 0) {
-    cdsExtractorLog('error', `CDS command failed with status ${result.status}`);
-    cdsExtractorLog(
-      'error',
-      `Command: ${cdsCommand} ${compileArgs.map(arg => (arg.includes(' ') ? `"${arg}"` : arg)).join(' ')}`,
-    );
-    cdsExtractorLog('error', `Stdout: ${result.stdout?.toString() || 'No stdout'}`);
-    cdsExtractorLog('error', `Stderr: ${result.stderr?.toString() || 'No stderr'}`);
-    throw new Error(
-      `Could not compile the root CDS file ${relativeCdsPath}.\nReported error(s):\n\`\`\`\n${
-        result.stderr?.toString() || 'Unknown error'
-      }\n\`\`\``,
-    );
-  }
-
-  if (!fileExists(cdsJsonOutPath) && !dirExists(cdsJsonOutPath)) {
-    throw new Error(
-      `Root CDS file '${relativeCdsPath}' was not compiled to JSON. Expected output: ${cdsJsonOutPath}`,
-    );
-  }
-
-  // Handle directory output if the CDS compiler generated a directory
-  if (dirExists(cdsJsonOutPath)) {
-    cdsExtractorLog('info', `CDS compiler generated JSON to output directory: ${cdsJsonOutPath}`);
-    // Recursively rename all .json files to have a .cds.json extension
-    recursivelyRenameJsonFiles(cdsJsonOutPath);
-  } else {
-    cdsExtractorLog('info', `CDS compiler generated JSON to file: ${cdsJsonOutPath}`);
-  }
-
-  return {
-    success: true,
-    outputPath: cdsJsonOutPath,
-    compiledAsProject: true,
-    message: 'Root file compiled using project-aware compilation',
-  };
-}
-
-/**
  * Creates spawn options for CDS compilation processes.
- * CRITICAL: Always sets cwd to sourceRoot to ensure generated JSON paths are relative to sourceRoot.
+ * CRITICAL: Always sets cwd to project base directory to ensure generated JSON paths are relative to project base directory.
  *
- * @param sourceRoot The source root directory - used as cwd for all spawned processes
+ * @param projectBaseDir The project base directory (where package.json is located) - used as cwd for all spawned processes
  * @param cdsCommand The CDS command to determine if we need Node.js environment setup
  * @param cacheDir Optional cache directory for dependencies
  * @returns Spawn options configured for CDS compilation
  */
 function createSpawnOptions(
-  sourceRoot: string,
+  projectBaseDir: string,
   cdsCommand: string,
   cacheDir?: string,
 ): SpawnSyncOptions {
   const spawnOptions: SpawnSyncOptions = {
-    cwd: sourceRoot, // CRITICAL: Always use sourceRoot as cwd to ensure correct path generation
+    cwd: projectBaseDir, // CRITICAL: Always use project base directory as cwd to ensure correct path generation
     shell: false, // Use shell=false to ensure proper argument handling for paths with spaces
     stdio: 'pipe',
     env: { ...process.env },
@@ -413,28 +277,4 @@ function createSpawnOptions(
   }
 
   return spawnOptions;
-}
-
-/**
- * Determines if a file should be compiled individually or skipped because it's part of a project.
- *
- * @param project The CDS project
- * @param relativePath The relative path of the file being checked
- * @returns true if the file should be compiled individually
- */
-function shouldCompileIndividually(
-  project: BasicCdsProject | undefined,
-  relativePath: string,
-): boolean {
-  return project?.cdsFilesToCompile?.includes(relativePath) ?? true;
-}
-
-/**
- * Determines if the given project should use project-level compilation.
- *
- * @param project The CDS project to check
- * @returns true if project-level compilation should be used
- */
-function shouldUseProjectLevelCompilation(project: BasicCdsProject | undefined): boolean {
-  return project?.cdsFilesToCompile?.includes('__PROJECT_LEVEL_COMPILATION__') ?? false;
 }
