@@ -325,7 +325,7 @@ class DbServiceInstanceFromCdsConnectTo extends ServiceInstanceFromCdsConnectTo,
  * This class captures the `srv` parameter of the exported arrow function. Also see
  * `ServiceInstanceFromImplMethodCallClosureParameter` which is similar to this.
  */
-class ServiceInstanceFromExportedClosureParameter extends ServiceInstance {
+class ServiceInstanceFromExportedClosureParameter extends ServiceInstance, ParameterNode {
   ExportedClosureApplicationServiceDefinition exportedClosure;
 
   ServiceInstanceFromExportedClosureParameter() { this = exportedClosure.getParameter(0) }
