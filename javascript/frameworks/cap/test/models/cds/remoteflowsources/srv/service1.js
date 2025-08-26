@@ -3,20 +3,40 @@ const cds = require("@sap/cds");
 /* Emit a "Received1" event upon receiving a READ request on its entity. */
 module.exports = class Service1 extends cds.ApplicationService {
   init() {
-    this.on("send1", async (req) => {
+    this.on("send11", async (req) => {
       const { messageToPass } = req.data;  // UNSAFE: Taint source, Exposed service
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
     });
 
-    this.on("send2", async (req) => {
+    this.on("send12", async (req) => {
+      const reqData = getReqData(req);
+      const { messageToPass } = reqData;
+      const Service2 = await cds.connect.to("service-2");
+      Service2.send("send2", { messageToPass });
+    });
+
+    this.on("send21", async (req) => {
       const [ messageToPass ] = req.params;  // UNSAFE: Taint source, Exposed service
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
     });
 
-    this.on("send3", async (req) => {
+    this.on("send22", async (req) => {
+      const [ messageToPass ] = getReqParams(req);  // UNSAFE: Taint source, Exposed service
+      const Service2 = await cds.connect.to("service-2");
+      Service2.send("send2", { messageToPass });
+    });
+
+    this.on("send31", async (req) => {
       const messageToPass = req.headers["user-agent"];  // UNSAFE: Taint source, Exposed service
+      const Service2 = await cds.connect.to("service-2");
+      Service2.send("send2", { messageToPass });
+    });
+
+    this.on("send32", async (req) => {
+      const reqHeaders = getReqHeaders(req);
+      const messageToPass = reqHeaders["user-agent"];  // UNSAFE: Taint source, Exposed service
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
     });
@@ -37,14 +57,26 @@ module.exports = class Service1 extends cds.ApplicationService {
       Service2.send("send2", { messageToPass1 });
     });
 
-    this.on("send5", async (req) => {
+    this.on("send51", async (req) => {
       const messageToPass = req.id;  // UNSAFE: Taint source, Exposed service
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
     });
 
-    this.on("send6", async (req) => {
+    this.on("send52", async (req) => {
+      const messageToPass = getReqId(req);  // UNSAFE: Taint source, Exposed service
+      const Service2 = await cds.connect.to("service-2");
+      Service2.send("send2", { messageToPass });
+    });
+
+    this.on("send61", async (req) => {
       const messageToPass = req._queryOptions;  // UNSAFE: Taint source, Exposed service
+      const Service2 = await cds.connect.to("service-2");
+      Service2.send("send2", { messageToPass });
+    });
+
+    this.on("send62", async (req) => {
+      const messageToPass = getReqQueryOptions(req);  // UNSAFE: Taint source, Exposed service
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
     });
@@ -74,3 +106,23 @@ module.exports = class Service1 extends cds.ApplicationService {
     });
   }
 };
+
+function getReqData(request) {
+  return request.data;  // UNSAFE: Taint source, Exposed service
+}
+
+function getReqParams(request) {
+  return request.params;  // UNSAFE: Taint source, Exposed service
+}
+
+function getReqHeaders(request) {
+  return request.headers;  // UNSAFE: Taint source, Exposed service
+}
+
+function getReqId(request) {
+  return request.id;  // UNSAFE: Taint source, Exposed service
+}
+
+function getReqQueryOptions(request) {
+  return request._queryOptions;  // UNSAFE: Taint source, Exposed service
+}
