@@ -59,7 +59,7 @@ module CAPLogInjectionConfiguration implements DataFlow::ConfigSig {
      * This predicate includes cases such as:
      * 1. A CDS entity element lacking a type annotation.
      *   - Possibly because it relies on a common aspect.
-     * 2. An CDS entity element annotated with a non-string type listed above.
+     * 2. A CDS entity element annotated with a non-string type listed above.
      *
      * Therefore, the data held by the handler parameter data (e.g. `req.data.X`)
      * has to be EXPLICITLY annotated as `String` or `LargeString` to be excluded
