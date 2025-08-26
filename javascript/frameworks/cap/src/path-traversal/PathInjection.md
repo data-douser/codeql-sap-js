@@ -34,18 +34,18 @@ const cds = require("@sap/cds");
 const { rm } = cds.utils
 
 module.exports = class Service1 extends cds.ApplicationService {
-
-    init() {
-        this.on("send1", async (req) => {
-            let userinput = req.data
-            await write(userinput).to('db/data') // Path injection alert
-        }
+  init() {
+    this.on("send1", async (req) => {
+      let userinput = req.data
+      await write(userinput).to('db/data') // Path injection alert
     }
+  }
 }
-
 ```
 
 ## References
 
 - OWASP 2021: [Injection](https://owasp.org/Top10/A03_2021-Injection/).
 - SAP CAP CDS Utils : [Documentation](https://cap.cloud.sap/docs/node.js/cds-utils).
+- Common Weakness Enumeration: [CWE-020](https://cwe.mitre.org/data/definitions/20.html).
+- Common Weakness Enumeration: [CWE-022](https://cwe.mitre.org/data/definitions/22.html).

@@ -1,5 +1,5 @@
 /**
- * @name Use of user controlled input in CAP CDS file system utilies
+ * @name Use of user controlled input in CAP CDS file system utilities
  * @description Using unchecked user controlled values can allow an
  *              attacker to affect paths constructed and accessed in
  *              the filesystem.
@@ -16,6 +16,8 @@
 import javascript
 import advanced_security.javascript.frameworks.cap.CAPPathInjectionQuery
 import advanced_security.javascript.frameworks.cap.RemoteFlowSources
+private import semmle.javascript.security.dataflow.TaintedPathCustomizations
+private import semmle.javascript.security.dataflow.TaintedPathQuery
 
 module PathInjectionConfig implements DataFlow::ConfigSig {
   predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
@@ -23,10 +25,15 @@ module PathInjectionConfig implements DataFlow::ConfigSig {
   predicate isSink(DataFlow::Node sink) { sink instanceof UtilsSink }
 
   predicate isAdditionalFlowStep(DataFlow::Node nodein, DataFlow::Node nodeout) {
-    exists(CDSAdditionalFlowStep step |
-      step.getIngoingNode() = nodein and
-      step.getOutgoingNode() = nodeout
-    )
+    exists(PathConverters pc | pc.getPath() = nodein and nodeout = pc)
+    or
+    exists(PathPredicates pr | pr.getPath() = nodein and nodeout = pr)
+  }
+
+  predicate isBarrier(DataFlow::Node node) {
+    node instanceof TaintedPath::Sanitizer
+    or
+    TaintedPathConfig::isBarrier(node)
   }
 }
 

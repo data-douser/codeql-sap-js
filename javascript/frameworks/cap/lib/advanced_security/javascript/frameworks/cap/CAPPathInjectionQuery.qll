@@ -77,23 +77,3 @@ class ControlledInputPath extends UtilsControlledPathSink {
     exists(DirectoryReaders dr | dr.getPath() = this)
   }
 }
-
-/**
- * This represents calls where the taint flows through the call. e.g.
- * ```javascript
- * let dir = isdir ('app')
- * ```
- */
-class CDSAdditionalFlowStep extends UtilsExtraFlow {
-  DataFlow::CallNode outNode;
-
-  CDSAdditionalFlowStep() {
-    exists(PathConverters pc | pc.getPath() = this and outNode = pc)
-    or
-    exists(PathPredicates pr | pr.getPath() = this and outNode = pr)
-  }
-
-  DataFlow::CallNode getOutgoingNode() { result = outNode }
-
-  DataFlow::Node getIngoingNode() { result = this }
-}
