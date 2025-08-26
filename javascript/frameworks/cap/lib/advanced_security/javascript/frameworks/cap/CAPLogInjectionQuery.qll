@@ -69,7 +69,12 @@ module CAPLogInjectionConfiguration implements DataFlow::ConfigSig {
     exists(HandlerParameterData handlerParameterData |
       node = handlerParameterData and
       /* Note the use of `.. != ..` instead of `not .. = ..` below. */
-      handlerParameterData.getType() != ["cds.String", "cds.LargeString"]
+      exists(string handlerParameterDataType |
+        handlerParameterDataType = handlerParameterData.getType()
+      |
+        handlerParameterDataType != "cds.String" and
+        handlerParameterDataType != "cds.LargeString"
+      )
     )
   }
 
