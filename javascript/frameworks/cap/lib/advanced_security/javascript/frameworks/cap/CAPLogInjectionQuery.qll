@@ -57,7 +57,7 @@ module CAPLogInjectionConfiguration implements DataFlow::ConfigSig {
   predicate isBarrier(DataFlow::Node node) {
     /*
      * This predicate includes cases such as:
-     * 1. An CDS entity element lacking a type annotation.
+     * 1. A CDS entity element lacking a type annotation.
      *   - Possibly because it relies on a common aspect.
      * 2. An CDS entity element annotated with a non-string type listed above.
      *
