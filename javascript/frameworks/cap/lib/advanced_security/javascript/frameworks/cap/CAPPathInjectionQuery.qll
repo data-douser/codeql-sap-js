@@ -7,13 +7,21 @@
 import javascript
 import advanced_security.javascript.frameworks.cap.CDSUtils
 
-abstract class UtilsAccessedPathSink extends DataFlow::Node { }
+abstract class UtilsSink extends DataFlow::Node {
+  abstract string sinkType();
+}
 
-abstract class UtilsControlledDataSink extends DataFlow::Node { }
+abstract class UtilsAccessedPathSink extends UtilsSink {
+  override string sinkType() { result = "unrestricted file read" }
+}
 
-abstract class UtilsControlledPathSink extends DataFlow::Node { }
+abstract class UtilsControlledDataSink extends UtilsSink {
+  override string sinkType() { result = "tainted data being written to a file" }
+}
 
-abstract class UtilsExtraFlow extends DataFlow::Node { }
+abstract class UtilsControlledPathSink extends UtilsSink {
+  override string sinkType() { result = "unrestricted file operations" }
+}
 
 /**
  * This represents the data in calls as follows:
@@ -66,22 +74,4 @@ class ControlledInputPath extends UtilsControlledPathSink {
     or
     exists(DirectoryReaders dr | dr.getPath() = this)
   }
-}
-
-/**
- * This represents calls where the taint flows through the call. e.g.
- * ```javascript
- * let dir = isdir ('app')
- * ```
- */
-class AdditionalFlowStep extends UtilsExtraFlow {
-  AdditionalFlowStep() {
-    exists(PathConverters pc | pc.getPath() = this)
-    or
-    exists(PathPredicates pr | pr.getPath() = this)
-  }
-
-  DataFlow::CallNode getOutgoingNode() { result = this }
-
-  DataFlow::Node getIngoingNode() { result = this.(DataFlow::CallNode).getAnArgument() }
 }

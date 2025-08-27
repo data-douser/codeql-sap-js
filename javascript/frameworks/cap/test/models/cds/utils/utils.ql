@@ -8,6 +8,4 @@ where
   node.(UtilsAccessedPathSink).toString() = str and strfull = str + ": accessed path sink"
   or
   node.(UtilsControlledDataSink).toString() = str and strfull = str + ": controlled data sink"
-  or
-  node.(UtilsExtraFlow).toString() = str and strfull = str + ": additional flow step"
 select node, strfull
