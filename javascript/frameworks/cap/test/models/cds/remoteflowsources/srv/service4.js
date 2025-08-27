@@ -2,19 +2,19 @@ const cds = require("@sap/cds");
 
 module.exports = class Service4 extends cds.ApplicationService {
   init() {
-    this.on("send1", async (req) => {
+    this.on("send11", async (req) => {
       const { messageToPass } = req.data;  // SAFE: Unexposed service, not a taint source
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
     });
 
-    this.on("send2", async (req) => {
+    this.on("send21", async (req) => {
       const [ messageToPass ] = req.params;  // SAFE: Unexposed service, not a taint source
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
     });
 
-    this.on("send3", async (req) => {
+    this.on("send31", async (req) => {
       const messageToPass = req.headers["user-agent"];  // SAFE: Unexposed service, not a taint source
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
@@ -36,10 +36,36 @@ module.exports = class Service4 extends cds.ApplicationService {
       Service2.send("send2", { messageToPass1 });
     });
 
-    this.on("send5", async (req) => {
+    this.on("send51", async (req) => {
       const messageToPass = req.id;  // SAFE: Unexposed service, not a taint source
+      const Service2 = await cds.connect.to("service-2");
+      Service2.send("send2", { messageToPass });
+    });
+
+    this.on("send61", async (req) => {
+      const messageToPass = req._queryOptions;  // SAFE: Unexposed service, not a taint source
       const Service2 = await cds.connect.to("service-2");
       Service2.send("send2", { messageToPass });
     });
   }
 };
+
+function getReqData(request) {
+  return request.data;  // SAFE: Unexposed service, not a taint source
+}
+
+function getReqParams(request) {
+  return request.params;  // SAFE: Unexposed service, not a taint source
+}
+
+function getReqHeaders(request) {
+  return request.headers;  // SAFE: Unexposed service, not a taint source
+}
+
+function getReqId(request) {
+  return request.id;  // SAFE: Unexposed service, not a taint source
+}
+
+function getReqQueryOptions(request) {
+  return request._queryOptions;  // SAFE: Unexposed service, not a taint source
+}
