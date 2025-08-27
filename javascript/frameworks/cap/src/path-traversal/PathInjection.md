@@ -8,6 +8,10 @@ Additionally if user-provided input is used to create file contents this can als
 
 CAP applications using CDS Utils should not use user-provided input without sanitization.
 
+The sanitization stragety can vary depending on what types of paths are satisfactory as user-provided input. A simple approach to sanitization is to check user-provided input against an allow list. Other potential approaches include checking components of paths or normalizing them to make sure that the path does not escape the expected root folder. 
+
+Normalization techniques should be carefully considered and simple naive replacement strategies will not be sufficient, for example replacing any match of a parent directory reference (`../`) in the sample `.../...//` will still result in the path `../` being used which could escape the intended directory.
+
 ## Examples
 
 This CAP service directly uses user-provided input to construct a path.
