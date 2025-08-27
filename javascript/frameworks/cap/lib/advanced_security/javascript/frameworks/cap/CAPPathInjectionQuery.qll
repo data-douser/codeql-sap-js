@@ -23,8 +23,6 @@ abstract class UtilsControlledPathSink extends UtilsSink {
   override string sinkType() { result = "unrestricted file operations" }
 }
 
-abstract class UtilsExtraFlow extends DataFlow::Node { }
-
 /**
  * This represents the data in calls as follows:
  * ```javascript
