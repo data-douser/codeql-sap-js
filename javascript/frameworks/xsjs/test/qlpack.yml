@@ -1,8 +1,8 @@
 ---
 name: advanced-security/javascript-sap-xsjs-tests
-version: 2.0.0
+version: 2.1.0
 extractor: javascript
 dependencies:
   codeql/javascript-all: "^2.4.0"
-  advanced-security/javascript-sap-xsjs-queries: "^2.0.0"
-  advanced-security/javascript-sap-xsjs-all: "^2.0.0"
+  advanced-security/javascript-sap-xsjs-queries: "^2.1.0"
+  advanced-security/javascript-sap-xsjs-all: "^2.1.0"
