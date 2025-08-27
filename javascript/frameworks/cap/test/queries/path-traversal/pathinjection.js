@@ -48,6 +48,13 @@ module.exports = class Service1 extends cds.ApplicationService {
 
             await rm(userinput, 'db', 'data') // sink
             await rm(userinput) // sink
+
+            let allowedDirectories = [
+                'this-is-a-safe-directory'
+            ];
+            if (allowedDirectories.includes(userinput)) {
+                await rm(userinput) // sanitized
+            }
         });
 
         super.init();

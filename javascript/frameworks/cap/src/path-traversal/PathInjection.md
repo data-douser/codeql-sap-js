@@ -38,6 +38,14 @@ module.exports = class Service1 extends cds.ApplicationService {
     this.on("send1", async (req) => {
       let userinput = req.data
       await write(userinput).to('db/data') // Path injection alert
+
+      // GOOD: the path can not be controlled by an attacker
+      let allowedDirectories = [
+        'this-is-a-safe-directory'
+      ];
+      if (allowedDirectories.includes(userinput)) {
+        await rm(userinput) // sanitized - No Path injection alert
+      }
     }
   }
 }

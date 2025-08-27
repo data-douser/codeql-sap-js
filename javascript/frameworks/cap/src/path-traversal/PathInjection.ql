@@ -17,7 +17,7 @@ import javascript
 import advanced_security.javascript.frameworks.cap.CAPPathInjectionQuery
 import advanced_security.javascript.frameworks.cap.RemoteFlowSources
 private import semmle.javascript.security.dataflow.TaintedPathCustomizations
-private import semmle.javascript.security.dataflow.TaintedPathQuery
+private import semmle.javascript.security.dataflow.TaintedPathQuery as tq
 
 module PathInjectionConfig implements DataFlow::ConfigSig {
   predicate isSource(DataFlow::Node node) { node instanceof RemoteFlowSource }
@@ -33,7 +33,7 @@ module PathInjectionConfig implements DataFlow::ConfigSig {
   predicate isBarrier(DataFlow::Node node) {
     node instanceof TaintedPath::Sanitizer
     or
-    TaintedPathConfig::isBarrier(node)
+    tq::TaintedPathConfig::isBarrier(node)
   }
 }
 
