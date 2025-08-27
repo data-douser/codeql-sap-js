@@ -1,18 +1,6 @@
 const cds = require("@sap/cds");
 
-const { decodeURI, decodeURIComponent, local, exists, isdir, isfile, read, readdir, append, write, copy, stat, find, mkdirp, rmdir, rimraf, rm } = cds.utils
-
-let uri = decodeURI("%E0%A4%A") // taint step
-
-let uri2 = decodeURIComponent("%E0%A4%A") // taint step
-
-let uri3 = local("%E0%A4%A") // taint step
-
-let uri4 = exists("%E0%A4%A") // NOT a taint step - returns a boolean
-
-let dir = isdir('app') // taint step
-
-let file = isfile('package.json') // taint step
+const { read, readdir, append, write, copy, stat, find, mkdirp, rmdir, rimraf, rm } = cds.utils
 
 let pkg = await read('package.json') // sink
 

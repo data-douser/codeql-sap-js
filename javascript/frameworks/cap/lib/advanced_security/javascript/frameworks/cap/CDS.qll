@@ -184,12 +184,12 @@ class ServiceInstanceFromConstructor extends ServiceInstance {
  * const cds = require("@sap/cds");
  * module.exports = class SomeService extends cds.ApplicationService {
  *   init() {
- *     this.on("SomeEvent", (req) => { ... } ) 
+ *     this.on("SomeEvent", (req) => { ... } )
  *   }
  * }
  * ```
  * This class captures the access to the `this` variable as in `this.on(...)`.
- * 
+ *
  * e.g.2. Given this code:
  * ``` javascript
  * const cds = require('@sap/cds');
@@ -424,13 +424,14 @@ class HandlerRegistration extends MethodCallNode {
  *   this.after("SomeEvent", "SomeEntity", (req, next) => { ... });
  * }
  * ```
- * All parameters named `req` above are captured. Also see `HandlerParameterOfExposedService`
+ * All parameters named `req` above are captured. Also see
+ * `RemoteflowSources::HandlerParameterOfExposedService`
  * for a subset of this class that is only about handlers exposed to some protocol.
  */
 class HandlerParameter extends ParameterNode {
   Handler handler;
 
-  HandlerParameter() { this = handler.getParameter(0) }
+  HandlerParameter() { this = isHandlerParameter(handler) }
 
   Handler getHandler() { result = handler }
 }
