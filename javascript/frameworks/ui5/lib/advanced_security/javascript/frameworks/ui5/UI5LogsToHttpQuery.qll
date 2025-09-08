@@ -30,11 +30,8 @@ module UI5LogEntryToHttp implements DataFlow::StateConfigSig {
     preState = postState
     or
     /*
-     * NOTE: This disjunct is a labeled version of LogArgumentToListener in
-     * FlowSteps.qll, a DataFlow::SharedFlowStep. As the class is considered
-     * legacy on version 2.4.0, we leave the two here (labeled) and there
-     * (unlabeled). This is something we should also tidy up when we migrate
-     * to the newer APIs.
+     * Jump from any argument of a SAP logging function to the `onLogEntry`
+     * method of a custom log listener in the same application.
      */
 
     inSameWebApp(start.getFile(), end.getFile()) and
