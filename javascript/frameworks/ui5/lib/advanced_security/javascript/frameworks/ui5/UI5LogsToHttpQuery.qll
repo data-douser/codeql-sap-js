@@ -29,20 +29,11 @@ module UI5LogEntryToHttp implements DataFlow::StateConfigSig {
     UI5LogInjection::isAdditionalFlowStep(start, end) and
     preState = postState
     or
-    /*
-     * Jump from any argument of a SAP logging function to the `onLogEntry`
-     * method of a custom log listener in the same application.
-     */
-
-    inSameWebApp(start.getFile(), end.getFile()) and
-    start =
-      ModelOutput::getATypeNode("SapLogger")
-          .getMember(["debug", "error", "fatal", "info", "trace", "warning"])
-          .getACall()
-          .getAnArgument() and
-    end = ModelOutput::getATypeNode("SapLogEntries").asSource() and
-    preState = "not-logged-not-accessed" and
-    postState = "logged-and-accessed"
+    exists(LogArgumentToListener logArgumentToListener |
+      logArgumentToListener.step(start, end) and
+      preState = "not-logged-not-accessed" and
+      postState = "logged-and-accessed"
+    )
   }
 
   predicate isSink(DataFlow::Node node, FlowState state) {
