@@ -4,6 +4,7 @@ import advanced_security.javascript.frameworks.ui5.JsonParser
 import semmle.javascript.security.dataflow.DomBasedXssCustomizations
 import advanced_security.javascript.frameworks.ui5.UI5View
 import advanced_security.javascript.frameworks.ui5.UI5HTML
+import codeql.util.FileSystem
 
 private module WebAppResourceRootJsonReader implements JsonParser::MakeJsonReaderSig<WebApp> {
   class JsonReader extends WebApp {
@@ -33,12 +34,11 @@ private predicate isAnUnResolvedResourceRoot(WebApp webApp, string name, string 
   )
 }
 
-class ResourceRootPathString extends PathString {
-  WebApp webApp;
-
-  ResourceRootPathString() { isAnUnResolvedResourceRoot(webApp, _, this) }
-
-  override Folder getARootFolder() { result = webApp.getWebAppFolder() }
+private predicate shouldAppend(Folder f, string relativePath) {
+  exists(WebApp webApp |
+    f = webApp.getWebAppFolder() and
+    isAnUnResolvedResourceRoot(webApp, _, relativePath)
+  )
 }
 
 class ResourceRoot extends Container {
@@ -48,7 +48,7 @@ class ResourceRoot extends Container {
 
   ResourceRoot() {
     isAnUnResolvedResourceRoot(webApp, name, path) and
-    path.(PathString).resolve(webApp.getWebAppFolder()).getContainer() = this
+    Folder::Append<shouldAppend/2>::append(webApp.getWebAppFolder(), path) = this
   }
 
   string getName() { result = name }
@@ -168,7 +168,9 @@ class SapDefineModule extends AmdModuleDefinition::Range, MethodCallExpr, UserMo
     )
   }
 
-  string getDependency(int i) { result = this.(AmdModuleDefinition).getDependencyExpr(i).getStringValue() }
+  string getDependency(int i) {
+    result = this.(AmdModuleDefinition).getDependencyExpr(i).getStringValue()
+  }
 
   override string getADependency() { result = this.getDependency(_) }
 
