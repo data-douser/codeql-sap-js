@@ -12,14 +12,20 @@ class XSJSDBConnectionPrepareStatementArgument extends DataFlow::ValueNode {
   predicate isConcatenated() { this.getAPredecessor+() instanceof StringOps::ConcatenationNode }
 }
 
-class Configuration extends SqlInjection::Configuration {
-  override predicate isSource(DataFlow::Node start) {
-    super.isSource(start)
+module Configuration implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node start) {
+    SqlInjection::SqlInjectionConfig::isSource(start)
     or
     start instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node end) {
+  predicate isSink(DataFlow::Node end) {
     end.(XSJSDBConnectionPrepareStatementArgument).isConcatenated()
+  }
+
+  predicate isBarrier(DataFlow::Node node) { SqlInjection::SqlInjectionConfig::isBarrier(node) }
+
+  predicate isAdditionalFlowStep(DataFlow::Node node1, DataFlow::Node node2) {
+    SqlInjection::SqlInjectionConfig::isAdditionalFlowStep(node1, node2)
   }
 }

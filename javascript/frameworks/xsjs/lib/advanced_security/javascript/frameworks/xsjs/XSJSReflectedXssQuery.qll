@@ -13,13 +13,13 @@ class XSJSResponseSetBodyCall extends MethodCallNode {
   XSJSResponse getParentXSJSResponse() { result = response }
 }
 
-class Configuration extends ReflectedXssQuery::Configuration {
-  override predicate isSource(DataFlow::Node start) {
-    super.isSource(start) or
+module Configuration implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node start) {
+    ReflectedXssQuery::ReflectedXssConfig::isSource(start) or
     start instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node end) {
+  predicate isSink(DataFlow::Node end) {
     exists(XSJSResponseSetBodyCall setBody, XSJSResponse thisOrAnotherXSJSResponse |
       thisOrAnotherXSJSResponse = setBody.getParentXSJSResponse() or
       thisOrAnotherXSJSResponse = setBody.getParentXSJSResponse().getAPredOrSuccResponse()
@@ -30,5 +30,9 @@ class Configuration extends ReflectedXssQuery::Configuration {
         thisOrAnotherXSJSResponse.contentTypeIsDependentOnRemote()
       )
     )
+  }
+
+  predicate isBarrier(DataFlow::Node node) {
+    ReflectedXssQuery::ReflectedXssConfig::isBarrier(node)
   }
 }
