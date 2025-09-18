@@ -34,11 +34,13 @@ private predicate isAnUnResolvedResourceRoot(WebApp webApp, string name, string 
   )
 }
 
-private predicate shouldAppend(Folder f, string relativePath) {
-  exists(WebApp webApp |
-    f = webApp.getWebAppFolder() and
-    isAnUnResolvedResourceRoot(webApp, _, relativePath)
-  )
+private module UI5WebAppResolverConfig implements Folder::ResolveSig {
+  predicate shouldResolve(Container f, string relativePath) {
+    exists(WebApp webApp |
+      f = webApp.getWebAppFolder() and
+      isAnUnResolvedResourceRoot(webApp, _, relativePath)
+    )
+  }
 }
 
 class ResourceRoot extends Container {
@@ -48,7 +50,7 @@ class ResourceRoot extends Container {
 
   ResourceRoot() {
     isAnUnResolvedResourceRoot(webApp, name, path) and
-    Folder::Append<shouldAppend/2>::append(webApp.getWebAppFolder(), path) = this
+    Folder::Resolve<UI5WebAppResolverConfig>::resolve(webApp.getWebAppFolder(), path) = this
   }
 
   string getName() { result = name }
