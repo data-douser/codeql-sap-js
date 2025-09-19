@@ -67,7 +67,6 @@ module XSJSZipSlip implements DataFlow::StateConfigSig {
     start = start and
     preState = "$.util.Zip uninitialized" and
     end instanceof XSJSZipInstance and
-    // start.getBasicBlock().getASuccessor+() = end.getBasicBlock() and
     postState = "$.util.Zip initialized"
     or
     /*
