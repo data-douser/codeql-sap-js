@@ -3,7 +3,7 @@ import javascript as stdlib
 signature class BindingStringReaderSig {
   string getBindingString();
 
-  stdlib::DbLocation getLocation();
+  stdlib::Location getLocation();
 
   // Get a dataflow node associated with the binding string, if any.
   // Note that not all location from which we can obtain a binding string
